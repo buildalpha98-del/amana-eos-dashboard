@@ -1,8 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { withApiHandler } from "@/lib/api-handler";
-import { prisma } from "@/lib/prisma";
-import { logger } from "@/lib/logger";
+import { NextResponse } from "next/server";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
+import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 
 const subscribeSchema = z.object({
@@ -13,18 +12,28 @@ const subscribeSchema = z.object({
       auth: z.string().min(1),
     }),
   }),
-  userType: z.enum(["staff", "parent"]),
+  // Legacy fields from the pre-auth body shape. Accepted so old clients
+  // still validate, but NEVER trusted — the subscription is always bound
+  // to the session user (the old route let any caller register a push
+  // subscription against any userId/familyId).
+  userType: z.enum(["staff", "parent"]).optional(),
   userId: z.string().optional(),
   familyId: z.string().optional(),
 });
 
+const unsubscribeSchema = z.object({
+  endpoint: z.string().url(),
+});
+
 /**
  * POST /api/push/subscribe
- * Register a browser push notification subscription.
- * Wrapped in withApiHandler for rate limiting and error handling.
- * Requires either a userId (staff) or familyId (parent) to link the subscription.
+ * Register a browser push subscription for the signed-in STAFF user.
+ * The userId comes from the session — client-supplied ids are ignored.
+ *
+ * Parents subscribe via `/api/parent/push/subscription` (withParentAuth);
+ * that flow is separate and untouched.
  */
-export const POST = withApiHandler(async (req: NextRequest) => {
+export const POST = withApiAuth(async (req, session) => {
   const body = await parseJsonBody(req);
   const parsed = subscribeSchema.safeParse(body);
 
@@ -32,15 +41,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     throw ApiError.badRequest("Invalid subscription data");
   }
 
-  const { subscription, userType, userId, familyId } = parsed.data;
-
-  // Must provide the matching ID for the user type
-  if (userType === "staff" && !userId) {
-    throw ApiError.badRequest("userId is required for staff subscriptions");
-  }
-  if (userType === "parent" && !familyId) {
-    throw ApiError.badRequest("familyId is required for parent subscriptions");
-  }
+  const { subscription } = parsed.data;
 
   await prisma.pushSubscription.upsert({
     where: { endpoint: subscription.endpoint },
@@ -48,15 +49,35 @@ export const POST = withApiHandler(async (req: NextRequest) => {
       endpoint: subscription.endpoint,
       p256dh: subscription.keys.p256dh,
       auth: subscription.keys.auth,
-      userId: userType === "staff" ? (userId ?? null) : null,
-      familyId: userType === "parent" ? (familyId ?? null) : null,
+      userId: session.user.id,
+      familyId: null,
     },
     update: {
       p256dh: subscription.keys.p256dh,
       auth: subscription.keys.auth,
-      userId: userType === "staff" ? (userId ?? null) : null,
-      familyId: userType === "parent" ? (familyId ?? null) : null,
+      userId: session.user.id,
+      familyId: null,
     },
+  });
+
+  return NextResponse.json({ success: true });
+});
+
+/**
+ * DELETE /api/push/subscribe
+ * Remove a push subscription. Scoped to the session user's own rows so an
+ * endpoint URL can never be used to delete another user's subscription.
+ */
+export const DELETE = withApiAuth(async (req, session) => {
+  const body = await parseJsonBody(req);
+  const parsed = unsubscribeSchema.safeParse(body);
+
+  if (!parsed.success) {
+    throw ApiError.badRequest("Invalid unsubscribe data");
+  }
+
+  await prisma.pushSubscription.deleteMany({
+    where: { endpoint: parsed.data.endpoint, userId: session.user.id },
   });
 
   return NextResponse.json({ success: true });

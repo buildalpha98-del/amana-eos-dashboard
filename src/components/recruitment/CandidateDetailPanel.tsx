@@ -125,6 +125,13 @@ export function CandidateDetailPanel({ candidateId, vacancyId, onClose }: Props)
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </option>
             ))}
+            {/* Terminal stage stamped by convert-to-employee — shown but not
+                offered for manual selection. */}
+            {displayStage === "hired" && (
+              <option value="hired" disabled>
+                Hired
+              </option>
+            )}
           </select>
         </div>
 

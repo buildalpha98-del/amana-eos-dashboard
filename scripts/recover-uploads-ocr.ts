@@ -59,7 +59,7 @@ async function main() {
   function match(text: string) {
     for (const [re, email] of ALIAS) { if (re.test(text)) { const u = userByEmail.get(email); if (u) return { u, how: "alias" }; } }
     const t = norm(text);
-    let hit = keys.find((k) => k.full.length >= 8 && (t.includes(k.full) || t.includes(k.rev)));
+    const hit = keys.find((k) => k.full.length >= 8 && (t.includes(k.full) || t.includes(k.rev)));
     if (hit) return { u: hit.u, how: "fullname" };
     // both first + surname present anywhere, and uniquely
     const both = keys.filter((k) => k.sur.length >= 5 && k.first.length >= 3 && t.includes(k.sur) && t.includes(k.first));

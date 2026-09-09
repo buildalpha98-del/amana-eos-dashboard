@@ -63,13 +63,15 @@ export function RockDetailPanel({
   const [description, setDescription] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Sync local state when rock data loads or changes
-  useEffect(() => {
-    if (rock) {
-      setTitle(rock.title);
-      setDescription(rock.description || "");
-    }
-  }, [rock]);
+  // Sync local state when rock data loads or changes (render-time sync
+  // guarded by the last-synced rock object, per React's "adjusting state
+  // when props change" pattern)
+  const [syncedRock, setSyncedRock] = useState<typeof rock>(undefined);
+  if (rock && rock !== syncedRock) {
+    setSyncedRock(rock);
+    setTitle(rock.title);
+    setDescription(rock.description || "");
+  }
 
   // ── Milestone state & mutations ──
   const [showAddMilestone, setShowAddMilestone] = useState(false);

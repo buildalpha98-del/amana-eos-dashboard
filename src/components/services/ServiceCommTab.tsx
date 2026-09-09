@@ -24,7 +24,13 @@ import {
   useMarkAnnouncementRead,
   useCascadeMessages,
   useAcknowledgeCascade,
+  type CommunicationAnnouncement,
+  type CascadeMessageRecord,
 } from "@/hooks/useCommunication";
+
+type FeedItem =
+  | { type: "announcement"; id: string; date: string; data: CommunicationAnnouncement }
+  | { type: "cascade"; id: string; date: string; data: CascadeMessageRecord };
 
 function getPriorityConfig(priority: string) {
   switch (priority) {
@@ -53,7 +59,7 @@ function timeAgo(dateStr: string): string {
 
 export function ServiceCommTab({ serviceId }: { serviceId: string }) {
   const { data: session } = useSession();
-  const userId = (session?.user as any)?.id;
+  const userId = session?.user?.id;
 
   // Fetch org-wide announcements + service-specific ones
   const { data: announcements, isLoading: announcementsLoading } = useAnnouncements();
@@ -65,7 +71,7 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
 
   // Filter announcements to show: all org-wide + those specific to this service
   const filteredAnnouncements = announcements?.filter(
-    (a: any) => !a.serviceId || a.serviceId === serviceId
+    (a) => !a.serviceId || a.serviceId === serviceId
   ) ?? [];
 
   const handleMarkRead = (id: string) => {
@@ -81,9 +87,9 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
   const isLoading = announcementsLoading || cascadeLoading;
 
   // Build a combined feed sorted by date
-  const feedItems: any[] = [];
+  const feedItems: FeedItem[] = [];
 
-  filteredAnnouncements.forEach((a: any) => {
+  filteredAnnouncements.forEach((a) => {
     feedItems.push({
       type: "announcement",
       id: a.id,
@@ -92,7 +98,7 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
     });
   });
 
-  (cascadeMessages ?? []).forEach((c: any) => {
+  (cascadeMessages ?? []).forEach((c) => {
     feedItems.push({
       type: "cascade",
       id: c.id,

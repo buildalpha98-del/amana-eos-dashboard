@@ -1,6 +1,12 @@
 "use client";
 
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 
@@ -634,7 +640,9 @@ export function useParentPostLikeToggle() {
       // timeline pages.
       await queryClient.cancelQueries({ queryKey: ["parent-timeline"] });
       const previous = queryClient.getQueryData(["parent-timeline"]);
-      queryClient.setQueryData(["parent-timeline"], (old: any) => {
+      queryClient.setQueryData(
+        ["parent-timeline"],
+        (old: InfiniteData<TimelineResponse> | undefined) => {
         if (!old?.pages) return old;
         return {
           ...old,
@@ -651,7 +659,8 @@ export function useParentPostLikeToggle() {
             ),
           })),
         };
-      });
+      },
+      );
       return { previous };
     },
     onError: (err: Error, _vars, context) => {

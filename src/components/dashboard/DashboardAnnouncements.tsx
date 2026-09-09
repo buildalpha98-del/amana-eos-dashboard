@@ -1,6 +1,9 @@
 "use client";
 
-import { useAnnouncements } from "@/hooks/useCommunication";
+import {
+  useAnnouncements,
+  type CommunicationAnnouncement,
+} from "@/hooks/useCommunication";
 import {
   Bell,
   AlertTriangle,
@@ -12,6 +15,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+
+/** Rows without a publishedAt are filtered out before rendering. */
+type PublishedAnnouncement = CommunicationAnnouncement & {
+  publishedAt: string;
+};
 
 function getPriorityConfig(priority: string) {
   switch (priority) {
@@ -45,8 +53,8 @@ export function DashboardAnnouncements() {
   // Take the latest 5 published announcements (pinned first, then by date)
   const latest = announcements
     ? [...announcements]
-        .filter((a: any) => a.publishedAt)
-        .sort((a: any, b: any) => {
+        .filter((a): a is PublishedAnnouncement => Boolean(a.publishedAt))
+        .sort((a, b) => {
           if (a.pinned && !b.pinned) return -1;
           if (!a.pinned && b.pinned) return 1;
           return (
@@ -90,7 +98,7 @@ export function DashboardAnnouncements() {
         </div>
       ) : (
         <div className="divide-y divide-border/30">
-          {latest.map((announcement: any) => {
+          {latest.map((announcement) => {
             const priority = getPriorityConfig(announcement.priority);
             const PriorityIcon = priority.icon;
             const publishedDate = new Date(

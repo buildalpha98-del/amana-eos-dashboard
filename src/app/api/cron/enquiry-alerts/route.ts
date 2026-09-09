@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { MarketingTaskPriority } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
@@ -166,7 +167,7 @@ async function createAlertTask({
 }: {
   title: string;
   serviceId: string;
-  priority: string;
+  priority: MarketingTaskPriority;
   dueDate: Date;
 }) {
   // Avoid duplicate tasks with the same title created today
@@ -184,7 +185,7 @@ async function createAlertTask({
     data: {
       title,
       serviceId,
-      priority: priority as any,
+      priority,
       status: "todo",
       dueDate,
     },

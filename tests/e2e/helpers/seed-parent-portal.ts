@@ -138,7 +138,15 @@ export async function saveParentSession(
   const path = await import("path");
   await fs.mkdir(path.dirname(storagePath), { recursive: true });
 
-  const ctx = await pwRequest.newContext({ baseURL });
+  // request.newContext() inside the test runner inherits `use` options from
+  // the enclosing suite — including test.use({ storageState: <this file> }).
+  // On a fresh run the file doesn't exist yet (we're creating it right now),
+  // so inheriting throws ENOENT before the verify call ever fires. Passing an
+  // explicit empty state overrides the inherited path.
+  const ctx = await pwRequest.newContext({
+    baseURL,
+    storageState: { cookies: [], origins: [] },
+  });
   try {
     const res = await ctx
       .get(`/api/parent/auth/verify?token=${seeded.rawToken}`, {

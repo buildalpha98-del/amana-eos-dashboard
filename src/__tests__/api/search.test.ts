@@ -124,7 +124,9 @@ describe("GET /api/search — role scoping", () => {
     expect(prismaMock.issue.findMany).not.toHaveBeenCalled();
     expect(prismaMock.child.findMany).not.toHaveBeenCalled();
     expect(prismaMock.lead.findMany).not.toHaveBeenCalled();
-    expect(prismaMock.todo.findMany.mock.calls[0][0].where.assigneeId).toBe("staff-1");
+    // 2026-08-31: the todo search where is now AND-composed with the
+    // private-todo visibility clause; the staff self-filter sits in AND[0].
+    expect(prismaMock.todo.findMany.mock.calls[0][0].where.AND[0].assigneeId).toBe("staff-1");
     // Email is masked for non-admin viewers, matching the directory.
     const person = body.find((r: { type: string }) => r.type === "person");
     expect(person.subtitle).not.toContain("@");

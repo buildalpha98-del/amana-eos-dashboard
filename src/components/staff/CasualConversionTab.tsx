@@ -557,7 +557,7 @@ function RespondModal({
             />
             <p className="mt-1 text-xs text-muted">
               You can record the response now and link the new contract once
-              it's issued (Contracts → New contract).
+              it&apos;s issued (Contracts → New contract).
             </p>
           </div>
         )}

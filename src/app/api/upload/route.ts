@@ -3,31 +3,15 @@ import path from "path";
 import { uploadFile } from "@/lib/storage";
 import { validateFileContent } from "@/lib/file-validation";
 import { withApiAuth } from "@/lib/server-auth";
+import {
+  SERVERLESS_BODY_LIMIT,
+  UPLOAD_ALLOWED_MIMES,
+} from "@/lib/upload-strategy";
 
-const ALLOWED_TYPES = [
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "application/vnd.ms-excel",
-  "application/vnd.ms-powerpoint",
-  "text/plain",
-  "text/csv",
-  "image/png",
-  "image/jpeg",
-  "image/gif",
-  "image/webp",
-  // iPhone defaults to HEIC for photos; staff uploading a photo of a cert
-  // would otherwise hit a silent 400 here even though the image is valid.
-  "image/heic",
-  "image/heif",
-  // Common scanner / older-camera formats — still legitimate cert photos.
-  "image/tiff",
-  "image/bmp",
-];
-
-const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+// Files above the serverless body cap never reach this handler — Vercel
+// rejects them at the edge with a bare 413. The client routes those to
+// /api/upload/blob-token instead, so this route only ever sees small files.
+const MAX_SIZE = SERVERLESS_BODY_LIMIT;
 
 export const POST = withApiAuth(async (req, session) => {
   const formData = await req.formData();
@@ -37,7 +21,7 @@ export const POST = withApiAuth(async (req, session) => {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
-  if (!ALLOWED_TYPES.includes(file.type)) {
+  if (!(UPLOAD_ALLOWED_MIMES as readonly string[]).includes(file.type)) {
     return NextResponse.json(
       { error: `File type ${file.type} is not allowed` },
       { status: 400 }
@@ -46,7 +30,10 @@ export const POST = withApiAuth(async (req, session) => {
 
   if (file.size > MAX_SIZE) {
     return NextResponse.json(
-      { error: "File exceeds 10MB limit" },
+      {
+        error:
+          "File is too large for this route — the client should have routed it to direct upload.",
+      },
       { status: 400 }
     );
   }

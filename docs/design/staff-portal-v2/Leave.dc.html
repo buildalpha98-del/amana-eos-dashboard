@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif; color: #1a1a2e; }
+    a { color: #004E64; text-decoration: none; } a:hover { color: #003D52; }
+  </style>
+</helmet>
+<div style="width: 1440px; height: 900px; background: #FAF8F5; padding: 36px 48px; display: flex; flex-direction: column; gap: 24px; overflow: hidden; box-sizing: border-box;">
+
+  <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+    <div>
+      <div style="font-family: 'Bricolage Grotesque', ui-sans-serif, sans-serif; font-weight: 700; font-size: 26px; letter-spacing: -0.02em;">Leave</div>
+      <div style="font-size: 14px; color: #6b6b78; margin-top: 4px;">Balances live from payroll. Requests go straight to your manager for approval.</div>
+    </div>
+    <div style="background: #004E64; color: #ffffff; border-radius: 10px; padding: 10px 20px; font-size: 14px; font-weight: 600; box-shadow: 0 2px 8px -1px rgba(140,120,90,0.08);">+ Apply for leave</div>
+  </div>
+
+  <!-- Balance cards -->
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+    <div style="background: #ffffff; border: 1px solid #e8e4df; border-radius: 14px; padding: 20px 24px; box-shadow: 0 2px 8px -1px rgba(140,120,90,0.08);">
+      <div style="font-size: 13px; font-weight: 600; color: #6b6b78;">Annual leave</div>
+      <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 6px;">
+        <div style="font-family: 'Bricolage Grotesque', ui-sans-serif, sans-serif; font-weight: 700; font-size: 30px;">64.4 hrs</div>
+        <div style="font-size: 13px; color: #6b6b78;">≈ 8.4 days</div>
+      </div>
+      <div style="height: 6px; background: #F2EDE8; border-radius: 999px; margin-top: 12px; overflow: hidden;"><div style="width: 62%; height: 6px; background: #004E64; border-radius: 999px;"></div></div>
+      <div style="font-size: 12px; color: #6b6b78; margin-top: 8px;">Accruing 2.9 hrs per fortnight</div>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #e8e4df; border-radius: 14px; padding: 20px 24px; box-shadow: 0 2px 8px -1px rgba(140,120,90,0.08);">
+      <div style="font-size: 13px; font-weight: 600; color: #6b6b78;">Personal / carer's leave</div>
+      <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 6px;">
+        <div style="font-family: 'Bricolage Grotesque', ui-sans-serif, sans-serif; font-weight: 700; font-size: 30px;">41.2 hrs</div>
+        <div style="font-size: 13px; color: #6b6b78;">≈ 5.4 days</div>
+      </div>
+      <div style="height: 6px; background: #F2EDE8; border-radius: 999px; margin-top: 12px; overflow: hidden;"><div style="width: 43%; height: 6px; background: #0A7E9E; border-radius: 999px;"></div></div>
+      <div style="font-size: 12px; color: #6b6b78; margin-top: 8px;">Accruing 1.5 hrs per fortnight</div>
+    </div>
+    <div style="background: #FFFDF9; border: 1px dashed #e8e4df; border-radius: 14px; padding: 20px 24px;">
+      <div style="font-size: 13px; font-weight: 600; color: #6b6b78;">Requested leave</div>
+      <div style="display: flex; align-items: center; gap: 10px; margin-top: 12px;">
+        <div style="background: #FFE9D6; color: #8B4513; border-radius: 10px; padding: 8px 12px; font-size: 12px; font-weight: 700; text-align: center; line-height: 1.3;">29 Sep<br>– 3 Oct</div>
+        <div>
+          <div style="font-size: 14px; font-weight: 600;">Annual leave · 5 days</div>
+          <div style="font-size: 12px; color: #6b6b78;">School holidays · waiting on Mirna</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Two-column: apply panel + history -->
+  <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px; flex: 1; min-height: 0;">
+
+    <!-- Apply panel -->
+    <div style="background: #ffffff; border: 1px solid #e8e4df; border-radius: 14px; padding: 24px; box-shadow: 0 2px 8px -1px rgba(140,120,90,0.08); display: flex; flex-direction: column; gap: 14px;">
+      <div style="font-size: 15px; font-weight: 700;">Apply for leave</div>
+      <div>
+        <div style="font-size: 12px; font-weight: 600; color: #6b6b78; margin-bottom: 6px;">Leave type</div>
+        <div style="border: 1px solid #e8e4df; border-radius: 10px; padding: 10px 14px; font-size: 14px; display: flex; justify-content: space-between; align-items: center;">Annual leave <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+        <div>
+          <div style="font-size: 12px; font-weight: 600; color: #6b6b78; margin-bottom: 6px;">First day</div>
+          <div style="border: 1px solid #e8e4df; border-radius: 10px; padding: 10px 14px; font-size: 14px;">Mon 17 Nov</div>
+        </div>
+        <div>
+          <div style="font-size: 12px; font-weight: 600; color: #6b6b78; margin-bottom: 6px;">Last day</div>
+          <div style="border: 1px solid #e8e4df; border-radius: 10px; padding: 10px 14px; font-size: 14px;">Tue 18 Nov</div>
+        </div>
+      </div>
+      <div style="background: #E6F3F7; border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-size: 13px; color: #004E64;">This will use <strong>15.2 hrs</strong> · leaves <strong>49.2 hrs</strong></div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#004E64" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+      </div>
+      <div>
+        <div style="font-size: 12px; font-weight: 600; color: #6b6b78; margin-bottom: 6px;">Note for your manager (optional)</div>
+        <div style="border: 1px solid #e8e4df; border-radius: 10px; padding: 10px 14px; font-size: 14px; color: #b9b4ac; min-height: 44px;">Long weekend away…</div>
+      </div>
+      <div style="background: #004E64; color: #ffffff; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 600; text-align: center; margin-top: auto;">Submit request</div>
+    </div>
+
+    <!-- History -->
+    <div style="background: #ffffff; border: 1px solid #e8e4df; border-radius: 14px; box-shadow: 0 2px 8px -1px rgba(140,120,90,0.08); overflow: hidden;">
+      <div style="padding: 18px 24px; border-bottom: 1px solid #e8e4df; font-size: 15px; font-weight: 700;">Your requests</div>
+      <div style="display: flex; flex-direction: column;">
+        <div style="display: flex; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid #F2EDE8;">
+          <span style="background: #FFE9D6; color: #8B4513; border-radius: 999px; padding: 4px 12px; font-size: 11px; font-weight: 700;">Pending</span>
+          <div style="flex: 1;">
+            <div style="font-size: 14px; font-weight: 600;">Annual leave · 29 Sep – 3 Oct</div>
+            <div style="font-size: 12px; color: #6b6b78;">38.0 hrs · submitted 2 Sep · waiting on Mirna</div>
+          </div>
+          <a href="#" style="font-size: 13px; font-weight: 600; color: #DC2626;">Cancel</a>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid #F2EDE8;">
+          <span style="background: #D4F4D4; color: #1F5E1F; border-radius: 999px; padding: 4px 12px; font-size: 11px; font-weight: 700;">Approved</span>
+          <div style="flex: 1;">
+            <div style="font-size: 14px; font-weight: 600;">Personal leave · 12 Aug</div>
+            <div style="font-size: 12px; color: #6b6b78;">7.6 hrs · approved 11 Aug by Mirna</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid #F2EDE8;">
+          <span style="background: #D4F4D4; color: #1F5E1F; border-radius: 999px; padding: 4px 12px; font-size: 11px; font-weight: 700;">Approved</span>
+          <div style="flex: 1;">
+            <div style="font-size: 14px; font-weight: 600;">Annual leave · 7 – 11 Jul</div>
+            <div style="font-size: 12px; color: #6b6b78;">38.0 hrs · approved 20 Jun by Mirna</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; padding: 16px 24px;">
+          <span style="background: #FFE4E4; color: #8B2525; border-radius: 999px; padding: 4px 12px; font-size: 11px; font-weight: 700;">Declined</span>
+          <div style="flex: 1;">
+            <div style="font-size: 14px; font-weight: 600;">Annual leave · 14 Apr</div>
+            <div style="font-size: 12px; color: #6b6b78;">7.6 hrs · "Vacation care week — can we find another date?"</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

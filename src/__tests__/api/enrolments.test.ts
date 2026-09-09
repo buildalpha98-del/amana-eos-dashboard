@@ -52,14 +52,16 @@ vi.mock("@/lib/api-error", () => {
   };
 });
 
-vi.mock("@/lib/api-handler", () => ({
-  handleApiError: vi.fn((_req: unknown, err: unknown, reqId: string) => {
-    const { NextResponse } = require("next/server");
-    const status = (err as any)?.statusCode || 500;
-    const message = (err as any)?.message || "Internal error";
-    return NextResponse.json({ error: message }, { status });
-  }),
-}));
+vi.mock("@/lib/api-handler", async () => {
+  const { NextResponse } = await import("next/server");
+  return {
+    handleApiError: vi.fn((_req: unknown, err: unknown, reqId: string) => {
+      const status = (err as any)?.statusCode || 500;
+      const message = (err as any)?.message || "Internal error";
+      return NextResponse.json({ error: message }, { status });
+    }),
+  };
+});
 
 import { GET } from "@/app/api/enrolments/route";
 import {

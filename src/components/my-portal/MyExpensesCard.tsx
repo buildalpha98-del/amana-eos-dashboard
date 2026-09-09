@@ -16,14 +16,18 @@
  * banner if Submit without one).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Receipt, X, AlertTriangle, Paperclip } from "lucide-react";
 import { fetchApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 
-interface ExpenseLineItem {
+// Static "store" for the is-mounted check — never notifies, only the
+// server/client snapshots differ.
+const mountedSubscribe = () => () => {};
+
+export interface ExpenseLineItem {
   id: number;
   expenseCategoryId: number;
   expenseCategoryName: string | null;
@@ -32,19 +36,19 @@ interface ExpenseLineItem {
   dateIncurred: string;
 }
 
-interface Attachment {
+export interface ExpenseAttachment {
   id: number;
   friendlyName: string | null;
   url: string | null;
   isInfected: boolean;
 }
 
-interface ExpenseRequest {
+export interface ExpenseRequest {
   id: number;
   status: string;
   description: string | null;
   lineItems: ExpenseLineItem[];
-  attachments: Attachment[];
+  attachments: ExpenseAttachment[];
   dateCreated: string | null;
   statusUpdateNotes: string | null;
   warning?: string; // tacked on by the POST handler for partial-success
@@ -56,7 +60,7 @@ interface ExpenseCategory {
   description: string | null;
 }
 
-function statusBadgeClass(status: string): string {
+export function statusBadgeClass(status: string): string {
   const s = status.toLowerCase();
   if (s.startsWith("approv")) return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
   if (s.startsWith("reject") || s.startsWith("declin"))
@@ -71,7 +75,7 @@ function todayIso(): string {
   return new Date(d.getTime() - tz).toISOString().slice(0, 10);
 }
 
-function formatHumanDate(iso: string | null): string {
+export function formatHumanDate(iso: string | null): string {
   if (!iso) return "";
   const datePart = iso.slice(0, 10);
   const d = new Date(`${datePart}T00:00:00`);
@@ -83,7 +87,7 @@ function formatHumanDate(iso: string | null): string {
   });
 }
 
-function formatCurrency(n: number): string {
+export function formatCurrency(n: number): string {
   return n.toLocaleString("en-AU", {
     style: "currency",
     currency: "AUD",
@@ -93,7 +97,7 @@ function formatCurrency(n: number): string {
 
 /** Total a request's line items — v1 always has 1 line, but render
  *  defensively in case a manager edits in EH to add more. */
-function totalAmount(req: ExpenseRequest): number {
+export function totalAmount(req: ExpenseRequest): number {
   return req.lineItems.reduce((sum, li) => sum + (li.amount ?? 0), 0);
 }
 
@@ -107,6 +111,8 @@ export function MyExpensesCard() {
   >({
     queryKey: ["my-expenses"],
     queryFn: () => fetchApi("/api/my-portal/expenses"),
+    // Inline error/empty states cover this card — skip the global toast.
+    meta: { suppressGlobalErrorToast: true },
     staleTime: 60_000,
     retry: (n, e) => {
       const s = (e as ApiResponseError)?.status;
@@ -149,8 +155,8 @@ export function MyExpensesCard() {
         </p>
       ) : errorStatus === 404 ? (
         <p className="text-sm text-muted">
-          Your account isn&apos;t linked to a payroll record yet. Contact your
-          manager so they can set you up in Settings → Team.
+          Your account isn&apos;t linked to a payroll record yet. Ask your
+          manager to set this up — it only takes a minute.
         </p>
       ) : error ? (
         <p className="text-sm text-red-600">
@@ -241,15 +247,24 @@ export function MyExpensesCard() {
 
 // ─── Submit-expense modal ────────────────────────────────────────────
 
-interface SubmitExpenseModalProps {
+export interface SubmitExpenseModalProps {
   onClose: () => void;
   /** Called on successful POST. `warning` is non-null when the request
    *  was created but the receipt upload failed (so we surface a
    *  destructive toast rather than a happy one). */
   onSubmitted: (warning: string | null) => void;
+  /** Optional HTML `capture` hint for the receipt file input — pass
+   *  "environment" to open the phone's rear camera directly (used by
+   *  the /my-expenses "Take photo" hero button). Omitted = unchanged
+   *  default picker behaviour. */
+  capture?: "environment" | "user";
 }
 
-function SubmitExpenseModal({ onClose, onSubmitted }: SubmitExpenseModalProps) {
+export function SubmitExpenseModal({
+  onClose,
+  onSubmitted,
+  capture,
+}: SubmitExpenseModalProps) {
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [amount, setAmount] = useState("");
@@ -328,8 +343,11 @@ function SubmitExpenseModal({ onClose, onSubmitted }: SubmitExpenseModalProps) {
   // switch height to `dvh` (dynamic viewport height) so the footer with
   // the Submit button stays reachable behind iOS Safari's URL bar —
   // reports of "the submit button isn't clickable" on iPhone.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(
+    mountedSubscribe,
+    () => true, // client: mounted
+    () => false // server: not mounted
+  );
   if (!mounted) return null;
 
   const modal = (
@@ -462,6 +480,7 @@ function SubmitExpenseModal({ onClose, onSubmitted }: SubmitExpenseModalProps) {
               id="expense-receipt"
               type="file"
               accept="application/pdf,image/jpeg,image/jpg,image/png,image/heic,image/heif,image/webp"
+              capture={capture}
               onChange={(e) => setReceipt(e.target.files?.[0] ?? null)}
               disabled={submitMutation.isPending}
               className="block w-full text-sm text-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-brand/10 file:text-brand hover:file:bg-brand/20"

@@ -8,15 +8,51 @@ on:
   schedule:
     # Nightly at 2am UTC — runs E2E tests
     - cron: "0 2 * * *"
+  # The e2e job gates on workflow_dispatch but the trigger was never declared,
+  # so E2E could only ever run on the nightly cron — nobody could re-run it to
+  # confirm a fix. Declaring it here makes the existing condition reachable.
+  workflow_dispatch:
 
+# Push/PR runs dedupe per ref — a newer push supersedes the running one. But
+# dispatch and schedule runs get a unique group (run_id): they exist to produce
+# a verdict (manual E2E validation, the nightly), and letting a routine merge
+# cancel them is how a type-broken main went unnoticed across 4 merges on
+# 2026-09-03 — every main run (including the would-be nightly signal) was
+# cancelled before its E2E build step could fail.
 concurrency:
-  group: tests-${{ github.ref }}
+  group: tests-${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && github.run_id || github.ref }}
   cancel-in-progress: true
 
 env:
   NODE_VERSION: "20"
 
 jobs:
+  # ── Lint (every push) ──────────────────────────────────────
+  # Errors fail the build; warnings (unused-vars, design-token rails,
+  # exhaustive-deps) are visible in the log but non-blocking. The repo was
+  # brought to zero lint errors on 2026-09-03 — this job keeps it there.
+  # Scoped to src + tests (via `npm run lint`) so CI and local runs lint the
+  # same set: a bare `eslint .` on a developer machine also sweeps generated
+  # dirs a clean CI checkout never has (.claude/worktrees/ checkouts,
+  # coverage/, playwright artifacts) and drowns real findings in tens of
+  # thousands of phantom errors.
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: ESLint (src + tests)
+        run: npm run lint
+
   # ── Unit Tests (every push) ────────────────────────────────
   unit:
     name: Unit Tests
@@ -99,7 +135,11 @@ jobs:
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # 130 specs run serially (workers: 1, fullyParallel: false) with retries: 2
+    # in CI, so a handful of genuine failures can each burn 3 x the 60s test
+    # timeout. 40 minutes was not enough once the suite actually started
+    # running; the job was killed mid-suite with no usable result.
+    timeout-minutes: 60
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
     services:
@@ -124,6 +164,14 @@ jobs:
       NEXTAUTH_URL: http://localhost:3000
       CRON_SECRET: test-cron-secret
       COWORK_API_KEY: test-cowork-api-key
+      # parent-auth.ts throws when this is unset, so any spec touching a parent
+      # session fails at import. Must be >= 32 bytes for HS256.
+      PARENT_JWT_SECRET: test-parent-jwt-secret-at-least-32-chars-long
+      # playwright.config.ts only injects MOCK_PDF via its `webServer` block,
+      # which is disabled under CI — so CI has to set it itself, as that file's
+      # own comment spells out. Without it the contract-issue route tries to
+      # launch a nested Chromium to render a PDF.
+      MOCK_PDF: "1"
       PLAYWRIGHT_BASE_URL: http://localhost:3000
 
     steps:
@@ -147,8 +195,14 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      # `next build` directly, not `npm run build`. The schema is created by
+      # `prisma db push` above, which leaves no migration history — so a
+      # `prisma migrate deploy` in the build would see a populated schema with
+      # an empty _prisma_migrations table and abort with P3005. The build step
+      # has no business running migrations anyway; production migrations come
+      # from vercel.json's buildCommand.
       - name: Build application
-        run: npm run build
+        run: npx next build
 
       - name: Run E2E tests
         run: |

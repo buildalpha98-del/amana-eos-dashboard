@@ -23,6 +23,7 @@ import {
 } from "@/hooks/useLMS";
 import { ExitSurveyDashboard } from "@/components/exit-surveys/ExitSurveyDashboard";
 import { OnboardingPacksTab } from "@/components/onboarding/OnboardingPacksTab";
+import { OffboardingPacksTab } from "@/components/offboarding/OffboardingPacksTab";
 import { LmsCoursesTab } from "@/components/onboarding/LmsCoursesTab";
 import { InductionAdminTab } from "@/components/induction/InductionAdminTab";
 import { TrainingComplianceTab } from "@/components/onboarding/TrainingComplianceTab";
@@ -42,6 +43,7 @@ import {
   Download,
   AlertTriangle,
   FileSignature,
+  UserX,
 } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -66,9 +68,9 @@ interface ServiceOption {
 // Single source of truth for the tab ids — used for the state union, the
 // deep-link allow-list, and the URL round-trip. Admin-only tabs are gated so
 // a non-admin deep link can't land on a blank body.
-const TAB_IDS = ["onboarding", "lms", "induction", "assignments", "records", "compliance", "surveys", "exit-surveys"] as const;
+const TAB_IDS = ["onboarding", "lms", "induction", "assignments", "records", "compliance", "surveys", "offboarding", "exit-surveys"] as const;
 type TabId = (typeof TAB_IDS)[number];
-const ADMIN_ONLY_TABS: readonly TabId[] = ["induction", "assignments", "records", "compliance", "surveys"];
+const ADMIN_ONLY_TABS: readonly TabId[] = ["induction", "assignments", "records", "compliance", "surveys", "offboarding"];
 
 function isTabId(value: string): value is TabId {
   return (TAB_IDS as readonly string[]).includes(value);
@@ -120,13 +122,28 @@ function OnboardingPageInner() {
   const [expandedEnrollmentId, setExpandedEnrollmentId] = useState<string | null>(null);
 
   // Data
-  const { data: packs = [], isLoading: packsLoading } = useOnboardingPacks();
+  const {
+    data: packs = [],
+    isLoading: packsLoading,
+    error: packsError,
+    refetch: refetchPacks,
+  } = useOnboardingPacks();
   // Only admin-tier roles see all assignments; everyone else sees only their own.
   // Backend enforces this same rule too (defence-in-depth) — see /api/onboarding/assign.
-  const { data: assignments = [], isLoading: assignmentsLoading } = useOnboardingAssignments(
+  const {
+    data: assignments = [],
+    isLoading: assignmentsLoading,
+    error: assignmentsError,
+    refetch: refetchAssignments,
+  } = useOnboardingAssignments(
     isAdmin ? undefined : session?.user?.id
   );
-  const { data: courses = [], isLoading: coursesLoading } = useLMSCourses();
+  const {
+    data: courses = [],
+    isLoading: coursesLoading,
+    error: coursesError,
+    refetch: refetchCourses,
+  } = useLMSCourses();
   const { data: users = [] } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
     queryFn: async () => {
@@ -321,7 +338,25 @@ function OnboardingPageInner() {
     });
   };
 
-  const isLoading = packsLoading || assignmentsLoading || coursesLoading;
+  // Error banner — dismissable, with a retry that re-fires whichever of the
+  // three primary queries failed.
+  const [errorBannerDismissed, setErrorBannerDismissed] = useState(false);
+  const anyQueryError = packsError || assignmentsError || coursesError;
+  const handleRetryQueries = () => {
+    setErrorBannerDismissed(false);
+    if (packsError) void refetchPacks();
+    if (assignmentsError) void refetchAssignments();
+    if (coursesError) void refetchCourses();
+  };
+
+  // Only block the page on the queries the ACTIVE tab actually needs —
+  // tabs like Induction / Compliance / Surveys / Exit Surveys fetch their
+  // own data and should render immediately.
+  const isLoading =
+    (activeTab === "onboarding" && (packsLoading || assignmentsLoading)) ||
+    (activeTab === "lms" && coursesLoading) ||
+    (activeTab === "assignments" && (coursesLoading || assignmentsLoading)) ||
+    (activeTab === "records" && assignmentsLoading);
 
   if (isLoading) {
     return (
@@ -336,6 +371,27 @@ function OnboardingPageInner() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      {anyQueryError && !errorBannerDismissed && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-lg">
+          <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+          <p className="text-sm text-rose-800 dark:text-rose-300">
+            Some data failed to load —{" "}
+            <button
+              onClick={handleRetryQueries}
+              className="font-medium underline hover:no-underline"
+            >
+              retry
+            </button>
+          </p>
+          <button
+            onClick={() => setErrorBannerDismissed(true)}
+            aria-label="Dismiss error"
+            className="ml-auto text-rose-400 hover:text-rose-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
       <PageHeader
         title="Onboarding & Training"
         description={isStaff
@@ -480,6 +536,18 @@ function OnboardingPageInner() {
             Surveys
           </button>
         )}
+        {isAdmin && (
+          <button
+            onClick={() => changeTab("offboarding")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
+              activeTab === "offboarding" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
+            )}
+          >
+            <UserX className="w-4 h-4" />
+            Offboarding
+          </button>
+        )}
         <button
           onClick={() => changeTab("exit-surveys")}
           className={cn(
@@ -575,6 +643,10 @@ function OnboardingPageInner() {
       )}
       {/* Surveys Tab (generic Microsoft-Forms-style builder) */}
       {activeTab === "surveys" && isAdmin && <SurveysTab />}
+
+      {/* Offboarding Tab — self-contained (fetches its own data, so the
+          page's shared loading gate deliberately excludes it). */}
+      {activeTab === "offboarding" && isAdmin && <OffboardingPacksTab />}
 
       {/* Exit Surveys Tab */}
       {activeTab === "exit-surveys" && (

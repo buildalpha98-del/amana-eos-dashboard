@@ -294,7 +294,7 @@ export const GET = withApiHandler(async (req) => {
         externalId: emailResult.messageId || null,
         recipientCount: emailResult.sent.length,
         status: emailResult.sent.length > 0 ? "sent" : "failed",
-        payload: { weekEnding, summary } as any,
+        payload: { weekEnding, summary },
       },
     });
 

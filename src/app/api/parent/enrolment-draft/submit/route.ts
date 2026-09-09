@@ -32,6 +32,7 @@ import {
 } from "@/lib/email-templates/parent-account";
 import { matchSchoolToService } from "@/lib/school-service-match";
 import { cancelPreEnrolmentNurture } from "@/lib/nurture-scheduler";
+import { bookingGridFromSessions } from "@/lib/booking-grid";
 import {
   draftSubmittable,
   firstIncompleteStep,
@@ -168,6 +169,29 @@ export const POST = withParentAuth(async (req, ctx) => {
     gender: me.gender ?? "",
   };
 
+  /**
+   * Translate the parent's booking grid into the shape the DASHBOARD reads.
+   *
+   * The mapping itself lives in src/lib/booking-grid.ts, because the
+   * backfill for enrolments submitted before this existed has to make
+   * exactly the same translation — two copies is how they drift.
+   */
+  const bookingGrid = bookingGridFromSessions(billing.sessions);
+
+  // A draft started before the booking grid existed stored a flat day list
+  // with no way to tell WHICH session those days belong to. Guessing would
+  // put a child on the wrong session's roll, so it goes to staff — the
+  // same call the unmatched-school branch below makes.
+  if (
+    bookingGrid.sessionTypes.length === 0 &&
+    (billing.days ?? []).length > 0
+  ) {
+    logger.warn("Enrolment: pre-grid booking days, session type unknown", {
+      accountId,
+      days: billing.days,
+    });
+  }
+
   const enrichedChildren = children.map((c: DraftChild) => ({
     ...c,
     // Children inherit the account holder's address unless we ever collect
@@ -200,17 +224,10 @@ export const POST = withParentAuth(async (req, ctx) => {
     bookingPrefs: {
       bookingType: billing.bookingType ?? "",
       startDate: billing.startDate ?? "",
-      // Per-program selections from the booking grid.
+      // Per-program selections from the booking grid, kept verbatim so the
+      // parent's own answer survives however the canonical shape evolves.
       sessions: billing.sessions ?? {},
-      // Flattened weekday list, so anything already reading `days` (rosters,
-      // the enrolment PDF) keeps working without knowing about the grid.
-      days: Array.from(
-        new Set([
-          ...(billing.sessions?.beforeSchool ?? []),
-          ...(billing.sessions?.afterSchool ?? []),
-          ...(billing.days ?? []),
-        ]),
-      ),
+      ...bookingGrid,
     },
   }));
 
@@ -551,7 +568,13 @@ export const POST = withParentAuth(async (req, ctx) => {
     }
   }
 
-  const res = NextResponse.json({ ok: true, submissionId: submission.id });
+  // serviceId lets the thank-you page show centre-specific content without
+  // a second round-trip guessing which of the parent's centres this is.
+  const res = NextResponse.json({
+    ok: true,
+    submissionId: submission.id,
+    serviceId: submissionServiceId,
+  });
 
   /**
    * Re-issue the session with the new enrolment attached.

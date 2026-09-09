@@ -15,6 +15,9 @@ import {
   useExportTimesheetToXero,
   useDeleteTimesheet,
   useAddTimesheetEntry,
+  useUpdateTimesheetEntry,
+  useDeleteTimesheetEntry,
+  useBulkApproveTimesheets,
   useTimesheetsSummary,
   useGenerateFromTimeclock,
   type TimeclockGenerateResult,
@@ -40,12 +43,17 @@ import {
   Calendar,
   Filter,
   CalendarDays,
+  Pencil,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/useToast";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { StickyTable } from "@/components/ui/StickyTable";
+import { Button } from "@/components/ui/Button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -132,7 +140,14 @@ const SHIFT_TYPE_LABELS: Record<string, string> = {
   shift_asc: "ASC",
   shift_vac: "VAC",
   pd: "PD",
+  shift_admin: "Admin",
+  shift_other: "Other",
 };
+
+// Xero payroll export is a stub — hidden unless explicitly enabled.
+const XERO_EXPORT_ENABLED =
+  process.env.NEXT_PUBLIC_XERO_TIMESHEET_EXPORT === "1" ||
+  process.env.NEXT_PUBLIC_XERO_TIMESHEET_EXPORT === "true";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -156,11 +171,13 @@ function formatDateShort(dateStr: string): string {
 }
 
 function formatTime(timeStr: string): string {
-  if (!timeStr) return "";
-  // Handle HH:mm or HH:mm:ss
-  const parts = timeStr.split(":");
-  const h = parseInt(parts[0], 10);
-  const m = parts[1] || "00";
+  // Entries store full DateTimes — normalise ISO or bare HH:mm to HH:mm first.
+  // (The old split(":") parse read the YEAR out of ISO strings and showed
+  // every shift as "10:00 PM".)
+  const hm = toTimeInputValue(timeStr);
+  if (!hm) return "";
+  const h = parseInt(hm.slice(0, 2), 10);
+  const m = hm.slice(3);
   const ampm = h >= 12 ? "PM" : "AM";
   const h12 = h % 12 || 12;
   return `${h12}:${m} ${ampm}`;
@@ -168,6 +185,17 @@ function formatTime(timeStr: string): string {
 
 function formatHours(hours: number): string {
   return hours.toFixed(1);
+}
+
+/** ISO datetime (or legacy bare HH:mm) → value for an <input type="time">. */
+function toTimeInputValue(value: string): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (!isNaN(d.getTime()) && value.includes("T")) {
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }
+  const m = /^(\d{1,2}):(\d{2})/.exec(value);
+  return m ? `${m[1].padStart(2, "0")}:${m[2]}` : "";
 }
 
 function getWeekLabel(weekEnding: string): string {
@@ -706,7 +734,7 @@ function ImportFromOWNAModal({
         const workbook = XLSX.read(data, { type: "binary" });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, {
+        const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
           defval: "",
         });
 
@@ -774,7 +802,7 @@ function ImportFromOWNAModal({
           }
 
           // Handle time values
-          const parseTime = (val: any): string => {
+          const parseTime = (val: unknown): string => {
             if (typeof val === "number") {
               // Excel serial time
               const totalMins = Math.round(val * 24 * 60);
@@ -820,8 +848,12 @@ function ImportFromOWNAModal({
 
         setParsedEntries(validEntries);
         setStep("preview");
-      } catch (err: any) {
-        setParseError(err.message || "Failed to parse file");
+      } catch (err) {
+        setParseError(
+          err instanceof Error && err.message
+            ? err.message
+            : "Failed to parse file"
+        );
       }
     };
     reader.readAsBinaryString(file);
@@ -1116,6 +1148,196 @@ function ImportFromOWNAModal({
 }
 
 /* ------------------------------------------------------------------ */
+/* EditEntryModal                                                      */
+/* ------------------------------------------------------------------ */
+
+function EditEntryModal({
+  entry,
+  open,
+  onOpenChange,
+}: {
+  entry: TimesheetEntryData;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const updateEntry = useUpdateTimesheetEntry();
+  const [form, setForm] = useState(() => ({
+    date: entry.date.slice(0, 10),
+    shiftStart: toTimeInputValue(entry.shiftStart),
+    shiftEnd: toTimeInputValue(entry.shiftEnd),
+    breakMinutes: entry.breakMinutes,
+    shiftType: entry.shiftType,
+    notes: entry.notes ?? "",
+    payRate: entry.payRate === null ? "" : String(entry.payRate),
+    isOvertime: entry.isOvertime,
+  }));
+
+  const inputClass =
+    "w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent";
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await updateEntry.mutateAsync({
+      id: entry.id,
+      date: form.date,
+      shiftStart: `${form.date}T${form.shiftStart}`,
+      shiftEnd: `${form.date}T${form.shiftEnd}`,
+      breakMinutes: Number(form.breakMinutes),
+      shiftType: form.shiftType,
+      notes: form.notes || null,
+      payRate: form.payRate === "" ? null : Number(form.payRate),
+      isOvertime: form.isOvertime,
+    });
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent size="lg">
+        <DialogTitle className="text-lg font-semibold text-foreground mb-4">
+          Edit Entry &mdash; {entry.user?.name || "Unknown"}
+        </DialogTitle>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
+                Date *
+              </label>
+              <input
+                type="date"
+                required
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
+                Shift Type *
+              </label>
+              <select
+                value={form.shiftType}
+                onChange={(e) => setForm({ ...form, shiftType: e.target.value })}
+                className={inputClass}
+              >
+                <option value="shift_bsc">BSC</option>
+                <option value="shift_asc">ASC</option>
+                <option value="shift_vac">VAC</option>
+                <option value="pd">PD</option>
+                <option value="shift_admin">Admin</option>
+                <option value="shift_other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
+                Start *
+              </label>
+              <input
+                type="time"
+                required
+                value={form.shiftStart}
+                onChange={(e) => setForm({ ...form, shiftStart: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
+                End *
+              </label>
+              <input
+                type="time"
+                required
+                value={form.shiftEnd}
+                onChange={(e) => setForm({ ...form, shiftEnd: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
+                Break (mins)
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={form.breakMinutes}
+                onChange={(e) =>
+                  setForm({ ...form, breakMinutes: Number(e.target.value) })
+                }
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
+                Pay Rate ($/hr)
+              </label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={form.payRate}
+                onChange={(e) => setForm({ ...form, payRate: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+            <div className="flex items-end pb-2">
+              <label className="inline-flex items-center gap-2 text-sm font-medium text-foreground/80">
+                <input
+                  type="checkbox"
+                  checked={form.isOvertime}
+                  onChange={(e) =>
+                    setForm({ ...form, isOvertime: e.target.checked })
+                  }
+                  className="w-4 h-4 rounded border-border accent-brand"
+                />
+                Overtime
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
+              Notes
+            </label>
+            <input
+              type="text"
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              className={inputClass}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              loading={updateEntry.isPending}
+              disabled={!form.shiftStart || !form.shiftEnd}
+            >
+              Save Entry
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* TimesheetDetail                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -1126,16 +1348,32 @@ function TimesheetDetail({
   timesheetId: string;
   onClose: () => void;
 }) {
-  const { data: ts, isLoading } = useTimesheet(timesheetId);
+  const { data: ts, isLoading, error, refetch } = useTimesheet(timesheetId);
   const submitTimesheet = useSubmitTimesheet();
   const approveTimesheet = useApproveTimesheet();
   const rejectTimesheet = useRejectTimesheet();
   const exportToXero = useExportTimesheetToXero();
   const deleteTimesheet = useDeleteTimesheet();
+  const deleteEntry = useDeleteTimesheetEntry();
   const [showAddEntry, setShowAddEntry] = useState(false);
+  const [editEntry, setEditEntry] = useState<TimesheetEntryData | null>(null);
+  const [deleteEntryTarget, setDeleteEntryTarget] =
+    useState<TimesheetEntryData | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  if (error || (!isLoading && !ts)) {
+    return (
+      <div className="bg-card rounded-xl border border-border p-6 mt-2">
+        <ErrorState
+          title="Failed to load timesheet"
+          error={error as Error | undefined}
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
+  }
 
   if (isLoading || !ts) {
     return (
@@ -1149,6 +1387,9 @@ function TimesheetDetail({
 
   const entries = ts.entries || [];
   const status = ts.status;
+  // Entries are editable while the sheet is a draft or awaiting approval;
+  // approved/exported sheets are locked (the server 409s them too).
+  const canEditEntries = status === "ts_draft" || status === "submitted";
 
   const handleSubmit = async () => {
     await submitTimesheet.mutateAsync(timesheetId);
@@ -1174,6 +1415,35 @@ function TimesheetDetail({
     onClose();
   };
 
+  const handleDeleteEntry = async () => {
+    if (!deleteEntryTarget) return;
+    await deleteEntry.mutateAsync(deleteEntryTarget.id);
+    setDeleteEntryTarget(null);
+  };
+
+  const handleExportCsv = () => {
+    exportToCsv(
+      `amana-timesheet-${ts.service?.code || ts.id}-${ts.weekEnding.slice(0, 10)}`,
+      entries,
+      [
+        { header: "Staff", accessor: (e) => e.user?.name ?? "" },
+        { header: "Email", accessor: (e) => e.user?.email ?? "" },
+        { header: "Date", accessor: (e) => e.date.slice(0, 10) },
+        { header: "Shift Start", accessor: (e) => toTimeInputValue(e.shiftStart) },
+        { header: "Shift End", accessor: (e) => toTimeInputValue(e.shiftEnd) },
+        { header: "Break (mins)", accessor: (e) => e.breakMinutes },
+        { header: "Hours", accessor: (e) => e.totalHours },
+        {
+          header: "Type",
+          accessor: (e) => SHIFT_TYPE_LABELS[e.shiftType] || e.shiftType,
+        },
+        { header: "Overtime", accessor: (e) => (e.isOvertime ? "Yes" : "No") },
+        { header: "Pay Rate", accessor: (e) => e.payRate ?? "" },
+        { header: "Notes", accessor: (e) => e.notes ?? "" },
+      ],
+    );
+  };
+
   return (
     <div className="bg-card rounded-xl border border-border p-4 sm:p-6 mt-2 animate-in slide-in-from-top-2 duration-200">
       {/* Detail Header */}
@@ -1191,7 +1461,7 @@ function TimesheetDetail({
               {formatDate(ts.weekEnding)}
             </h4>
             <p className="text-xs text-muted mt-0.5">
-              {entries.length} entries &middot; {formatHours(entries.reduce((sum: number, e: any) => sum + (e.totalHours || 0), 0))} hrs
+              {entries.length} entries &middot; {formatHours(entries.reduce((sum, e) => sum + (e.totalHours || 0), 0))} hrs
               total
             </p>
           </div>
@@ -1227,6 +1497,11 @@ function TimesheetDetail({
                   <th className="px-3 py-2.5 text-left font-medium text-muted text-xs">
                     Notes
                   </th>
+                  {canEditEntries && (
+                    <th className="px-3 py-2.5 text-right font-medium text-muted text-xs">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
@@ -1256,6 +1531,24 @@ function TimesheetDetail({
                     <td className="px-3 py-2.5 text-muted text-xs max-w-[200px] truncate">
                       {entry.notes || "\u2014"}
                     </td>
+                    {canEditEntries && (
+                      <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => setEditEntry(entry)}
+                          aria-label={`Edit entry for ${entry.user?.name || "staff member"} on ${formatDate(entry.date)}`}
+                          className="p-1.5 text-muted hover:text-foreground rounded-lg hover:bg-surface transition-colors"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteEntryTarget(entry)}
+                          aria-label={`Delete entry for ${entry.user?.name || "staff member"} on ${formatDate(entry.date)}`}
+                          className="p-1.5 text-muted hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -1349,8 +1642,8 @@ function TimesheetDetail({
           </>
         )}
 
-        {/* Approved: Export to Xero */}
-        {status === "approved" && (
+        {/* Approved: Export to Xero (stub — hidden unless the env flag is on) */}
+        {status === "approved" && XERO_EXPORT_ENABLED && (
           <button
             onClick={handleExportXero}
             disabled={exportToXero.isPending}
@@ -1360,6 +1653,17 @@ function TimesheetDetail({
             {exportToXero.isPending ? "Exporting..." : "Export to Xero"}
           </button>
         )}
+
+        {/* Export the sheet's entries as CSV (any status, needs entries) */}
+        <Button
+          variant="secondary"
+          size="sm"
+          iconLeft={<Download className="w-4 h-4" />}
+          onClick={handleExportCsv}
+          disabled={entries.length === 0}
+        >
+          Export CSV
+        </Button>
 
         {/* Exported: Done state */}
         {status === "exported_to_xero" && (
@@ -1406,6 +1710,35 @@ function TimesheetDetail({
         />
       )}
 
+      {/* Edit Entry Modal — keyed so the form re-seeds per entry */}
+      {editEntry && (
+        <EditEntryModal
+          key={editEntry.id}
+          entry={editEntry}
+          open
+          onOpenChange={(open) => {
+            if (!open) setEditEntry(null);
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        open={deleteEntryTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteEntryTarget(null);
+        }}
+        title="Delete Entry"
+        description={
+          deleteEntryTarget
+            ? `Delete the ${formatDate(deleteEntryTarget.date)} entry for ${deleteEntryTarget.user?.name || "this staff member"}? This action cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleDeleteEntry}
+        loading={deleteEntry.isPending}
+      />
+
       <ConfirmDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
@@ -1442,6 +1775,8 @@ export default function TimesheetsPage() {
   const [showTimeclock, setShowTimeclock] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const bulkApprove = useBulkApproveTimesheets();
 
   // Fetch services for dropdowns
   const { data: services } = useQuery<ServiceOption[]>({
@@ -1450,7 +1785,11 @@ export default function TimesheetsPage() {
       const res = await fetch("/api/services");
       if (!res.ok) return [];
       const data = await res.json();
-      return data.map((s: any) => ({ id: s.id, name: s.name, code: s.code }));
+      return data.map((s: ServiceOption) => ({
+        id: s.id,
+        name: s.name,
+        code: s.code,
+      }));
     },
   });
 
@@ -1464,7 +1803,7 @@ export default function TimesheetsPage() {
     return Object.keys(f).length > 0 ? f : undefined;
   }, [filterService, filterStatus, filterFrom, filterTo]);
 
-  const { data: timesheets, isLoading, error, refetch } = useTimesheets(filters as any);
+  const { data: timesheets, isLoading, error, refetch } = useTimesheets(filters);
   const { data: summaryData } = useTimesheetsSummary(
     filterService || undefined,
     filterFrom || undefined,
@@ -1499,6 +1838,32 @@ export default function TimesheetsPage() {
   }, [summaryData, timesheets]);
 
   const hasActiveFilters = filterService || filterStatus || filterFrom || filterTo;
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkApprove = () => {
+    bulkApprove.mutate(Array.from(selectedIds), {
+      onSuccess: (res) => {
+        const nameOf = (id: string) =>
+          timesheets?.find((t) => t.id === id)?.service?.name || "Timesheet";
+        let description = `Approved ${res.approved.length} timesheet${res.approved.length === 1 ? "" : "s"}.`;
+        if (res.skipped.length > 0) {
+          description += ` Skipped ${res.skipped.length}: ${res.skipped
+            .map((s) => `${nameOf(s.id)} — ${s.reason.toLowerCase()}`)
+            .join("; ")}.`;
+        }
+        toast({ description });
+        setSelectedIds(new Set());
+      },
+    });
+  };
 
   // Group timesheets by week
   const groupedByWeek = useMemo(() => {
@@ -1539,7 +1904,7 @@ export default function TimesheetsPage() {
       <div className="max-w-7xl mx-auto">
         <PageHeader
           title="Timesheets"
-          description="Manage staff timesheets, import from OWNA, and export to Xero"
+          description="Manage staff timesheets — import from OWNA, review and approve, and export to CSV"
         />
         <ErrorState
           title="Failed to load timesheets"
@@ -1558,7 +1923,7 @@ export default function TimesheetsPage() {
       {/* Header */}
       <PageHeader
         title="Timesheets"
-        description="Manage staff timesheets, import from OWNA, and export to Xero"
+        description="Manage staff timesheets — import from OWNA, review and approve, and export to CSV"
         primaryAction={{
           label: "New Timesheet",
           icon: Plus,
@@ -1690,6 +2055,33 @@ export default function TimesheetsPage() {
         </div>
       )}
 
+      {/* Bulk approval bar */}
+      {selectedIds.size > 0 && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 p-3 bg-card rounded-xl border border-brand/30 ring-1 ring-brand/10">
+          <p className="text-sm font-medium text-foreground pl-1">
+            {selectedIds.size} timesheet{selectedIds.size === 1 ? "" : "s"}{" "}
+            selected
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              Clear
+            </Button>
+            <Button
+              size="sm"
+              iconLeft={<CheckCircle2 className="w-4 h-4" />}
+              loading={bulkApprove.isPending}
+              onClick={handleBulkApprove}
+            >
+              Approve selected ({selectedIds.size})
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
@@ -1749,6 +2141,16 @@ export default function TimesheetsPage() {
               <div className="space-y-2">
                 {weekTimesheets.map((ts) => (
                   <div key={ts.id}>
+                    <div className="flex items-center gap-2">
+                    {ts.status === "submitted" && (
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${ts.service?.name || "timesheet"} for bulk approval`}
+                        checked={selectedIds.has(ts.id)}
+                        onChange={() => toggleSelected(ts.id)}
+                        className="w-4 h-4 shrink-0 rounded border-border accent-brand"
+                      />
+                    )}
                     <button
                       onClick={() =>
                         setExpandedId(
@@ -1756,7 +2158,7 @@ export default function TimesheetsPage() {
                         )
                       }
                       className={cn(
-                        "w-full bg-card rounded-xl border border-border p-4 text-left hover:border-border transition-all",
+                        "w-full min-w-0 flex-1 bg-card rounded-xl border border-border p-4 text-left hover:border-border transition-all",
                         expandedId === ts.id && "border-brand/30 ring-1 ring-brand/10"
                       )}
                     >
@@ -1787,6 +2189,7 @@ export default function TimesheetsPage() {
                         </div>
                       </div>
                     </button>
+                    </div>
 
                     {/* Expanded Detail */}
                     {expandedId === ts.id && (

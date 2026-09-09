@@ -4,6 +4,8 @@ import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { createServiceStaffSchema } from "@/lib/schemas/service-staff";
 import { deriveMembershipDefaults } from "@/lib/derive-membership-defaults";
+import { assertServiceAccess } from "@/lib/authz-scope";
+import { isAdminRole } from "@/lib/role-permissions";
 import type { Role } from "@prisma/client";
 
 const ORG_WIDE_ROLES = new Set<Role>(["owner", "head_office", "admin"]);
@@ -20,8 +22,18 @@ function toIsoDate(d: Date | null | undefined): string | null {
 }
 
 // GET /api/services/[id]/staff
-export const GET = withApiAuth(async (_req, _session, context) => {
+export const GET = withApiAuth(async (_req, session, context) => {
   const { id: serviceId } = await context!.params!;
+
+  // SECURITY (2026-09-04, staff-portal-v2 Chunk 5): read access was
+  // previously open to EVERY authenticated role for EVERY service — any
+  // educator could enumerate another centre's staff list including emails.
+  // Same fail-closed model as the staff-certificates route / authz-scope:
+  // admin roles are org-wide, everyone else only their own primary service.
+  assertServiceAccess(session, serviceId);
+  // Emails are admin-only: non-admin callers (member/staff) get `email:
+  // null` — the roster grid and shift modal only need id/name/avatar.
+  const includeEmail = isAdminRole(session.user.role);
 
   const [primaryUsers, memberships] = await Promise.all([
     prisma.user.findMany({
@@ -61,7 +73,7 @@ export const GET = withApiAuth(async (_req, _session, context) => {
       return {
         userId: u.id,
         name: u.name,
-        email: u.email,
+        email: includeEmail ? u.email : null,
         avatar: u.avatar,
         role: u.role,
         isPrimary: true,
@@ -83,7 +95,7 @@ export const GET = withApiAuth(async (_req, _session, context) => {
     ...memberships.map((m) => ({
       userId: m.user.id,
       name: m.user.name,
-      email: m.user.email,
+      email: includeEmail ? m.user.email : null,
       avatar: m.user.avatar,
       role: m.user.role,
       isPrimary: false,

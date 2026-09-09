@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 
 export const GET = withApiAuth(async (req, session) => {
   try {
-    const data = await xeroApiRequest("/TrackingCategories");
+    const data = await xeroApiRequest<{ TrackingCategories: unknown[] }>("/TrackingCategories");
 
     return NextResponse.json(data.TrackingCategories);
   } catch (err) {

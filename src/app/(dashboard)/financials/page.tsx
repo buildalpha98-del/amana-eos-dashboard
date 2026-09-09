@@ -343,7 +343,7 @@ export default function FinancialsPage() {
   const handleExport = () => {
     if (!data?.financials) return;
     exportToCSV(
-      data.financials.map((f: any) => ({
+      data.financials.map((f) => ({
         centre: f.service.name,
         state: f.service.state,
         bscRevenue: f.bscRevenue,
@@ -411,7 +411,7 @@ export default function FinancialsPage() {
                 totalRevenue: `$${(summary?.totalRevenue || 0).toLocaleString()}`,
                 totalCosts: `$${(summary?.totalCosts || 0).toLocaleString()}`,
                 margin: `${summary?.totalRevenue ? Math.round(((summary.totalRevenue - summary.totalCosts) / summary.totalRevenue) * 100) : 0}%`,
-                centreBreakdown: financials.slice(0, 10).map((f: any) => `${f.service?.name || "Unknown"}: Revenue $${f.totalRevenue?.toLocaleString()}, Costs $${f.totalCosts?.toLocaleString()}`).join("; ") || "No data",
+                centreBreakdown: financials.slice(0, 10).map((f) => `${f.service?.name || "Unknown"}: Revenue $${f.totalRevenue?.toLocaleString()}, Costs $${f.totalCosts?.toLocaleString()}`).join("; ") || "No data",
                 priorPeriod: "Not available",
               }}
               onResult={(text) => setAiCommentary(text)}
@@ -425,8 +425,8 @@ export default function FinancialsPage() {
               variables={{
                 financialData: sortedData.length > 0
                   ? sortedData.map((r) => {
-                      const occupancy = r.service && (r as any).service.capacity
-                        ? `${Math.round(((r.bscAttendance + r.ascAttendance + r.vcAttendance) / ((r as any).service.capacity * 5)) * 100)}%`
+                      const occupancy = r.service && r.service.capacity
+                        ? `${Math.round(((r.bscAttendance + r.ascAttendance + r.vcAttendance) / (r.service.capacity * 5)) * 100)}%`
                         : "N/A";
                       return `${r.service.name} (${r.service.state}): BSC $${r.bscRevenue.toLocaleString()}, ASC $${r.ascRevenue.toLocaleString()}, VC $${r.vcRevenue.toLocaleString()}, Total Rev $${r.totalRevenue.toLocaleString()}, Total Costs $${r.totalCosts.toLocaleString()}, Margin ${r.margin.toFixed(1)}%, Occupancy ${occupancy}`;
                     }).join("\n")

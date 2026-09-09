@@ -87,7 +87,7 @@ export function RefCodesPanel({ role }: { role: string }) {
 
               <div className="flex items-center gap-3">
                 {row.svg ? (
-                  // eslint-disable-next-line no-restricted-syntax -- QR codes
+                   
                   // need a true-white quiet zone to scan reliably, in dark
                   // mode included; bg-card would re-theme it away.
                   <div

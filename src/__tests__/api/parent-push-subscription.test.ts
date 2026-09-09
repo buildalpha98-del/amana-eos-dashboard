@@ -32,7 +32,7 @@ vi.mock("@/lib/parent-auth", () => ({
   getParentSession: vi.fn(() => Promise.resolve(_parentSession.current)),
   signParentJwt: vi.fn(),
   verifyParentJwt: vi.fn(),
-  withParentAuth: (handler: Function) => {
+  withParentAuth: (handler: (...args: unknown[]) => unknown) => {
     return async (req: any, routeCtx?: any) => {
       const parent = _parentSession.current;
       if (!parent) {

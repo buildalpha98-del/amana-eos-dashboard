@@ -73,7 +73,7 @@ export function KiosksPanel() {
       <p className="text-xs text-muted">
         Pair a front-desk tablet with a time-clock kiosk so staff can clock
         in/out with a name + 4-digit PIN. Revoke a kiosk if a tablet is lost
-        or you're switching devices.
+        or you&apos;re switching devices.
       </p>
 
       {isLoading ? (
@@ -256,8 +256,8 @@ function RegisterKioskDialog({ onClose }: { onClose: () => void }) {
             <div className="flex items-start gap-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <div>
-                <strong>Copy the token now.</strong> We don't store the
-                plaintext — you can't see it again. If you lose it, revoke
+                <strong>Copy the token now.</strong> We don&apos;t store the
+                plaintext — you can&apos;t see it again. If you lose it, revoke
                 and re-register.
               </div>
             </div>

@@ -67,7 +67,7 @@ export function PayCompensationSection({
       {(active) => {
         if (active === "salary") {
           if (!canViewPay) return <PayPlaceholder />;
-          return <SalaryHistory contract={data.latestContract} />;
+          return <SalaryHistory contracts={data.contracts} />;
         }
         if (active === "hours") {
           if (!canViewPay) return <PayPlaceholder />;
@@ -107,12 +107,26 @@ function PayPlaceholder() {
   );
 }
 
+function formatShortDate(d: Date | string): string {
+  return new Date(d).toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+/**
+ * Task 10.3: renders the FULL contract list (newest first — the parent
+ * loader orders by startDate desc) rather than only the latest row.
+ * The first row is the current arrangement; older/superseded rows are
+ * muted history.
+ */
 function SalaryHistory({
-  contract,
+  contracts,
 }: {
-  contract: EmploymentContract | null;
+  contracts: EmploymentContract[];
 }) {
-  if (!contract) {
+  if (contracts.length === 0) {
     return (
       <p className="text-sm text-muted py-6 text-center">
         No salary history yet. Issue a contract from the Documents → Contracts
@@ -121,22 +135,52 @@ function SalaryHistory({
     );
   }
   return (
-    <div className="rounded-lg border border-border bg-background p-4">
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-        Current contract
-      </p>
-      <p className="text-2xl font-bold text-foreground">
-        ${contract.payRate.toFixed(2)}{" "}
-        <span className="text-sm font-normal text-muted">/ hour</span>
-      </p>
-      <p className="text-xs text-muted mt-1">
-        Effective from{" "}
-        {new Date(contract.startDate).toLocaleDateString("en-AU", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        })}
-      </p>
+    <div className="space-y-2">
+      {contracts.map((contract, i) => {
+        const isCurrent = i === 0;
+        const dateRange = contract.endDate
+          ? `${formatShortDate(contract.startDate)} – ${formatShortDate(contract.endDate)}`
+          : `From ${formatShortDate(contract.startDate)}`;
+        return (
+          <div
+            key={contract.id}
+            className={
+              isCurrent
+                ? "rounded-lg border border-border bg-background p-4"
+                : "rounded-lg border border-border bg-background p-4 opacity-70"
+            }
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted mb-1">
+              {isCurrent
+                ? "Current contract"
+                : contract.status === "superseded"
+                  ? "Superseded"
+                  : "Previous contract"}
+            </p>
+            <p
+              className={
+                isCurrent
+                  ? "text-2xl font-bold text-foreground"
+                  : "text-lg font-semibold text-foreground/80"
+              }
+            >
+              ${contract.payRate.toFixed(2)}{" "}
+              <span className="text-sm font-normal text-muted">/ hour</span>
+            </p>
+            {contract.classification && (
+              <p className="text-xs text-foreground/70 mt-1">
+                {contract.classification}
+              </p>
+            )}
+            <p className="text-xs text-muted mt-1">
+              {dateRange}
+              {contract.signedAt
+                ? ` · signed ${formatShortDate(contract.signedAt)}`
+                : ""}
+            </p>
+          </div>
+        );
+      })}
     </div>
   );
 }

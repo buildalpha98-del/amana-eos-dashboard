@@ -214,17 +214,18 @@ export function AuditCalendarTab() {
   });
 
   // Group instances by month
+  const instances = data?.instances;
   const byMonth = useMemo(() => {
     const map: Record<number, AuditInstanceSummary[]> = {};
     for (let m = 1; m <= 12; m++) map[m] = [];
-    if (data?.instances) {
-      for (const inst of data.instances) {
+    if (instances) {
+      for (const inst of instances) {
         if (!map[inst.scheduledMonth]) map[inst.scheduledMonth] = [];
         map[inst.scheduledMonth].push(inst);
       }
     }
     return map;
-  }, [data?.instances]);
+  }, [instances]);
 
   const stats = data?.stats;
 

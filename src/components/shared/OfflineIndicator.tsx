@@ -39,6 +39,7 @@ export function OfflineIndicator() {
   useEffect(() => {
     // Initialize from current state
     if (!navigator.onLine) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-off initial sync with navigator.onLine; later changes arrive via the event listeners below
       goOffline();
     }
 

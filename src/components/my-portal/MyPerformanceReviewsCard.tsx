@@ -487,7 +487,7 @@ function AcknowledgementForm({ review }: { review: PerformanceReview }) {
           Your acknowledgement
         </p>
         <p className="text-xs text-amber-900/80">
-          Acknowledging confirms you've read your manager&apos;s assessment.
+          Acknowledging confirms you&apos;ve read your manager&apos;s assessment.
           It doesn&apos;t mean you have to agree — use the notes field if you
           want to record a different view.
         </p>

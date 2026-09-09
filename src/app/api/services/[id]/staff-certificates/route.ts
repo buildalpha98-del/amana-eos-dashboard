@@ -37,15 +37,39 @@ export const GET = withApiAuth(async (_req, session, context) => {
     throw ApiError.forbidden("You can only view certificates for your own service.");
   }
 
-  const certs = await prisma.complianceCertificate.findMany({
+  // Resolve the service's staff FIRST (primary users + active memberships),
+  // then pull certificates by `userId IN (...)` rather than by the cert
+  // row's serviceId. A cross-centre staff member's certs are recorded under
+  // their HOME centre's serviceId — the old serviceId filter made membership
+  // staff render cert-less in the roster grid, a compliance regression
+  // (staff-portal-v2 Chunk 5, Task 5.5).
+  const [primaryUsers, membershipRows] = await Promise.all([
+    prisma.user.findMany({
+      where: { serviceId, active: true },
+      select: { id: true },
+    }),
+    prisma.userServiceMembership.findMany({
+      where: { serviceId, status: "active" },
+      select: { userId: true },
+    }),
+  ]);
+  const staffIds = Array.from(
+    new Set([
+      ...primaryUsers.map((u) => u.id),
+      ...membershipRows.map((m) => m.userId),
+    ]),
+  );
+
+  const certs = staffIds.length === 0
+    ? []
+    : await prisma.complianceCertificate.findMany({
     where: {
-      serviceId,
       // Only "live" certs — a cert that's been superseded by a renewal
       // shouldn't trigger a stale expiry warning.
       supersededAt: null,
-      // Optional: exclude rows missing a userId (centre-level certs the
-      // expiry-row schema also stores). Roster cares about per-staff certs.
-      userId: { not: null },
+      // Certs for THIS service's staff, wherever the cert row itself was
+      // recorded. (Also implicitly excludes null-userId centre-level rows.)
+      userId: { in: staffIds },
       // Roster-grid rollup is "expiring on or before <date>"; "No expiry"
       // certs (nullable post-2026-05) never expire and are irrelevant for
       // that calculation — drop them at the DB layer so the client never

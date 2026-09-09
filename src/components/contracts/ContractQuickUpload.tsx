@@ -55,6 +55,9 @@ export function ContractQuickUpload({ userId, userName }: Props) {
   const [contractType, setContractType] =
     useState<QuickContractType>("ct_permanent");
   const [payRate, setPayRate] = useState<string>("");
+  // Task 10.3: optional free-text award classification for the salary
+  // history. Blank stays off the form data entirely.
+  const [classification, setClassification] = useState<string>("");
 
   async function uploadFile(file: File) {
     setError(null);
@@ -80,6 +83,9 @@ export function ContractQuickUpload({ userId, userName }: Props) {
       // Empty / non-numeric pay rate → server treats as default (0).
       if (payRate.trim()) {
         formData.append("payRate", payRate.trim());
+      }
+      if (classification.trim()) {
+        formData.append("classification", classification.trim());
       }
       // Raw fetch (not fetchApi) — FormData uploads bypass JSON
       // content-type handling. Same pattern as ContractFormFields.
@@ -202,6 +208,26 @@ export function ContractQuickUpload({ userId, userName }: Props) {
             disabled={uploading}
             placeholder="e.g. 32.50"
             data-testid="quick-upload-pay-rate"
+            className="w-full rounded-md border border-border bg-card px-2.5 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40 disabled:opacity-60"
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label
+            htmlFor="quick-upload-classification"
+            className="block text-xs uppercase tracking-wide text-muted mb-1"
+          >
+            Classification{" "}
+            <span className="text-muted/70 normal-case">(optional)</span>
+          </label>
+          <input
+            id="quick-upload-classification"
+            type="text"
+            value={classification}
+            onChange={(e) => setClassification(e.target.value)}
+            disabled={uploading}
+            maxLength={200}
+            placeholder="e.g. Children's Services Employee Level 3.1"
+            data-testid="quick-upload-classification"
             className="w-full rounded-md border border-border bg-card px-2.5 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40 disabled:opacity-60"
           />
         </div>

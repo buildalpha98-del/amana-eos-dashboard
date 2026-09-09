@@ -149,14 +149,14 @@ export function UploadDocumentAuditModal({ open, onClose }: Props) {
               is downloadable from the template row.
             </p>
             <p>
-              Click "Apply to services" next, and each centre gets its own
+              Click &quot;Apply to services&quot; next, and each centre gets its own
               scheduled instance from this month forward (no backdating). When
               a coordinator opens an instance, the document loads in an inline
               editor — what they save is stored on that instance only, so the
               master template keeps cycling for the next period.
             </p>
             <p>
-              Cadence anchors to today's month — a yearly audit uploaded in
+              Cadence anchors to today&apos;s month — a yearly audit uploaded in
               June runs every June.
             </p>
           </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { privateTodoWhere } from "@/lib/todos/private-filter";
 
 // GET /api/services/[id]/today — "Today" snapshot for a service centre
 export const GET = withApiAuth(async (req, session, context) => {
@@ -53,13 +54,19 @@ export const GET = withApiAuth(async (req, session, context) => {
         orderBy: { name: "asc" },
       }),
 
-      // Todos due today or overdue, not completed/cancelled
+      // Todos due today or overdue, not completed/cancelled.
+      // Private todos stay restricted to assignee/creator/admin tier.
       prisma.todo.findMany({
         where: {
-          serviceId: id,
-          dueDate: { lte: today },
-          status: { notIn: ["complete", "cancelled"] },
-          deleted: false,
+          AND: [
+            {
+              serviceId: id,
+              dueDate: { lte: today },
+              status: { notIn: ["complete", "cancelled"] },
+              deleted: false,
+            },
+            privateTodoWhere(session!),
+          ],
         },
         include: {
           assignee: { select: { name: true } },

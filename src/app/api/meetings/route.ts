@@ -15,6 +15,13 @@ const createMeetingSchema = z.object({
   isLeadership: z.boolean().optional(),
   // 2026-07-28: which Scorecard to review. Omitted = legacy single scorecard.
   scorecardId: z.string().optional().nullable(),
+  // 2026-08-31: schedule-for-later. When present the meeting is created
+  // as `scheduled` with date = scheduledFor (the existing `date` column
+  // carries the scheduled moment — no separate column). The morning
+  // briefing cron auto-preps scheduled meetings dated today.
+  scheduledFor: z.string().datetime().optional(),
+  // 2026-08-31: recurring series this occurrence belongs to.
+  seriesId: z.string().optional(),
 });
 
 // GET /api/meetings — list meetings ordered by date desc
@@ -69,16 +76,41 @@ const body = await parseJsonBody(req);
     );
   }
 
+  if (parsed.data.seriesId) {
+    const series = await prisma.meetingSeries.findUnique({
+      where: { id: parsed.data.seriesId },
+      select: { id: true },
+    });
+    if (!series) {
+      return NextResponse.json({ error: "Series not found" }, { status: 400 });
+    }
+  }
+
+  const scheduledFor = parsed.data.scheduledFor
+    ? new Date(parsed.data.scheduledFor)
+    : null;
+  if (scheduledFor) {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    if (scheduledFor < todayStart) {
+      return NextResponse.json(
+        { error: "scheduledFor must be today or in the future" },
+        { status: 400 },
+      );
+    }
+  }
+
   const meeting = await prisma.meeting.create({
     data: {
       title: parsed.data.title,
-      date: new Date(parsed.data.date),
-      status: "in_progress",
-      startedAt: new Date(),
+      date: scheduledFor ?? new Date(parsed.data.date),
+      status: scheduledFor ? "scheduled" : "in_progress",
+      startedAt: scheduledFor ? null : new Date(),
       createdById: session!.user.id,
       serviceIds: parsed.data.serviceIds || [],
       isLeadership: parsed.data.isLeadership ?? false,
       scorecardId: parsed.data.scorecardId ?? null,
+      seriesId: parsed.data.seriesId ?? null,
     },
     include: {
       createdBy: { select: { id: true, name: true, email: true, avatar: true } },

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { MarketingPlatform, MarketingPostStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
@@ -46,8 +47,16 @@ const serviceInclude = {
 // GET /api/marketing/posts — list posts with optional filters
 export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
-  const status = searchParams.get("status");
-  const platform = searchParams.get("platform");
+  const status = z
+    .nativeEnum(MarketingPostStatus)
+    .nullable()
+    .catch(null)
+    .parse(searchParams.get("status"));
+  const platform = z
+    .nativeEnum(MarketingPlatform)
+    .nullable()
+    .catch(null)
+    .parse(searchParams.get("platform"));
   const assigneeId = searchParams.get("assigneeId");
   const campaignId = searchParams.get("campaignId");
   const serviceId = searchParams.get("serviceId");
@@ -55,8 +64,8 @@ export const GET = withApiAuth(async (req, session) => {
   const posts = await prisma.marketingPost.findMany({
     where: {
       deleted: false,
-      ...(status ? { status: status as any } : {}),
-      ...(platform ? { platform: platform as any } : {}),
+      ...(status ? { status } : {}),
+      ...(platform ? { platform } : {}),
       ...(assigneeId ? { assigneeId } : {}),
       ...(campaignId ? { campaignId } : {}),
       ...(serviceId ? { services: { some: { serviceId } } } : {}),

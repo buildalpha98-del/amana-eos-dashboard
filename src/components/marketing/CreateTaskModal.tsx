@@ -61,12 +61,14 @@ export function CreateTaskModal({
       });
   }, []);
 
-  // Reset when opened with defaults
-  useEffect(() => {
+  // Reset when opened with defaults (adjust-during-render pattern)
+  const [prevReset, setPrevReset] = useState({ open, defaultCampaignId });
+  if (open !== prevReset.open || defaultCampaignId !== prevReset.defaultCampaignId) {
+    setPrevReset({ open, defaultCampaignId });
     if (open) {
       setCampaignId(defaultCampaignId || "");
     }
-  }, [open, defaultCampaignId]);
+  }
 
   const resetForm = () => {
     setTitle("");

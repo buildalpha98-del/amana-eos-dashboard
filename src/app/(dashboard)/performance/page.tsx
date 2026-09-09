@@ -122,7 +122,7 @@ export default function PerformancePage() {
   const handleExport = () => {
     if (!centres || centres.length === 0) return;
     exportToCSV(
-      centres.map((c: any, index: number) => ({
+      centres.map((c, index) => ({
         rank: index + 1,
         centre: c.name,
         state: c.state || "",
@@ -199,9 +199,9 @@ export default function PerformancePage() {
         <AiButton
           templateSlug="performance/digest"
           variables={{
-            centreScores: centres?.slice(0, 15).map((c: any) => `${c.name}: ${c.score}/100`).join(", ") || "No data",
-            topPerformers: centres?.slice(0, 3).map((c: any) => `${c.name} (${c.score})`).join(", ") || "None",
-            bottomPerformers: centres?.slice(-3).map((c: any) => `${c.name} (${c.score})`).join(", ") || "None",
+            centreScores: centres?.slice(0, 15).map((c) => `${c.name}: ${c.score}/100`).join(", ") || "No data",
+            topPerformers: centres?.slice(0, 3).map((c) => `${c.name} (${c.score})`).join(", ") || "None",
+            bottomPerformers: centres?.slice(-3).map((c) => `${c.name} (${c.score})`).join(", ") || "None",
             trends: "Current period data",
           }}
           onResult={(text) => setAiDigest(text)}

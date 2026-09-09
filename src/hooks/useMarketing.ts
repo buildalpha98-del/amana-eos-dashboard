@@ -511,12 +511,35 @@ export function useMarketingAnalytics(period: number, serviceId?: string) {
 
 // ── Coverage ───────────────────────────────────────────────
 
+export interface CentreCoverageEntry {
+  serviceId: string;
+  serviceName: string;
+  serviceCode: string;
+  totalPosts: number;
+  postsThisMonth: number;
+  postsLastMonth: number;
+  activeCampaigns: number;
+  lastPostDate: string | null;
+  status: "active" | "moderate" | "neglected";
+}
+
+export interface CentreCoverageData {
+  centres: CentreCoverageEntry[];
+  summary: {
+    totalCentres: number;
+    activeCentres: number;
+    moderateCentres: number;
+    neglectedCentres: number;
+    globalPosts: number;
+  };
+}
+
 export function useCentreCoverage() {
-  return useQuery({
+  return useQuery<CentreCoverageData>({
     staleTime: 30_000,
     queryKey: ["marketing-coverage"],
     queryFn: async () => {
-      return fetchApi<any>("/api/marketing/coverage");
+      return fetchApi<CentreCoverageData>("/api/marketing/coverage");
     },
     retry: 2,
   });

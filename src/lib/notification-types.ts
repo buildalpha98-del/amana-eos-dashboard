@@ -67,6 +67,11 @@ export const NOTIFICATION_TYPES = {
   // once it's resolved/dismissed.
   PAY_DISCREPANCY_SUBMITTED: "pay_discrepancy_submitted",
   PAY_DISCREPANCY_RESOLVED: "pay_discrepancy_resolved",
+  // 2026-08-31 (execution layer): meetings/scorecard/cascade fan-outs.
+  MEETING_REVIEW_READY: "meeting_review_ready",
+  SCORECARD_WATCHDOG: "scorecard_watchdog",
+  CASCADE_PUBLISHED: "cascade_published",
+  CASCADE_REMINDER: "cascade_reminder",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];

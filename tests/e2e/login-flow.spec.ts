@@ -14,8 +14,12 @@ test.describe("Login flow", () => {
     await page.goto("/login");
     await page.waitForLoadState("networkidle");
 
-    // Should show the brand heading
-    await expect(page.getByText("Amana OSHC")).toBeVisible({ timeout: 15_000 });
+    // Should show the brand heading. getByText would also match the
+    // "Amana OSHC Leadership Team Portal" footer line (strict-mode violation),
+    // so target the h1 specifically.
+    await expect(
+      page.getByRole("heading", { name: "Amana OSHC" }),
+    ).toBeVisible({ timeout: 15_000 });
 
     // Should show the sign-in heading
     await expect(

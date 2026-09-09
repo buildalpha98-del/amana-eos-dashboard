@@ -456,7 +456,7 @@ function ClaimModal({
             <div>
               <label className="block text-sm font-medium mb-1">
                 Claim number{" "}
-                <span className="text-muted font-normal">(insurer's ref)</span>
+                <span className="text-muted font-normal">(insurer&apos;s ref)</span>
               </label>
               <input
                 type="text"

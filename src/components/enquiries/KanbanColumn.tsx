@@ -1,15 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
-import { EnquiryCard } from "./EnquiryCard";
+import { EnquiryCard, type KanbanEnquiry } from "./EnquiryCard";
 
 function DraggableCard({
   enquiry,
   onSelect,
   waitlistPosition,
 }: {
-  enquiry: any;
+  enquiry: KanbanEnquiry;
   onSelect: () => void;
   waitlistPosition?: number;
 }) {
@@ -37,7 +38,7 @@ function DraggableCard({
 interface KanbanColumnProps {
   id: string;
   label: string;
-  enquiries: any[];
+  enquiries: KanbanEnquiry[];
   onSelectEnquiry: (id: string) => void;
 }
 
@@ -48,6 +49,7 @@ export function KanbanColumn({
   onSelectEnquiry,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
+  const [now] = useState(() => Date.now());
   const isWaitlisted = id === "waitlisted";
 
   // Sort waitlisted enquiries by position (or by stageChangedAt as fallback)
@@ -65,7 +67,7 @@ export function KanbanColumn({
 
   const stuckCount = enquiries.filter((e) => {
     const days =
-      (Date.now() - new Date(e.stageChangedAt).getTime()) /
+      (now - new Date(e.stageChangedAt).getTime()) /
       (1000 * 60 * 60 * 24);
     return days > 2;
   }).length;

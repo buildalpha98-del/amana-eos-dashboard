@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Save, LogOut, Plus, Trash2 } from "lucide-react";
 import {
   useParentProfile,
   useUpdateParentAccount,
+  type ParentProfile,
   type UpdateAccountPayload,
 } from "@/hooks/useParentPortal";
 import { useParentAuth } from "@/components/parent/ParentAuthProvider";
@@ -22,53 +23,50 @@ interface ContactForm {
 
 export default function AccountPage() {
   const { data: profile, isLoading } = useParentProfile();
+
+  if (isLoading) return <AccountSkeleton />;
+
+  if (!profile) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted text-sm">
+          We couldn&apos;t load your account just now — try again in a moment.
+        </p>
+      </div>
+    );
+  }
+
+  return <AccountForm profile={profile} />;
+}
+
+function AccountForm({ profile }: { profile: ParentProfile }) {
   const updateAccount = useUpdateParentAccount();
   const { logout } = useParentAuth();
 
-  // Form state
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [dob, setDob] = useState("");
-  const [crn, setCrn] = useState("");
-  const [relationship, setRelationship] = useState("");
-  const [occupation, setOccupation] = useState("");
-  const [workplace, setWorkplace] = useState("");
-  const [workPhone, setWorkPhone] = useState("");
-  const [street, setStreet] = useState("");
-  const [suburb, setSuburb] = useState("");
-  const [state, setState] = useState("");
-  const [postcode, setPostcode] = useState("");
-  const [contacts, setContacts] = useState<ContactForm[]>([]);
-  const [smsOptIn, setSmsOptIn] = useState(false);
+  // Form state — seeded from the loaded profile
+  const [firstName, setFirstName] = useState(profile.firstName ?? "");
+  const [lastName, setLastName] = useState(profile.lastName ?? "");
+  const [phone, setPhone] = useState(profile.phone ?? "");
+  const [dob, setDob] = useState(profile.dob ?? "");
+  const [crn, setCrn] = useState(profile.crn ?? "");
+  const [relationship, setRelationship] = useState(profile.relationship ?? "");
+  const [occupation, setOccupation] = useState(profile.occupation ?? "");
+  const [workplace, setWorkplace] = useState(profile.workplace ?? "");
+  const [workPhone, setWorkPhone] = useState(profile.workPhone ?? "");
+  const [street, setStreet] = useState(profile.address?.street ?? "");
+  const [suburb, setSuburb] = useState(profile.address?.suburb ?? "");
+  const [state, setState] = useState(profile.address?.state ?? "");
+  const [postcode, setPostcode] = useState(profile.address?.postcode ?? "");
+  const [contacts, setContacts] = useState<ContactForm[]>(() =>
+    profile.emergencyContacts.map((c) => ({
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+      relationship: c.relationship,
+    }))
+  );
+  const [smsOptIn, setSmsOptIn] = useState(profile.smsOptIn);
   const [loggingOut, setLoggingOut] = useState(false);
-
-  // Hydrate form from profile
-  useEffect(() => {
-    if (!profile) return;
-    setFirstName(profile.firstName ?? "");
-    setLastName(profile.lastName ?? "");
-    setPhone(profile.phone ?? "");
-    setDob(profile.dob ?? "");
-    setCrn(profile.crn ?? "");
-    setRelationship(profile.relationship ?? "");
-    setOccupation(profile.occupation ?? "");
-    setWorkplace(profile.workplace ?? "");
-    setWorkPhone(profile.workPhone ?? "");
-    setStreet(profile.address?.street ?? "");
-    setSuburb(profile.address?.suburb ?? "");
-    setState(profile.address?.state ?? "");
-    setPostcode(profile.address?.postcode ?? "");
-    setContacts(
-      profile.emergencyContacts.map((c) => ({
-        id: c.id,
-        name: c.name,
-        phone: c.phone,
-        relationship: c.relationship,
-      }))
-    );
-    setSmsOptIn(profile.smsOptIn);
-  }, [profile]);
 
   const handleSave = () => {
     const payload: UpdateAccountPayload = {
@@ -118,18 +116,6 @@ export default function AccountPage() {
       prev.map((c, i) => (i === idx ? { ...c, [field]: value } : c))
     );
   };
-
-  if (isLoading) return <AccountSkeleton />;
-
-  if (!profile) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-muted text-sm">
-          We couldn't load your account just now — try again in a moment.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

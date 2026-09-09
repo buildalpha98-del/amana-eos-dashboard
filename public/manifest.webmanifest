@@ -7,6 +7,41 @@
   "background_color": "#ffffff",
   "theme_color": "#004E64",
   "orientation": "any",
+  "shortcuts": [
+    {
+      "name": "My Day",
+      "url": "/my-day",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Pay",
+      "url": "/my-pay",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "url": "/notifications",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",

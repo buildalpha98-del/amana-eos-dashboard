@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import bcrypt from "bcryptjs";
@@ -10,7 +11,7 @@ import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
 // ── Role mapping ─────────────────────────────────────────────
 
-const ROLE_MAP: Record<string, string> = {
+const ROLE_MAP: Record<string, Role> = {
   owner: "owner",
   "head-office": "head_office",
   head_office: "head_office",
@@ -23,7 +24,7 @@ const ROLE_MAP: Record<string, string> = {
   "service-coordinator": "member",
 };
 
-function mapRegistryRole(registryRole: string): string {
+function mapRegistryRole(registryRole: string): Role {
   const normalised = registryRole.toLowerCase().replace(/\s+/g, "-");
   return ROLE_MAP[normalised] || "staff";
 }
@@ -110,7 +111,7 @@ export const POST = withApiHandler(async (req) => {
       const email = entry.email.toLowerCase().trim();
       syncedEmails.add(email);
 
-      const role = entry.role ? mapRegistryRole(entry.role) : "staff";
+      const role: Role = entry.role ? mapRegistryRole(entry.role) : "staff";
       const serviceId = entry.serviceCode
         ? serviceMap.get(entry.serviceCode) || null
         : null;
@@ -122,7 +123,7 @@ export const POST = withApiHandler(async (req) => {
         // those are set manually in the dashboard and the registry
         // shouldn't be able to override them.
         const privileged = existing.role === "owner" || existing.role === "head_office";
-        const newRole = entry.role && !privileged ? (role as any) : existing.role;
+        const newRole = entry.role && !privileged ? role : existing.role;
 
         // Update existing user
         await prisma.user.update({
@@ -147,7 +148,7 @@ export const POST = withApiHandler(async (req) => {
             name: entry.name,
             email,
             passwordHash,
-            role: role as any,
+            role,
             state: entry.state || null,
             serviceId,
             phone: entry.phone || null,

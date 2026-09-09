@@ -3,6 +3,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUser } from "@/lib/notify-user";
 import { isAdminRole } from "@/lib/role-permissions";
 
 // ---------------------------------------------------------------------------
@@ -54,23 +55,19 @@ export const POST = withApiAuth(async (_req, session, context) => {
       where: { id: swap.shiftId },
       data: { userId: swap.targetId, staffName: target.name },
     });
-    await tx.userNotification.createMany({
-      data: [
-        {
-          userId: swap.proposerId,
-          type: NOTIFICATION_TYPES.SHIFT_SWAP_APPROVED,
-          title: "Your shift swap was approved",
-          body: "",
-          link: `/roster/me?swap=${id}`,
-        },
-        {
-          userId: swap.targetId,
-          type: NOTIFICATION_TYPES.SHIFT_SWAP_APPROVED,
-          title: "You accepted a shift swap (approved)",
-          body: "",
-          link: `/roster/me?swap=${id}`,
-        },
-      ],
+    // Proposer and target get different titles, so this is two
+    // notifyUser calls rather than one createMany — same rows either way.
+    await notifyUser(tx, swap.proposerId, {
+      type: NOTIFICATION_TYPES.SHIFT_SWAP_APPROVED,
+      title: "Your shift swap was approved",
+      body: "",
+      link: `/roster/me?swap=${id}`,
+    });
+    await notifyUser(tx, swap.targetId, {
+      type: NOTIFICATION_TYPES.SHIFT_SWAP_APPROVED,
+      title: "You accepted a shift swap (approved)",
+      body: "",
+      link: `/roster/me?swap=${id}`,
     });
     return updatedSwap;
   });

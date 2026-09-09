@@ -326,12 +326,14 @@ function ExpiryCell({
   expiry: string | null;
   number?: string | null;
 }) {
+  // Snapshot "now" once per mount so render stays pure
+  const [now] = useState(() => Date.now());
   if (!expiry) {
     if (number) return <span className="text-muted">{number}</span>;
     return <span className="text-red-700 font-medium">Missing</span>;
   }
   const days = Math.ceil(
-    (new Date(expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+    (new Date(expiry).getTime() - now) / (1000 * 60 * 60 * 24),
   );
   const colour =
     days < 0

@@ -279,7 +279,7 @@ describe("POST /api/shift-swaps (propose)", () => {
       return Promise.resolve(null);
     });
     prismaMock.shiftSwapRequest.create.mockResolvedValue(makeSwap());
-    prismaMock.userNotification.create.mockResolvedValue({ id: "n-1" });
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 });
 
     const res = await POST(
       createRequest("POST", "/api/shift-swaps", { body: validBody }),
@@ -294,11 +294,12 @@ describe("POST /api/shift-swaps (propose)", () => {
     expect(createCall.data.targetId).toBe("u-target");
     expect(createCall.data.status).toBe("proposed");
 
-    expect(prismaMock.userNotification.create).toHaveBeenCalled();
-    const notifCall = prismaMock.userNotification.create.mock.calls[0][0];
-    expect(notifCall.data.userId).toBe("u-target");
-    expect(notifCall.data.type).toBe("shift_swap_proposed");
-    expect(notifCall.data.link).toMatch(/\/roster\/me\?swap=sw-1/);
+    // Notification flows through notifyUser → createMany (push fan-out).
+    expect(prismaMock.userNotification.createMany).toHaveBeenCalled();
+    const notifCall = prismaMock.userNotification.createMany.mock.calls[0][0];
+    expect(notifCall.data[0].userId).toBe("u-target");
+    expect(notifCall.data[0].type).toBe("shift_swap_proposed");
+    expect(notifCall.data[0].link).toMatch(/\/roster\/me\?swap=sw-1/);
   });
 });
 
@@ -356,7 +357,6 @@ describe("POST /api/shift-swaps/[id]/accept", () => {
     prismaMock.shiftSwapRequest.update.mockResolvedValue(
       makeSwap({ status: "accepted", acceptedAt: new Date() }),
     );
-    prismaMock.userNotification.create.mockResolvedValue({ id: "n-1" });
     prismaMock.user.findMany.mockResolvedValue([
       { id: "admin-1" },
       { id: "coord-1" },
@@ -369,15 +369,15 @@ describe("POST /api/shift-swaps/[id]/accept", () => {
     );
     expect(res.status).toBe(200);
 
-    // Proposer got a direct notification
-    expect(prismaMock.userNotification.create).toHaveBeenCalled();
-    const dmCall = prismaMock.userNotification.create.mock.calls[0][0];
-    expect(dmCall.data.userId).toBe("u-proposer");
-    expect(dmCall.data.type).toBe("shift_swap_accepted");
+    // Both notifications flow through notifyUser(s) → createMany:
+    // first call is the proposer DM, second is the admin/coord batch.
+    expect(prismaMock.userNotification.createMany).toHaveBeenCalledTimes(2);
+    const dmCall = prismaMock.userNotification.createMany.mock.calls[0][0];
+    expect(dmCall.data).toHaveLength(1);
+    expect(dmCall.data[0].userId).toBe("u-proposer");
+    expect(dmCall.data[0].type).toBe("shift_swap_accepted");
 
-    // Admins/coords got a batched notification
-    expect(prismaMock.userNotification.createMany).toHaveBeenCalled();
-    const manyCall = prismaMock.userNotification.createMany.mock.calls[0][0];
+    const manyCall = prismaMock.userNotification.createMany.mock.calls[1][0];
     expect(manyCall.data).toHaveLength(2);
     expect(manyCall.data[0].type).toBe("shift_swap_accepted");
     expect(manyCall.data[0].link).toMatch(/\/roster\/swaps\?id=sw-1/);
@@ -389,7 +389,7 @@ describe("POST /api/shift-swaps/[id]/accept", () => {
     prismaMock.shiftSwapRequest.update.mockResolvedValue(
       makeSwap({ status: "accepted" }),
     );
-    prismaMock.userNotification.create.mockResolvedValue({ id: "n-1" });
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 });
     prismaMock.user.findMany.mockResolvedValue([]);
 
     const res = await acceptPost(
@@ -397,7 +397,11 @@ describe("POST /api/shift-swaps/[id]/accept", () => {
       paramsOf("sw-1"),
     );
     expect(res.status).toBe(200);
-    expect(prismaMock.userNotification.createMany).not.toHaveBeenCalled();
+    // Only the proposer DM fires — no admin batch.
+    expect(prismaMock.userNotification.createMany).toHaveBeenCalledTimes(1);
+    const dmCall = prismaMock.userNotification.createMany.mock.calls[0][0];
+    expect(dmCall.data).toHaveLength(1);
+    expect(dmCall.data[0].userId).toBe("u-proposer");
   });
 });
 
@@ -459,7 +463,7 @@ describe("POST /api/shift-swaps/[id]/reject", () => {
       id: "sw-1",
       status: "rejected",
     });
-    prismaMock.userNotification.create.mockResolvedValue({ id: "n-1" });
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 });
 
     const res = await rejectPost(
       createRequest("POST", "/api/shift-swaps/sw-1/reject", {
@@ -473,10 +477,10 @@ describe("POST /api/shift-swaps/[id]/reject", () => {
     expect(updateCall.data.status).toBe("rejected");
     expect(updateCall.data.rejectedReason).toBe("busy that day");
 
-    const notifCall = prismaMock.userNotification.create.mock.calls[0][0];
-    expect(notifCall.data.userId).toBe("u-proposer");
-    expect(notifCall.data.type).toBe("shift_swap_rejected");
-    expect(notifCall.data.body).toMatch(/busy that day/);
+    const notifCall = prismaMock.userNotification.createMany.mock.calls[0][0];
+    expect(notifCall.data[0].userId).toBe("u-proposer");
+    expect(notifCall.data[0].type).toBe("shift_swap_rejected");
+    expect(notifCall.data[0].body).toMatch(/busy that day/);
   });
 
   it("omits reason gracefully when not provided", async () => {
@@ -491,7 +495,7 @@ describe("POST /api/shift-swaps/[id]/reject", () => {
       id: "sw-1",
       status: "rejected",
     });
-    prismaMock.userNotification.create.mockResolvedValue({ id: "n-1" });
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 });
 
     const res = await rejectPost(
       createRequest("POST", "/api/shift-swaps/sw-1/reject", { body: {} }),
@@ -609,13 +613,13 @@ describe("POST /api/shift-swaps/[id]/approve", () => {
     expect(shiftUpdate.data.userId).toBe("u-target");
     expect(shiftUpdate.data.staffName).toBe("Bob");
 
-    // Two notifications fanned out
-    const manyCall = prismaMock.userNotification.createMany.mock.calls[0][0];
-    expect(manyCall.data).toHaveLength(2);
-    expect(manyCall.data.map((n: { userId: string }) => n.userId).sort()).toEqual([
-      "u-proposer",
-      "u-target",
-    ]);
+    // Two notifications fanned out — one notifyUser → createMany call each
+    // (proposer and target get different titles).
+    expect(prismaMock.userNotification.createMany).toHaveBeenCalledTimes(2);
+    const notifiedIds = prismaMock.userNotification.createMany.mock.calls
+      .map((c: [{ data: { userId: string }[] }]) => c[0].data[0].userId)
+      .sort();
+    expect(notifiedIds).toEqual(["u-proposer", "u-target"]);
   });
 
   it("allows coordinator at the matching service", async () => {

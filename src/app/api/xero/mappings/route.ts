@@ -24,9 +24,16 @@ export const GET = withApiAuth(async (req, session) => {
       }),
     ]);
 
+    // Mirror the POST contract: centreMappings in the same shape the save accepts
     return NextResponse.json({
       trackingCategoryId: connection?.trackingCategoryId ?? null,
       services,
+      centreMappings: services
+        .filter((s) => s.xeroTrackingOptionId)
+        .map((s) => ({
+          serviceId: s.id,
+          xeroTrackingOptionId: s.xeroTrackingOptionId,
+        })),
       accountMappings,
     });
   } catch (err) {

@@ -599,6 +599,8 @@ model User {
   ownedRocks                    Rock[]                         @relation("RockOwner")
   assignedTodos                 Todo[]                         @relation("TodoAssignee")
   createdTodos                  Todo[]                         @relation("TodoCreator")
+  meetingRecordings             MeetingRecording[]             @relation("RecordingCreator")
+  meetingSeries                 MeetingSeries[]                @relation("SeriesCreator")
   raisedIssues                  Issue[]                        @relation("IssueRaiser")
   ownedIssues                   Issue[]                        @relation("IssueOwner")
   ownedMeasurables              Measurable[]                   @relation("MeasurableOwner")
@@ -799,6 +801,7 @@ model User {
   policyDocVersionUploads   PolicyDocumentVersion[]         @relation("PolicyDocVersionUploader")
   policyDocAcks             PolicyDocumentAcknowledgement[] @relation("PolicyDocAcknowledger")
   offboardings              StaffOffboarding[]              @relation("OffboardingUser")
+  availability              StaffAvailability[]             @relation("UserAvailability")
   apiKeys                   ApiKey[]                        @relation("ApiKeyCreator")
 
   // ── CRM Relations ───────────────────────────────────────────
@@ -824,6 +827,12 @@ model User {
   filledVacancies    RecruitmentVacancy[]   @relation("VacancyFilledBy")
   assignedVacancies  RecruitmentVacancy[]   @relation("VacancyAssignee")
   candidateReferrals RecruitmentCandidate[] @relation("CandidateReferrer")
+  // Set when this account was created by converting a recruitment
+  // candidate (hire → employee). @unique doubles as the "already
+  // converted" guard — one User per candidate. SetNull because
+  // candidates cascade-delete with their vacancy.
+  candidateId        String?                @unique
+  candidate          RecruitmentCandidate?  @relation("UserConvertedFromCandidate", fields: [candidateId], references: [id], onDelete: SetNull)
   staffReferrals     StaffReferral[]        @relation("StaffReferrer")
   pulseSurveys       StaffPulseSurvey[]     @relation("UserPulseSurveys")
 
@@ -1210,6 +1219,7 @@ model Rock {
   issues      Issue[]
   milestones  Milestone[]
   measurables Measurable[]
+  projects    Project[]     @relation("RockProjects")
   attachments Attachment[]
 
   @@index([quarter])
@@ -1254,10 +1264,18 @@ model Todo {
   // by /api/surveys/[id]/publish; null for every other todo.
   surveyId    String?
   survey      Survey?    @relation("SurveyTodos", fields: [surveyId], references: [id], onDelete: SetNull)
+  // 2026-08-31: meeting this todo was created in (IDS create-todo,
+  // To-Do Review quick-add). SetNull so deleting a mis-started meeting
+  // never destroys todos.
+  meetingId   String?
+  meeting     Meeting?   @relation("MeetingTodos", fields: [meetingId], references: [id], onDelete: SetNull)
   dueDate     DateTime
   status      TodoStatus @default(pending)
   weekOf      DateTime
   isPrivate   Boolean    @default(false)
+  /// Optional outcome note recorded when the todo is completed; cleared
+  /// server-side if the todo is re-opened (2026-08-31).
+  completionNote String? @db.Text
   deleted     Boolean    @default(false)
   createdAt   DateTime   @default(now())
   completedAt DateTime?
@@ -1281,6 +1299,7 @@ model Todo {
   @@index([weekOf, serviceId])
   @@index([assigneeId, status])
   @@index([dueDate, status])
+  @@index([meetingId])
 }
 
 model TodoAssignee {
@@ -1305,6 +1324,10 @@ model Issue {
   owner        User?         @relation("IssueOwner", fields: [ownerId], references: [id])
   rockId       String?
   rock         Rock?         @relation(fields: [rockId], references: [id], onDelete: SetNull)
+  // 2026-08-31: the off-track measurable this issue polices (scorecard
+  // watchdog). SetNull — deleting a measurable keeps discussion history.
+  measurableId String?
+  measurable   Measurable?   @relation(fields: [measurableId], references: [id], onDelete: SetNull)
   serviceId    String?
   service      Service?      @relation("ServiceIssues", fields: [serviceId], references: [id], onDelete: SetNull)
   priority     IssuePriority @default(medium)
@@ -1332,6 +1355,7 @@ model Issue {
   @@index([ownerId, status])
   @@index([category])
   @@index([category, status])
+  @@index([measurableId])
 }
 
 model Scorecard {
@@ -1391,6 +1415,7 @@ model Measurable {
   updatedAt     DateTime            @updatedAt
 
   entries MeasurableEntry[]
+  issues  Issue[]
 
   @@index([ownerId])
   @@index([scorecardId])
@@ -3133,6 +3158,9 @@ model Project {
   service     Service?         @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   templateId  String?
   template    ProjectTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  // 2026-08-31: the quarterly Rock this project executes (optional).
+  rockId      String?
+  rock        Rock?            @relation("RockProjects", fields: [rockId], references: [id], onDelete: SetNull)
   ownerId     String?
   owner       User?            @relation("ProjectOwner", fields: [ownerId], references: [id])
   status      ProjectStatus    @default(not_started)
@@ -3149,6 +3177,7 @@ model Project {
   @@index([serviceId])
   @@index([ownerId])
   @@index([status])
+  @@index([rockId])
 }
 
 // ============================================================
@@ -3184,6 +3213,14 @@ model Meeting {
   // same-day meetings. Null until prepared; facilitators can regenerate.
   aiAgendaDraft   Json?
   aiAgendaDraftAt DateTime?
+  // 2026-08-31: completion-time snapshot of meeting outcomes (todos done,
+  // issues solved, rock statuses). Written ONCE when the meeting completes
+  // so past meetings stop mutating as live data changes. Null = legacy
+  // meeting; the UI falls back to live computation.
+  outcomes        Json?
+  // 2026-08-31: recurring series this occurrence belongs to.
+  seriesId        String?
+  series          MeetingSeries? @relation("SeriesMeetings", fields: [seriesId], references: [id], onDelete: SetNull)
   startedAt       DateTime?
   completedAt     DateTime?
   createdById     String?
@@ -3191,17 +3228,92 @@ model Meeting {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  cascades  CascadeMessage[]  @relation("MeetingCascade")
-  attendees MeetingAttendee[] @relation("MeetingAttendees")
+  cascades   CascadeMessage[]   @relation("MeetingCascade")
+  attendees  MeetingAttendee[]  @relation("MeetingAttendees")
+  todos      Todo[]             @relation("MeetingTodos")
+  recordings MeetingRecording[] @relation("MeetingRecordings")
 
   @@index([date])
   @@index([status])
   @@index([createdById])
+  @@index([seriesId])
+}
+
+// ── Meeting series (execution layer, 2026-08-31) ────────────────────────
+// Recurring meeting template. A daily cron materialises the next
+// occurrence as a `scheduled` Meeting, which the morning-briefing cron
+// then auto-preps on the day. Wall-clock time is anchored to an IANA
+// timezone so DST never shifts the meeting.
+model MeetingSeries {
+  id              String   @id @default(cuid())
+  name            String // e.g. "Leadership L10"
+  /// 0=Sunday … 6=Saturday, in the series' local timezone
+  dayOfWeek       Int
+  /// Minutes from local midnight (13:30 → 810)
+  minuteOfDay     Int
+  timezone        String   @default("Australia/Sydney")
+  isLeadership    Boolean  @default(false)
+  serviceIds      String[]
+  scorecardId     String?
+  attendeeUserIds String[]
+  active          Boolean  @default(true)
+  createdById     String?
+  createdBy       User?    @relation("SeriesCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  meetings Meeting[] @relation("SeriesMeetings")
+
+  @@index([active])
 }
 
 enum AttendeeStatus {
   present
   absent
+}
+
+// ── Meeting recordings (Phase 2, 2026-08-31) ────────────────────────────
+// Audio (browser mic or uploaded Teams/Zoom file) → Deepgram diarized
+// transcription (webhook callback) → Claude structured review. The raw
+// audio blob is DELETED immediately after successful transcription — the
+// transcript is the durable record (privacy decision, see spec).
+
+enum MeetingRecordingStatus {
+  uploaded // blob stored, transcription requested
+  transcribing // Deepgram accepted the request
+  transcribed // transcript stored, audio deleted, summarisation running
+  complete // aiReview stored
+  failed // error recorded; audio deleted if still present
+}
+
+enum MeetingRecordingSource {
+  live_mic
+  upload
+}
+
+model MeetingRecording {
+  id                String                 @id @default(cuid())
+  meetingId         String
+  meeting           Meeting                @relation("MeetingRecordings", fields: [meetingId], references: [id], onDelete: Cascade)
+  source            MeetingRecordingSource
+  status            MeetingRecordingStatus @default(uploaded)
+  audioBlobUrl      String? // nulled after post-transcription deletion
+  durationSeconds   Int?
+  deepgramRequestId String? // request_id echoed in the webhook callback
+  transcript        Json? // utterances: [{ speaker, start, end, text }]
+  transcriptText    String?                @db.Text // "Speaker N: ..." rendering
+  aiReview          Json? // MeetingAiReview (summary, action items, missed items)
+  /// Post-review digest sent to attendees (guarded claim — one send ever).
+  digestSentAt      DateTime?
+  error             String?
+  createdById       String?
+  createdBy         User?                  @relation("RecordingCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@index([meetingId])
+  @@index([status, createdAt])
+  @@index([deepgramRequestId])
 }
 
 model MeetingAttendee {
@@ -4637,6 +4749,10 @@ model EmploymentContract {
   contractType        ContractType
   awardLevel          AwardLevel?
   awardLevelCustom    String?
+  // Staff-portal-v2 Task 10.3: free-text award classification (e.g.
+  // "Children's Services Employee Level 3.1") shown in the salary
+  // history. Optional — legacy contracts leave it null.
+  classification      String?
   payRate             Float
   hoursPerWeek        Float?
   startDate           DateTime       @db.Date
@@ -5410,7 +5526,14 @@ model RosterShift {
   actualStart       DateTime?
   actualEnd         DateTime?
 
-  @@unique([serviceId, date, staffName, shiftStart])
+  /// 2026-09-04: was ([serviceId, date, staffName, shiftStart]) — keying on
+  /// a denormalised display name meant two open shifts ("Open shift") at
+  /// the same time collided, and renaming a user desynced the constraint.
+  /// userId NULLs are distinct in Postgres unique indexes, so multiple
+  /// open slots at the same time are allowed by design; a real user can't
+  /// be double-booked at the same start. The OWNA ingest (cowork/ops/roster)
+  /// dedupes by staffName in application code instead.
+  @@unique([serviceId, date, userId, shiftStart])
   @@index([serviceId])
   @@index([date])
   @@index([serviceId, date])
@@ -5418,6 +5541,30 @@ model RosterShift {
   @@index([userId])
   @@index([userId, date])
   @@index([status])
+}
+
+/// Staff-portal-v2 Task 10.2: recurring weekly availability, set by the
+/// staff member themselves on /profile (self-scoped GET/PUT at
+/// /api/my-portal/availability). One row per weekday (0=Sunday … 6=Saturday,
+/// JS Date#getDay convention). `available: false` marks the whole day
+/// unavailable; when `available: true`, the optional `startTime`/`endTime`
+/// ("HH:MM") narrow it to a window. Advisory only — the roster grid overlays
+/// a subtle "Unavailable" hint (batched with the leave overlay via
+/// /api/roster/overlays) but nothing blocks an admin from rostering anyway.
+model StaffAvailability {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserAvailability", fields: [userId], references: [id], onDelete: Cascade)
+  weekday   Int // 0-6, JS Date#getDay convention (0=Sunday)
+  available Boolean  @default(true)
+  startTime String? // "HH:MM" — only meaningful when available
+  endTime   String? // "HH:MM"
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, weekday])
+  @@index([userId])
 }
 
 /// Responsible-person register — under the NQF an approved provider must
@@ -5939,6 +6086,7 @@ model RecruitmentCandidate {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   staffReferral    StaffReferral?
+  convertedUser    User?              @relation("UserConvertedFromCandidate")
 
   @@index([vacancyId])
   @@index([stage])

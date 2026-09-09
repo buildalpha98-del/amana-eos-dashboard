@@ -27,8 +27,10 @@ const taskIncludes = {
 // GET /api/marketing/tasks — list tasks with optional filters
 export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
-  const status = searchParams.get("status");
-  const priority = searchParams.get("priority");
+  const statusParsed = createTaskSchema.shape.status.removeDefault().safeParse(searchParams.get("status"));
+  const status = statusParsed.success ? statusParsed.data : null;
+  const priorityParsed = createTaskSchema.shape.priority.removeDefault().safeParse(searchParams.get("priority"));
+  const priority = priorityParsed.success ? priorityParsed.data : null;
   const assigneeId = searchParams.get("assigneeId");
   const campaignId = searchParams.get("campaignId");
   const serviceId = searchParams.get("serviceId");
@@ -36,8 +38,8 @@ export const GET = withApiAuth(async (req, session) => {
   const tasks = await prisma.marketingTask.findMany({
     where: {
       deleted: false,
-      ...(status ? { status: status as any } : {}),
-      ...(priority ? { priority: priority as any } : {}),
+      ...(status ? { status } : {}),
+      ...(priority ? { priority } : {}),
       ...(assigneeId ? { assigneeId } : {}),
       ...(campaignId ? { campaignId } : {}),
       ...(serviceId ? { serviceId } : {}),

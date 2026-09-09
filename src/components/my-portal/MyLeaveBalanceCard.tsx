@@ -47,6 +47,8 @@ export function MyLeaveBalanceCard({}: MyLeaveBalanceCardProps) {
   const { data, isLoading, error } = useQuery<BalancesResponse, ApiResponseError>({
     queryKey: ["my-leave-balances-eh"],
     queryFn: () => fetchApi<BalancesResponse>("/api/my-portal/leave/balances"),
+    // Inline error/empty states cover this card — skip the global toast.
+    meta: { suppressGlobalErrorToast: true },
     staleTime: 5 * 60_000,
     retry: (count, err) => {
       const status = (err as ApiResponseError)?.status;

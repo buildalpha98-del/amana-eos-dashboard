@@ -30,8 +30,10 @@ import {
   totalSignalCount,
 } from "@/lib/morning-briefing";
 import { prepareMeetingAgenda } from "@/lib/l10-prep";
+import { sameLocalDayRange } from "@/lib/meeting-series";
 import { computeForecastAlerts } from "@/lib/forecast-data";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUser } from "@/lib/notify-user";
 
 export const maxDuration = 300;
 
@@ -51,15 +53,18 @@ export const GET = withApiHandler(
 
     // ── 1. Prepare agendas for today's unprepared meetings first, so
     //       the briefs can say "the agenda draft is ready". ──────────
+    // 2026-09-01: "today" is the SYDNEY day, not the UTC day. This cron
+    // runs at 20:00 UTC (6am Sydney); the old UTC-day window ended at
+    // 23:59 UTC — 10am Sydney — so a 1:30pm meeting (03:30 UTC the next
+    // UTC day) was never matched and this branch could not fire for any
+    // morning-scheduled Sydney meeting.
+    const sydneyToday = sameLocalDayRange(now, "Australia/Sydney");
     const meetingsToday = await prisma.meeting.findMany({
       where: {
         status: "scheduled",
         // Json-null filter: AnyNull matches both SQL NULL and JSON null.
         aiAgendaDraft: { equals: Prisma.AnyNull },
-        date: {
-          gte: todayStart,
-          lt: new Date(todayStart.getTime() + 24 * 60 * 60 * 1000),
-        },
+        date: { gte: sydneyToday.start, lt: sydneyToday.end },
       },
       select: { id: true },
     });
@@ -137,14 +142,11 @@ export const GET = withApiHandler(
         created += 1;
 
         if (totalSignalCount(signals) > 0) {
-          await prisma.userNotification.create({
-            data: {
-              userId: user.id,
-              type: NOTIFICATION_TYPES.MORNING_BRIEF_READY,
-              title: "Your morning brief is ready",
-              body: `${totalSignalCount(signals)} item(s) need attention today`,
-              link: "/dashboard",
-            },
+          await notifyUser(prisma, user.id, {
+            type: NOTIFICATION_TYPES.MORNING_BRIEF_READY,
+            title: "Your morning brief is ready",
+            body: `${totalSignalCount(signals)} item(s) need attention today`,
+            link: "/dashboard",
           });
         } else {
           quiet += 1;

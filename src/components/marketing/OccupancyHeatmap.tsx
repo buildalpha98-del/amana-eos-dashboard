@@ -69,6 +69,7 @@ export function OccupancyHeatmap({ serviceId }: { serviceId?: string }) {
   const [stateFilter, setStateFilter] = useState("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch on mount/filter change; setLoading(true) marks the in-flight request
     setLoading(true);
     const params = new URLSearchParams();
     if (stateFilter) params.set("state", stateFilter);

@@ -49,7 +49,7 @@ describe("GET /api/notifications", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns the current user's notifications", async () => {
+  it("returns the current user's notifications with the default shape", async () => {
     mockSession({ id: "u1", name: "Test", role: "staff" });
     prismaMock.userNotification.findMany.mockResolvedValue([makeNotif()]);
 
@@ -58,15 +58,80 @@ describe("GET /api/notifications", () => {
     const body = await res.json();
     expect(body.notifications).toHaveLength(1);
     expect(body.notifications[0].id).toBe("n1");
+    // fewer rows than the page size → no further page
+    expect(body.nextCursor).toBeNull();
 
-    // Scoped to the session user
+    // Scoped to the session user; default page size stays 50 (+1 look-ahead)
     expect(prismaMock.userNotification.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ userId: "u1" }),
-        orderBy: { createdAt: "desc" },
-        take: 50,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 51,
       }),
     );
+    const callArgs = prismaMock.userNotification.findMany.mock.calls[0][0];
+    expect(callArgs.cursor).toBeUndefined();
+    expect(callArgs.skip).toBeUndefined();
+  });
+
+  it("caps the page at `limit` and returns the last row's id as nextCursor", async () => {
+    mockSession({ id: "u1", name: "Test", role: "staff" });
+    // limit=2 → route fetches 3; a 3rd row means another page exists
+    prismaMock.userNotification.findMany.mockResolvedValue([
+      makeNotif({ id: "n1" }),
+      makeNotif({ id: "n2" }),
+      makeNotif({ id: "n3" }),
+    ]);
+
+    const res = await GET(createRequest("GET", "/api/notifications?limit=2"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.notifications.map((n: { id: string }) => n.id)).toEqual([
+      "n1",
+      "n2",
+    ]);
+    expect(body.nextCursor).toBe("n2");
+
+    expect(prismaMock.userNotification.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 3 }),
+    );
+  });
+
+  it("passes the cursor to prisma and skips the cursor row", async () => {
+    mockSession({ id: "u1", name: "Test", role: "staff" });
+    prismaMock.userNotification.findMany.mockResolvedValue([
+      makeNotif({ id: "n3" }),
+    ]);
+
+    const res = await GET(
+      createRequest("GET", "/api/notifications?limit=2&cursor=n2"),
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.notifications).toHaveLength(1);
+    expect(body.nextCursor).toBeNull();
+
+    expect(prismaMock.userNotification.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cursor: { id: "n2" },
+        skip: 1,
+        take: 3,
+      }),
+    );
+  });
+
+  it("rejects an out-of-range limit with 400", async () => {
+    mockSession({ id: "u1", name: "Test", role: "staff" });
+
+    const over = await GET(createRequest("GET", "/api/notifications?limit=51"));
+    expect(over.status).toBe(400);
+    const zero = await GET(createRequest("GET", "/api/notifications?limit=0"));
+    expect(zero.status).toBe(400);
+    const junk = await GET(
+      createRequest("GET", "/api/notifications?limit=abc"),
+    );
+    expect(junk.status).toBe(400);
+    expect(prismaMock.userNotification.findMany).not.toHaveBeenCalled();
   });
 
   it("filters to unread=true", async () => {

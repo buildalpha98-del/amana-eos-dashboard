@@ -16,6 +16,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { notifyUser } from "@/lib/notify-user";
 import { logger } from "@/lib/logger";
 
 const patchSchema = z.object({
@@ -109,17 +110,14 @@ export const PATCH = withApiAuth(async (req, session, context) => {
       nextStatus === "approved"
         ? `Your purchase of "${existing.product}" from ${existing.vendor} ($${dollars}) was approved. Please go ahead and purchase using your own funds, then submit an expense claim from My Portal → My Expenses.${decisionNote ? `\n\nNote: ${decisionNote}` : ""}`
         : `Your purchase request for "${existing.product}" from ${existing.vendor} ($${dollars}) was not approved.${decisionNote ? `\n\nReason: ${decisionNote}` : ""}`;
-    await prisma.userNotification.create({
-      data: {
-        userId: existing.requestedById,
-        type:
-          nextStatus === "approved"
-            ? "purchase_approval_approved"
-            : "purchase_approval_rejected",
-        title,
-        body,
-        link: `/services/${serviceId}?tab=finance&sub=approvals`,
-      },
+    await notifyUser(prisma, existing.requestedById, {
+      type:
+        nextStatus === "approved"
+          ? "purchase_approval_approved"
+          : "purchase_approval_rejected",
+      title,
+      body,
+      link: `/services/${serviceId}?tab=finance&sub=approvals`,
     });
   }
 

@@ -38,11 +38,11 @@ vi.mock("@/lib/logger", () => ({
 // Import AFTER mocks are set up
 import { GET, POST } from "@/app/api/timesheets/route";
 import {
-  GET as getTimesheet,
   PATCH,
 } from "@/app/api/timesheets/[id]/route";
 import { POST as submitTimesheet } from "@/app/api/timesheets/[id]/submit/route";
 import { POST as approveTimesheet } from "@/app/api/timesheets/[id]/approve/route";
+import { POST as bulkApprove } from "@/app/api/timesheets/bulk-approve/route";
 
 describe("GET /api/timesheets", () => {
   beforeEach(() => {
@@ -266,7 +266,7 @@ describe("POST /api/timesheets/[id]/submit", () => {
     });
     prismaMock.activityLog.create.mockResolvedValue({});
     prismaMock.user.findMany.mockResolvedValue([{ id: "coord-1" }]);
-    prismaMock.userNotification.create.mockResolvedValue({});
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 });
 
     const req = createRequest("POST", "/api/timesheets/ts-1/submit");
     const res = await submitTimesheet(req, {
@@ -283,12 +283,13 @@ describe("POST /api/timesheets/[id]/submit", () => {
         }),
       }),
     );
-    expect(prismaMock.userNotification.create).toHaveBeenCalledTimes(1);
-    const args = prismaMock.userNotification.create.mock.calls[0][0];
-    expect(args.data.userId).toBe("coord-1");
-    expect(args.data.type).toBe("timesheet_submitted");
-    expect(args.data.title).toContain("Daniel");
-    expect(args.data.link).toBe("/timesheets?id=ts-1");
+    // Notifications now flow through notifyUsers → createMany (push fan-out).
+    expect(prismaMock.userNotification.createMany).toHaveBeenCalledTimes(1);
+    const args = prismaMock.userNotification.createMany.mock.calls[0][0];
+    expect(args.data[0].userId).toBe("coord-1");
+    expect(args.data[0].type).toBe("timesheet_submitted");
+    expect(args.data[0].title).toContain("Daniel");
+    expect(args.data[0].link).toBe("/timesheets?id=ts-1");
   });
 });
 
@@ -325,7 +326,7 @@ describe("POST /api/timesheets/[id]/approve", () => {
       _count: { entries: 3 },
     });
     prismaMock.activityLog.create.mockResolvedValue({});
-    prismaMock.userNotification.create.mockResolvedValue({});
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 });
 
     const req = createRequest("POST", "/api/timesheets/ts-1/approve");
     const res = await approveTimesheet(req, {
@@ -333,12 +334,36 @@ describe("POST /api/timesheets/[id]/approve", () => {
     } as any);
 
     expect(res.status).toBe(200);
-    expect(prismaMock.userNotification.create).toHaveBeenCalledTimes(1);
-    const args = prismaMock.userNotification.create.mock.calls[0][0];
-    expect(args.data.userId).toBe("staff-99");
-    expect(args.data.type).toBe("timesheet_approved");
-    expect(args.data.title).toBe("Timesheet approved");
-    expect(args.data.link).toBe("/timesheets?id=ts-1");
+    expect(prismaMock.userNotification.createMany).toHaveBeenCalledTimes(1);
+    const args = prismaMock.userNotification.createMany.mock.calls[0][0];
+    expect(args.data[0].userId).toBe("staff-99");
+    expect(args.data[0].type).toBe("timesheet_approved");
+    expect(args.data[0].title).toBe("Timesheet approved");
+    expect(args.data[0].link).toBe("/timesheets?id=ts-1");
+  });
+
+  it("rejects self-approval with 403", async () => {
+    mockSession({ id: "approver-1", name: "Manager", role: "owner" });
+
+    prismaMock.timesheet.findUnique.mockResolvedValue({
+      id: "ts-1",
+      serviceId: "svc-1",
+      weekEnding: new Date("2026-04-18"),
+      status: "submitted",
+      submittedById: "approver-1", // same user as the session — self-approval
+      deleted: false,
+    });
+
+    const req = createRequest("POST", "/api/timesheets/ts-1/approve");
+    const res = await approveTimesheet(req, {
+      params: Promise.resolve({ id: "ts-1" }),
+    } as any);
+
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe("You can't approve a timesheet you submitted");
+    expect(prismaMock.timesheet.update).not.toHaveBeenCalled();
+    expect(prismaMock.userNotification.createMany).not.toHaveBeenCalled();
   });
 
   it("still approves when notification creation fails", async () => {
@@ -363,7 +388,7 @@ describe("POST /api/timesheets/[id]/approve", () => {
       _count: { entries: 3 },
     });
     prismaMock.activityLog.create.mockResolvedValue({});
-    prismaMock.userNotification.create.mockRejectedValue(new Error("DB exploded"));
+    prismaMock.userNotification.createMany.mockRejectedValue(new Error("DB exploded"));
 
     const req = createRequest("POST", "/api/timesheets/ts-1/approve");
     const res = await approveTimesheet(req, {
@@ -372,5 +397,166 @@ describe("POST /api/timesheets/[id]/approve", () => {
 
     // Core approval must still succeed.
     expect(res.status).toBe(200);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/timesheets/bulk-approve — approve up to 50 submitted timesheets
+// ---------------------------------------------------------------------------
+
+describe("POST /api/timesheets/bulk-approve", () => {
+  const makeSheet = (over: Record<string, unknown> = {}) => ({
+    id: "ts-1",
+    serviceId: "svc-1",
+    weekEnding: new Date("2026-04-18"),
+    status: "submitted",
+    submittedById: "staff-99",
+    deleted: false,
+    ...over,
+  });
+
+  beforeEach(() => {
+    _clearUserActiveCache();
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
+    prismaMock.timesheet.update.mockImplementation(({ where }: { where: { id: string } }) =>
+      Promise.resolve({
+        ...makeSheet({ id: where.id }),
+        status: "approved",
+        approvedAt: new Date(),
+        approvedById: "approver-1",
+        service: { id: "svc-1", name: "Svc", code: "SVC1" },
+        _count: { entries: 3 },
+      }),
+    );
+    prismaMock.activityLog.create.mockResolvedValue({});
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 });
+  });
+
+  it("returns 401 when not authenticated", async () => {
+    mockNoSession();
+
+    const req = createRequest("POST", "/api/timesheets/bulk-approve", {
+      body: { ids: ["ts-1"] },
+    });
+    const res = await bulkApprove(req);
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 for a non-approver role", async () => {
+    mockSession({ id: "user-1", name: "Coord", role: "member" });
+
+    const req = createRequest("POST", "/api/timesheets/bulk-approve", {
+      body: { ids: ["ts-1"] },
+    });
+    const res = await bulkApprove(req);
+
+    expect(res.status).toBe(403);
+    expect(prismaMock.timesheet.update).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 on empty ids", async () => {
+    mockSession({ id: "approver-1", name: "Manager", role: "owner" });
+
+    const req = createRequest("POST", "/api/timesheets/bulk-approve", {
+      body: { ids: [] },
+    });
+    const res = await bulkApprove(req);
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 on more than 50 ids", async () => {
+    mockSession({ id: "approver-1", name: "Manager", role: "owner" });
+
+    const req = createRequest("POST", "/api/timesheets/bulk-approve", {
+      body: { ids: Array.from({ length: 51 }, (_, i) => `ts-${i}`) },
+    });
+    const res = await bulkApprove(req);
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain("50");
+  });
+
+  it("skips sheets the caller submitted (self-approval guard)", async () => {
+    mockSession({ id: "approver-1", name: "Manager", role: "owner" });
+
+    prismaMock.timesheet.findMany.mockResolvedValue([
+      makeSheet({ id: "ts-mine", submittedById: "approver-1" }),
+    ]);
+
+    const req = createRequest("POST", "/api/timesheets/bulk-approve", {
+      body: { ids: ["ts-mine"] },
+    });
+    const res = await bulkApprove(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.approved).toEqual([]);
+    expect(body.skipped).toEqual([
+      { id: "ts-mine", reason: "You submitted this timesheet" },
+    ]);
+    expect(prismaMock.timesheet.update).not.toHaveBeenCalled();
+  });
+
+  it("approves submitted sheets and skips the rest with reasons (mixed batch)", async () => {
+    mockSession({ id: "approver-1", name: "Manager", role: "head_office" });
+
+    prismaMock.timesheet.findMany.mockResolvedValue([
+      makeSheet({ id: "ts-ok" }),
+      makeSheet({ id: "ts-draft", status: "ts_draft" }),
+      makeSheet({ id: "ts-mine", submittedById: "approver-1" }),
+    ]);
+
+    const req = createRequest("POST", "/api/timesheets/bulk-approve", {
+      body: { ids: ["ts-ok", "ts-draft", "ts-mine", "ts-missing"] },
+    });
+    const res = await bulkApprove(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.approved).toEqual(["ts-ok"]);
+    expect(body.skipped).toEqual([
+      { id: "ts-draft", reason: "Not in submitted status" },
+      { id: "ts-mine", reason: "You submitted this timesheet" },
+      { id: "ts-missing", reason: "Timesheet not found" },
+    ]);
+    expect(prismaMock.timesheet.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("approves every submitted sheet with activity + notification (happy path)", async () => {
+    mockSession({ id: "approver-1", name: "Manager", role: "owner" });
+
+    prismaMock.timesheet.findMany.mockResolvedValue([
+      makeSheet({ id: "ts-a", submittedById: "staff-1" }),
+      makeSheet({ id: "ts-b", submittedById: "staff-2" }),
+    ]);
+
+    const req = createRequest("POST", "/api/timesheets/bulk-approve", {
+      body: { ids: ["ts-a", "ts-b"] },
+    });
+    const res = await bulkApprove(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.approved).toEqual(["ts-a", "ts-b"]);
+    expect(body.skipped).toEqual([]);
+    // Same semantics as the single approve route: status flip + activity + notify
+    expect(prismaMock.timesheet.update).toHaveBeenCalledTimes(2);
+    expect(prismaMock.timesheet.update.mock.calls[0][0].data.status).toBe("approved");
+    expect(prismaMock.activityLog.create).toHaveBeenCalledTimes(2);
+    expect(prismaMock.activityLog.create.mock.calls[0][0].data.action).toBe(
+      "approve_timesheet",
+    );
+    expect(prismaMock.userNotification.createMany).toHaveBeenCalledTimes(2);
+    const notified = prismaMock.userNotification.createMany.mock.calls.map(
+      (c: [{ data: { userId: string }[] }]) => c[0].data[0].userId,
+    );
+    expect(notified).toEqual(["staff-1", "staff-2"]);
+    expect(
+      prismaMock.userNotification.createMany.mock.calls[0][0].data[0].type,
+    ).toBe("timesheet_approved");
   });
 });

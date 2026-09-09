@@ -63,7 +63,8 @@ function makeTargetUser(overrides: Record<string, unknown> = {}) {
 function setupCommonMocks() {
   // Return empty arrays / null for every profile sub-query
   prismaMock.emergencyContact.findMany.mockResolvedValue([]);
-  prismaMock.employmentContract.findFirst.mockResolvedValue(null);
+  // Task 10.3: the loader fetches ALL contracts (findMany desc), not findFirst.
+  prismaMock.employmentContract.findMany.mockResolvedValue([]);
   prismaMock.leaveBalance.findMany.mockResolvedValue([]);
   prismaMock.leaveRequest.findMany.mockResolvedValue([]);
   prismaMock.timesheetEntry.findMany.mockResolvedValue([]);

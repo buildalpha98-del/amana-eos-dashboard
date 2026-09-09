@@ -45,7 +45,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   // the induction surfaces in the sidebar, mirroring the middleware redirect.
   const inductionLocked = isInductionLocked(
     session?.user?.inductionStatus,
-    session?.user?.inductionGraceUntil
+    session?.user?.inductionGraceUntil,
+    { role: session?.user?.role }
   );
 
   // Group filtered nav items by section.
@@ -59,13 +60,14 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   // first-seen section wins.
   // Badge-carrying items must never be invisible — a live count overrides
   // both the curated-core overflow AND the stage-1 `hidden` fold.
+  const pendingPoliciesCountValue = pendingPoliciesCount?.count;
   const forceShowHrefs = useMemo(() => {
     const hrefs: string[] = [];
     if (bookingRequestCount != null && bookingRequestCount > 0) hrefs.push("/bookings");
     if (unreadMessageCount != null && unreadMessageCount > 0) hrefs.push("/messaging");
-    if (pendingPoliciesCount?.count != null && pendingPoliciesCount.count > 0) hrefs.push("/policies");
+    if (pendingPoliciesCountValue != null && pendingPoliciesCountValue > 0) hrefs.push("/policies");
     return hrefs;
-  }, [bookingRequestCount, unreadMessageCount, pendingPoliciesCount?.count]);
+  }, [bookingRequestCount, unreadMessageCount, pendingPoliciesCountValue]);
 
   const groupedItems = useMemo(() => {
     const filtered = filterNavItems(

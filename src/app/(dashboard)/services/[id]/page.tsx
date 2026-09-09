@@ -257,6 +257,18 @@ const tabGroups: TabGroup[] = [
   },
 ];
 
+// Params owned by an individual sub-tab. The URL sync preserves them while
+// their owner is active (so deep links like
+// ?tab=daily&sub=roll-call&rollCallView=weekly survive mount) and clears
+// them the moment the user moves away — otherwise a stale `date` re-seeds
+// the roll on the next visit and a shared Finance link carries
+// contradictory roll-call state forever. A sub-tab that adds its own query
+// param must register it here.
+const TAB_OWNED_PARAMS: Record<string, { tab: string; sub: string }> = {
+  rollCallView: { tab: "daily", sub: "roll-call" },
+  date: { tab: "daily", sub: "roll-call" },
+};
+
 const statusBadgeStyles: Record<string, string> = {
   active: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
   onboarding: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800",
@@ -304,14 +316,29 @@ export default function ServiceDetailPage() {
     const currentSub = activeSubTab[activeGroup];
     const group = tabGroups.find((g) => g.key === activeGroup);
     const hasSubTabs = group && group.subTabs.length > 0;
-    const params = new URLSearchParams();
+    // Build from the router's searchParams, not window.location.search:
+    // window.location lags uncommitted router.replace() calls from child
+    // tabs (roll-call writes rollCallView/date), so a racing snapshot here
+    // could resurrect the stale query and drop a just-written param.
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("tab");
+    params.delete("sub");
+    for (const [key, owner] of Object.entries(TAB_OWNED_PARAMS)) {
+      if (owner.tab !== activeGroup || owner.sub !== currentSub) {
+        params.delete(key);
+      }
+    }
     if (activeGroup !== "today") {
       params.set("tab", activeGroup);
       if (hasSubTabs && currentSub) params.set("sub", currentSub);
     }
     const qs = params.toString();
+    // Skip the no-op replace when the URL already matches — this also
+    // terminates the loop this effect would otherwise enter now that it
+    // depends on searchParams (each replace mints a new searchParams).
+    if (qs === searchParams.toString()) return;
     router.replace(`/services/${id}${qs ? `?${qs}` : ""}`, { scroll: false });
-  }, [activeGroup, activeSubTab, id, router]);
+  }, [activeGroup, activeSubTab, id, router, searchParams]);
 
   // Notification badge data from service detail
   const todoBadge = service?.todos?.filter((t) => t.status !== "done").length || 0;

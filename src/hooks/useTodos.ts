@@ -30,7 +30,12 @@ export interface TodoData {
   issueId: string | null;
   issue: { id: string; title: string } | null;
   serviceId: string | null;
+  /** Meeting this todo was created in (IDS / To-Do Review capture). */
+  meetingId?: string | null;
+  meeting?: { id: string; title: string; date: string } | null;
   isPrivate: boolean;
+  /** Outcome note recorded when completed (2026-08-31). */
+  completionNote?: string | null;
   dueDate: string;
   weekOf: string;
   status: TodoStatus;
@@ -74,6 +79,7 @@ export function useCreateTodo() {
       rockId?: string | null;
       issueId?: string | null;
       serviceId?: string | null;
+      meetingId?: string | null;
       isPrivate?: boolean;
       dueDate: string;
       weekOf: string;
@@ -110,6 +116,7 @@ export function useUpdateTodo() {
       rockId?: string | null;
       issueId?: string | null;
       isPrivate?: boolean;
+      completionNote?: string | null;
     }) => {
       return mutateApi<TodoData>(`/api/todos/${id}`, {
         method: "PATCH",

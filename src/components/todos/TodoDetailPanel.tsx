@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useUpdateTodo, useDeleteTodo, type TodoData } from "@/hooks/useTodos";
+import { formatDateAU } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { X, Mountain, AlertCircle, Lock, Unlock, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -44,21 +46,25 @@ export function TodoDetailPanel({
     new Date(todo.dueDate).toISOString().split("T")[0]
   );
   const [status, setStatus] = useState<TodoStatus>(todo.status);
+  const [completionNote, setCompletionNote] = useState(todo.completionNote ?? "");
   const [rockId, setRockId] = useState(todo.rockId || "");
   const [isPrivate, setIsPrivate] = useState(todo.isPrivate);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Reset when todo changes
-  useEffect(() => {
+  // Reset when todo changes (adjust-during-render pattern)
+  const [prevTodo, setPrevTodo] = useState(todo);
+  if (todo !== prevTodo) {
+    setPrevTodo(todo);
     setTitle(todo.title);
     setDescription(todo.description || "");
     setAssigneeId(todo.assigneeId);
     setDueDate(new Date(todo.dueDate).toISOString().split("T")[0]);
     setStatus(todo.status);
+    setCompletionNote(todo.completionNote ?? "");
     setRockId(todo.rockId || "");
     setIsPrivate(todo.isPrivate);
     setShowDeleteConfirm(false);
-  }, [todo]);
+  }
 
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
@@ -176,6 +182,28 @@ export function TodoDetailPanel({
             </div>
           </div>
 
+          {/* Outcome note (2026-08-31): shown while complete; the server
+              clears it if the todo is re-opened. */}
+          {status === "complete" && (
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1">
+                Outcome / what was done <span className="font-normal">(optional)</span>
+              </label>
+              <AutoGrowTextarea
+                value={completionNote}
+                onChange={(e) => setCompletionNote(e.target.value)}
+                onBlur={() => {
+                  if ((todo.completionNote ?? "") !== completionNote) {
+                    saveField("completionNote", completionNote || null);
+                  }
+                }}
+                minHeight={64}
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                placeholder="e.g. Emailed all families; two follow-ups booked for Friday"
+              />
+            </div>
+          )}
+
           {/* Assignee + Due Date */}
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -247,6 +275,22 @@ export function TodoDetailPanel({
               <p className="text-sm text-foreground/80 bg-surface/50 px-3 py-2 rounded-lg">
                 {todo.issue.title}
               </p>
+            </div>
+          )}
+
+          {/* Created in meeting (read-only, 2026-08-31) */}
+          {todo.meeting && (
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1">
+                Created in
+              </label>
+              <Link
+                href="/meetings"
+                className="block text-sm text-brand hover:underline bg-surface/50 px-3 py-2 rounded-lg"
+              >
+                {todo.meeting.title} ·{" "}
+                {formatDateAU(new Date(todo.meeting.date))}
+              </Link>
             </div>
           )}
 

@@ -70,15 +70,25 @@ export const POST = withApiAuth(async (req, session) => {
       const targetDate = new Date(src.date.getTime() + dayOffsetMs);
       const targetDateIso = targetDate.toISOString().slice(0, 10);
 
-      const collision = await tx.rosterShift.findUnique({
-        where: {
-          serviceId_date_staffName_shiftStart: {
-            serviceId,
-            date: targetDate,
-            staffName: src.staffName,
-            shiftStart: src.shiftStart,
-          },
-        },
+      // Collision semantics after the 2026-09-04 unique-key change:
+      // assigned shifts collide per USER (the new DB key); open shifts
+      // keep the old per-staffName check so copying a week doesn't stack
+      // duplicate identical open slots on top of ones already there.
+      const collision = await tx.rosterShift.findFirst({
+        where: src.userId
+          ? {
+              serviceId,
+              date: targetDate,
+              userId: src.userId,
+              shiftStart: src.shiftStart,
+            }
+          : {
+              serviceId,
+              date: targetDate,
+              userId: null,
+              staffName: src.staffName,
+              shiftStart: src.shiftStart,
+            },
       });
 
       if (collision) {

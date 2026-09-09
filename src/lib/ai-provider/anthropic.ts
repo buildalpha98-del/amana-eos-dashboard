@@ -37,12 +37,13 @@ export async function generateStructuredAnthropic<T>(
     const res = await ai.messages.create({
       model: modelId,
       max_tokens: opts.maxTokens ?? 2048,
-      temperature: opts.temperature ?? 0.4,
       system: systemWithJson,
       messages: [{ role: "user", content: opts.prompt }],
     });
-    const block = res.content[0];
-    const text = block && "text" in block ? block.text : "";
+    // 2026-09-01: current-gen models run adaptive thinking by default, so
+    // content[0] can be a `thinking` block — find the text block instead.
+    const textBlock = res.content.find((b) => b.type === "text");
+    const text = textBlock && "text" in textBlock ? textBlock.text : "";
     return {
       text,
       inputTokens: res.usage.input_tokens,
@@ -63,12 +64,11 @@ export async function generateStructuredAnthropic<T>(
     const repaired = await ai.messages.create({
       model: modelId,
       max_tokens: opts.maxTokens ?? 2048,
-      temperature: opts.temperature ?? 0.4,
       system: systemWithJson,
       messages: [{ role: "user", content: repairOpts.prompt }],
     });
-    const block = repaired.content[0];
-    const text = block && "text" in block ? block.text : "";
+    const textBlock = repaired.content.find((b) => b.type === "text");
+    const text = textBlock && "text" in textBlock ? textBlock.text : "";
     attempt = {
       text,
       inputTokens: attempt.inputTokens + repaired.usage.input_tokens,

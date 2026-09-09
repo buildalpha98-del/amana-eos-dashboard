@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { LeadSummary } from "@/hooks/useCRM";
 import { StickyTable } from "@/components/ui/StickyTable";
 
@@ -40,6 +41,8 @@ export function LeadTable({
   leads: LeadSummary[];
   onLeadClick: (lead: LeadSummary) => void;
 }) {
+  // Snapshot "now" once per mount so render stays pure (day-level granularity)
+  const [now] = useState(() => Date.now());
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
       <StickyTable>
@@ -60,7 +63,7 @@ export function LeadTable({
         <tbody>
           {leads.map((lead) => {
             const daysInStage = Math.floor(
-              (Date.now() - new Date(lead.stageChangedAt).getTime()) / (1000 * 60 * 60 * 24)
+              (now - new Date(lead.stageChangedAt).getTime()) / (1000 * 60 * 60 * 24)
             );
             return (
               <tr

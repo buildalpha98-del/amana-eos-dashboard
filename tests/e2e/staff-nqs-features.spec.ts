@@ -15,42 +15,34 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { gotoFirstService } from "./helpers/goto-first-service";
 
 test.use({
   storageState: ".playwright/auth/owner.json",
 });
 
 test.describe("Staff Dashboard v2 — NQS features", () => {
-  test.beforeEach(async ({ page }) => {
-    // Landing page gives us a service id we can click through to.
-    await page.goto("/services");
-    await page.waitForLoadState("networkidle");
-  });
-
   test("Reflections tab renders under Compliance and opens create modal", async ({
     page,
   }) => {
-    const firstService = page.locator("a[href^='/services/']").first();
-    await firstService.click();
-    await page.waitForLoadState("networkidle");
-
-    // Flip the v2 flag via URL override so we hit the new shell.
-    const url = new URL(page.url());
-    url.searchParams.set("v2", "1");
-    url.searchParams.set("tab", "compliance");
-    url.searchParams.set("sub", "reflections");
-    await page.goto(url.toString());
-    await page.waitForLoadState("networkidle");
+    // v2 flag via URL override so we hit the new shell.
+    await gotoFirstService(page, {
+      v2: "1",
+      tab: "compliance",
+      sub: "reflections",
+    });
 
     await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/Reflections/i).first()).toBeVisible();
+    await expect(page.getByText(/Reflections/i).filter({ visible: true }).first()).toBeVisible();
 
     // Click "New reflection" if present
     const newBtn = page.getByRole("button", { name: /New reflection/i });
     if (await newBtn.isVisible().catch(() => false)) {
       await newBtn.click();
+      // Scope to the dialog — the button we just clicked also matches the
+      // text, so an unscoped locator passes even when the modal never opens.
       await expect(
-        page.getByText(/New reflection/i, { exact: false }),
+        page.getByRole("dialog").getByText(/New reflection/i),
       ).toBeVisible({ timeout: 5_000 });
     }
   });
@@ -58,16 +50,11 @@ test.describe("Staff Dashboard v2 — NQS features", () => {
   test("Observations tab renders under Program + create modal has MTOP chips", async ({
     page,
   }) => {
-    const firstService = page.locator("a[href^='/services/']").first();
-    await firstService.click();
-    await page.waitForLoadState("networkidle");
-
-    const url = new URL(page.url());
-    url.searchParams.set("v2", "1");
-    url.searchParams.set("tab", "program");
-    url.searchParams.set("sub", "observations");
-    await page.goto(url.toString());
-    await page.waitForLoadState("networkidle");
+    await gotoFirstService(page, {
+      v2: "1",
+      tab: "program",
+      sub: "observations",
+    });
 
     await expect(page.getByText(/Learning observations/i)).toBeVisible({
       timeout: 15_000,
@@ -77,26 +64,21 @@ test.describe("Staff Dashboard v2 — NQS features", () => {
     if (await newBtn.isVisible().catch(() => false)) {
       await newBtn.click();
       // MTOP outcomes should appear as chips
-      await expect(page.getByText(/Identity/i)).toBeVisible({ timeout: 5_000 });
-      await expect(page.getByText(/Learners/i)).toBeVisible();
+      await expect(page.getByText(/Identity/i).filter({ visible: true }).first()).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(/Learners/i).filter({ visible: true }).first()).toBeVisible();
     }
   });
 
   test("Medication tab renders under Daily Ops and exposes the log button", async ({
     page,
   }) => {
-    const firstService = page.locator("a[href^='/services/']").first();
-    await firstService.click();
-    await page.waitForLoadState("networkidle");
+    await gotoFirstService(page, {
+      v2: "1",
+      tab: "daily",
+      sub: "medication",
+    });
 
-    const url = new URL(page.url());
-    url.searchParams.set("v2", "1");
-    url.searchParams.set("tab", "daily");
-    url.searchParams.set("sub", "medication");
-    await page.goto(url.toString());
-    await page.waitForLoadState("networkidle");
-
-    await expect(page.getByText(/Medication/i).first()).toBeVisible({
+    await expect(page.getByText(/Medication/i).filter({ visible: true }).first()).toBeVisible({
       timeout: 15_000,
     });
   });
@@ -104,18 +86,13 @@ test.describe("Staff Dashboard v2 — NQS features", () => {
   test("Risk tab renders and 'New assessment' opens the hazard editor", async ({
     page,
   }) => {
-    const firstService = page.locator("a[href^='/services/']").first();
-    await firstService.click();
-    await page.waitForLoadState("networkidle");
+    await gotoFirstService(page, {
+      v2: "1",
+      tab: "compliance",
+      sub: "risk",
+    });
 
-    const url = new URL(page.url());
-    url.searchParams.set("v2", "1");
-    url.searchParams.set("tab", "compliance");
-    url.searchParams.set("sub", "risk");
-    await page.goto(url.toString());
-    await page.waitForLoadState("networkidle");
-
-    await expect(page.getByText(/Risk assessments/i)).toBeVisible({
+    await expect(page.getByText(/Risk assessments/i).filter({ visible: true }).first()).toBeVisible({
       timeout: 15_000,
     });
     const newBtn = page.getByRole("button", { name: /New assessment/i });
@@ -128,16 +105,11 @@ test.describe("Staff Dashboard v2 — NQS features", () => {
   });
 
   test("Ratios sub-tab renders Live + snapshots history", async ({ page }) => {
-    const firstService = page.locator("a[href^='/services/']").first();
-    await firstService.click();
-    await page.waitForLoadState("networkidle");
-
-    const url = new URL(page.url());
-    url.searchParams.set("v2", "1");
-    url.searchParams.set("tab", "daily");
-    url.searchParams.set("sub", "ratios");
-    await page.goto(url.toString());
-    await page.waitForLoadState("networkidle");
+    await gotoFirstService(page, {
+      v2: "1",
+      tab: "daily",
+      sub: "ratios",
+    });
 
     await expect(page.getByText(/Live ratio/i)).toBeVisible({ timeout: 15_000 });
   });
@@ -149,18 +121,11 @@ test.describe("Staff Dashboard v2 — AI Newsletter flow (smoke)", () => {
   test("Comms tab renders the 'Generate weekly newsletter' button", async ({
     page,
   }) => {
-    await page.goto("/services");
-    await page.waitForLoadState("networkidle");
-    const firstService = page.locator("a[href^='/services/']").first();
-    await firstService.click();
-    await page.waitForLoadState("networkidle");
-
-    const url = new URL(page.url());
-    url.searchParams.set("v2", "1");
-    url.searchParams.set("tab", "compliance");
-    url.searchParams.set("sub", "comms");
-    await page.goto(url.toString());
-    await page.waitForLoadState("networkidle");
+    await gotoFirstService(page, {
+      v2: "1",
+      tab: "compliance",
+      sub: "comms",
+    });
 
     const btn = page.getByRole("button", {
       name: /Generate weekly newsletter/i,
@@ -180,20 +145,11 @@ test.describe("Shift Handover widget", () => {
   test.use({ storageState: ".playwright/auth/owner.json" });
 
   test("Today tab renders the handover section", async ({ page }) => {
-    await page.goto("/services");
-    await page.waitForLoadState("networkidle");
-    const firstService = page.locator("a[href^='/services/']").first();
-    await firstService.click();
-    await page.waitForLoadState("networkidle");
-
-    const url = new URL(page.url());
-    url.searchParams.set("v2", "1");
     // "today" is the default landing tab — explicitly set to be safe
-    url.searchParams.set("tab", "today");
-    await page.goto(url.toString());
-    await page.waitForLoadState("networkidle");
+    await gotoFirstService(page, { v2: "1", tab: "today" });
 
     // Either a "No open handovers" empty state or a list of notes — both accept.
+    await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
     const text = await page.locator("main").innerText();
     expect(text.toLowerCase()).toContain("shift handover");
   });

@@ -34,7 +34,7 @@ test.describe("Weekly roll-call grid", () => {
     expect(href).toBeTruthy();
 
     // Navigate directly to the weekly roll-call view — avoids flaky tab clicks.
-    await page.goto(`${href}?tab=daily-ops&sub=roll-call&rollCallView=weekly`);
+    await page.goto(`${href}?tab=daily&sub=roll-call&rollCallView=weekly`);
     await page.waitForLoadState("networkidle");
 
     await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
@@ -63,7 +63,7 @@ test.describe("Weekly roll-call grid", () => {
     }
     const href = await serviceLink.getAttribute("href");
 
-    await page.goto(`${href}?tab=daily-ops&sub=roll-call&rollCallView=weekly`);
+    await page.goto(`${href}?tab=daily&sub=roll-call&rollCallView=weekly`);
     await page.waitForLoadState("networkidle");
 
     await expect(
@@ -84,7 +84,7 @@ test.describe("Weekly roll-call grid", () => {
       return;
     }
     const href = await serviceLink.getAttribute("href");
-    await page.goto(`${href}?tab=daily-ops&sub=roll-call&rollCallView=weekly`);
+    await page.goto(`${href}?tab=daily&sub=roll-call&rollCallView=weekly`);
     await page.waitForLoadState("networkidle");
 
     // Find the first booked cell (teal background is matched by data-testid prefix).

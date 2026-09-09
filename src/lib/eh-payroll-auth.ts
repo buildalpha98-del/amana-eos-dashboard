@@ -48,8 +48,10 @@ export async function requireOwnEmployee(session: Session): Promise<number> {
     // 404 because the *resource* (their payslips) doesn't exist for
     // them, not 403 — admins haven't denied access, payroll just doesn't
     // know about them. The UI can render "Contact HR to be set up".
+    // Copy is staff-facing: don't point at Settings/Team — staff can't
+    // open either. The linking is the manager's job.
     throw ApiError.notFound(
-      "Your account isn't linked to a payroll record yet. Contact your manager so they can map you in Settings.",
+      "Your account isn't linked to a payroll record yet. Ask your manager to set this up.",
     );
   }
   return user.employmentHeroEmployeeId;

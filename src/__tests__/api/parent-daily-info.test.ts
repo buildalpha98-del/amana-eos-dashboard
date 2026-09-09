@@ -18,7 +18,7 @@ const mockParentPayload = { email: "parent@test.com", name: "Test Parent", enrol
 let parentAuthEnabled = true;
 
 vi.mock("@/lib/parent-auth", () => ({
-  withParentAuth: (handler: Function) => {
+  withParentAuth: (handler: (...args: unknown[]) => unknown) => {
     return async (req: Request, routeContext?: unknown) => {
       if (!parentAuthEnabled) {
         const { NextResponse } = await import("next/server");

@@ -9,6 +9,7 @@ export const createTodoSchema = z.object({
   issueId: z.string().optional().nullable(),
   serviceId: z.string().optional().nullable(),
   projectId: z.string().optional().nullable(),
+  meetingId: z.string().optional().nullable(),
   isPrivate: z.boolean().optional(),
   dueDate: z.string().min(1, "Due date is required"),
   weekOf: z.string().min(1, "Week is required"),

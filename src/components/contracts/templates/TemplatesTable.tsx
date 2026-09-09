@@ -88,6 +88,7 @@ function RowActions({
   // covers rows that don't have room below.
   useLayoutEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- coords come from DOM measurement in this layout effect and cannot be derived during render; this clears them so the next open re-measures before showing
       setCoords(null);
       return;
     }

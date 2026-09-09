@@ -14,12 +14,16 @@ interface ScrapeRun {
 }
 
 export function ScraperStatusWidget() {
-  const { data: scrapeRun } = useQuery<ScrapeRun | null>({
+  const { data: scrapeRun } = useQuery<(ScrapeRun & { fetchedAt: number }) | null>({
     queryKey: ["scraper-status"],
     queryFn: async () => {
       const res = await fetch("/api/crm/scraper-status");
       if (!res.ok) return null;
-      return res.json();
+      const run: ScrapeRun | null = await res.json();
+      if (!run) return null;
+      // Stamp the fetch time so relative labels can be rendered purely; the
+      // 60s refetchInterval keeps them current.
+      return { ...run, fetchedAt: Date.now() };
     },
     refetchInterval: 60_000,
   });
@@ -39,7 +43,7 @@ export function ScraperStatusWidget() {
   }[scrapeRun.status] || "bg-surface/50 border-border";
 
   const timeAgo = (date: string) => {
-    const diff = Date.now() - new Date(date).getTime();
+    const diff = scrapeRun.fetchedAt - new Date(date).getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     if (hours < 1) return "< 1h ago";
     if (hours < 24) return `${hours}h ago`;

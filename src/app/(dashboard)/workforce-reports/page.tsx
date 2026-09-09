@@ -2,24 +2,29 @@
 
 /**
  * /workforce-reports — consolidated workforce reporting hub (nav
- * consolidation phase 1). Two tabs, URL-synced via ?tab=diversity|wgea:
+ * consolidation phase 1). Three tabs, URL-synced via
+ * ?tab=diversity|wgea|workforce:
  *   - Diversity & Inclusion (the old /diversity-dashboard)
  *   - WGEA Report (the old /wgea-report)
+ *   - Workforce (Staff Portal v2 Phase 10 — headcount, starters/leavers,
+ *     tenure, training completion, cert-expiry outlook)
  * Both old routes redirect here. Owner / State Manager / Admin only.
  */
 
 import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Heart, BarChart3 } from "lucide-react";
+import { Heart, BarChart3, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { DiversityDashboardContent } from "@/components/people/DiversityDashboardContent";
 import { WgeaReportContent } from "@/components/people/WgeaReportContent";
+import { WorkforceOverviewContent } from "@/components/people/WorkforceOverviewContent";
 
 const TABS = [
   { key: "diversity", label: "Diversity & Inclusion", icon: Heart },
   { key: "wgea", label: "WGEA Report", icon: BarChart3 },
+  { key: "workforce", label: "Workforce", icon: Users },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -45,7 +50,7 @@ function WorkforceReportsInner() {
     <div className="max-w-5xl mx-auto space-y-6">
       <PageHeader
         title="Workforce Reports"
-        description="Aggregated diversity & inclusion stats and WGEA workforce-composition reporting"
+        description="Diversity & inclusion stats, WGEA reporting and workforce composition"
       />
 
       {/* Tab Bar */}
@@ -77,8 +82,10 @@ function WorkforceReportsInner() {
       <div className="min-h-[40vh]">
         {activeTab === "diversity" ? (
           <DiversityDashboardContent />
-        ) : (
+        ) : activeTab === "wgea" ? (
           <WgeaReportContent />
+        ) : (
+          <WorkforceOverviewContent />
         )}
       </div>
     </div>

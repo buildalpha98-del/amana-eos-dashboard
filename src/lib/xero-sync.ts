@@ -68,8 +68,29 @@ function emptyFinancials(): ParsedFinancials {
 
 // ─── Xero P&L Report Parser ────────────────────────────────────────────────
 
+// Minimal shape of Xero's Reports API response — only the fields we read.
+interface XeroReportAttribute {
+  Id?: string;
+  Value?: string;
+}
+
+interface XeroReportCell {
+  Value?: string;
+  Attributes?: XeroReportAttribute[];
+}
+
+interface XeroReportRow {
+  RowType?: string;
+  Cells?: XeroReportCell[];
+  Rows?: XeroReportRow[];
+}
+
+interface XeroProfitAndLossReport {
+  Reports?: Array<{ Rows?: XeroReportRow[] }>;
+}
+
 function parseXeroProfitAndLoss(
-  report: any,
+  report: XeroProfitAndLossReport | null | undefined,
   accountMapping: Map<string, string>
 ): ParsedFinancials {
   const result = emptyFinancials();
@@ -94,10 +115,10 @@ function parseXeroProfitAndLoss(
       const attributes = cells[0]?.Attributes;
       if (Array.isArray(attributes)) {
         const accountAttr = attributes.find(
-          (attr: any) => attr.Id === "account"
+          (attr) => attr.Id === "account"
         );
         if (accountAttr) {
-          accountCode = accountAttr.Value;
+          accountCode = accountAttr.Value ?? null;
         }
       }
 
@@ -199,7 +220,7 @@ export async function syncXeroFinancials(
         const fromStr = formatDate(fromDate);
         const toStr = formatDate(toDate);
 
-        const report = await xeroApiRequest(
+        const report = await xeroApiRequest<XeroProfitAndLossReport>(
           `/Reports/ProfitAndLoss?fromDate=${fromStr}&toDate=${toStr}&trackingCategoryID=${connection.trackingCategoryId}&trackingOptionID=${service.xeroTrackingOptionId}`
         );
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Loader2, Save, AlertTriangle, UtensilsCrossed, Syringe } from "lucide-react";
 import { useChildMedical, useUpdateChildMedical } from "@/hooks/useChildProfile";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -102,17 +102,19 @@ export function ChildMedicalTab({ childId }: { childId: string }) {
   const [nextImmunisationDue, setNextImmunisationDue] = useState("");
   const [dirty, setDirty] = useState(false);
 
-  useEffect(() => {
-    if (data) {
-      setConditions(data.medicalConditions);
-      setMedicationDetails(data.medicationDetails ?? "");
-      setAnaphylaxisPlan(data.anaphylaxisActionPlan);
-      setDietary(data.dietaryRequirements);
-      setAdditionalNeeds(data.additionalNeeds ?? "");
-      setNextImmunisationDue(isoToDateInput(data.nextImmunisationDue));
-      setDirty(false);
-    }
-  }, [data]);
+  // Hydrate form state during render whenever a new payload arrives (same
+  // reference-based trigger as the previous effect).
+  const [loadedData, setLoadedData] = useState<typeof data | null>(null);
+  if (data && data !== loadedData) {
+    setLoadedData(data);
+    setConditions(data.medicalConditions);
+    setMedicationDetails(data.medicationDetails ?? "");
+    setAnaphylaxisPlan(data.anaphylaxisActionPlan);
+    setDietary(data.dietaryRequirements);
+    setAdditionalNeeds(data.additionalNeeds ?? "");
+    setNextImmunisationDue(isoToDateInput(data.nextImmunisationDue));
+    setDirty(false);
+  }
 
   const toggleCondition = (c: string) => {
     setConditions((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));

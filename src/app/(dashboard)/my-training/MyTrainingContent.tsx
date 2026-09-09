@@ -18,6 +18,8 @@ import {
 import { useMyEnrollments } from "@/hooks/useLMS";
 import { useInductionReadiness } from "@/hooks/useInduction";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { toast } from "@/hooks/useToast";
 
 type Enrollment = {
   id: string;
@@ -58,6 +60,11 @@ function CourseCard({ e, learnerName }: { e: Enrollment; learnerName: string }) 
         completedAt: e.completedAt ?? null,
         score: e.score ?? null,
         reference: e.id,
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        description: "Couldn't generate the certificate — try again.",
       });
     } finally {
       setDownloading(false);
@@ -109,8 +116,19 @@ function CourseCard({ e, learnerName }: { e: Enrollment; learnerName: string }) 
 export function MyTrainingContent() {
   const { data: session } = useSession();
   const learnerName = session?.user?.name ?? "Staff Member";
-  const { data: readiness, isLoading: rLoading } = useInductionReadiness();
-  const { data: enrollments, isLoading: eLoading } = useMyEnrollments();
+  const {
+    data: readiness,
+    isLoading: rLoading,
+    isError: rError,
+    refetch: refetchReadiness,
+  } = useInductionReadiness();
+  const {
+    data: enrollments,
+    isLoading: eLoading,
+    isError: eError,
+    error: enrollmentsError,
+    refetch: refetchEnrollments,
+  } = useMyEnrollments();
 
   if (rLoading || eLoading) {
     return (
@@ -122,6 +140,18 @@ export function MyTrainingContent() {
     );
   }
 
+  // Never show the "all caught up" empty state when the fetch actually failed —
+  // a new starter whose enrolment list 500s must not be told they have nothing to do.
+  if (eError) {
+    return (
+      <ErrorState
+        title="Couldn't load your training"
+        error={enrollmentsError instanceof Error ? enrollmentsError : null}
+        onRetry={() => refetchEnrollments()}
+      />
+    );
+  }
+
   const all = (enrollments ?? []) as unknown as Enrollment[];
   const essential = all.filter((e) => e.course.track === "essential").sort(bySortOrder);
   const monthly = all.filter((e) => e.course.track === "monthly").sort(bySortOrder);
@@ -129,12 +159,37 @@ export function MyTrainingContent() {
     .filter((e) => e.course.track !== "essential" && e.course.track !== "monthly")
     .sort(bySortOrder);
 
+  // On readiness error we deliberately do NOT default to "cleared" — that would
+  // hide the induction banner and pretend everything is fine.
   const status = readiness?.status ?? "cleared";
-  const inInduction = status === "new_starter" || status === "in_training" || status === "awaiting_signoff";
+  const inInduction =
+    !rError &&
+    (status === "new_starter" || status === "in_training" || status === "awaiting_signoff");
   const essentialDone = essential.filter((e) => e.status === "completed").length;
 
   return (
     <div className="space-y-8">
+      {/* Readiness fetch failed — warn rather than silently assuming "cleared" */}
+      {rError && (
+        <section className="rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/40">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">
+                Couldn&apos;t check your induction status — some items may be missing.
+              </p>
+              <button
+                type="button"
+                onClick={() => refetchReadiness()}
+                className="mt-1 text-sm font-semibold text-brand hover:underline"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Induction banner for new starters */}
       {inInduction && (
         <section className="rounded-2xl border border-brand/30 bg-brand/5 p-6">

@@ -70,6 +70,14 @@ export function StaffProfileStatsPanel({ stats }: StaffProfileStatsPanelProps) {
         <p className="text-xs font-semibold uppercase tracking-wider text-muted">
           Compliance
         </p>
+        {stats.requiredCertTotal !== null && (
+          <p className="text-xs text-muted">
+            <strong className="text-foreground">
+              {stats.certCounts.valid} of {stats.requiredCertTotal}
+            </strong>{" "}
+            required for this role
+          </p>
+        )}
         <CertLine
           icon={<ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />}
           count={stats.certCounts.valid}
@@ -96,6 +104,18 @@ export function StaffProfileStatsPanel({ stats }: StaffProfileStatsPanelProps) {
               : "text-foreground/60"
           }
         />
+        {stats.certCounts.missing !== undefined && (
+          <CertLine
+            icon={<ShieldX className="h-3.5 w-3.5 text-muted" />}
+            count={stats.certCounts.missing}
+            label="missing"
+            tone={
+              stats.certCounts.missing > 0
+                ? "text-red-700 font-semibold"
+                : "text-foreground/60"
+            }
+          />
+        )}
       </div>
     </aside>
   );

@@ -9,6 +9,8 @@ const createProjectSchema = z.object({
   serviceId: z.string().optional().nullable(),
   templateId: z.string().optional().nullable(),
   ownerId: z.string().min(1, "Owner is required"),
+  // 2026-08-31: the quarterly Rock this project executes (optional).
+  rockId: z.string().optional().nullable(),
   startDate: z.string().optional().nullable(),
   targetDate: z.string().optional().nullable(),
 });
@@ -31,34 +33,45 @@ export const GET = withApiAuth(async (req, session) => {
       owner: { select: { id: true, name: true, email: true, avatar: true } },
       service: { select: { id: true, name: true, code: true } },
       template: { select: { id: true, name: true } },
-      _count: {
-        select: {
-          todos: { where: { deleted: false } },
-        },
-      },
+      rock: { select: { id: true, title: true } },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  // Add computed progress for each project
-  const projectsWithProgress = await Promise.all(
-    projects.map(async (p) => {
-      const totalTodos = await prisma.todo.count({
-        where: { projectId: p.id, deleted: false },
-      });
-      const completedTodos = await prisma.todo.count({
-        where: { projectId: p.id, deleted: false, status: "complete" },
-      });
-      return {
-        ...p,
-        progress: {
-          total: totalTodos,
-          completed: completedTodos,
-          percent: totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0,
-        },
-      };
-    })
-  );
+  // Progress in ONE groupBy instead of two counts per project
+  // (2026-08-31 — the old shape was a deliberate-looking N+1).
+  const ids = projects.map((p) => p.id);
+  const grouped =
+    ids.length > 0
+      ? await prisma.todo.groupBy({
+          by: ["projectId", "status"],
+          where: { projectId: { in: ids }, deleted: false },
+          _count: true,
+        })
+      : [];
+  const progressById = new Map<string, { total: number; completed: number }>();
+  for (const row of grouped) {
+    if (!row.projectId) continue;
+    const entry = progressById.get(row.projectId) ?? { total: 0, completed: 0 };
+    entry.total += row._count;
+    if (row.status === "complete") entry.completed += row._count;
+    progressById.set(row.projectId, entry);
+  }
+
+  const projectsWithProgress = projects.map((p) => {
+    const { total, completed } = progressById.get(p.id) ?? {
+      total: 0,
+      completed: 0,
+    };
+    return {
+      ...p,
+      progress: {
+        total,
+        completed,
+        percent: total > 0 ? Math.round((completed / total) * 100) : 0,
+      },
+    };
+  });
 
   return NextResponse.json(projectsWithProgress);
 });
@@ -75,12 +88,23 @@ const body = await parseJsonBody(req);
     );
   }
 
+  if (parsed.data.rockId) {
+    const rock = await prisma.rock.findFirst({
+      where: { id: parsed.data.rockId, deleted: false },
+      select: { id: true },
+    });
+    if (!rock) {
+      return NextResponse.json({ error: "Rock not found" }, { status: 400 });
+    }
+  }
+
   const project = await prisma.project.create({
     data: {
       name: parsed.data.name,
       description: parsed.data.description || null,
       serviceId: parsed.data.serviceId || null,
       templateId: parsed.data.templateId || null,
+      rockId: parsed.data.rockId || null,
       ownerId: parsed.data.ownerId,
       startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : null,
       targetDate: parsed.data.targetDate ? new Date(parsed.data.targetDate) : null,

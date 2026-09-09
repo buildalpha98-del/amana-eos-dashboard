@@ -51,7 +51,13 @@ export default async function LearnPage({
   if (modules.length === 0) {
     return (
       <div className="mx-auto max-w-xl py-16 text-center text-muted">
-        This course has no content yet. Please check back soon.
+        <p>This course has no content yet. Please check back soon.</p>
+        <a
+          href="/my-training"
+          className="mt-4 inline-block text-sm font-medium text-brand hover:underline"
+        >
+          Back to My Training
+        </a>
       </div>
     );
   }

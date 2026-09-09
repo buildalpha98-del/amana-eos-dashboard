@@ -9,7 +9,7 @@ import { withApiAuth } from "@/lib/server-auth";
  * Query params: ?page=1&limit=50&action=user.login&actorId=xxx
  */
 export const GET = withApiAuth(async (req, session) => {
-  const role = (session.user as any).role;
+  const role = session.user.role;
   if (!["owner", "head_office", "admin"].includes(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

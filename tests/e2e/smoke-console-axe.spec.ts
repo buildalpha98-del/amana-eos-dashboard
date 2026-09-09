@@ -12,11 +12,23 @@
 
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { TEST_PASSWORD, dismissWelcomeTour } from "./helpers/session";
 
 const SMOKE_PAGES = ["/dashboard", "/services", "/compliance", "/team"];
 
-const EMAIL = process.env.E2E_EMAIL || process.env.ADMIN_EMAIL || "admin@amanaoshc.com.au";
-const PASSWORD = process.env.E2E_PASSWORD || process.env.ADMIN_PASSWORD || "ChangeMe123!";
+// Defaults must be the users seed-test-data actually creates. These previously
+// fell back to a real production admin address and "ChangeMe123!", which exist
+// in no test database — so login timed out at waitForURL and this smoke test
+// never reached a single console or axe assertion in CI. (That password no
+// longer works in production either, but a live prod address plus a guessable
+// password does not belong in the repo: point PLAYWRIGHT_BASE_URL at
+// production and this spec would have driven a real owner account.)
+// Also deliberately NOT falling back to ADMIN_EMAIL/ADMIN_PASSWORD:
+// playwright.config loads .env.local into process.env, and those vars are the
+// prisma seed's account (whose password may have been rotated) — not a login
+// tests can use.
+const EMAIL = process.env.E2E_EMAIL || "test-admin@amana-test.local";
+const PASSWORD = process.env.E2E_PASSWORD || TEST_PASSWORD;
 
 // Console noise that isn't a product defect.
 const IGNORED_CONSOLE = [
@@ -29,6 +41,11 @@ const IGNORED_CONSOLE = [
   // high-signal version is captured via page.on("requestfailed") below,
   // which fails the smoke only for same-origin /api requests.
   /^Failed to load resource/i,
+  // @vercel/speed-insights injects a <script src="/_vercel/speed-insights/…">
+  // that only exists behind Vercel's infrastructure. Under CI's `next start`
+  // it 404s as an HTML page, so Chromium logs a MIME-type refusal. Not a
+  // product defect — the script simply has no server off-Vercel.
+  /_vercel\/speed-insights/i,
 ];
 
 test.describe("smoke: console + axe on key pages", () => {
@@ -41,6 +58,10 @@ test.describe("smoke: console + axe on key pages", () => {
     await page.getByPlaceholder("Enter your password").fill(PASSWORD);
     await page.getByRole("button", { name: /sign in/i }).click();
     await page.waitForURL(/dashboard/, { timeout: 30_000 });
+
+    // Dismiss the welcome tour before walking pages — it would sit over
+    // every page this spec screenshots and axe-scans.
+    await dismissWelcomeTour(page);
 
     for (const path of SMOKE_PAGES) {
       const consoleErrors: string[] = [];
@@ -57,6 +78,8 @@ test.describe("smoke: console + axe on key pages", () => {
         const url = req.url();
         const failure = req.failure()?.errorText ?? "";
         if (failure.includes("ERR_ABORTED")) return; // navigated away mid-request
+        // Host-level network flap (Wi-Fi/VPN interface change) — not the app.
+        if (failure.includes("ERR_NETWORK_CHANGED")) return;
         // Only same-origin API calls are hard signal — third-party fonts,
         // avatars, and analytics flake in headless environments.
         if (/\/api\//.test(new URL(url).pathname) === false) return;

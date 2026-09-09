@@ -817,8 +817,9 @@ function EquipmentModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-xs font-medium text-foreground/80 mb-1">Item Name</label>
+            <label htmlFor="purchase-item-name" className="block text-xs font-medium text-foreground/80 mb-1">Item Name</label>
             <input
+              id="purchase-item-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -831,8 +832,9 @@ function EquipmentModal({
           {/* Amount + Category */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-foreground/80 mb-1">Amount ($)</label>
+              <label htmlFor="purchase-amount" className="block text-xs font-medium text-foreground/80 mb-1">Amount ($)</label>
               <input
+                id="purchase-amount"
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -844,8 +846,9 @@ function EquipmentModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-foreground/80 mb-1">Category</label>
+              <label htmlFor="purchase-category" className="block text-xs font-medium text-foreground/80 mb-1">Category</label>
               <select
+                id="purchase-category"
                 value={category}
                 onChange={(e) => handleCategoryChange(e.target.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
@@ -861,8 +864,9 @@ function EquipmentModal({
 
           {/* Date */}
           <div>
-            <label className="block text-xs font-medium text-foreground/80 mb-1">Purchase Date</label>
+            <label htmlFor="purchase-date" className="block text-xs font-medium text-foreground/80 mb-1">Purchase Date</label>
             <input
+              id="purchase-date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
@@ -873,10 +877,11 @@ function EquipmentModal({
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-medium text-foreground/80 mb-1">
+            <label htmlFor="purchase-notes" className="block text-xs font-medium text-foreground/80 mb-1">
               Notes {isOtherCategory ? "(required)" : "(optional)"}
             </label>
             <textarea
+              id="purchase-notes"
               value={notes}
               onChange={(e) => handleNotesChange(e.target.value)}
               placeholder={

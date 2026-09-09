@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
@@ -33,8 +34,16 @@ const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const serviceId = searchParams.get("serviceId");
 
-  const where: Record<string, unknown> = { deleted: false };
-  if (status) where.status = status;
+  const where: Prisma.LMSCourseWhereInput = { deleted: false };
+  if (status) {
+    const parsedStatus = z
+      .enum(["draft", "published", "archived"])
+      .safeParse(status);
+    if (!parsedStatus.success) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
+    where.status = parsedStatus.data;
+  }
 
   // Staff see published courses for their service + company-wide
   if (session!.user.role === "staff") {
@@ -50,7 +59,7 @@ const { searchParams } = new URL(req.url);
   }
 
   const courses = await prisma.lMSCourse.findMany({
-    where: where as any,
+    where,
     include: {
       service: { select: { id: true, name: true, code: true } },
       _count: { select: { modules: true, enrollments: true } },

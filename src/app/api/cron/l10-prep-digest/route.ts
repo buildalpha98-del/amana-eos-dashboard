@@ -244,7 +244,10 @@ export const GET = withApiHandler(async (req) => {
     const users = await prisma.user.findMany({
       where: {
         active: true,
-        role: { in: ["owner", "admin", "member"] },
+        // 2026-08-31: head_office/eos/eos_implementer added — the old list
+        // predated those roles. eos_viewer (read-only) + marketing + staff
+        // stay excluded on purpose.
+        role: { in: ["owner", "head_office", "admin", "member", "eos", "eos_implementer"] },
       },
       select: { id: true, name: true, email: true },
     });

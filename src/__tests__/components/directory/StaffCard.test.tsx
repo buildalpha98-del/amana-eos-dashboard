@@ -36,16 +36,30 @@ const BASE_USER = {
 describe("StaffCard", () => {
   it("links to /staff/[id]", () => {
     const { container } = render(
-      <StaffCard user={BASE_USER} showRole={true} showEmail={true} />,
+      <StaffCard user={BASE_USER} showRole={true} showEmail={true} canOpenProfile={true} />,
     );
     const anchor = container.querySelector("a");
     expect(anchor).not.toBeNull();
     expect(anchor?.getAttribute("href")).toBe("/staff/user-1");
   });
 
+  it("renders a non-link card when canOpenProfile is false", () => {
+    const { container } = render(
+      <StaffCard
+        user={BASE_USER}
+        showRole={true}
+        showEmail={true}
+        canOpenProfile={false}
+      />,
+    );
+    expect(container.querySelector("a")).toBeNull();
+    // Same content, just not wrapped in a link.
+    expect(screen.getByText("Jane Doe")).toBeTruthy();
+  });
+
   it("renders name and service name", () => {
     render(
-      <StaffCard user={BASE_USER} showRole={false} showEmail={false} />,
+      <StaffCard user={BASE_USER} showRole={false} showEmail={false} canOpenProfile={true} />,
     );
     expect(screen.getByText("Jane Doe")).toBeTruthy();
     expect(screen.getByText("Parramatta")).toBeTruthy();
@@ -53,7 +67,7 @@ describe("StaffCard", () => {
 
   it("hides RoleBadge when showRole is false", () => {
     const { queryByText } = render(
-      <StaffCard user={BASE_USER} showRole={false} showEmail={false} />,
+      <StaffCard user={BASE_USER} showRole={false} showEmail={false} canOpenProfile={true} />,
     );
     // RoleBadge shows "Staff" for role=staff. With showRole=false it should not render.
     expect(queryByText("Staff")).toBeNull();
@@ -64,7 +78,7 @@ describe("StaffCard", () => {
       <StaffCard
         user={{ ...BASE_USER, role: Role.admin }}
         showRole={true}
-        showEmail={false}
+        showEmail={false} canOpenProfile={true}
       />,
     );
     expect(getByText("Admin")).toBeTruthy();
@@ -72,14 +86,14 @@ describe("StaffCard", () => {
 
   it("hides email when showEmail is false", () => {
     const { queryByText } = render(
-      <StaffCard user={BASE_USER} showRole={false} showEmail={false} />,
+      <StaffCard user={BASE_USER} showRole={false} showEmail={false} canOpenProfile={true} />,
     );
     expect(queryByText("jane@amana.example.com")).toBeNull();
   });
 
   it("shows email when showEmail is true and email present", () => {
     const { getByText } = render(
-      <StaffCard user={BASE_USER} showRole={false} showEmail={true} />,
+      <StaffCard user={BASE_USER} showRole={false} showEmail={true} canOpenProfile={true} />,
     );
     expect(getByText("jane@amana.example.com")).toBeTruthy();
   });
@@ -89,7 +103,7 @@ describe("StaffCard", () => {
       <StaffCard
         user={{ ...BASE_USER, email: undefined }}
         showRole={false}
-        showEmail={true}
+        showEmail={true} canOpenProfile={true}
       />,
     );
     expect(container.textContent).not.toContain("@");
@@ -100,7 +114,7 @@ describe("StaffCard", () => {
       <StaffCard
         user={{ ...BASE_USER, service: null }}
         showRole={false}
-        showEmail={false}
+        showEmail={false} canOpenProfile={true}
       />,
     );
     expect(queryByText("Parramatta")).toBeNull();

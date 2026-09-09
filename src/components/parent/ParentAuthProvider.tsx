@@ -45,6 +45,7 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
     // Check the non-httpOnly flag cookie (the actual JWT is httpOnly and
     // inaccessible to JS — this companion cookie just signals "logged in")
     const active = getCookie("parent-active");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- SSR-safe hydration read: document.cookie can't be read during render and must be re-checked on every navigation
     setIsAuthenticated(!!active);
     setIsLoading(false);
 

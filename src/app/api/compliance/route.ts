@@ -8,6 +8,7 @@ import { withApiAuth } from "@/lib/server-auth";
 
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { uploadFile } from "@/lib/storage";
+import { notifyUsers } from "@/lib/notify-user";
 import { logger } from "@/lib/logger";
 // Reject expiry dates that fall before today — uploading an already-expired
 // cert is a UX trap (the row would immediately read "expired"). Today itself
@@ -258,14 +259,11 @@ export const POST = withApiAuth(async (req, session) => {
       const recipientIds = new Set(admins.map((a) => a.id));
       recipientIds.delete(session!.user.id);
       if (recipientIds.size > 0) {
-        await prisma.userNotification.createMany({
-          data: Array.from(recipientIds).map((id) => ({
-            userId: id,
-            type: "compliance_cert_uploaded",
-            title: `${uploaderName} uploaded ${certLabel}`,
-            body: `New ${cert.type} cert attached to ${uploaderName}'s record. Review when ready.`,
-            link,
-          })),
+        await notifyUsers(prisma, Array.from(recipientIds), {
+          type: "compliance_cert_uploaded",
+          title: `${uploaderName} uploaded ${certLabel}`,
+          body: `New ${cert.type} cert attached to ${uploaderName}'s record. Review when ready.`,
+          link,
         });
       }
     } catch (err) {

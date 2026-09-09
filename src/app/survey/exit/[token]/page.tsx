@@ -29,11 +29,16 @@ const SELECTED_BG: Record<number, string> = {
   5: "bg-emerald-100 dark:bg-emerald-950/50 ring-2 ring-emerald-400",
 };
 
+interface ExitSurveyData {
+  childName?: string | null;
+  completedAt?: string | null;
+}
+
 export default function ExitSurveyPage() {
   const params = useParams();
   const token = params.token as string;
 
-  const [survey, setSurvey] = useState<any>(null);
+  const [survey, setSurvey] = useState<ExitSurveyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [expired, setExpired] = useState(false);
   const [completed, setCompleted] = useState(false);

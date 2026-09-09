@@ -61,7 +61,15 @@ export function CommandMenu({ role, serviceId }: CommandMenuProps) {
     const onKey = (e: KeyboardEvent) => {
       if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setOpen((v) => !v);
+        const willOpen = !open;
+        setOpen(willOpen);
+        if (willOpen) {
+          // Reset query + focus on open
+          setQuery("");
+          setActiveIndex(0);
+          // Defer focus — the portal/overlay needs to mount first
+          setTimeout(() => inputRef.current?.focus(), 0);
+        }
       }
       if (e.key === "Escape" && open) {
         e.preventDefault();
@@ -70,16 +78,6 @@ export function CommandMenu({ role, serviceId }: CommandMenuProps) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  // Reset query + focus on open
-  useEffect(() => {
-    if (open) {
-      setQuery("");
-      setActiveIndex(0);
-      // Defer focus — the portal/overlay needs to mount first
-      setTimeout(() => inputRef.current?.focus(), 0);
-    }
   }, [open]);
 
   const items = useMemo<Item[]>(() => {
@@ -105,10 +103,8 @@ export function CommandMenu({ role, serviceId }: CommandMenuProps) {
     ];
   }, [query, ctx]);
 
-  // Clamp active index when results change
-  useEffect(() => {
-    setActiveIndex((i) => Math.min(i, Math.max(0, items.length - 1)));
-  }, [items.length]);
+  // Clamp active index when results change (derived, not synced state)
+  const clampedActiveIndex = Math.min(activeIndex, Math.max(0, items.length - 1));
 
   const runItem = useCallback(
     (item: Item) => {
@@ -126,16 +122,16 @@ export function CommandMenu({ role, serviceId }: CommandMenuProps) {
     (e: React.KeyboardEvent) => {
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setActiveIndex((i) => Math.min(items.length - 1, i + 1));
+        setActiveIndex(Math.min(items.length - 1, clampedActiveIndex + 1));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        setActiveIndex((i) => Math.max(0, i - 1));
+        setActiveIndex(Math.max(0, clampedActiveIndex - 1));
       } else if (e.key === "Enter") {
         e.preventDefault();
-        if (items[activeIndex]) runItem(items[activeIndex]);
+        if (items[clampedActiveIndex]) runItem(items[clampedActiveIndex]);
       }
     },
-    [items, activeIndex, runItem],
+    [items, clampedActiveIndex, runItem],
   );
 
   if (!open) return null;
@@ -189,7 +185,7 @@ export function CommandMenu({ role, serviceId }: CommandMenuProps) {
         >
           {items.length === 0 && (
             <li className="px-4 py-6 text-sm text-[color:var(--color-muted)] text-center">
-              No commands match "{query}"
+              No commands match &quot;{query}&quot;
             </li>
           )}
 
@@ -206,7 +202,7 @@ export function CommandMenu({ role, serviceId }: CommandMenuProps) {
                     icon={action.icon}
                     label={action.label}
                     hint={action.hint}
-                    active={itemIdx === activeIndex}
+                    active={itemIdx === clampedActiveIndex}
                     onMouseEnter={() => setActiveIndex(itemIdx)}
                     onClick={() => runItem(items[itemIdx])}
                   />
@@ -228,7 +224,7 @@ export function CommandMenu({ role, serviceId }: CommandMenuProps) {
                     icon={nav.icon}
                     label={nav.label}
                     hint={nav.tooltip}
-                    active={itemIdx === activeIndex}
+                    active={itemIdx === clampedActiveIndex}
                     onMouseEnter={() => setActiveIndex(itemIdx)}
                     onClick={() => runItem(items[itemIdx])}
                   />

@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { recomputeRockProgress } from "@/lib/todos/recompute-rock-progress";
+import { canViewTodo } from "@/lib/todos/private-filter";
 
 const updateTodoSchema = z.object({
   title: z.string().min(1).optional(),
@@ -15,6 +17,8 @@ const updateTodoSchema = z.object({
   rockId: z.string().nullable().optional(),
   issueId: z.string().nullable().optional(),
   isPrivate: z.boolean().optional(),
+  /** Outcome note recorded on completion (2026-08-31). */
+  completionNote: z.string().max(2000).nullable().optional(),
 });
 
 // GET /api/todos/[id]
@@ -27,10 +31,14 @@ export const GET = withApiAuth(async (req, session, context) => {
       assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
       rock: { select: { id: true, title: true } },
       issue: { select: { id: true, title: true } },
+      meeting: { select: { id: true, title: true, date: true } },
+      assignees: { select: { userId: true } },
     },
   });
 
-  if (!todo) {
+  // 404 (not 403) for a private todo the caller may not see — same
+  // no-existence-leak convention as creative requests.
+  if (!todo || !canViewTodo(session!, todo)) {
     return NextResponse.json({ error: "Todo not found" }, { status: 404 });
   }
 
@@ -51,9 +59,13 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   const existing = await prisma.todo.findUnique({
     where: { id, deleted: false },
+    include: { assignees: { select: { userId: true } } },
   });
 
-  if (!existing) {
+  // Same 404-no-existence-leak rule as GET: a private todo can only be
+  // modified by its assignee/co-assignee/creator/admin tier — otherwise
+  // PATCH would leak (and let strangers edit) what GET hides.
+  if (!existing || !canViewTodo(session!, existing)) {
     return NextResponse.json({ error: "Todo not found" }, { status: 404 });
   }
 
@@ -68,7 +80,13 @@ export const PATCH = withApiAuth(async (req, session, context) => {
       data.completedAt = new Date();
     } else {
       data.completedAt = null;
+      // Re-opening a todo clears its outcome note — the note describes a
+      // completion that no longer stands.
+      data.completionNote = null;
     }
+  }
+  if (parsed.data.completionNote !== undefined && data.completionNote === undefined) {
+    data.completionNote = parsed.data.completionNote;
   }
   if (parsed.data.dueDate !== undefined) data.dueDate = new Date(parsed.data.dueDate);
   if (parsed.data.weekOf !== undefined) data.weekOf = new Date(parsed.data.weekOf);
@@ -83,22 +101,26 @@ export const PATCH = withApiAuth(async (req, session, context) => {
       assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
       rock: { select: { id: true, title: true } },
       issue: { select: { id: true, title: true } },
+      meeting: { select: { id: true, title: true, date: true } },
     },
   });
 
   // Auto-update rock progress when a linked todo status changes
   if (parsed.data.status !== undefined && todo.rockId) {
-    const linkedTodos = await prisma.todo.findMany({
-      where: { rockId: todo.rockId, deleted: false },
-      select: { status: true },
-    });
-    const total = linkedTodos.length;
-    const completed = linkedTodos.filter((t) => t.status === "complete").length;
-    const newPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    await recomputeRockProgress(prisma, todo.rockId);
+  }
 
-    await prisma.rock.update({
-      where: { id: todo.rockId },
-      data: { percentComplete: newPercent },
+  // Auto-FORWARD project status (2026-08-31): first activity on a
+  // not_started project flips it to in_progress. Forward-only — nothing
+  // ever auto-completes or reopens a project.
+  if (
+    parsed.data.status !== undefined &&
+    todo.projectId &&
+    (parsed.data.status === "complete" || parsed.data.status === "in_progress")
+  ) {
+    await prisma.project.updateMany({
+      where: { id: todo.projectId, status: "not_started" },
+      data: { status: "in_progress" },
     });
   }
 

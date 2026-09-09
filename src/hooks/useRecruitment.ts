@@ -134,6 +134,48 @@ export function useUpdateCandidate() {
   });
 }
 
+export function useConvertCandidate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      candidateId,
+      ...body
+    }: {
+      candidateId: string;
+      role?: string;
+      serviceId?: string | null;
+      newStarter?: boolean;
+      startDate?: string | null;
+      onboardingPackId?: string | null;
+      sendInvite?: boolean;
+    }) =>
+      mutateApi<{
+        user: { id: string; name: string; email: string; role: string };
+        onboardingId: string | null;
+      }>(`/api/recruitment/candidates/${candidateId}/convert`, {
+        method: "POST",
+        body,
+      }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["vacancy"] });
+      qc.invalidateQueries({ queryKey: ["recruitment-vacancy"] });
+      qc.invalidateQueries({ queryKey: ["vacancies"] });
+      qc.invalidateQueries({ queryKey: ["employees-list"] });
+      toast({
+        description: `${data.user.name} is now an employee — welcome aboard.`,
+        href: `/staff/${data.user.id}`,
+        hrefLabel: "View profile",
+      });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Failed to convert candidate",
+      });
+    },
+  });
+}
+
 export function useAiScreenCandidate() {
   const qc = useQueryClient();
   return useMutation({

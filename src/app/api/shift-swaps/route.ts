@@ -3,6 +3,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUser } from "@/lib/notify-user";
 import { isAdminRole } from "@/lib/role-permissions";
 import { z } from "zod";
 
@@ -65,14 +66,11 @@ export const POST = withApiAuth(async (req, session) => {
         status: "proposed",
       },
     });
-    await tx.userNotification.create({
-      data: {
-        userId: targetId,
-        type: NOTIFICATION_TYPES.SHIFT_SWAP_PROPOSED,
-        title: `${session.user.name ?? "A colleague"} proposed a shift swap`,
-        body: `Shift on ${shift.date.toISOString().split("T")[0]} ${shift.shiftStart}–${shift.shiftEnd}`,
-        link: `/roster/me?swap=${created.id}`,
-      },
+    await notifyUser(tx, targetId, {
+      type: NOTIFICATION_TYPES.SHIFT_SWAP_PROPOSED,
+      title: `${session.user.name ?? "A colleague"} proposed a shift swap`,
+      body: `Shift on ${shift.date.toISOString().split("T")[0]} ${shift.shiftStart}–${shift.shiftEnd}`,
+      link: `/roster/me?swap=${created.id}`,
     });
     return created;
   });

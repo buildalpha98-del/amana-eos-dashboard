@@ -20,6 +20,7 @@ describe("service content — the My Centre fields", () => {
     expect(merged.vision).toBe("");
     expect(merged.serviceMapUrl).toBe("");
     expect(merged.policyDocumentIds).toEqual([]);
+    expect(merged.enrolmentThankYou).toBe("");
   });
 
   it("keeps content saved before these fields existed", () => {
@@ -32,6 +33,40 @@ describe("service content — the My Centre fields", () => {
     expect(merged.about).toBe("We are lovely");
     expect(merged.dailyRoutine).toBe("3:15 pick up");
     expect(merged.vision).toBe("");
+    expect(merged.enrolmentThankYou).toBe("");
+  });
+
+  // 2026-09-08: the parent enrolment thank-you page's per-centre message.
+  describe("enrolmentThankYou", () => {
+    it("keeps a saved thank-you message on read", () => {
+      const merged = mergeServiceContent({
+        enrolmentThankYou: "We'll call within 2 business days to confirm your start date.",
+      });
+      expect(merged.enrolmentThankYou).toBe(
+        "We'll call within 2 business days to confirm your start date.",
+      );
+    });
+
+    it("falls back to empty (page shows its own generic message) when unset", () => {
+      const merged = mergeServiceContent({ about: "Hi" });
+      expect(merged.enrolmentThankYou).toBe("");
+    });
+
+    it("validates on write", () => {
+      const ok = serviceContentSchema.safeParse({
+        ...SERVICE_CONTENT_DEFAULTS,
+        enrolmentThankYou: "Welcome to the family!",
+      });
+      expect(ok.success).toBe(true);
+    });
+
+    it("rejects an over-long thank-you message", () => {
+      const ok = serviceContentSchema.safeParse({
+        ...SERVICE_CONTENT_DEFAULTS,
+        enrolmentThankYou: "x".repeat(2_001),
+      });
+      expect(ok.success).toBe(false);
+    });
   });
 
   it("drops non-string policy ids rather than passing them to a query", () => {

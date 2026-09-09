@@ -201,7 +201,7 @@ export function BulkEditorClient({ category, rows }: Props) {
     for (const key of keysToSave) {
       // Sequential not parallel — easier for the user to track failures and
       // matches the existing per-template rate limit (30/min).
-      // eslint-disable-next-line no-await-in-loop
+       
       await save(key);
     }
   }

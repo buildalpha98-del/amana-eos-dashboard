@@ -15,6 +15,7 @@ import {
   type AttachmentInput,
 } from "@/hooks/useCreativeRequests";
 import { useServices } from "@/hooks/useServices";
+import { uploadFileSmart } from "@/lib/upload-client";
 
 const TYPE_ICONS: Record<CreativeRequestType, string> = {
   flyer: "📄",
@@ -54,19 +55,9 @@ export function NewRequestModal({ onClose }: { onClose: () => void }) {
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
-        const fd = new FormData();
-        fd.append("file", file);
-        const res = await fetch("/api/upload", { method: "POST", body: fd });
-        if (!res.ok) {
-          const err = (await res.json().catch(() => null)) as { error?: string } | null;
-          throw new Error(err?.error || "Upload failed");
-        }
-        const json = (await res.json()) as {
-          fileName: string;
-          fileUrl: string;
-          fileSize: number;
-          mimeType: string;
-        };
+        // Design attachments are routinely over Vercel's ~4.5MB request-body
+        // cap, which a raw /api/upload fetch surfaces as a bare 413.
+        const json = await uploadFileSmart(file);
         setAttachments((prev) => [...prev, json]);
       }
     } catch (err) {

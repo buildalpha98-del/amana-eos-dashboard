@@ -11,7 +11,7 @@
  * 2026-05-04: introduced for the Teams tab redesign (spec PR #77).
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Search, X, Filter as FilterIcon, Check } from "lucide-react";
 import { ROLE_DISPLAY_NAMES } from "@/lib/role-permissions";
 import { cn } from "@/lib/utils";
@@ -47,10 +47,13 @@ export function EmployeeFilters({
   const [localQ, setLocalQ] = useState(value.q);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync local from parent when parent forces (e.g. via "Clear all").
-  useEffect(() => {
+  // Sync local from parent when parent forces (e.g. via "Clear all") —
+  // render-time sync guarded by the last-seen parent value.
+  const [prevQ, setPrevQ] = useState(value.q);
+  if (value.q !== prevQ) {
+    setPrevQ(value.q);
     setLocalQ(value.q);
-  }, [value.q]);
+  }
 
   function emit(next: Partial<EmployeeFiltersValue>) {
     onChange({ ...value, ...next });

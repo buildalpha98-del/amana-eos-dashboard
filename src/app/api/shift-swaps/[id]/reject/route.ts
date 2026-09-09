@@ -3,6 +3,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUser } from "@/lib/notify-user";
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
@@ -46,16 +47,13 @@ export const POST = withApiAuth(async (req, session, context) => {
         rejectedReason: reason ?? null,
       },
     });
-    await tx.userNotification.create({
-      data: {
-        userId: swap.proposerId,
-        type: NOTIFICATION_TYPES.SHIFT_SWAP_REJECTED,
-        title: "Your shift swap was rejected",
-        body: reason
-          ? `${session.user.name ?? "Target"} rejected: ${reason}`
-          : `${session.user.name ?? "Target"} rejected your swap request`,
-        link: `/roster/me?swap=${id}`,
-      },
+    await notifyUser(tx, swap.proposerId, {
+      type: NOTIFICATION_TYPES.SHIFT_SWAP_REJECTED,
+      title: "Your shift swap was rejected",
+      body: reason
+        ? `${session.user.name ?? "Target"} rejected: ${reason}`
+        : `${session.user.name ?? "Target"} rejected your swap request`,
+      link: `/roster/me?swap=${id}`,
     });
     return s;
   });

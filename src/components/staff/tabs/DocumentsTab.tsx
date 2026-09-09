@@ -6,6 +6,7 @@ import { FileText, Upload, Loader2, Eye } from "lucide-react";
 import type { Document } from "@prisma/client";
 import { FileViewerModal } from "@/components/files/FileViewerModal";
 import { toast } from "@/hooks/useToast";
+import { uploadFileSmart } from "@/lib/upload-client";
 
 interface DocumentsTabProps {
   documents: Document[];
@@ -50,19 +51,7 @@ export function DocumentsTab({
     setUploading(true);
     try {
       // Step 1: upload the file blob.
-      const fd = new FormData();
-      fd.append("file", file);
-      const upRes = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!upRes.ok) {
-        const err = await upRes.json().catch(() => ({}));
-        throw new Error(err.error || "Upload failed");
-      }
-      const uploaded = (await upRes.json()) as {
-        fileName: string;
-        fileUrl: string;
-        fileSize?: number;
-        mimeType?: string;
-      };
+      const uploaded = await uploadFileSmart(file);
 
       // Step 2: create the Document record assigned to this staff
       // member. The /staff/[id] query reads both uploadedById and

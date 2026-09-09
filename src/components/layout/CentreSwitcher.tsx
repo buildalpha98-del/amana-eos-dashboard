@@ -81,11 +81,13 @@ export function CentreSwitcher() {
     }
   }, [open, showSearch]);
 
-  // Close on route change
-  useEffect(() => {
+  // Close on route change (adjust state during render when pathname changes)
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
     setOpen(false);
     setSearch("");
-  }, [pathname]);
+  }
 
   if (!shouldShow) return null;
 

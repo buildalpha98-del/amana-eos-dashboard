@@ -75,6 +75,7 @@ export function useRecentPages() {
 
   // Load from localStorage on mount
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- SSR-safe hydration read: recent pages live in localStorage, unavailable during server render
     setRecentPages(loadPages());
     initialised.current = true;
   }, []);

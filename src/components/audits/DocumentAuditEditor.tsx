@@ -11,7 +11,7 @@
  * completed copy, so the original keeps cycling for the next period.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -114,7 +114,7 @@ export function DocumentAuditEditor({
 }: DocumentAuditEditorProps) {
   const router = useRouter();
   const qc = useQueryClient();
-  const [hydrated, setHydrated] = useState(false);
+  const hydratedRef = useRef(false);
   const isCompleted = status === "completed";
 
   const docQuery = useQuery({
@@ -146,11 +146,11 @@ export function DocumentAuditEditor({
   });
 
   useEffect(() => {
-    if (editor && docQuery.data && !hydrated) {
+    if (editor && docQuery.data && !hydratedRef.current) {
       editor.commands.setContent(docQuery.data.html || "<p></p>");
-      setHydrated(true);
+      hydratedRef.current = true;
     }
-  }, [editor, docQuery.data, hydrated]);
+  }, [editor, docQuery.data]);
 
   const saveDraft = useMutation({
     mutationFn: async () => {
@@ -252,7 +252,7 @@ export function DocumentAuditEditor({
         </div>
         <p className="text-xs text-muted mt-3 leading-relaxed">
           Edit the audit directly below — what you save is stored on this
-          instance only. The original template document doesn't change, so the
+          instance only. The original template document doesn&apos;t change, so the
           next scheduled audit starts from a clean copy.
         </p>
       </div>
@@ -422,7 +422,7 @@ function AiFlagsPanel({
 
       {flags.length === 0 && (
         <p className="text-xs text-muted italic">
-          No follow-up items flagged — the AI didn't find anything that needs leadership attention.
+          No follow-up items flagged — the AI didn&apos;t find anything that needs leadership attention.
         </p>
       )}
     </div>

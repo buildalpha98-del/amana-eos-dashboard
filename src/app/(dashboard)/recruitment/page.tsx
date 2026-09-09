@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Briefcase, Plus, Users, Clock, CheckCircle2, Search, FileText } from "lucide-react";
@@ -26,6 +26,13 @@ export default function RecruitmentPage() {
   const [selectedServiceId, setSelectedServiceId] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
+  // Debounced copy of the search input — the query re-fires 300ms after the
+  // user stops typing rather than on every keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
   const [showNewVacancy, setShowNewVacancy] = useState(false);
   const [selectedVacancyId, setSelectedVacancyId] = useState<string | null>(null);
 
@@ -42,16 +49,18 @@ export default function RecruitmentPage() {
   }
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["recruitment-vacancies", selectedServiceId, statusFilter, search],
+    queryKey: ["recruitment-vacancies", selectedServiceId, statusFilter, debouncedSearch],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedServiceId) params.set("serviceId", selectedServiceId);
       if (statusFilter) params.set("status", statusFilter);
-      if (search) params.set("q", search);
+      if (debouncedSearch) params.set("q", debouncedSearch);
       const res = await fetch(`/api/recruitment?${params}`);
       if (!res.ok) throw new Error("Failed to fetch vacancies");
       return res.json();
     },
+    retry: 2,
+    staleTime: 30_000,
   });
 
   const vacancies = data?.vacancies || [];
@@ -129,10 +138,10 @@ export default function RecruitmentPage() {
                   vacancies,
                   [
                     { header: "ID", accessor: (v: Record<string, unknown>) => v.id as string },
-                    { header: "Title", accessor: (v: Record<string, unknown>) => v.title as string },
+                    { header: "Role", accessor: (v: Record<string, unknown>) => ((v.role as string) ?? "").replace(/_/g, " ") },
                     { header: "Status", accessor: (v: Record<string, unknown>) => v.status as string },
-                    { header: "Department", accessor: (v: Record<string, unknown>) => (v.department as string) ?? "" },
-                    { header: "Employment Type", accessor: (v: Record<string, unknown>) => (v.employmentType as string) ?? "" },
+                    { header: "Qualification Required", accessor: (v: Record<string, unknown>) => ((v.qualificationRequired as string) ?? "").replace(/_/g, " ") },
+                    { header: "Employment Type", accessor: (v: Record<string, unknown>) => ((v.employmentType as string) ?? "").replace(/_/g, " ") },
                     { header: "Centre", accessor: (v: Record<string, unknown>) => ((v.service as Record<string, unknown>)?.name as string) ?? "" },
                     { header: "Candidates", accessor: (v: Record<string, unknown>) => ((v._count as Record<string, unknown>)?.candidates as number) ?? 0 },
                     { header: "Created", accessor: (v: Record<string, unknown>) => v.createdAt ? new Date(v.createdAt as string).toLocaleDateString("en-AU") : "" },

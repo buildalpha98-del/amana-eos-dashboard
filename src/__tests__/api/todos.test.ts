@@ -322,3 +322,143 @@ describe("DELETE /api/todos/[id]", () => {
     expect(body.success).toBe(true);
   });
 });
+
+describe("POST /api/todos — meetingId linkage (2026-08-31)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  const base = {
+    title: "From the meeting",
+    assigneeId: "u1",
+    dueDate: "2026-09-07",
+    weekOf: "2026-08-31",
+  };
+
+  it("stores meetingId when the meeting exists", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+    prismaMock.meeting.findUnique.mockResolvedValue({ id: "m1" });
+    prismaMock.todo.create.mockResolvedValue({
+      id: "t1", title: base.title, assigneeId: "u1",
+      assignee: null, rock: null, issue: null, assignees: [],
+    });
+
+    const req = createRequest("POST", "/api/todos", {
+      body: { ...base, meetingId: "m1" },
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+    const createArg = prismaMock.todo.create.mock.calls[0][0] as {
+      data: { meetingId: string | null };
+    };
+    expect(createArg.data.meetingId).toBe("m1");
+  });
+
+  it("400s when meetingId points at no meeting", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+    prismaMock.meeting.findUnique.mockResolvedValue(null);
+
+    const req = createRequest("POST", "/api/todos", {
+      body: { ...base, meetingId: "nope" },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    expect(prismaMock.todo.create).not.toHaveBeenCalled();
+  });
+
+  it("creates without meetingId exactly as before", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+    prismaMock.todo.create.mockResolvedValue({
+      id: "t1", title: base.title, assigneeId: "u1",
+      assignee: null, rock: null, issue: null, assignees: [],
+    });
+
+    const req = createRequest("POST", "/api/todos", { body: base });
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+    expect(prismaMock.meeting.findUnique).not.toHaveBeenCalled();
+    const createArg = prismaMock.todo.create.mock.calls[0][0] as {
+      data: { meetingId: string | null };
+    };
+    expect(createArg.data.meetingId).toBeNull();
+  });
+});
+
+describe("PATCH /api/todos/[id] — project auto-forward + completion notes (2026-08-31)", () => {
+  const baseTodo = {
+    id: "t1",
+    title: "Task",
+    isPrivate: false,
+    assigneeId: "u1",
+    createdById: "u1",
+    assignees: [],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
+    prismaMock.activityLog.create.mockResolvedValue({});
+    prismaMock.todo.findUnique.mockResolvedValue(baseTodo);
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+  });
+
+  it("completing a project todo forward-flips a not_started project", async () => {
+    prismaMock.todo.update.mockResolvedValue({
+      ...baseTodo, status: "complete", rockId: null, projectId: "p-1",
+      assignee: null, rock: null, issue: null, meeting: null,
+    });
+    prismaMock.project.updateMany.mockResolvedValue({ count: 1 });
+
+    const req = createRequest("PATCH", "/api/todos/t1", {
+      body: { status: "complete" },
+    });
+    const res = await PATCH(req, { params: Promise.resolve({ id: "t1" }) });
+    expect(res.status).toBe(200);
+
+    expect(prismaMock.project.updateMany).toHaveBeenCalledWith({
+      where: { id: "p-1", status: "not_started" },
+      data: { status: "in_progress" },
+    });
+  });
+
+  it("does not touch projects on a non-status PATCH", async () => {
+    prismaMock.todo.update.mockResolvedValue({
+      ...baseTodo, rockId: null, projectId: "p-1",
+      assignee: null, rock: null, issue: null, meeting: null,
+    });
+    const req = createRequest("PATCH", "/api/todos/t1", {
+      body: { title: "Renamed" },
+    });
+    await PATCH(req, { params: Promise.resolve({ id: "t1" }) });
+    expect(prismaMock.project.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("stores completionNote and clears it when re-opened", async () => {
+    prismaMock.todo.update.mockResolvedValue({
+      ...baseTodo, status: "complete", rockId: null, projectId: null,
+      assignee: null, rock: null, issue: null, meeting: null,
+    });
+
+    const complete = createRequest("PATCH", "/api/todos/t1", {
+      body: { status: "complete", completionNote: "Emailed everyone" },
+    });
+    await PATCH(complete, { params: Promise.resolve({ id: "t1" }) });
+    const arg1 = prismaMock.todo.update.mock.calls[0][0] as {
+      data: Record<string, unknown>;
+    };
+    expect(arg1.data.completionNote).toBe("Emailed everyone");
+
+    const reopen = createRequest("PATCH", "/api/todos/t1", {
+      body: { status: "pending" },
+    });
+    await PATCH(reopen, { params: Promise.resolve({ id: "t1" }) });
+    const arg2 = prismaMock.todo.update.mock.calls[1][0] as {
+      data: Record<string, unknown>;
+    };
+    expect(arg2.data.completionNote).toBeNull();
+  });
+});

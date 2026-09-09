@@ -78,6 +78,8 @@ beforeEach(() => {
       postcode: "2210",
       phone: null,
       email: null,
+      serviceApprovalNumber: "SE-00099999",
+      operatingDays: "Mon-Fri",
       content: null,
       casualBookingSettings: {
         asc: { enabled: true, days: ["mon", "tue"] },
@@ -103,6 +105,14 @@ describe("GET /api/parent/centres — rooms", () => {
         endTime: "18:30",
       },
     ]);
+  });
+
+  // 2026-09-08: the enrolment thank-you page's "extensive info" section
+  // needs these alongside the rooms it already sent.
+  it("sends the service approval number and operating days", async () => {
+    const body = await call();
+    expect(body.centres[0].serviceApprovalNumber).toBe("SE-00099999");
+    expect(body.centres[0].operatingDays).toBe("Mon-Fri");
   });
 
   it("asks the database for neither retired nor staff-only rooms", async () => {

@@ -18,6 +18,7 @@ import {
   Pencil,
   Key,
   ListChecks,
+  LogOut,
   ShieldUser,
   UserX,
   Mail,
@@ -26,19 +27,22 @@ import {
   BellOff,
   Bell,
 } from "lucide-react";
-import { ROLE_DISPLAY_NAMES, isAdminRole } from "@/lib/role-permissions";
+import { ROLE_DISPLAY_NAMES, isAdminRole, hasFeature } from "@/lib/role-permissions";
+import { isRole } from "@/lib/role-enum";
 import { StaffAvatar } from "@/components/staff/StaffAvatar";
 import { StaffTagPills } from "@/components/staff/StaffTagPills";
 import { cn } from "@/lib/utils";
 import { RowActionMenu, type RowActionItem } from "./RowActionMenu";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
+  useEmployeeHasSeparation,
   useEmployeeQuickAction,
   type QuickActionType,
 } from "@/hooks/useEmployeeQuickAction";
 import { useEmployeeResendInvite } from "@/hooks/useEmployeeResendInvite";
 import type { EmployeeListItem } from "@/hooks/useEmployeesList";
 import { AssignToServiceDialog } from "./AssignToServiceDialog";
+import { StartOffboardingDialog } from "@/components/offboarding/StartOffboardingDialog";
 
 const STATUS_TONE: Record<EmployeeListItem["status"], string> = {
   active: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800",
@@ -78,12 +82,39 @@ export function EmployeeRow({
   const isSelf = viewerId === employee.id;
   const isPending = employee.status === "pending";
 
+  const viewerRoleEnum = isRole(viewerRole) ? viewerRole : undefined;
+  const canStartOffboarding = hasFeature(viewerRoleEnum, "offboarding.create");
+
   const quickAction = useEmployeeQuickAction(employee.id);
   const resendInvite = useEmployeeResendInvite(employee.id);
   const [pendingConfirm, setPendingConfirm] = useState<QuickActionType | null>(
     null,
   );
   const [assignOpen, setAssignOpen] = useState(false);
+  const [offboardOpen, setOffboardOpen] = useState(false);
+
+  // Deactivate↔separation link: while the deactivate confirm is open,
+  // check whether a SeparationRecord exists so we can warn before the
+  // account is switched off with no Fair Work paper trail.
+  const isDeactivating =
+    pendingConfirm === "toggle_active" && employee.status !== "deactivated";
+  const hasSeparationQuery = useEmployeeHasSeparation(
+    employee.id,
+    isDeactivating && isAdmin,
+  );
+  const deactivateWarning =
+    isDeactivating && hasSeparationQuery.data?.hasSeparation === false ? (
+      <span>
+        No separation record exists — record one for the Fair Work file.{" "}
+        <Link
+          href={`/staff/${employee.id}?edit=separation#section-employment`}
+          className="font-medium underline hover:no-underline"
+          onClick={() => setPendingConfirm(null)}
+        >
+          Add separation record
+        </Link>
+      </span>
+    ) : null;
 
   // Build the items list. Order: edit → reset → resend → onboarding →
   // admin toggle → deactivate. Marketing viewers get no menu at all
@@ -131,6 +162,14 @@ export function EmployeeRow({
         label: "Assign to service…",
         icon: <Building2 className="h-3.5 w-3.5" />,
         onSelect: () => setAssignOpen(true),
+      });
+    }
+    if (canStartOffboarding && !isSelf && employee.status !== "deactivated") {
+      items.push({
+        key: "start_offboarding",
+        label: "Start offboarding…",
+        icon: <LogOut className="h-3.5 w-3.5" />,
+        onSelect: () => setOffboardOpen(true),
       });
     }
     if (isOwner && !isSelf) {
@@ -316,6 +355,7 @@ export function EmployeeRow({
           onOpenChange={(o) => !o && setPendingConfirm(null)}
           title={confirmCopy.title}
           description={confirmCopy.description}
+          warning={deactivateWarning}
           confirmLabel={confirmCopy.confirmLabel}
           variant={confirmCopy.variant}
           onConfirm={runConfirm}
@@ -327,6 +367,13 @@ export function EmployeeRow({
           userId={employee.id}
           userName={employee.name}
           onClose={() => setAssignOpen(false)}
+        />
+      ) : null}
+      {offboardOpen ? (
+        <StartOffboardingDialog
+          open={offboardOpen}
+          onOpenChange={setOffboardOpen}
+          prefillUser={{ id: employee.id, name: employee.name }}
         />
       ) : null}
     </>

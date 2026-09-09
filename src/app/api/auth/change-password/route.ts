@@ -70,7 +70,7 @@ export const POST = withApiAuth(async (req, session) => {
     {
       action: "user.password_change",
       actorId: session.user.id,
-      actorEmail: (session.user as any).email,
+      actorEmail: session.user.email,
       targetId: session.user.id,
       targetType: "User",
     },

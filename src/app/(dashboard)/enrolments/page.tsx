@@ -18,6 +18,7 @@ import { useEnrolmentApplications } from "@/hooks/useEnrolmentApplications";
 import { EnrolmentDetailPanel } from "@/components/enrolments/EnrolmentDetailPanel";
 import { SiblingEnrolmentInbox } from "@/components/enrolments/SiblingEnrolmentInbox";
 import { BackfillServiceDialog } from "@/components/enrolments/BackfillServiceDialog";
+import { BackfillBookingGridDialog } from "@/components/enrolments/BackfillBookingGridDialog";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -45,6 +46,7 @@ export default function EnrolmentsPage() {
   const [view, setView] = useState<"submissions" | "sibling">("submissions");
   const [activeTab, setActiveTab] = useState("all");
   const [showBackfill, setShowBackfill] = useState(false);
+  const [showGridBackfill, setShowGridBackfill] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data, isLoading } = useEnrolments(activeTab);
@@ -180,7 +182,25 @@ export default function EnrolmentsPage() {
         </div>
       )}
 
+      {/*
+        Sits under the stats rather than behind a banner: unlike unplaced
+        enrolments there's no cheap count to gate it on, and the scan
+        itself reports "nothing to do" when the backlog is cleared.
+      */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowGridBackfill(true)}
+          className="text-xs font-medium text-foreground/50 hover:text-foreground transition-colors"
+        >
+          Recover booking preferences
+        </button>
+      </div>
+
       <BackfillServiceDialog open={showBackfill} onOpenChange={setShowBackfill} />
+      <BackfillBookingGridDialog
+        open={showGridBackfill}
+        onOpenChange={setShowGridBackfill}
+      />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">

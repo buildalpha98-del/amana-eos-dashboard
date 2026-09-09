@@ -10,7 +10,7 @@
  * becomes the starting content for every future scheduled instance.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
@@ -88,7 +88,7 @@ function ToolbarBtn({
 
 export function TemplateDocumentEditor({ templateId, templateName }: Props) {
   const qc = useQueryClient();
-  const [hydrated, setHydrated] = useState(false);
+  const hydratedRef = useRef(false);
   const [editing, setEditing] = useState(false);
 
   const docQuery = useQuery({
@@ -120,11 +120,11 @@ export function TemplateDocumentEditor({ templateId, templateName }: Props) {
   });
 
   useEffect(() => {
-    if (editor && docQuery.data && !hydrated) {
+    if (editor && docQuery.data && !hydratedRef.current) {
       editor.commands.setContent(docQuery.data.html || "<p></p>");
-      setHydrated(true);
+      hydratedRef.current = true;
     }
-  }, [editor, docQuery.data, hydrated]);
+  }, [editor, docQuery.data]);
 
   useEffect(() => {
     if (editor) editor.setEditable(editing);

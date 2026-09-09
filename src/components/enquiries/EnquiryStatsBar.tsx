@@ -28,7 +28,7 @@ export function EnquiryStatsBar({
       .then((r) => r.json())
       .then((data) => {
         const newThisWeek = Object.values(data.countByStage || {}).reduce(
-          (sum: number, val: any) => sum + (typeof val === "number" ? val : 0),
+          (sum: number, val: unknown) => sum + (typeof val === "number" ? val : 0),
           0,
         ) as number;
         setStats({

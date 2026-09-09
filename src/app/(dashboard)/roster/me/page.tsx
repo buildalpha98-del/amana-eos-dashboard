@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { toLocalIsoDate } from "@/lib/utils";
 import { isAdminRole } from "@/lib/role-permissions";
 import { requirePageSession } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
@@ -16,8 +17,9 @@ function mondayIso(date: Date): string {
   const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString().split("T")[0];
+  // toLocalIsoDate, not toISOString: local midnight converted to UTC lands
+  // on Sunday for every Australian timezone, putting "This week" a day early.
+  return toLocalIsoDate(d);
 }
 
 function addDaysIso(isoDate: string, days: number): string {
@@ -176,6 +178,7 @@ export default async function RosterMePage({ searchParams }: PageProps) {
           <Link
             href={query(thisWeek)}
             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-surface transition-colors"
+            aria-label="This week"
           >
             This week
           </Link>
@@ -200,7 +203,18 @@ export default async function RosterMePage({ searchParams }: PageProps) {
         <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted">
           <p>
             Only staff can view their own week on this page. For
-            administrative roster views, use the service&apos;s Weekly Roster tab.
+            administrative roster views, use the service&apos;s{" "}
+            <Link
+              href={
+                targetUser.serviceId
+                  ? `/services/${targetUser.serviceId}?tab=daily&sub=roster`
+                  : "/services"
+              }
+              className="font-medium text-brand hover:underline"
+            >
+              Weekly Roster tab
+            </Link>
+            .
           </p>
         </div>
       )}
@@ -209,9 +223,19 @@ export default async function RosterMePage({ searchParams }: PageProps) {
         className="rounded-xl border border-border bg-card p-5"
         data-testid="pending-swap-requests"
       >
-        <h2 className="text-base font-semibold text-foreground mb-3">
-          Pending swap requests for you
-        </h2>
+        <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
+          <h2 className="text-base font-semibold text-foreground">
+            Pending swap requests for you
+          </h2>
+          {pendingSwaps.length > 0 && (
+            <Link
+              href="/roster/swaps"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors"
+            >
+              Review &amp; respond
+            </Link>
+          )}
+        </div>
         {pendingSwaps.length === 0 ? (
           <p className="text-sm text-muted">No pending swap requests.</p>
         ) : (

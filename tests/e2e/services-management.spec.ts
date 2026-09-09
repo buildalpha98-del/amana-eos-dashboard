@@ -81,12 +81,15 @@ test.describe("Services management flow", () => {
 
       // Should show tab group navigation
       // Tab groups: Overview, Daily Ops, Program, EOS, Compliance, Finance
+      // .first() everywhere: these words also appear in the sidebar and page
+      // content, and a multi-match strict-mode violation makes isVisible()
+      // throw → silently count as "tab missing".
       const hasOverviewTab = await page.getByText("Overview").first().isVisible().catch(() => false);
-      const hasDailyOpsTab = await page.getByText("Daily Ops").isVisible().catch(() => false);
-      const hasProgramTab = await page.getByText("Program").isVisible().catch(() => false);
-      const hasEosTab = await page.getByText("EOS").isVisible().catch(() => false);
+      const hasDailyOpsTab = await page.getByText("Daily Ops").first().isVisible().catch(() => false);
+      const hasProgramTab = await page.getByText("Program").first().isVisible().catch(() => false);
+      const hasEosTab = await page.getByText("EOS").first().isVisible().catch(() => false);
       const hasComplianceTab = await page.getByText("Compliance").first().isVisible().catch(() => false);
-      const hasFinanceTab = await page.getByText("Finance").isVisible().catch(() => false);
+      const hasFinanceTab = await page.getByText("Finance").first().isVisible().catch(() => false);
 
       // Should have at least some tab groups visible
       const tabCount = [hasOverviewTab, hasDailyOpsTab, hasProgramTab, hasEosTab, hasComplianceTab, hasFinanceTab].filter(Boolean).length;

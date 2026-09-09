@@ -69,5 +69,7 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json({ config: next });
   },
-  { roles: ["owner", "admin"], rateLimit: { max: 20, windowMs: 60_000 } },
+  // head_office added 2026-09-05 (Jayden): State Managers own the
+  // cert-requirements matrix and the rest of Organisation settings.
+  { roles: ["owner", "admin", "head_office"], rateLimit: { max: 20, windowMs: 60_000 } },
 );

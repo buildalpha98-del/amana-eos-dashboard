@@ -66,18 +66,27 @@ export function PersonalTab({
   const [editing, setEditing] = useState(false);
 
   // Auto-open the edit form when arriving via the header's "Edit profile"
-  // Quick Action (which sets `?edit=personal`). One-shot on mount: we strip
-  // the param so a manual refresh doesn't re-open the form unexpectedly.
+  // Quick Action (which sets `?edit=personal`). Reacts to the param, not just
+  // mount — if this tab is already open when the Quick Action fires, a
+  // mount-only check never sees the param and the editor silently fails to
+  // open. The state flip happens render-phase (React's "adjust state on prop
+  // change" pattern); the effect below only strips the param so a manual
+  // refresh doesn't re-open the form.
+  const wantsEdit = searchParams.get("edit") === "personal";
+  // Starts false (not wantsEdit) so a fresh page load that already carries
+  // the param still fires the adjust branch on first render.
+  const [prevWantsEdit, setPrevWantsEdit] = useState(false);
+  if (wantsEdit !== prevWantsEdit) {
+    setPrevWantsEdit(wantsEdit);
+    if (wantsEdit && canEdit) setEditing(true);
+  }
   useEffect(() => {
-    if (!canEdit) return;
-    if (searchParams.get("edit") !== "personal") return;
-    setEditing(true);
+    if (!wantsEdit) return;
     const next = new URLSearchParams(searchParams.toString());
     next.delete("edit");
     const qs = next.toString();
     router.replace(qs ? `?${qs}` : "?", { scroll: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [wantsEdit, searchParams, router]);
 
   if (editing && canEdit) {
     return (

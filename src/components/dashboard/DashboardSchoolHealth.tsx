@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Handshake, ChevronRight, Loader2 } from "lucide-react";
@@ -40,6 +41,8 @@ export function DashboardSchoolHealth() {
     },
     staleTime: 60_000,
   });
+  // Stable "now" so day-difference maths stays pure during render
+  const [now] = useState(() => Date.now());
 
   if (isLoading) {
     return (
@@ -106,10 +109,10 @@ export function DashboardSchoolHealth() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {weak.map((s) => {
           const daysSinceVisit = s.lastPrincipalVisit
-            ? Math.floor((Date.now() - new Date(s.lastPrincipalVisit).getTime()) / (1000 * 60 * 60 * 24))
+            ? Math.floor((now - new Date(s.lastPrincipalVisit).getTime()) / (1000 * 60 * 60 * 24))
             : null;
           const contractDays = s.contractEndDate
-            ? Math.ceil((new Date(s.contractEndDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+            ? Math.ceil((new Date(s.contractEndDate).getTime() - now) / (1000 * 60 * 60 * 24))
             : null;
 
           return (

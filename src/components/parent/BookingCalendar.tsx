@@ -126,7 +126,7 @@ function getMonthDays(year: number, month: number): Array<Date | null> {
 // ── Component ────────────────────────────────────────────
 
 export function BookingCalendar({ childId, serviceId, bookings }: BookingCalendarProps) {
-  const now = new Date();
+  const [now] = useState(() => new Date());
   const [monthOffset, setMonthOffset] = useState(0);
   /**
    * Days the family is picking, not just one.
@@ -137,9 +137,15 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
    */
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
 
-  const viewDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
-  const monthKey = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, "0")}`;
-  const monthLabel = viewDate.toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+  const { viewYear, viewMonth, monthKey, monthLabel } = useMemo(() => {
+    const viewDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+    return {
+      viewYear: viewDate.getFullYear(),
+      viewMonth: viewDate.getMonth(),
+      monthKey: `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, "0")}`,
+      monthLabel: viewDate.toLocaleDateString("en-AU", { month: "long", year: "numeric" }),
+    };
+  }, [now, monthOffset]);
 
   const { data: availability } = useAvailability(serviceId, monthKey);
   const bulkBooking = useBulkBooking();
@@ -160,7 +166,10 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
     queryFn: () => fetchApi("/api/parent/centres"),
     retry: 1,
   });
-  const centre = centreData?.centres.find((c) => c.id === serviceId);
+  const centre = useMemo(
+    () => centreData?.centres.find((c) => c.id === serviceId),
+    [centreData, serviceId],
+  );
   const enabledSessions = centre?.casualSessions ?? [];
   /**
    * Weekdays any enabled session runs. The calendar used to hard-disable
@@ -176,8 +185,8 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
   }, [centre?.casualSessionDays]);
 
   const days = useMemo(
-    () => getMonthDays(viewDate.getFullYear(), viewDate.getMonth()),
-    [viewDate.getFullYear(), viewDate.getMonth()],
+    () => getMonthDays(viewYear, viewMonth),
+    [viewYear, viewMonth],
   );
 
   // Build lookup maps

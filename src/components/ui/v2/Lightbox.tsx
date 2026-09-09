@@ -21,9 +21,13 @@ export function Lightbox({ urls, openIndex, onClose }: LightboxProps) {
   const [index, setIndex] = useState(openIndex ?? 0);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
-  useEffect(() => {
+  // Sync to the requested photo when the caller (re)opens the lightbox —
+  // adjusted during render instead of an effect.
+  const [prevOpenIndex, setPrevOpenIndex] = useState(openIndex);
+  if (prevOpenIndex !== openIndex) {
+    setPrevOpenIndex(openIndex);
     if (openIndex !== null) setIndex(openIndex);
-  }, [openIndex]);
+  }
 
   const goPrev = useCallback(() => {
     setIndex((i) => Math.max(0, i - 1));

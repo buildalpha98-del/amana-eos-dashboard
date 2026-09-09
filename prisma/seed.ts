@@ -2352,6 +2352,11 @@ Provide:
 Make it exciting and age-appropriate. Avoid repeating activities from other planned days.`,
     },
     {
+      // 2026-08-31: superseded by the persisted aiAgendaDraft path
+      // (POST /api/meetings/[id]/prepare + lib/l10-prep.ts). Deactivated,
+      // not deleted — the generate route 410s inactive slugs, so any
+      // stale client caching the old AiButton fails loudly, not silently.
+      active: false,
       slug: "meetings/l10-prep",
       name: "L10 Meeting Prep Agent",
       model: "claude-sonnet-4-20250514",
@@ -2838,6 +2843,11 @@ Don't list every child by name. Don't invent events or meals — use only what's
   ];
 
   for (const tpl of aiTemplates) {
+    // Templates default to active; a template can opt out (e.g. the
+    // superseded meetings/l10-prep) and the seed deactivates existing rows.
+    // NOTE: this stamps `active` on every deploy — if an admin surface for
+    // toggling AiPromptTemplate.active is ever added, make this create-only.
+    const active = (tpl as { active?: boolean }).active ?? true;
     await prisma.aiPromptTemplate.upsert({
       where: { slug: tpl.slug },
       update: {
@@ -2846,6 +2856,7 @@ Don't list every child by name. Don't invent events or meals — use only what's
         maxTokens: tpl.maxTokens,
         promptTemplate: tpl.promptTemplate,
         variables: JSON.parse(tpl.variables),
+        active,
       },
       create: {
         slug: tpl.slug,
@@ -2854,6 +2865,7 @@ Don't list every child by name. Don't invent events or meals — use only what's
         maxTokens: tpl.maxTokens,
         promptTemplate: tpl.promptTemplate,
         variables: JSON.parse(tpl.variables),
+        active,
       },
     });
   }

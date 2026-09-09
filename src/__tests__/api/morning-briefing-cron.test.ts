@@ -72,7 +72,7 @@ function resetCommon() {
   prismaMock.user.findMany.mockResolvedValue([]);
   prismaMock.dailyBriefing.findUnique.mockResolvedValue(null);
   prismaMock.dailyBriefing.create.mockResolvedValue({ id: "brief-1" });
-  prismaMock.userNotification.create.mockResolvedValue({});
+  prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 });
   composeMock.mockResolvedValue({ content: "brief text", source: "ai" });
   collectMock.mockResolvedValue(signals());
 }
@@ -113,10 +113,10 @@ describe("GET /api/cron/morning-briefing", () => {
     const body = await res.json();
     expect(body.created).toBe(2);
     expect(body.quiet).toBe(1);
-    // Only the busy user gets pinged.
-    expect(prismaMock.userNotification.create).toHaveBeenCalledTimes(1);
+    // Only the busy user gets pinged (via notifyUser → createMany).
+    expect(prismaMock.userNotification.createMany).toHaveBeenCalledTimes(1);
     expect(
-      prismaMock.userNotification.create.mock.calls[0][0].data.userId,
+      prismaMock.userNotification.createMany.mock.calls[0][0].data[0].userId,
     ).toBe("u-busy");
   });
 

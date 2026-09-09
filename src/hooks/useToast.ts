@@ -8,6 +8,9 @@ export interface Toast {
   description: string;
   variant?: "default" | "destructive";
   duration?: number;
+  /** Optional link rendered under the description (e.g. "View profile"). */
+  href?: string;
+  hrefLabel?: string;
 }
 
 type ToastEvent = Omit<Toast, "id">;

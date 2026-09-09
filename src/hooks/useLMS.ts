@@ -295,6 +295,7 @@ export function useMyEnrollments() {
       return fetchApi("/api/lms/my-enrollments");
     },
     retry: 2,
+    staleTime: 30_000,
   });
 }
 

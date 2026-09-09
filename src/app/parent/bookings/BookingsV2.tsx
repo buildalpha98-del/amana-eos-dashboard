@@ -317,13 +317,14 @@ function FastBookSheet({
 
         {step === 1 && (
           <Step1PickChild
-            children={children ?? []}
             selected={selectedChildId}
             onSelect={(id) => {
               setSelectedChildId(id);
               setStep(2);
             }}
-          />
+          >
+            {children ?? []}
+          </Step1PickChild>
         )}
 
         {step === 2 && selectedChild && (

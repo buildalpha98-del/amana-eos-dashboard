@@ -25,6 +25,23 @@ interface CentreWorkload {
 type SortKey = "name" | "publishedThisMonth" | "pendingReview" | "overdueTasks" | "openTasks" | "drafts";
 type SortDir = "asc" | "desc";
 
+function SortIcon({
+  col,
+  sortKey,
+  sortDir,
+}: {
+  col: SortKey;
+  sortKey: SortKey;
+  sortDir: SortDir;
+}) {
+  if (sortKey !== col) return <ArrowUpDown className="h-3 w-3 text-muted/50" />;
+  return sortDir === "asc" ? (
+    <ArrowUp className="h-3 w-3 text-brand" />
+  ) : (
+    <ArrowDown className="h-3 w-3 text-brand" />
+  );
+}
+
 export function CentreWorkloadDashboard({
   onCentreClick,
 }: {
@@ -87,15 +104,6 @@ export function CentreWorkloadDashboard({
       drafts: list.reduce((s, c) => s + c.drafts, 0),
     };
   }, [centres, stateFilter]);
-
-  function SortIcon({ col }: { col: SortKey }) {
-    if (sortKey !== col) return <ArrowUpDown className="h-3 w-3 text-muted/50" />;
-    return sortDir === "asc" ? (
-      <ArrowUp className="h-3 w-3 text-brand" />
-    ) : (
-      <ArrowDown className="h-3 w-3 text-brand" />
-    );
-  }
 
   if (loading) {
     return (
@@ -163,32 +171,32 @@ export function CentreWorkloadDashboard({
               <tr className="bg-surface/50 text-muted text-xs uppercase tracking-wider">
                 <th className="px-4 py-3 text-left">
                   <button className="flex items-center gap-1" onClick={() => toggleSort("name")}>
-                    Centre <SortIcon col="name" />
+                    Centre <SortIcon col="name" sortKey={sortKey} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="px-4 py-3 text-center">
                   <button className="flex items-center gap-1 mx-auto" onClick={() => toggleSort("publishedThisMonth")}>
-                    Published <SortIcon col="publishedThisMonth" />
+                    Published <SortIcon col="publishedThisMonth" sortKey={sortKey} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="px-4 py-3 text-center">
                   <button className="flex items-center gap-1 mx-auto" onClick={() => toggleSort("pendingReview")}>
-                    Pending <SortIcon col="pendingReview" />
+                    Pending <SortIcon col="pendingReview" sortKey={sortKey} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="px-4 py-3 text-center">
                   <button className="flex items-center gap-1 mx-auto" onClick={() => toggleSort("overdueTasks")}>
-                    Overdue <SortIcon col="overdueTasks" />
+                    Overdue <SortIcon col="overdueTasks" sortKey={sortKey} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="px-4 py-3 text-center">
                   <button className="flex items-center gap-1 mx-auto" onClick={() => toggleSort("openTasks")}>
-                    Open Tasks <SortIcon col="openTasks" />
+                    Open Tasks <SortIcon col="openTasks" sortKey={sortKey} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="px-4 py-3 text-center">
                   <button className="flex items-center gap-1 mx-auto" onClick={() => toggleSort("drafts")}>
-                    Drafts <SortIcon col="drafts" />
+                    Drafts <SortIcon col="drafts" sortKey={sortKey} sortDir={sortDir} />
                   </button>
                 </th>
               </tr>

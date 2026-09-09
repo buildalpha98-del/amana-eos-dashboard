@@ -36,7 +36,7 @@ test.describe("Daily Ops attendance & Finance budget", () => {
     await page.waitForLoadState("networkidle");
 
     await expect(
-      page.getByText("Rise and Shine Club (BSC)").first()
+      page.getByText("Rise and Shine Club (BSC)").filter({ visible: true }).first()
     ).toBeVisible({ timeout: 15_000 });
 
     // Grab the first Permanent cell in the BSC row.
@@ -71,7 +71,7 @@ test.describe("Daily Ops attendance & Finance budget", () => {
     await toggle.check();
 
     // VC now visible on the grid.
-    await expect(page.getByText("Holiday Quest (VC)").first()).toBeVisible();
+    await expect(page.getByText("Holiday Quest (VC)").filter({ visible: true }).first()).toBeVisible();
 
     // And the toggle is actually labelled "Show Holiday Quest" (renamed
     // from "Show VC").
@@ -87,7 +87,7 @@ test.describe("Daily Ops attendance & Finance budget", () => {
     await page.goto(`/services/${serviceId}?tab=daily&sub=attendance`);
     await page.waitForLoadState("networkidle");
     await expect(
-      page.getByText("Rise and Shine Club (BSC)").first()
+      page.getByText("Rise and Shine Club (BSC)").filter({ visible: true }).first()
     ).toBeVisible({ timeout: 15_000 });
 
     // Bump BSC permanent Monday.
@@ -105,10 +105,10 @@ test.describe("Daily Ops attendance & Finance budget", () => {
     await page.waitForLoadState("networkidle");
 
     await expect(
-      page.getByText("Rise and Shine Club (BSC)").first()
+      page.getByText("Rise and Shine Club (BSC)").filter({ visible: true }).first()
     ).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("Amana Afternoons (ASC)").first()).toBeVisible();
-    await expect(page.getByText("Holiday Quest (VC)").first()).toBeVisible();
+    await expect(page.getByText("Amana Afternoons (ASC)").filter({ visible: true }).first()).toBeVisible();
+    await expect(page.getByText("Holiday Quest (VC)").filter({ visible: true }).first()).toBeVisible();
     // Old labels are gone.
     await expect(page.getByText("Before School Care (BSC)")).toHaveCount(0);
   });
