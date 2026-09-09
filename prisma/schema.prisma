@@ -1006,6 +1006,9 @@ model User {
   newStarterRequestsCompleted NewStarterRequest[] @relation("NewStarterRequestCompletedBy")
   newStarterRequestAccount    NewStarterRequest?  @relation("NewStarterRequestCompletedUser")
 
+  // 2026-09-09: day-1/week-1/month-1 onboarding touchpoint check-ins.
+  newStarterCheckIns NewStarterCheckIn[]
+
   // 2026-09-08 (My Portal: pay discrepancy reports): any staff member can
   // flag "my pay didn't match my hours" for admin/leadership to review.
   payDiscrepanciesReported PayDiscrepancyReport[] @relation("PayDiscrepancyReporter")
@@ -1037,17 +1040,29 @@ enum NewStarterRequestStatus {
 }
 
 /// 2026-09-08 (Team tab: Onboarding sub-tab, leadership-only). A state
-/// manager/admin/owner flags a known new hire so admin can complete the
-/// actual account creation + induction pack. Deliberately NOT a candidate
-/// pipeline (that's RecruitmentCandidate, tied to a vacancy) — this is a
-/// "we've hired someone, please onboard them" ticket for a person who
-/// doesn't have a User row yet.
+/// manager/admin/owner submits a known new hire's details.
+///
+/// 2026-09-09: changed from "notify only" to immediate account creation —
+/// the POST handler creates the real User, seeds the onboarding pack, and
+/// emails the new hire their dashboard invite + first-shift checklist in
+/// the SAME request, then stamps this row completed right away. The row
+/// still exists as the audit record ("who was onboarded, when, by whom")
+/// and to carry the fields (award level, qualification, etc.) that don't
+/// belong on User directly. Deliberately NOT a candidate pipeline (that's
+/// RecruitmentCandidate, tied to a vacancy) — this is "we've hired
+/// someone" for a person who doesn't have a User row yet.
 model NewStarterRequest {
   id String @id @default(cuid())
 
   fullName    String
   dateOfBirth DateTime
   address     String
+  /// 2026-09-09: the account-creation flow needs both of these directly —
+  /// mobile becomes User.phone, email becomes the actual login. Required
+  /// now the request creates the real account immediately rather than
+  /// waiting on admin to type them in later.
+  mobile String
+  email  String
 
   /// Free-text job title (e.g. "Social Educator", "Service Coordinator") —
   /// there's no dedicated job-title enum in the codebase (RecruitmentVacancy
@@ -1095,6 +1110,48 @@ model NewStarterRequest {
   @@index([status])
   @@index([serviceId])
   @@index([requestedById])
+}
+
+enum NewStarterCheckInMilestone {
+  day_1
+  week_1
+  month_1
+}
+
+/// 2026-09-09: post-onboarding touchpoints. "How's your first day/week/
+/// month at Amana going, anything we could have done better with your
+/// onboarding?" Seeded as three rows (day_1/week_1/month_1) the moment a
+/// NewStarterRequest creates the User, with `dueAt` computed from that
+/// User's startDate. A daily cron (src/app/api/cron/onboarding-checkins)
+/// emails the due ones a link to a short, unauthenticated form —
+/// `token` is the URL secret, no login needed to answer from a phone.
+model NewStarterCheckIn {
+  id     String                     @id @default(cuid())
+  userId String
+  user   User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  milestone NewStarterCheckInMilestone
+
+  /// When this milestone becomes due — computed once at seed time from
+  /// the user's startDate (+1/+7/+30 days), not recomputed later.
+  dueAt DateTime
+  /// Unique link secret for the unauthenticated response page.
+  token String @unique @default(cuid())
+
+  /// Set once the reminder email actually goes out — the cron's "already
+  /// handled" guard, since dueAt alone can't tell "not yet due" from
+  /// "due and already sent".
+  sentAt DateTime?
+
+  submittedAt DateTime?
+  /// 1 (struggling) – 5 (great) — same scale as StaffPulseSurvey's mood
+  /// questions, so the numbers read the same way everywhere in the app.
+  mood     Int?
+  comments String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, milestone])
+  @@index([dueAt, sentAt])
 }
 
 enum PayDiscrepancyStatus {

@@ -10,6 +10,8 @@ export interface NewStarterRequestItem {
   fullName: string;
   dateOfBirth: string;
   address: string;
+  mobile: string;
+  email: string;
   targetPosition: string;
   employmentType: EmploymentType;
   awardLevel: AwardLevel;
@@ -21,7 +23,7 @@ export interface NewStarterRequestItem {
   requestedBy: { id: string; name: string; email: string; avatar: string | null };
   assignedAdmin: { id: string; name: string } | null;
   completedBy: { id: string; name: string } | null;
-  completedUser: { id: string; name: string } | null;
+  completedUser: { id: string; name: string; email: string } | null;
   service: { id: string; name: string };
   createdAt: string;
 }
@@ -30,6 +32,8 @@ export interface NewStarterRequestInput {
   fullName: string;
   dateOfBirth: string;
   address: string;
+  mobile: string;
+  email: string;
   targetPosition: string;
   employmentType: EmploymentType;
   awardLevel: AwardLevel;
@@ -54,23 +58,12 @@ export function useCreateOnboardingRequest() {
   return useMutation({
     mutationFn: (input: NewStarterRequestInput) =>
       mutateApi("/api/onboarding-requests", { method: "POST", body: input }),
-    onSuccess: () => {
-      toast({ description: "Onboarding request sent to admin." });
+    onSuccess: (_data, input) => {
+      toast({
+        description: `${input.fullName}'s account is set up — their dashboard invite is on the way.`,
+      });
       qc.invalidateQueries({ queryKey: ["onboarding-requests"] });
-    },
-    onError: (err: Error) => {
-      toast({ variant: "destructive", description: err.message });
-    },
-  });
-}
-
-export function useUpdateOnboardingRequest(id: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (body: { claim?: boolean; status?: "cancelled"; markCompleted?: boolean; completedUserId?: string | null }) =>
-      mutateApi(`/api/onboarding-requests/${id}`, { method: "PATCH", body }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["onboarding-requests"] });
+      qc.invalidateQueries({ queryKey: ["employees-list"] });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message });

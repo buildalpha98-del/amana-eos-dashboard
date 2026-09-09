@@ -2,10 +2,11 @@
 
 /**
  * NewStarterRequestModal — the Team tab's Onboarding sub-tab intake form.
- * A state manager/admin/owner fills this out for a known new hire; it
- * notifies every admin-tier user so someone completes the actual account
- * creation (Add staff member) + induction pack. This form does NOT create
- * a User account itself — see the "Notify only" decision.
+ * A state manager/admin/owner fills this out for a known new hire.
+ * Submitting immediately creates the real account, assigns their
+ * onboarding pack, and emails them a dashboard invite + first-shift
+ * checklist — see POST /api/onboarding-requests. Every admin-tier user
+ * also gets notified to handle Employment Hero + the contract.
  */
 
 import { useState } from "react";
@@ -66,6 +67,8 @@ export function NewStarterRequestModal({
     fullName: "",
     dateOfBirth: "",
     address: "",
+    mobile: "",
+    email: "",
     targetPosition: "",
     employmentType: "casual" as EmploymentType,
     awardLevel: "cs1" as AwardLevel,
@@ -84,6 +87,14 @@ export function NewStarterRequestModal({
     e.preventDefault();
     if (!form.fullName.trim() || !form.dateOfBirth || !form.address.trim()) {
       toast({ variant: "destructive", description: "Full name, date of birth, and address are required." });
+      return;
+    }
+    if (!form.mobile.trim()) {
+      toast({ variant: "destructive", description: "Enter their mobile number." });
+      return;
+    }
+    if (!form.email.trim()) {
+      toast({ variant: "destructive", description: "Enter their email address — their invite goes here." });
       return;
     }
     if (!form.targetPosition.trim()) {
@@ -107,6 +118,8 @@ export function NewStarterRequestModal({
       fullName: form.fullName.trim(),
       dateOfBirth: form.dateOfBirth,
       address: form.address.trim(),
+      mobile: form.mobile.trim(),
+      email: form.email.trim(),
       targetPosition: form.targetPosition.trim(),
       employmentType: form.employmentType,
       awardLevel: form.awardLevel,
@@ -124,9 +137,9 @@ export function NewStarterRequestModal({
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg">
-        <DialogTitle>New onboarding request</DialogTitle>
+        <DialogTitle>Onboard a new starter</DialogTitle>
         <p className="text-sm text-muted -mt-2 mb-2">
-          Flag a new hire so admin can set up their account and induction pack.
+          Submitting creates their account and emails them straight away.
         </p>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
@@ -171,6 +184,29 @@ export function NewStarterRequestModal({
               className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
               placeholder="Street address, suburb, state, postcode"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted block mb-1">Mobile number</label>
+              <input
+                type="tel"
+                value={form.mobile}
+                onChange={(e) => set("mobile", e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
+                placeholder="04XX XXX XXX"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted block mb-1">Email</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => set("email", e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
+                placeholder="Their personal or preferred email — their invite goes here"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -269,7 +305,7 @@ export function NewStarterRequestModal({
               Cancel
             </Button>
             <Button type="submit" loading={create.isPending}>
-              Send to admin
+              Create account &amp; send invite
             </Button>
           </div>
         </form>

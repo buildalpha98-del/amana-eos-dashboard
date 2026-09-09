@@ -42,6 +42,10 @@
       "schedule": "0 20 * * *"
     },
     {
+      "path": "/api/cron/onboarding-checkins",
+      "schedule": "15 20 * * *"
+    },
+    {
       "path": "/api/cron/fee-changes",
       "schedule": "0 18 * * *"
     },

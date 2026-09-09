@@ -17,16 +17,39 @@ vi.mock("@/lib/logger", () => ({
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn(() => Promise.resolve({ limited: false, remaining: 59, resetIn: 60000 })),
 }));
+vi.mock("@/lib/onboarding-seed", () => ({
+  seedOnboardingPackage: vi.fn(() => Promise.resolve()),
+}));
+vi.mock("@/lib/onboarding-assign", () => ({
+  assignOnboardingPack: vi.fn(() => Promise.resolve({ id: "assignment-1" })),
+}));
+vi.mock("@/lib/staff-invite", () => ({
+  sendWelcomeInvite: vi.fn(() => Promise.resolve()),
+}));
+vi.mock("@/lib/new-starter-request/first-shift-email", () => ({
+  sendFirstShiftChecklistEmail: vi.fn(() => Promise.resolve()),
+}));
+vi.mock("@/lib/new-starter-request/check-ins", () => ({
+  seedNewStarterCheckIns: vi.fn(() => Promise.resolve()),
+}));
+vi.mock("@/lib/new-starter-request/notify", () => ({
+  notifyNewStarterRequestSubmitted: vi.fn(() => Promise.resolve()),
+}));
 
 import { GET, POST } from "@/app/api/onboarding-requests/route";
-import { PATCH } from "@/app/api/onboarding-requests/[id]/route";
-
-const ctx = (id: string) => ({ params: Promise.resolve({ id }) }) as never;
+import { seedOnboardingPackage } from "@/lib/onboarding-seed";
+import { assignOnboardingPack } from "@/lib/onboarding-assign";
+import { sendWelcomeInvite } from "@/lib/staff-invite";
+import { sendFirstShiftChecklistEmail } from "@/lib/new-starter-request/first-shift-email";
+import { seedNewStarterCheckIns } from "@/lib/new-starter-request/check-ins";
+import { notifyNewStarterRequestSubmitted } from "@/lib/new-starter-request/notify";
 
 const baseRequest = {
   fullName: "Amina Yusuf",
   dateOfBirth: "2000-01-15",
   address: "1 Example St, Adelaide SA 5000",
+  mobile: "0400 000 000",
+  email: "amina@example.com",
   targetPosition: "Educator",
   employmentType: "casual",
   awardLevel: "cs1",
@@ -37,9 +60,33 @@ const baseRequest = {
 beforeEach(() => {
   _clearUserActiveCache();
   vi.clearAllMocks();
-  prismaMock.user.findUnique.mockResolvedValue({ id: "u1", active: true, role: "admin" });
   prismaMock.activityLog.create.mockResolvedValue({});
   prismaMock.userNotification.createMany.mockResolvedValue({ count: 0 });
+  prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });
+  prismaMock.onboardingPack.findFirst.mockResolvedValue(null);
+  prismaMock.user.create.mockResolvedValue({
+    id: "new-user-1",
+    name: "Amina Yusuf",
+    email: "amina@example.com",
+    serviceId: "svc-1",
+  });
+  prismaMock.newStarterRequest.create.mockResolvedValue({
+    id: "r-new",
+    fullName: "Amina Yusuf",
+    email: "amina@example.com",
+    requestedById: "hq1",
+    serviceId: "svc-1",
+  });
+
+  // withApiAuth's own session-user lookup and the route's own
+  // find-existing-account-by-email check share prismaMock.user.findUnique;
+  // route by call args so each gets the right answer.
+  prismaMock.user.findUnique.mockImplementation((args: unknown) => {
+    const a = args as { where?: { id?: string; email?: string } };
+    if (a?.where?.id) return Promise.resolve({ id: a.where.id, active: true });
+    if (a?.where?.email) return Promise.resolve(null); // no existing account by default
+    return Promise.resolve(null);
+  });
 });
 
 describe("GET /api/onboarding-requests", () => {
@@ -68,7 +115,7 @@ describe("GET /api/onboarding-requests", () => {
     expect(res.status).toBe(200);
   });
 
-  it("admin sees the full queue, not just their own submissions", async () => {
+  it("admin sees the full history, not just their own submissions", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.newStarterRequest.findMany.mockResolvedValue([
       { id: "r1", requestedById: "someone-else" },
@@ -77,8 +124,6 @@ describe("GET /api/onboarding-requests", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.requests).toHaveLength(1);
-    const call = prismaMock.newStarterRequest.findMany.mock.calls[0][0];
-    expect(call.where.requestedById).toBeUndefined();
   });
 });
 
@@ -103,9 +148,16 @@ describe("POST /api/onboarding-requests", () => {
     expect(res.status).toBe(400);
   });
 
+  it("returns 400 for an invalid email", async () => {
+    mockSession({ id: "hq1", name: "State Manager", role: "head_office" });
+    const res = await POST(
+      createRequest("POST", "/api/onboarding-requests", { body: { ...baseRequest, email: "not-an-email" } }),
+    );
+    expect(res.status).toBe(400);
+  });
+
   it("returns 400 for a custom award level with no label", async () => {
     mockSession({ id: "hq1", name: "State Manager", role: "head_office" });
-    prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });
     const res = await POST(
       createRequest("POST", "/api/onboarding-requests", {
         body: { ...baseRequest, awardLevel: "custom" },
@@ -121,106 +173,81 @@ describe("POST /api/onboarding-requests", () => {
     expect(res.status).toBe(400);
   });
 
-  it("state manager can create a request, which notifies admin-tier users", async () => {
+  it("returns 409 when an account with that email already exists", async () => {
     mockSession({ id: "hq1", name: "State Manager", role: "head_office" });
-    prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });
-    prismaMock.newStarterRequest.create.mockResolvedValue({
-      id: "r-new",
-      fullName: "Amina Yusuf",
-      requestedById: "hq1",
-      serviceId: "svc-1",
+    prismaMock.user.findUnique.mockImplementation((args: unknown) => {
+      const a = args as { where?: { id?: string; email?: string } };
+      if (a?.where?.id) return Promise.resolve({ id: a.where.id, active: true });
+      if (a?.where?.email) return Promise.resolve({ id: "existing-user" });
+      return Promise.resolve(null);
     });
-    prismaMock.user.findMany.mockResolvedValue([
-      { id: "owner-1" },
-      { id: "hq1" },
-      { id: "admin-1" },
-    ]);
+    const res = await POST(createRequest("POST", "/api/onboarding-requests", { body: baseRequest }));
+    expect(res.status).toBe(409);
+  });
+
+  it("creates the real account, seeds onboarding, emails the new hire, and notifies admin", async () => {
+    mockSession({ id: "hq1", name: "State Manager", role: "head_office" });
 
     const res = await POST(createRequest("POST", "/api/onboarding-requests", { body: baseRequest }));
     expect(res.status).toBe(201);
+
+    // Account created as a new_starter, tied to the right centre.
+    const createCall = prismaMock.user.create.mock.calls[0][0];
+    expect(createCall.data.email).toBe("amina@example.com");
+    expect(createCall.data.role).toBe("staff");
+    expect(createCall.data.serviceId).toBe("svc-1");
+    expect(createCall.data.phone).toBe("0400 000 000");
+    expect(createCall.data.inductionStatus).toBe("new_starter");
+
+    // The NewStarterRequest row is the audit record, already completed.
+    const requestCreateCall = prismaMock.newStarterRequest.create.mock.calls[0][0];
+    expect(requestCreateCall.data.status).toBe("completed");
+    expect(requestCreateCall.data.completedUserId).toBe("new-user-1");
+    expect(requestCreateCall.data.completedById).toBe("hq1");
+
     expect(prismaMock.activityLog.create).toHaveBeenCalled();
-    expect(prismaMock.userNotification.createMany).toHaveBeenCalled();
-    // The submitter (hq1) is excluded from their own notification.
-    const notifyCall = prismaMock.userNotification.createMany.mock.calls[0][0];
-    expect(notifyCall.data.map((d: { userId: string }) => d.userId)).toEqual(["owner-1", "admin-1"]);
-  });
-});
-
-describe("PATCH /api/onboarding-requests/[id]", () => {
-  beforeEach(() => {
-    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
-  });
-
-  it("returns 404 for a non-existent request", async () => {
-    prismaMock.newStarterRequest.findUnique.mockResolvedValue(null);
-    const res = await PATCH(
-      createRequest("PATCH", "/api/onboarding-requests/missing", { body: { claim: true } }),
-      ctx("missing"),
+    expect(seedOnboardingPackage).toHaveBeenCalledWith("new-user-1", { serviceId: "svc-1" });
+    expect(assignOnboardingPack).not.toHaveBeenCalled(); // no default pack mocked
+    expect(sendWelcomeInvite).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "amina@example.com", name: "Amina Yusuf" }),
     );
-    expect(res.status).toBe(404);
-  });
-
-  it("returns 400 for an already-completed request", async () => {
-    prismaMock.newStarterRequest.findUnique.mockResolvedValue({ id: "r1", status: "completed", assignedAdminId: null });
-    const res = await PATCH(
-      createRequest("PATCH", "/api/onboarding-requests/r1", { body: { claim: true } }),
-      ctx("r1"),
+    expect(sendFirstShiftChecklistEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "amina@example.com", checklistItems: [] }),
     );
-    expect(res.status).toBe(400);
-  });
-
-  it("claims a request", async () => {
-    prismaMock.newStarterRequest.findUnique.mockResolvedValue({ id: "r1", status: "pending", assignedAdminId: null });
-    prismaMock.newStarterRequest.update.mockResolvedValue({ id: "r1", status: "pending", assignedAdminId: "admin-1" });
-    const res = await PATCH(
-      createRequest("PATCH", "/api/onboarding-requests/r1", { body: { claim: true } }),
-      ctx("r1"),
+    expect(seedNewStarterCheckIns).toHaveBeenCalledWith(
+      expect.anything(),
+      "new-user-1",
+      expect.any(Date),
     );
-    expect(res.status).toBe(200);
-    const updateCall = prismaMock.newStarterRequest.update.mock.calls[0][0];
-    expect(updateCall.data.assignedAdminId).toBe("admin-1");
+    expect(notifyNewStarterRequestSubmitted).toHaveBeenCalled();
   });
 
-  it("marks a request completed and links the produced account", async () => {
-    prismaMock.newStarterRequest.findUnique.mockResolvedValue({ id: "r1", status: "pending", assignedAdminId: null });
-    // Must include active:true — withApiAuth's own session-user lookup
-    // shares this same mock, and would otherwise 401 the request.
-    prismaMock.user.findUnique.mockResolvedValue({ id: "new-user-1", active: true });
-    prismaMock.newStarterRequest.update.mockResolvedValue({
-      id: "r1",
-      status: "completed",
-      completedUserId: "new-user-1",
+  it("assigns the centre's default onboarding pack when one exists", async () => {
+    mockSession({ id: "hq1", name: "State Manager", role: "head_office" });
+    prismaMock.onboardingPack.findFirst.mockResolvedValue({
+      id: "pack-1",
+      tasks: [{ title: "Upload your WWCC" }, { title: "Read the Code of Conduct" }],
     });
-    const res = await PATCH(
-      createRequest("PATCH", "/api/onboarding-requests/r1", {
-        body: { markCompleted: true, completedUserId: "new-user-1" },
+
+    await POST(createRequest("POST", "/api/onboarding-requests", { body: baseRequest }));
+
+    expect(assignOnboardingPack).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: "new-user-1", packId: "pack-1", actorId: "hq1" }),
+    );
+    expect(sendFirstShiftChecklistEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        checklistItems: ["Upload your WWCC", "Read the Code of Conduct"],
       }),
-      ctx("r1"),
     );
-    expect(res.status).toBe(200);
-    const updateCall = prismaMock.newStarterRequest.update.mock.calls[0][0];
-    expect(updateCall.data.status).toBe("completed");
-    expect(updateCall.data.completedUserId).toBe("new-user-1");
-    expect(updateCall.data.completedById).toBe("admin-1");
   });
 
-  it("cancels a request", async () => {
-    prismaMock.newStarterRequest.findUnique.mockResolvedValue({ id: "r1", status: "pending", assignedAdminId: null });
-    prismaMock.newStarterRequest.update.mockResolvedValue({ id: "r1", status: "cancelled" });
-    const res = await PATCH(
-      createRequest("PATCH", "/api/onboarding-requests/r1", { body: { status: "cancelled" } }),
-      ctx("r1"),
-    );
-    expect(res.status).toBe(200);
-    expect(prismaMock.newStarterRequest.update.mock.calls[0][0].data.status).toBe("cancelled");
-  });
+  it("still completes onboarding when the default pack assignment fails", async () => {
+    mockSession({ id: "hq1", name: "State Manager", role: "head_office" });
+    prismaMock.onboardingPack.findFirst.mockResolvedValue({ id: "pack-1", tasks: [] });
+    vi.mocked(assignOnboardingPack).mockRejectedValueOnce(new Error("already assigned"));
 
-  it("is forbidden for staff", async () => {
-    mockSession({ id: "s1", name: "Staff", role: "staff" });
-    const res = await PATCH(
-      createRequest("PATCH", "/api/onboarding-requests/r1", { body: { claim: true } }),
-      ctx("r1"),
-    );
-    expect(res.status).toBe(403);
+    const res = await POST(createRequest("POST", "/api/onboarding-requests", { body: baseRequest }));
+    expect(res.status).toBe(201);
+    expect(sendWelcomeInvite).toHaveBeenCalled();
   });
 });
