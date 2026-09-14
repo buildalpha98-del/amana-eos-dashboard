@@ -33,6 +33,7 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ContractDetailPanel } from "@/components/contracts/ContractDetailPanel";
+import { ContractTermsReader } from "@/components/contracts/ContractTermsReader";
 import { SupersedeContractModal } from "@/components/contracts/SupersedeContractModal";
 import { TerminateContractDialog } from "@/components/contracts/TerminateContractDialog";
 import { StatusBadge } from "@/components/contracts/badges";
@@ -178,6 +179,16 @@ export default function ContractDetailPage({
         >
           View staff profile
         </Link>
+      </div>
+
+      {/* Backfill for the long tail of quick-uploaded contracts sitting at
+          $0.00/hr, where the real rate is inside the attached PDF. */}
+      <div className="mb-4">
+        <ContractTermsReader
+          contractId={contract.id}
+          currentPayRate={contract.payRate}
+          hasDocument={!!contract.documentUrl}
+        />
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
