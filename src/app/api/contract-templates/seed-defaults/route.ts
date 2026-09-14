@@ -35,6 +35,12 @@ import {
   COORDINATOR_PERMANENT_CONTENT_JSON,
   COORDINATOR_PERMANENT_MANUAL_FIELDS,
 } from "@/lib/contract-templates/coordinator-permanent-preset";
+import {
+  COORDINATOR_FULLTIME_TEMPLATE_NAME,
+  COORDINATOR_FULLTIME_TEMPLATE_DESCRIPTION,
+  COORDINATOR_FULLTIME_CONTENT_JSON,
+  COORDINATOR_FULLTIME_MANUAL_FIELDS,
+} from "@/lib/contract-templates/coordinator-fulltime-preset";
 
 const PRESETS = [
   {
@@ -48,6 +54,14 @@ const PRESETS = [
     description: COORDINATOR_PERMANENT_TEMPLATE_DESCRIPTION,
     contentJson: COORDINATOR_PERMANENT_CONTENT_JSON,
     manualFields: COORDINATOR_PERMANENT_MANUAL_FIELDS,
+  },
+  // 2026-09-14: the same coordinator contract on a full-time basis. Derived
+  // from the part-time preset rather than copied — see that file's header.
+  {
+    name: COORDINATOR_FULLTIME_TEMPLATE_NAME,
+    description: COORDINATOR_FULLTIME_TEMPLATE_DESCRIPTION,
+    contentJson: COORDINATOR_FULLTIME_CONTENT_JSON,
+    manualFields: COORDINATOR_FULLTIME_MANUAL_FIELDS,
   },
 ] as const;
 
