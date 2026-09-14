@@ -61,6 +61,8 @@ const ROLE_HINTS: Record<keyof RoleLabels, string> = {
 
 interface Props {
   initialConfig: OrgSettingsConfig;
+  /** Admin-tier users eligible to own onboarding. */
+  adminUsers: Array<{ id: string; name: string | null; email: string }>;
 }
 
 type PillarKey = keyof OrgSettingsConfig["healthScore"]["pillarWeights"];
@@ -73,7 +75,7 @@ const PILLAR_LABELS: Record<PillarKey, string> = {
   teamCulture: "Team & Culture",
 };
 
-export function OrganisationSettingsClient({ initialConfig }: Props) {
+export function OrganisationSettingsClient({ initialConfig, adminUsers }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState<OrgSettingsConfig>(initialConfig);
   const [saving, setSaving] = useState(false);
@@ -584,6 +586,37 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
       </Section>
 
       {/* Ratios */}
+      {/* Onboarding owner */}
+      <Section
+        title="Onboarding owner"
+        description="Who gets the to-do when a new staff member is added to the onboarding list. They're assigned the Employment Hero setup and the employment contract. Other admins still get the heads-up email."
+        onReset={() => resetSection("onboarding")}
+      >
+        <Field
+          label="Assign new-starter onboarding to"
+          valid
+          hint="Leave unassigned and no to-do is created — the admin heads-up emails stay the only signal."
+        >
+          <select
+            value={config.onboarding.ownerUserId ?? ""}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                onboarding: { ...c.onboarding, ownerUserId: e.target.value || null },
+              }))
+            }
+            className="w-full sm:w-96 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+          >
+            <option value="">No one — don&apos;t create a to-do</option>
+            {adminUsers.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name ?? u.email} ({u.email})
+              </option>
+            ))}
+          </select>
+        </Field>
+      </Section>
+
       <Section
         title="Default educator ratio"
         description="Fallback educator-to-child ratio used when a Service hasn't set its own per-session override. The federal OSHC default is 1:15."

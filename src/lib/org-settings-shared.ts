@@ -310,6 +310,22 @@ export const orgSettingsConfigSchema = z.object({
   // 2026-05-16: announcement seeded on user creation — defaults match the
   // current hardcoded copy in src/lib/onboarding-seed.ts.
   onboardingWelcome: onboardingWelcomeSchema,
+  // 2026-09-14: who owns onboarding a new starter. When a State Manager
+  // submits a new hire, this person gets an assigned to-do for the
+  // Employment Hero + contract paperwork. Previously the work was
+  // announced to every admin-tier user by email and belonged to nobody
+  // in particular. Null = no owner set, so no to-do is created and the
+  // admin emails remain the only signal (the pre-2026-09-14 behaviour).
+  //
+  // Stored as a userId rather than an email so the to-do can be assigned
+  // and the reference survives someone changing their address.
+  // OBJECT-level .default() with the FULL object is mandatory — PATCH is
+  // a strict full-replace and every stored config predates this block.
+  onboarding: z
+    .object({
+      ownerUserId: z.string().min(1).max(100).nullable().default(null),
+    })
+    .default({ ownerUserId: null }),
   // 2026-05-16: parent-facing Welcome Pack PDF.
   welcomePack: welcomePackSchema,
   // 2026-09-05 (Staff Portal v2 Phase 9): which certificate types each role
@@ -462,6 +478,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
   compliance: {
     requiredCertsByRole: structuredClone(REQUIRED_CERTS_BY_ROLE_DEFAULTS),
   },
+  onboarding: { ownerUserId: null },
   onboardingWelcome: {
     title: "Welcome to the Amana Dashboard",
     body: `Hi team 👋
@@ -634,6 +651,15 @@ export function mergeOrgSettings(
       safe.checklistOverrides,
       defaults.checklistOverrides,
     ),
+    // A stored config from before this field existed has no `onboarding`
+    // block at all, so read defensively rather than trusting the shape.
+    onboarding: {
+      ownerUserId:
+        typeof (safe.onboarding as { ownerUserId?: unknown } | undefined)
+          ?.ownerUserId === "string"
+          ? ((safe.onboarding as { ownerUserId: string }).ownerUserId)
+          : defaults.onboarding.ownerUserId,
+    },
     onboardingWelcome: mergeOnboardingWelcome(
       safe.onboardingWelcome,
       defaults.onboardingWelcome,

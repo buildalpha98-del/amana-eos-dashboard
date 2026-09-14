@@ -24,7 +24,18 @@ vi.mock("@/lib/onboarding-assign", () => ({
   assignOnboardingPack: vi.fn(() => Promise.resolve({ id: "assignment-1" })),
 }));
 vi.mock("@/lib/staff-invite", () => ({
-  sendWelcomeInvite: vi.fn(() => Promise.resolve()),
+  // Returns a RESULT now — the route records whether the invite actually
+  // reached the new hire rather than assuming it did.
+  sendWelcomeInvite: vi.fn(() => Promise.resolve({ status: "sent" })),
+  inviteDelivered: (r: { status: string }) => r.status === "sent",
+}));
+vi.mock("@/lib/new-starter-request/owner-todo", () => ({
+  createOnboardingOwnerTodo: vi.fn(() => Promise.resolve()),
+}));
+vi.mock("@/lib/org-settings", () => ({
+  getOrgSettings: vi.fn(() =>
+    Promise.resolve({ onboarding: { ownerUserId: null } }),
+  ),
 }));
 vi.mock("@/lib/new-starter-request/first-shift-email", () => ({
   sendFirstShiftChecklistEmail: vi.fn(() => Promise.resolve()),
@@ -43,6 +54,8 @@ import { sendWelcomeInvite } from "@/lib/staff-invite";
 import { sendFirstShiftChecklistEmail } from "@/lib/new-starter-request/first-shift-email";
 import { seedNewStarterCheckIns } from "@/lib/new-starter-request/check-ins";
 import { notifyNewStarterRequestSubmitted } from "@/lib/new-starter-request/notify";
+import { createOnboardingOwnerTodo } from "@/lib/new-starter-request/owner-todo";
+import { getOrgSettings } from "@/lib/org-settings";
 
 const baseRequest = {
   fullName: "Amina Yusuf",
@@ -52,7 +65,6 @@ const baseRequest = {
   email: "amina@example.com",
   targetPosition: "Educator",
   employmentType: "casual",
-  awardLevel: "cs1",
   serviceId: "svc-1",
   expectedStartDate: "2026-10-01",
 };
@@ -76,6 +88,17 @@ beforeEach(() => {
     email: "amina@example.com",
     requestedById: "hq1",
     serviceId: "svc-1",
+  });
+  // The route stamps the invite outcome onto the row after sending, and
+  // returns THAT, so the client sees the real delivery status.
+  prismaMock.newStarterRequest.update.mockResolvedValue({
+    id: "r-new",
+    fullName: "Amina Yusuf",
+    email: "amina@example.com",
+    requestedById: "hq1",
+    serviceId: "svc-1",
+    inviteStatus: "sent",
+    inviteError: null,
   });
 
   // withApiAuth's own session-user lookup and the route's own
@@ -249,5 +272,102 @@ describe("POST /api/onboarding-requests", () => {
     const res = await POST(createRequest("POST", "/api/onboarding-requests", { body: baseRequest }));
     expect(res.status).toBe(201);
     expect(sendWelcomeInvite).toHaveBeenCalled();
+  });
+
+  // ── Invite delivery ───────────────────────────────────────────────
+  //
+  // 2026-09-14: a State Manager completed an onboarding and the new hire
+  // never got their login. sendEmail returns suppression and provider
+  // rejection as VALUES rather than throwing, and the invite helper
+  // discarded the return value — so a dropped invite was indistinguishable
+  // from a delivered one at every layer above.
+
+  it("records a successful invite on the request", async () => {
+    mockSession({ id: "hq1", name: "State Manager", role: "head_office" });
+
+    await POST(createRequest("POST", "/api/onboarding-requests", { body: baseRequest }));
+
+    const update = prismaMock.newStarterRequest.update.mock.calls[0][0];
+    expect(update.data.inviteStatus).toBe("sent");
+    expect(update.data.inviteSentAt).toBeInstanceOf(Date);
+  });
+
+  it("records a suppressed invite and still completes the onboarding", async () => {
+    mockSession({ id: "hq1", name: "State Manager", role: "head_office" });
+    vi.mocked(sendWelcomeInvite).mockResolvedValueOnce({
+      status: "suppressed",
+      detail: "This address is on the suppression list.",
+    });
+
+    const res = await POST(createRequest("POST", "/api/onboarding-requests", { body: baseRequest }));
+
+    // The account, todos and check-ins are too valuable to roll back over
+    // an email — but the failure must be recorded, not swallowed.
+    expect(res.status).toBe(201);
+    const update = prismaMock.newStarterRequest.update.mock.calls[0][0];
+    expect(update.data.inviteStatus).toBe("suppressed");
+    expect(update.data.inviteError).toMatch(/suppression/i);
+    expect(update.data.inviteSentAt).toBeNull();
+    expect(seedNewStarterCheckIns).toHaveBeenCalled();
+  });
+
+  it("records a provider rejection", async () => {
+    mockSession({ id: "hq1", name: "State Manager", role: "head_office" });
+    vi.mocked(sendWelcomeInvite).mockResolvedValueOnce({
+      status: "rejected",
+      detail: "Domain is not verified",
+    });
+
+    await POST(createRequest("POST", "/api/onboarding-requests", { body: baseRequest }));
+
+    const update = prismaMock.newStarterRequest.update.mock.calls[0][0];
+    expect(update.data.inviteStatus).toBe("rejected");
+    expect(update.data.inviteError).toBe("Domain is not verified");
+  });
+
+  // ── Onboarding owner to-do ────────────────────────────────────────
+
+  it("creates the owner to-do with the configured owner", async () => {
+    mockSession({ id: "hq1", name: "State Manager", role: "head_office" });
+    vi.mocked(getOrgSettings).mockResolvedValueOnce({
+      onboarding: { ownerUserId: "daniel-1" },
+    } as never);
+
+    await POST(createRequest("POST", "/api/onboarding-requests", { body: baseRequest }));
+
+    expect(createOnboardingOwnerTodo).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        ownerUserId: "daniel-1",
+        fullName: "Amina Yusuf",
+        createdById: "hq1",
+      }),
+    );
+  });
+
+  it("passes a null owner through when none is configured", async () => {
+    mockSession({ id: "hq1", name: "State Manager", role: "head_office" });
+
+    await POST(createRequest("POST", "/api/onboarding-requests", { body: baseRequest }));
+
+    // The helper no-ops on null; the admin heads-up emails remain the only
+    // signal, which is the pre-2026-09-14 behaviour.
+    expect(createOnboardingOwnerTodo).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ ownerUserId: null }),
+    );
+    expect(notifyNewStarterRequestSubmitted).toHaveBeenCalled();
+  });
+
+  it("accepts a payload with no award level", async () => {
+    mockSession({ id: "hq1", name: "State Manager", role: "head_office" });
+
+    const res = await POST(
+      createRequest("POST", "/api/onboarding-requests", { body: baseRequest }),
+    );
+
+    expect(res.status).toBe(201);
+    const createCall = prismaMock.newStarterRequest.create.mock.calls[0][0];
+    expect(createCall.data.awardLevel).toBeNull();
   });
 });

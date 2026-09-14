@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requirePageSession } from "@/lib/server-auth";
 import { getOrgSettings } from "@/lib/org-settings";
+import { prisma } from "@/lib/prisma";
 import { OrganisationSettingsClient } from "./OrganisationSettingsClient";
 
 export default async function OrganisationSettingsPage() {
@@ -18,5 +19,15 @@ export default async function OrganisationSettingsPage() {
 
   const config = await getOrgSettings();
 
-  return <OrganisationSettingsClient initialConfig={config} />;
+  // Candidates for the onboarding-owner picker. Admin-tier only: the to-do
+  // is the Employment Hero + contract paperwork, which is their work.
+  const adminUsers = await prisma.user.findMany({
+    where: { active: true, role: { in: ["owner", "head_office", "admin"] } },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: "asc" },
+  });
+
+  return (
+    <OrganisationSettingsClient initialConfig={config} adminUsers={adminUsers} />
+  );
 }

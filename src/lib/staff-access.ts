@@ -11,24 +11,85 @@
  *
  *   - the staff member themselves
  *   - org admins — owner / admin / head_office (State Manager)
- *   - the Director of Service (`member`) at the centre that staff member
- *     is based at
+ *   - a Director of Service (`member`) at any centre that staff member
+ *     is attached to
  *
  * and nobody else. An Educator at the same centre is NOT included: sitting
  * next to someone is not a reason to read their contract or their WWCC.
  *
- * Service scope here is the staff member's PRIMARY `serviceId` only, not
- * their additional `UserServiceMembership` rows. That is deliberate — it
- * keeps "can open the profile" and "can open the profile's documents" the
- * same answer, and widening one without the other is how these two drifted
- * apart in the first place.
+ * ── Centre scope (widened 2026-09-14) ────────────────────────────────
+ *
+ * Both sides of the comparison count primary `serviceId` AND active
+ * `UserServiceMembership` rows, plus (for the Director) centres they
+ * manage via `Service.managerId`. The first cut compared primary
+ * serviceId only, which got two real cases wrong:
+ *
+ *   - A Director covering two centres saw staff at their primary one
+ *     only, despite the second centre's roster being theirs to run.
+ *   - An Educator based at centre A but also rostered at B via a
+ *     membership was invisible to B's Director — who has them on shift
+ *     and needs to check their WWCC is current.
+ *
+ * A membership is not incidental: an admin creates it deliberately
+ * through the /team "additional services" flow, and the roster already
+ * treats it as "this person works here" (`useServiceStaff` reads primary
+ * + memberships). Supervision follows the same attachment.
+ *
+ * The Director's own scope mirrors `getCentreScope`'s `member` branch in
+ * @/lib/centre-scope. It is re-derived here rather than shared because
+ * that helper reads the session JWT, and this question is asked about a
+ * viewer id — a stale token must never widen who can read an HR file.
  */
 
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/role-permissions";
 
-/** The non-admin role trusted with their own centre's staff records. */
+/** The non-admin role trusted with their own centres' staff records. */
 export const STAFF_RECORD_SUPERVISOR_ROLE = "member";
+
+/**
+ * Centres a Director supervises: the one they're based at, any they
+ * manage, and any they've been attached to. Mirrors `getCentreScope`'s
+ * member branch.
+ */
+async function directorCentreScope(viewerId: string): Promise<Set<string>> {
+  const [viewer, managed, memberships] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: viewerId },
+      select: { serviceId: true },
+    }),
+    prisma.service.findMany({
+      where: { managerId: viewerId },
+      select: { id: true },
+    }),
+    prisma.userServiceMembership.findMany({
+      where: { userId: viewerId, status: "active" },
+      select: { serviceId: true },
+    }),
+  ]);
+
+  const ids = new Set<string>();
+  if (viewer?.serviceId) ids.add(viewer.serviceId);
+  for (const s of managed) ids.add(s.id);
+  for (const m of memberships) ids.add(m.serviceId);
+  return ids;
+}
+
+/** Centres a staff member is attached to: primary plus active memberships. */
+async function staffCentreAttachments(target: {
+  id: string;
+  serviceId: string | null;
+}): Promise<Set<string>> {
+  const memberships = await prisma.userServiceMembership.findMany({
+    where: { userId: target.id, status: "active" },
+    select: { serviceId: true },
+  });
+
+  const ids = new Set<string>();
+  if (target.serviceId) ids.add(target.serviceId);
+  for (const m of memberships) ids.add(m.serviceId);
+  return ids;
+}
 
 export async function canAccessStaffProfile(
   viewerId: string,
@@ -37,18 +98,21 @@ export async function canAccessStaffProfile(
 ): Promise<boolean> {
   if (viewerId === target.id) return true;
   if (isAdminRole(viewerRole)) return true;
+  if (viewerRole !== STAFF_RECORD_SUPERVISOR_ROLE) return false;
 
-  if (viewerRole === STAFF_RECORD_SUPERVISOR_ROLE) {
-    // A Director with no centre of their own matches nobody — guard
-    // against the null === null case letting them see unassigned staff.
-    if (!target.serviceId) return false;
-    const viewer = await prisma.user.findUnique({
-      where: { id: viewerId },
-      select: { serviceId: true },
-    });
-    return !!viewer?.serviceId && viewer.serviceId === target.serviceId;
+  const [viewerCentres, targetCentres] = await Promise.all([
+    directorCentreScope(viewerId),
+    staffCentreAttachments(target),
+  ]);
+
+  // Empty on either side matches nobody. Guards the case where a Director
+  // with no centre and a staff member with no centre would otherwise pass
+  // a naive null === null comparison.
+  if (viewerCentres.size === 0 || targetCentres.size === 0) return false;
+
+  for (const id of targetCentres) {
+    if (viewerCentres.has(id)) return true;
   }
-
   return false;
 }
 
