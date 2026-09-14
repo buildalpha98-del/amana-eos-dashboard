@@ -585,6 +585,38 @@ export function OrganisationSettingsClient({ initialConfig, adminUsers }: Props)
         </Field>
       </Section>
 
+      {/* Service alert emails */}
+      <Section
+        title="Service alert emails"
+        description="Automated centre-operations alerts sent by the daily/weekly crons. Staff emails (certificate expiry, compliance, training, leave, timesheets, contracts) are unaffected by this switch."
+        onReset={() => resetSection("notifications")}
+      >
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={config.notifications.serviceAlertsPaused}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                notifications: {
+                  ...c.notifications,
+                  serviceAlertsPaused: e.target.checked,
+                },
+              }))
+            }
+            className="mt-0.5 h-4 w-4 rounded border-border accent-brand"
+          />
+          <span>
+            <span className="block text-sm font-medium text-foreground">
+              Pause service alert emails
+            </span>
+            <span className="block text-xs text-muted mt-0.5">
+              While paused, the crons still run and log a skipped row but send nothing: low occupancy, ratio-risk forecast, shift gaps, staffing variance, checklist audit, unactioned bookings, unsigned-in children, weekly incident digest. Untick when the services portal goes live.
+            </span>
+          </span>
+        </label>
+      </Section>
+
       {/* Ratios */}
       {/* Onboarding owner */}
       <Section

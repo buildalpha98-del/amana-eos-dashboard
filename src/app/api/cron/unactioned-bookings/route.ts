@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
+import { skipIfServiceAlertsPaused } from "@/lib/service-alerts-pause";
 import { sendEmail, FROM_EMAIL } from "@/lib/email";
 import { baseLayout } from "@/lib/email-templates/base";
 import { logger } from "@/lib/logger";
@@ -22,6 +23,11 @@ export async function GET(req: NextRequest) {
   if (!guard.acquired) {
     return NextResponse.json({ message: guard.reason, skipped: true });
   }
+
+  // 2026-09-14: service-ops alert emails are paused until the services
+  // portal is in use (Settings → Organisation → Service alert emails).
+  const paused = await skipIfServiceAlertsPaused(guard);
+  if (paused) return paused;
 
   try {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
