@@ -11,22 +11,21 @@ import { getOrgSettings } from "@/lib/org-settings";
 import { getRequiredCertTypes } from "@/lib/cert-requirements";
 import { buildListWhere } from "@/lib/employees/build-list-where";
 import { getCentreScope } from "@/lib/centre-scope";
+import { canAccessStaffProfile } from "@/lib/staff-access";
 
+/**
+ * Re-export of the shared rule in @/lib/staff-access.
+ *
+ * The logic used to live here, which meant /api/staff-documents/[id] had its
+ * own near-copy that had drifted (it let any same-service role through, not
+ * just the Director). One definition now, imported by both.
+ */
 export async function canAccessProfile(
   viewerId: string,
   viewerRole: string | null,
   target: { id: string; serviceId: string | null },
 ): Promise<boolean> {
-  if (viewerId === target.id) return true;
-  if (isAdminRole(viewerRole)) return true;
-  if (viewerRole === "member") {
-    const viewer = await prisma.user.findUnique({
-      where: { id: viewerId },
-      select: { serviceId: true },
-    });
-    return !!viewer?.serviceId && viewer.serviceId === target.serviceId;
-  }
-  return false;
+  return canAccessStaffProfile(viewerId, viewerRole, target);
 }
 
 interface PageProps {

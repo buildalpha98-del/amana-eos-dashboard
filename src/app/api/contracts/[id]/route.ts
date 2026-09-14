@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { isAdminRole } from "@/lib/role-permissions";
 const updateContractSchema = z.object({
   contractType: z
     .enum(["ct_casual", "ct_part_time", "ct_permanent", "ct_fixed_term"])
@@ -71,8 +72,14 @@ const { id } = await context!.params!;
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });
   }
 
-  // Staff can only view own contracts
-  const isAdmin = ["owner", "admin"].includes(session!.user.role);
+  // Staff can only view own contracts.
+  //
+  // 2026-09-14: was a local ["owner", "admin"] list, which left State
+  // Managers (head_office) 403'd here while /contracts, /api/contracts and
+  // /api/contracts/[id]/document all let them through — so the contract
+  // list rendered for them and every row's detail failed. Uses the shared
+  // ADMIN_ROLES set now.
+  const isAdmin = isAdminRole(session!.user.role);
   if (!isAdmin && contract.userId !== session!.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

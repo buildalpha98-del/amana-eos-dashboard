@@ -30,7 +30,10 @@ export const POST = withApiAuth(
       if (template) templateName = template.name;
     }
 
-    const portalUrl = `${process.env.NEXTAUTH_URL ?? ""}/my-portal?contract=${contract.id}`;
+    // /my-contract opens the viewer for this exact contract. It used to
+    // point at /my-portal?contract=<id>, but that page never read the
+    // query param — staff landed on the hub and had to hunt for the card.
+    const portalUrl = `${process.env.NEXTAUTH_URL ?? ""}/my-contract?contract=${contract.id}`;
     const { subject, html } = await contractIssuedEmail({
       name: staff.name ?? "there",
       contractName: templateName,
