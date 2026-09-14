@@ -41,66 +41,70 @@ const { searchParams } = new URL(req.url);
   // ignored rather than reaching Prisma's where clause.
   const categoryFilter = Object.values(DocumentCategory).find((c) => c === category);
 
+  // Text search lives in its own AND clause, never in the top-level OR.
+  //
+  // It used to be spread into the same `where.OR` the staff centre-scope
+  // rules write to, which made a search *widen* the result set instead of
+  // narrowing it: an Educator typing anything into the box got documents
+  // from every other centre back, because `{ title: contains }` sat
+  // alongside `{ centreId: theirs }` as a sibling OR branch.
+  const searchClause: Prisma.DocumentWhereInput | null = search
+    ? {
+        OR: [
+          { title: { contains: search, mode: "insensitive" as const } },
+          { description: { contains: search, mode: "insensitive" as const } },
+          { tags: { hasSome: [search] } },
+        ],
+      }
+    : null;
+
   const where: Prisma.DocumentWhereInput = {
     deleted: false,
+    // Personal HR documents never appear in the shared library.
+    //
+    // `assignedToId` marks a document as being *about* a staff member —
+    // their contract, WWCC, performance letter. Those are reachable only
+    // from that person's profile (/staff/[id], admin + their own Director)
+    // and from their own portal. Leaving them in this listing is what let
+    // any Educator read a colleague's contract: DocumentsTab uploads them
+    // with no centreId, so they landed in the `{ centreId: null }`
+    // org-wide branch below and rendered with a direct blob link.
+    assignedToId: null,
     ...(categoryFilter ? { category: categoryFilter } : {}),
     ...(folderId === "root" ? { folderId: null } : folderId ? { folderId } : {}),
-    ...(search
-      ? {
-          OR: [
-            { title: { contains: search, mode: "insensitive" as const } },
-            { description: { contains: search, mode: "insensitive" as const } },
-            { tags: { hasSome: [search] } },
-          ],
-        }
-      : {}),
   };
 
-  // Staff/member service scoping: show their service docs + company-wide (centreId = null)
-  if (isServiceScoped && staffServiceId) {
-    where.OR = [
-      { centreId: staffServiceId },
-      { centreId: null },
-      { allServices: true },
-      ...(search
-        ? [
-            { title: { contains: search, mode: "insensitive" as const } },
-            { description: { contains: search, mode: "insensitive" as const } },
-            { tags: { hasSome: [search] } },
-          ]
-        : []),
-    ];
-    // If staff also filters by centre, only allow their own service
+  // Every extra constraint goes through this one accumulator and is ANDed.
+  // The previous shape wrote to `where.OR` from three separate branches,
+  // each silently clobbering the last, which is how the centre scope came
+  // to be defeated by simply typing in the search box.
+  const and: Prisma.DocumentWhereInput[] = [];
+  if (searchClause) and.push(searchClause);
+
+  if (isServiceScoped) {
+    // Educators and Directors see their own centre plus org-wide docs,
+    // never another centre's.
     if (centreId && centreId !== staffServiceId) {
-      // Staff trying to view another centre — show nothing
       return NextResponse.json({ documents: [], total: 0, page, totalPages: 0 });
     }
-    if (centreId) {
-      if (search) {
-        // Preserve the text search alongside the centre filter — using AND
-        // keeps the two OR groups from clobbering each other.
-        where.AND = [
-          { OR: [{ centreId }, { allServices: true }] },
-          {
+    and.push(
+      centreId
+        ? // Explicit centre filter narrows to that centre, but org-wide
+          // docs stay visible so the library isn't suddenly empty.
+          { OR: [{ centreId }, { allServices: true }] }
+        : {
             OR: [
-              { title: { contains: search, mode: "insensitive" as const } },
-              { description: { contains: search, mode: "insensitive" as const } },
-              { tags: { hasSome: [search] } },
+              ...(staffServiceId ? [{ centreId: staffServiceId }] : []),
+              { centreId: null },
+              { allServices: true },
             ],
           },
-        ];
-        delete where.OR;
-      } else {
-        // Keep allServices docs visible even when filtering to a specific centre
-        where.OR = [
-          { centreId },
-          { allServices: true },
-        ];
-      }
-    }
+    );
   } else if (centreId) {
-    where.centreId = centreId;
+    and.push({ centreId });
   }
+
+  if (and.length) where.AND = and;
 
   const [documents, total] = await Promise.all([
     prisma.document.findMany({

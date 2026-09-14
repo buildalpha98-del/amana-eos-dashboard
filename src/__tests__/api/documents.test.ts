@@ -26,6 +26,27 @@ import { GET, POST } from "@/app/api/documents/route";
 import { PATCH } from "@/app/api/documents/[id]/route";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 
+/**
+ * Pull the centre-scope OR branch out of the findMany args.
+ *
+ * Scoping lives in an AND accumulator rather than a bare `where.OR`, so
+ * tests locate it by shape (the branch mentioning centreId/allServices)
+ * instead of by position.
+ */
+function centreScopeClause(
+  callArgs: { where: Record<string, unknown> },
+): Array<Record<string, unknown>> | undefined {
+  const and = callArgs.where.AND as Array<Record<string, unknown>> | undefined;
+  const clause = and?.find((c) => {
+    const or = (c as { OR?: Array<Record<string, unknown>> }).OR;
+    return (
+      Array.isArray(or) &&
+      or.some((x) => "centreId" in x || "allServices" in x)
+    );
+  }) as { OR?: Array<Record<string, unknown>> } | undefined;
+  return clause?.OR;
+}
+
 describe("GET /api/documents", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -53,7 +74,7 @@ describe("GET /api/documents", () => {
     expect(body.documents).toHaveLength(2);
   });
 
-  it("for staff: findMany where clause includes {allServices: true} in its OR branch", async () => {
+  it("for staff: the centre-scope clause includes their centre, org-wide and allServices", async () => {
     mockSession({ id: "u-1", name: "Staff", role: "staff", serviceId: "svc-1" });
     prismaMock.document.findMany.mockResolvedValue([
       { id: "d-1", title: "Own", centreId: "svc-1", allServices: false },
@@ -64,14 +85,13 @@ describe("GET /api/documents", () => {
     const res = await GET(createRequest("GET", "/api/documents"));
     expect(res.status).toBe(200);
 
-    // Tight assertion: the OR array must contain the allServices branch
-    const callArgs = prismaMock.document.findMany.mock.calls[0][0];
-    expect(callArgs.where.OR).toEqual(
-      expect.arrayContaining([{ allServices: true }]),
-    );
-    // And the scoped branch
-    expect(callArgs.where.OR).toEqual(
-      expect.arrayContaining([{ centreId: "svc-1" }, { centreId: null }]),
+    const scope = centreScopeClause(prismaMock.document.findMany.mock.calls[0][0]);
+    expect(scope).toEqual(
+      expect.arrayContaining([
+        { centreId: "svc-1" },
+        { centreId: null },
+        { allServices: true },
+      ]),
     );
   });
 
@@ -83,9 +103,68 @@ describe("GET /api/documents", () => {
     const res = await GET(createRequest("GET", "/api/documents?centreId=svc-1"));
     expect(res.status).toBe(200);
 
-    const callArgs = prismaMock.document.findMany.mock.calls[0][0];
-    expect(callArgs.where.OR).toEqual(
+    const scope = centreScopeClause(prismaMock.document.findMany.mock.calls[0][0]);
+    expect(scope).toEqual(
       expect.arrayContaining([{ centreId: "svc-1" }, { allServices: true }]),
+    );
+  });
+
+  // ── Personal HR documents must never reach the shared library ──────
+  //
+  // Regression cover for the 2026-09-14 leak: DocumentsTab uploads a staff
+  // member's contract / WWCC with `assignedToId` set and no centreId, so it
+  // matched the `{ centreId: null }` org-wide branch and every Educator in
+  // the org saw it listed — with a direct blob link on /documents.
+
+  it("excludes assigned (personal) documents for staff", async () => {
+    mockSession({ id: "u-1", name: "Staff", role: "staff", serviceId: "svc-1" });
+    prismaMock.document.findMany.mockResolvedValue([]);
+    prismaMock.document.count.mockResolvedValue(0);
+
+    await GET(createRequest("GET", "/api/documents"));
+
+    const callArgs = prismaMock.document.findMany.mock.calls[0][0];
+    expect(callArgs.where.assignedToId).toBeNull();
+  });
+
+  it("excludes assigned (personal) documents for admins too", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.document.findMany.mockResolvedValue([]);
+    prismaMock.document.count.mockResolvedValue(0);
+
+    await GET(createRequest("GET", "/api/documents"));
+
+    // Admins read personal docs from the staff profile, not the library —
+    // one exclusion with no role carve-out is far harder to regress.
+    const callArgs = prismaMock.document.findMany.mock.calls[0][0];
+    expect(callArgs.where.assignedToId).toBeNull();
+  });
+
+  it("a staff search does not widen scope past their own centre", async () => {
+    mockSession({ id: "u-1", name: "Staff", role: "staff", serviceId: "svc-1" });
+    prismaMock.document.findMany.mockResolvedValue([]);
+    prismaMock.document.count.mockResolvedValue(0);
+
+    await GET(createRequest("GET", "/api/documents?search=contract"));
+
+    const callArgs = prismaMock.document.findMany.mock.calls[0][0];
+    const where = callArgs.where as Record<string, unknown>;
+
+    // The search terms must sit in their own AND clause. When they were
+    // spread into the same top-level OR as the centre scope, every title
+    // match in the org came back regardless of centre.
+    expect(where.OR).toBeUndefined();
+
+    const and = where.AND as Array<Record<string, unknown>>;
+    const searchClause = and.find((c) => {
+      const or = (c as { OR?: Array<Record<string, unknown>> }).OR;
+      return Array.isArray(or) && or.some((x) => "title" in x);
+    });
+    expect(searchClause).toBeDefined();
+
+    // ...and the centre scope must still be present alongside it.
+    expect(centreScopeClause(callArgs)).toEqual(
+      expect.arrayContaining([{ centreId: "svc-1" }]),
     );
   });
 
