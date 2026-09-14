@@ -21,6 +21,11 @@ import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { NavigationProgress } from "@/components/layout/NavigationProgress";
 import { MobileTabBar } from "@/components/layout/MobileTabBar";
 import { FloatingChatWidget } from "@/components/assistant/FloatingChatWidget";
+import {
+  MeetingRecorderProvider,
+  useMeetingRecorder,
+} from "@/components/meetings/MeetingRecorderProvider";
+import { RecordingIndicator } from "@/components/meetings/RecordingIndicator";
 import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({
@@ -33,7 +38,9 @@ export default function DashboardLayout({
       <RoleLabelsProvider>
         <SidebarProvider>
           <QuickAddProvider>
-            <DashboardLayoutInner>{children}</DashboardLayoutInner>
+            <MeetingRecorderProvider>
+              <DashboardLayoutInner>{children}</DashboardLayoutInner>
+            </MeetingRecorderProvider>
           </QuickAddProvider>
         </SidebarProvider>
       </RoleLabelsProvider>
@@ -46,6 +53,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const { collapsed } = useSidebar();
   const { layout } = useNavLayout();
   const useTopBar = layout === "topbar";
+  const { status: recorderStatus } = useMeetingRecorder();
 
   return (
     <div data-v2="staff" className="min-h-screen">
@@ -115,7 +123,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         {/* Bottom padding clears the fixed overlays (Ask-AI pill bottom-left,
             feedback bubble bottom-right; mobile tab bar) so end-of-page
             content is never covered. */}
-        <main id="main-content" className="p-4 md:p-8 pb-24 md:pb-24 animate-slide-up">
+        {/* While recording, the REC pill sits ~144-180px up on phones (above the tab bar) — extra bottom padding keeps it off end-of-page content. */}
+        <main
+          id="main-content"
+          className={cn(
+            "p-4 md:p-8 animate-slide-up",
+            recorderStatus !== "idle" ? "pb-48 md:pb-24" : "pb-24",
+          )}
+        >
           <SystemBannerBar />
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>
@@ -129,6 +144,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           opens an inline panel. Hidden on /assistant + /login by the
           widget itself. */}
       <FloatingChatWidget />
+      {/* 2026-09-14: recorder v2 — REC pill follows the user across pages */}
+      <RecordingIndicator />
       {/* Mobile bottom-tab bar stays in both layouts so phones keep
           their quick-access tabs. */}
       <MobileTabBar onMorePress={() => setMobileNavOpen(true)} />
