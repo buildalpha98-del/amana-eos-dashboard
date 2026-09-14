@@ -9,6 +9,12 @@ const updateQipSchema = z.object({
   status: z.string().optional(),
   documentType: z.string().optional(),
   markReviewed: z.boolean().optional(),
+  // Document-level philosophy statement (NSW SAT form section 1).
+  servicePhilosophy: z.string().max(20_000).optional(),
+  // Per-QA Law & Regulations comments: { "1": "...", ..., "7": "..." }
+  legalComments: z
+    .record(z.string().regex(/^[1-7]$/), z.string().max(10_000))
+    .optional(),
 });
 /**
  * GET /api/qip/[id] — Full QIP with all 7 quality areas
@@ -50,10 +56,22 @@ const { id } = await context!.params!;
       );
     }
 
+    // Members (Directors of Service) may edit document content (philosophy,
+    // legal comments, review stamp) but not lifecycle fields.
+    const isAdminTier = ["owner", "head_office", "admin"].includes(session!.user.role);
+    if (!isAdminTier && (parsed.data.status !== undefined || parsed.data.documentType !== undefined)) {
+      return NextResponse.json(
+        { error: "Only admins can change document status or type" },
+        { status: 403 },
+      );
+    }
+
     const data: Record<string, unknown> = {};
 
     if (parsed.data.status !== undefined) data.status = parsed.data.status;
     if (parsed.data.documentType !== undefined) data.documentType = parsed.data.documentType;
+    if (parsed.data.servicePhilosophy !== undefined) data.servicePhilosophy = parsed.data.servicePhilosophy;
+    if (parsed.data.legalComments !== undefined) data.legalComments = parsed.data.legalComments;
     if (parsed.data.markReviewed) {
       data.lastReviewDate = new Date();
       data.reviewedById = session!.user.id;
@@ -73,4 +91,4 @@ const { id } = await context!.params!;
     logger.error("QIP PATCH/:id", { err });
     return NextResponse.json({ error: "Failed to update QIP" }, { status: 500 });
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "member"] });

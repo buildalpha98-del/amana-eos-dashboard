@@ -4,6 +4,8 @@ import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { safeLimit } from "@/lib/pagination";
 import { createReflectionSchema } from "@/lib/schemas/staff-reflection";
+import { notifyParentNewPost } from "@/lib/parent-notifications";
+import { logger } from "@/lib/logger";
 
 const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
 
@@ -17,7 +19,7 @@ function ensureServiceAccess(
   }
 }
 
-// GET /api/services/[id]/reflections?type=&qa=&authorId=&cursor=&limit=
+// GET /api/services/[id]/reflections?type=&qa=&authorId=&from=&to=&cursor=&limit=
 export const GET = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
   ensureServiceAccess(session.user.role, session.user.serviceId, id);
@@ -30,12 +32,28 @@ export const GET = withApiAuth(async (req, session, context) => {
   const cursor = url.searchParams.get("cursor") ?? undefined;
   const limit = safeLimit(url.searchParams.get("limit"), 20, 50);
 
+  const fromParam = url.searchParams.get("from");
+  const toParam = url.searchParams.get("to");
+  const from = fromParam ? new Date(fromParam) : undefined;
+  const to = toParam ? new Date(toParam) : undefined;
+  if ((from && isNaN(from.getTime())) || (to && isNaN(to.getTime()))) {
+    throw ApiError.badRequest("from/to must be valid dates");
+  }
+
   const items = await prisma.staffReflection.findMany({
     where: {
       serviceId: id,
       ...(type ? { type } : {}),
       ...(authorId ? { authorId } : {}),
       ...(qa && qa >= 1 && qa <= 7 ? { qualityAreas: { has: qa } } : {}),
+      ...(from || to
+        ? {
+            createdAt: {
+              ...(from ? { gte: from } : {}),
+              ...(to ? { lte: to } : {}),
+            },
+          }
+        : {}),
     },
     orderBy: { createdAt: "desc" },
     take: limit + 1,
@@ -100,6 +118,7 @@ export const POST = withApiAuth(
           qualityAreas: data.qualityAreas ?? [],
           linkedObservationIds: data.linkedObservationIds ?? [],
           mood: data.mood ?? null,
+          mtopOutcomes: data.mtopOutcomes ?? [],
           clientMutationId: data.clientMutationId ?? null,
         },
         include: {
@@ -121,10 +140,98 @@ export const POST = withApiAuth(
         },
       });
 
-      return reflection;
-    });
+      // Daily reflections fan out: one LearningObservation per tagged child,
+      // plus a ParentPost when shared with parents. Same transaction — no
+      // partial fan-out states.
+      if (data.type !== "daily") return { reflection, fanOutChildIds: [] };
 
-    return NextResponse.json(created, { status: 201 });
+      const childIds = data.childIds ?? [];
+      const observationIds: string[] = [];
+      let parentPostId: string | null = null;
+
+      if (childIds.length > 0) {
+        const valid = await tx.child.findMany({
+          where: { id: { in: childIds }, serviceId: id },
+          select: { id: true },
+        });
+        if (valid.length !== childIds.length) {
+          throw ApiError.badRequest(
+            "One or more tagged children do not belong to this service",
+          );
+        }
+        // One round-trip for all children — sequential per-child creates blew
+        // Prisma's 5s interactive-transaction timeout on high-latency links.
+        const obs = await tx.learningObservation.createManyAndReturn({
+          data: valid.map((child) => ({
+            childId: child.id,
+            serviceId: id,
+            authorId: session.user.id,
+            title: data.title,
+            narrative: data.content,
+            mtopOutcomes: data.mtopOutcomes ?? [],
+            visibleToParent: data.shareWithParents === true,
+            sourceReflectionId: reflection.id,
+          })),
+          select: { id: true },
+        });
+        observationIds.push(...obs.map((o) => o.id));
+      }
+
+      if (data.shareWithParents) {
+        const post = await tx.parentPost.create({
+          data: {
+            serviceId: id,
+            authorId: session.user.id,
+            title: data.title,
+            content: data.content,
+            type: "observation",
+            isCommunity: childIds.length === 0,
+            tags:
+              childIds.length > 0
+                ? { create: childIds.map((childId) => ({ childId })) }
+                : undefined,
+          },
+          select: { id: true },
+        });
+        parentPostId = post.id;
+      }
+
+      if (observationIds.length === 0 && !parentPostId) {
+        return { reflection, fanOutChildIds: [] };
+      }
+
+      const updated = await tx.staffReflection.update({
+        where: { id: reflection.id },
+        data: { linkedObservationIds: observationIds, parentPostId },
+        include: {
+          author: { select: { id: true, name: true, avatar: true } },
+        },
+      });
+      return {
+        reflection: updated,
+        fanOutChildIds: parentPostId ? childIds : [],
+      };
+      // 15s headroom: the fan-out is ~6 queries and the Prisma default (5s)
+      // is too tight on high-latency DB links.
+    }, { timeout: 15_000 });
+
+    // Fire-and-forget: notify parents of tagged children about the new post.
+    const { reflection, fanOutChildIds } = created;
+    if (reflection.parentPostId && fanOutChildIds.length > 0) {
+      notifyParentNewPost(
+        reflection.parentPostId,
+        data.title,
+        "observation",
+        fanOutChildIds,
+      ).catch((err) =>
+        logger.error("Reflection fan-out notification failed", {
+          postId: reflection.parentPostId,
+          err,
+        }),
+      );
+    }
+
+    return NextResponse.json(reflection, { status: 201 });
   },
   { roles: ["owner", "head_office", "admin", "member", "staff"] },
 );
