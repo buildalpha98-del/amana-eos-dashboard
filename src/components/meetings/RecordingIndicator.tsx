@@ -25,18 +25,19 @@ export function RecordingIndicator() {
   const onMeetingsPage = pathname === "/meetings";
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="fixed z-50 right-4 bottom-36 md:bottom-20 flex items-center gap-2 rounded-full border border-border bg-card shadow-lg pl-3 pr-2 py-1.5"
-    >
+    <div className="fixed z-50 right-6 bottom-36 md:bottom-20 flex items-center gap-2 rounded-full border border-border bg-card shadow-lg pl-3 pr-2 py-1.5">
+      {/* One announcement per state change — the ticking timer itself is
+          hidden from assistive tech so it isn't re-read every second. */}
+      <span className="sr-only" role="status">
+        {status === "recording" ? "Recording in progress" : "Uploading recording"}
+      </span>
       {status === "recording" ? (
         <>
           <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600" />
           </span>
-          <span className="text-xs font-semibold tabular-nums text-foreground">
+          <span className="text-xs font-semibold tabular-nums text-foreground" aria-hidden="true">
             REC {formatElapsed(elapsedSeconds)}
           </span>
           {!onMeetingsPage && (
