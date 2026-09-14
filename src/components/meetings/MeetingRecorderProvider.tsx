@@ -95,6 +95,11 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
   const sessionRef = useRef<{ id: string; meetingId: string; mime: string; startedAt: number } | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stopResolveRef = useRef<(() => void) | null>(null);
+  // Mirror of `status` for callbacks that must not depend on a stale closure.
+  const statusRef = useRef<RecorderStatus>("idle");
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
 
   const refreshRecoverable = useCallback(async () => {
     const sessions = await recordingStore.listSessions();
@@ -103,7 +108,7 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void refreshRecoverable();
+    refreshRecoverable().catch(() => setRecoverable([]));
   }, [refreshRecoverable]);
 
   const fail = useCallback((message: string) => {
@@ -189,7 +194,7 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
 
   const start = useCallback(
     async (targetMeetingId: string) => {
-      if (status !== "idle" || sessionRef.current) return;
+      if (statusRef.current !== "idle" || sessionRef.current || recorderRef.current) return;
       setError(null);
       const mime = pickRecordingMime();
       if (!mime) {
@@ -207,14 +212,23 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
       const session = { id: crypto.randomUUID(), meetingId: targetMeetingId, mime, startedAt: Date.now() };
       sessionRef.current = session;
       chunksRef.current = [];
-      await recordingStore.createSession({ id: session.id, meetingId: targetMeetingId, mimeType: mime, startedAt: session.startedAt });
+      try {
+        await recordingStore.createSession({ id: session.id, meetingId: targetMeetingId, mimeType: mime, startedAt: session.startedAt });
+      } catch (err) {
+        sessionRef.current = null;
+        stream.getTracks().forEach((t) => t.stop());
+        fail(`Couldn't prepare local storage for the recording: ${err instanceof Error ? err.message : "unknown error"}`);
+        return;
+      }
 
       const recorder = new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 32_000 });
       let index = 0;
       recorder.ondataavailable = (e) => {
         if (e.data.size === 0) return;
         chunksRef.current.push(e.data);
-        void recordingStore.appendChunk(session.id, index++, e.data, Date.now());
+        recordingStore.appendChunk(session.id, index++, e.data, Date.now()).catch(() => {
+          /* memory copy still uploads on Stop */
+        });
       };
       recorder.onstop = () => {
         void finalizeLive()
@@ -252,7 +266,7 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
       }, 1000);
       await refreshRecoverable();
     },
-    [fail, finalizeLive, refreshRecoverable, status],
+    [fail, finalizeLive, refreshRecoverable],
   );
 
   const uploadRecoverable = useCallback(
@@ -264,7 +278,10 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
         return;
       }
       const session = (await recordingStore.listSessions()).find((s) => s.id === sessionId);
-      if (!session) return;
+      if (!session) {
+        await refreshRecoverable();
+        return;
+      }
       const chunks = await recordingStore.getChunks(sessionId);
       if (chunks.length === 0) {
         await recordingStore.deleteSession(sessionId);

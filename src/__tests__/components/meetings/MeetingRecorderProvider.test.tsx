@@ -54,9 +54,9 @@ function makeStream() {
   };
 }
 
-// ONE QueryClient for the file: every renderHook must talk to the same
-// provider instance semantics (a fresh client per render is fine for the
-// hook tests, but test 1 below deliberately renders a single provider).
+// A fresh QueryClient + provider per render — the hook tests only need an
+// isolated provider each. Test 1 below builds its own tree instead so it can
+// rerender the SAME provider with the consumer toggled off.
 function wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient();
   return (
@@ -177,6 +177,54 @@ describe("MeetingRecorderProvider", () => {
     expect(result.current.recoverable[0].meetingId).toBe("m1");
     const [s] = await recordingStore.listSessions();
     expect(s.status).toBe("stopped");
+  });
+
+  it("releases the mic and stays idle when local storage fails on start, then can start again", async () => {
+    const createSession = vi.spyOn(recordingStore, "createSession").mockRejectedValueOnce(new Error("quota"));
+    const { result } = renderHook(() => useMeetingRecorder(), { wrapper });
+    await act(async () => { await result.current.start("m1"); });
+    expect(result.current.status).toBe("idle");
+    expect(result.current.error).toMatch(/local storage/);
+    expect(stream.track.stop).toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive", description: expect.stringContaining("quota") }));
+
+    await act(async () => { await result.current.start("m1"); });
+    expect(result.current.status).toBe("recording");
+    expect(result.current.meetingId).toBe("m1");
+    createSession.mockRestore();
+  });
+
+  it("registers a beforeunload guard while recording and removes it after stop", async () => {
+    const add = vi.spyOn(window, "addEventListener");
+    const remove = vi.spyOn(window, "removeEventListener");
+    const { result } = renderHook(() => useMeetingRecorder(), { wrapper });
+    expect(add).not.toHaveBeenCalledWith("beforeunload", expect.any(Function));
+
+    await act(async () => { await result.current.start("m1"); });
+    expect(add).toHaveBeenCalledWith("beforeunload", expect.any(Function));
+    const handler = add.mock.calls.find(([type]) => type === "beforeunload")?.[1];
+
+    await act(async () => { FakeMediaRecorder.instances[0].emit("aa"); });
+    await act(async () => { await result.current.stop(); });
+    await waitFor(() => expect(result.current.status).toBe("idle"));
+    expect(remove).toHaveBeenCalledWith("beforeunload", handler);
+    add.mockRestore();
+    remove.mockRestore();
+  });
+
+  it("refuses to upload an orphan while a live session exists", async () => {
+    await recordingStore.createSession({ id: "orphan", meetingId: "m9", mimeType: "audio/webm", startedAt: 1_000 });
+    await recordingStore.appendChunk("orphan", 0, new Blob(["zz"]), 61_000);
+    const { result } = renderHook(() => useMeetingRecorder(), { wrapper });
+    await waitFor(() => expect(result.current.recoverable).toHaveLength(1));
+
+    await act(async () => { await result.current.start("m1"); });
+    expect(result.current.status).toBe("recording");
+    await act(async () => { await result.current.uploadRecoverable("orphan"); });
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive", description: expect.stringMatching(/stop the current recording/i) }));
+    expect(uploadFileSmart).not.toHaveBeenCalled();
+    expect(result.current.status).toBe("recording");
+    expect(result.current.recoverable).toHaveLength(1);
   });
 
   it("surfaces a denied microphone as a named error and stays idle", async () => {
