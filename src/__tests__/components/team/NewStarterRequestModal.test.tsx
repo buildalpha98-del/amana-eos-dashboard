@@ -45,8 +45,8 @@ function fillAllExcept(skip: string[]) {
     mobile: () => fill("04XX XXX XXX", "0400 000 000"),
     email: () => fill("Their personal or preferred email — their invite goes here", "amina@example.com"),
     targetPosition: () => fill("e.g. Educator, Service Coordinator", "Educator"),
-    awardLevel: () =>
-      fireEvent.change(screen.getByDisplayValue("Select award level…"), { target: { value: "cs1" } }),
+    serviceId: () =>
+      fireEvent.change(screen.getByDisplayValue("Select centre…"), { target: { value: "svc-1" } }),
     address: () => fill("Street address, suburb, state, postcode", "1 Example St"),
   };
   for (const [key, apply] of Object.entries(set)) {
@@ -67,12 +67,24 @@ describe("NewStarterRequestModal — mandatory fields", () => {
     expect(mutateApi).not.toHaveBeenCalled();
   });
 
-  it("does not pre-select an award level — it must be explicitly chosen", () => {
+  // 2026-09-14: award level left the intake form — a State Manager doesn't
+  // know it yet, and it's settled when the contract is drafted. Centre took
+  // its place as the field that must be chosen deliberately.
+  it("no longer asks for an award level", () => {
     renderModal();
-    expect(screen.getByDisplayValue("Select award level…")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("Select award level…")).toBeNull();
+    expect(screen.queryByText(/award level/i)).toBeNull();
   });
 
-  it("marks full name, DOB, start date, mobile, email, position, and award level as required", () => {
+  it("does not pre-select a centre — it must be explicitly chosen", () => {
+    renderModal();
+    // It used to default to services[0], so submitting without touching
+    // the field silently filed the new starter at whichever centre sorted
+    // first.
+    expect(screen.getByDisplayValue("Select centre…")).toBeInTheDocument();
+  });
+
+  it("marks full name, DOB, start date, mobile, email, position, and centre as required", () => {
     renderModal();
     expect(screen.getByPlaceholderText("Full name")).toBeRequired();
     expect(document.querySelectorAll('input[type="date"]')[0]).toBeRequired();
@@ -82,12 +94,12 @@ describe("NewStarterRequestModal — mandatory fields", () => {
       screen.getByPlaceholderText("Their personal or preferred email — their invite goes here"),
     ).toBeRequired();
     expect(screen.getByPlaceholderText("e.g. Educator, Service Coordinator")).toBeRequired();
-    expect(screen.getByDisplayValue("Select award level…").closest("select")).toBeRequired();
+    expect(screen.getByDisplayValue("Select centre…").closest("select")).toBeRequired();
   });
 
-  it("blocks submission when award level is left unselected", () => {
+  it("blocks submission when centre is left unselected", () => {
     renderModal();
-    fillAllExcept(["awardLevel"]);
+    fillAllExcept(["serviceId"]);
     submit();
     expect(mutateApi).not.toHaveBeenCalled();
   });
@@ -133,7 +145,17 @@ describe("NewStarterRequestModal — mandatory fields", () => {
       mobile: "0400 000 000",
       email: "amina@example.com",
       targetPosition: "Educator",
-      awardLevel: "cs1",
+      serviceId: "svc-1",
     });
+  });
+
+  it("sends no award level at all", async () => {
+    renderModal();
+    fillAllExcept([]);
+    submit();
+    await waitFor(() => expect(mutateApi).toHaveBeenCalledTimes(1));
+    const [, opts] = mutateApi.mock.calls[0];
+    expect(opts.body).not.toHaveProperty("awardLevel");
+    expect(opts.body).not.toHaveProperty("awardLevelCustom");
   });
 });
