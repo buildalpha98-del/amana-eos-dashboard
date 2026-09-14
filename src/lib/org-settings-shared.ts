@@ -272,6 +272,20 @@ export const orgSettingsConfigSchema = z.object({
     // Full object, not {} — zod v4 .default() short-circuits without
     // running inner-field defaults.
     .default({ measurableOffTrackWeeks: 3 }),
+  // 2026-09-14: outbound SERVICE-OPERATIONS alert emails (low occupancy,
+  // ratio-risk forecast, shift gaps, staffing, checklist audit, unactioned
+  // bookings, unsigned-in children, incident digest) are paused until the
+  // services portal is actually in use — the crons still run and record a
+  // CronRun row, they just skip the send. Staff-facing mail (cert expiry,
+  // compliance, training, leave, timesheets, contracts) is NOT covered.
+  // Defaults to PAUSED so the deploy itself silences the stream; flip it
+  // in Settings → Organisation when the portal goes live. Object-level
+  // .default() for the same full-replace-PATCH reason as `eos`.
+  notifications: z
+    .object({
+      serviceAlertsPaused: z.boolean().default(true),
+    })
+    .default({ serviceAlertsPaused: true }),
   ratios: z.object({
     federalDefaultMinRatio: ratioStringSchema,
   }),
@@ -378,6 +392,9 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
   },
   eos: {
     measurableOffTrackWeeks: 3,
+  },
+  notifications: {
+    serviceAlertsPaused: true,
   },
   ratios: {
     federalDefaultMinRatio: "1:15",
@@ -510,6 +527,9 @@ export function mergeOrgSettings(
     string,
     unknown
   >;
+  const notif = (safe.notifications && typeof safe.notifications === "object"
+    ? safe.notifications
+    : {}) as Record<string, unknown>;
   const gr = (safe.groceryRates && typeof safe.groceryRates === "object"
     ? safe.groceryRates
     : {}) as Record<string, unknown>;
@@ -558,6 +578,12 @@ export function mergeOrgSettings(
         eos.measurableOffTrackWeeks <= 6
           ? (eos.measurableOffTrackWeeks as number)
           : defaults.eos.measurableOffTrackWeeks,
+    },
+    notifications: {
+      serviceAlertsPaused:
+        typeof notif.serviceAlertsPaused === "boolean"
+          ? (notif.serviceAlertsPaused as boolean)
+          : defaults.notifications.serviceAlertsPaused,
     },
     ratios: {
       federalDefaultMinRatio:
