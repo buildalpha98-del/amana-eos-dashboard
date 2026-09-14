@@ -211,6 +211,10 @@ export const POST = withApiAuth(async (req, session) => {
   // Seed onboarding todos + welcome announcement
   const { seedOnboardingPackage } = await import("@/lib/onboarding-seed");
   await seedOnboardingPackage(user.id, { serviceId: user.serviceId });
+  if (newStarter && startDate) {
+    const { createStaffRamp } = await import("@/lib/ramp/create");
+    await createStaffRamp(prisma, user.id, new Date(startDate));
+  }
 
   // Send welcome email with temporary password (shared with the
   // hire→employee conversion route — swallow-and-log on failure).

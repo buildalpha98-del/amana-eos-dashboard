@@ -18,6 +18,7 @@ export type StaffProfileSectionKey =
   | "employment"
   | "pay"
   | "documents"
+  | "ramp"
   | "performance"
   | "health";
 
@@ -49,6 +50,14 @@ const SECTIONS: SectionPill[] = [
     activeClass: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-900 dark:text-yellow-200 border-yellow-300 dark:border-yellow-800",
     dotClass: "bg-yellow-500",
   },
+  // 2026-09-14: 90-day ramp — only rendered while the person has one; the
+  // pill hides itself when its anchor isn't on the page (see hasRamp).
+  {
+    id: "ramp",
+    label: "90-day ramp",
+    activeClass: "bg-sky-100 dark:bg-sky-950/50 text-sky-900 dark:text-sky-200 border-sky-300 dark:border-sky-800",
+    dotClass: "bg-sky-500",
+  },
   {
     id: "performance",
     label: "Performance",
@@ -77,9 +86,12 @@ export interface StaffProfilePillsProps {
   /** Initial active key, derived from URL hash on the server. Defaults
    *  to the first section when the hash isn't present. */
   initialKey?: StaffProfileSectionKey;
+  /** Sections not rendered on this profile (e.g. "ramp" when the person
+   *  has no 90-day ramp) — their pills are hidden too. */
+  hiddenKeys?: readonly StaffProfileSectionKey[];
 }
 
-export function StaffProfilePills({ initialKey }: StaffProfilePillsProps = {}) {
+export function StaffProfilePills({ initialKey, hiddenKeys = [] }: StaffProfilePillsProps = {}) {
   const [active, setActive] = useState<StaffProfileSectionKey>(
     initialKey ?? "employment",
   );
@@ -161,7 +173,7 @@ export function StaffProfilePills({ initialKey }: StaffProfilePillsProps = {}) {
       data-testid="staff-profile-pills"
     >
       <div className="flex items-center gap-2 overflow-x-auto">
-        {SECTIONS.map((section) => {
+        {SECTIONS.filter((s) => !hiddenKeys.includes(s.id)).map((section) => {
           const isActive = section.id === active;
           return (
             <button

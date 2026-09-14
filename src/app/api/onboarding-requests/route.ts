@@ -14,7 +14,7 @@ import { sendWelcomeInvite } from "@/lib/staff-invite";
 import { createOnboardingOwnerTodo } from "@/lib/new-starter-request/owner-todo";
 import { getOrgSettings } from "@/lib/org-settings";
 import { sendFirstShiftChecklistEmail } from "@/lib/new-starter-request/first-shift-email";
-import { seedNewStarterCheckIns } from "@/lib/new-starter-request/check-ins";
+import { createStaffRamp } from "@/lib/ramp/create";
 import { logger } from "@/lib/logger";
 
 /**
@@ -241,7 +241,8 @@ export const POST = withApiAuth(
       checklistItems: defaultPack?.tasks.map((t) => t.title) ?? [],
     });
 
-    await seedNewStarterCheckIns(prisma, user.id, data.expectedStartDate);
+    // 90-day ramp: weekly check-ins + 30/60/90 manager checkpoints.
+    await createStaffRamp(prisma, user.id, data.expectedStartDate);
 
     // The paperwork now has an owner as well as an audience: an assigned
     // to-do for whoever runs onboarding, plus the existing heads-up email

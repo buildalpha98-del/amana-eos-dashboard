@@ -40,8 +40,8 @@ vi.mock("@/lib/org-settings", () => ({
 vi.mock("@/lib/new-starter-request/first-shift-email", () => ({
   sendFirstShiftChecklistEmail: vi.fn(() => Promise.resolve()),
 }));
-vi.mock("@/lib/new-starter-request/check-ins", () => ({
-  seedNewStarterCheckIns: vi.fn(() => Promise.resolve()),
+vi.mock("@/lib/ramp/create", () => ({
+  createStaffRamp: vi.fn(() => Promise.resolve({ created: true, rampId: "ramp-1" })),
 }));
 vi.mock("@/lib/new-starter-request/notify", () => ({
   notifyNewStarterRequestSubmitted: vi.fn(() => Promise.resolve()),
@@ -52,7 +52,7 @@ import { seedOnboardingPackage } from "@/lib/onboarding-seed";
 import { assignOnboardingPack } from "@/lib/onboarding-assign";
 import { sendWelcomeInvite } from "@/lib/staff-invite";
 import { sendFirstShiftChecklistEmail } from "@/lib/new-starter-request/first-shift-email";
-import { seedNewStarterCheckIns } from "@/lib/new-starter-request/check-ins";
+import { createStaffRamp } from "@/lib/ramp/create";
 import { notifyNewStarterRequestSubmitted } from "@/lib/new-starter-request/notify";
 import { createOnboardingOwnerTodo } from "@/lib/new-starter-request/owner-todo";
 import { getOrgSettings } from "@/lib/org-settings";
@@ -237,7 +237,7 @@ describe("POST /api/onboarding-requests", () => {
     expect(sendFirstShiftChecklistEmail).toHaveBeenCalledWith(
       expect.objectContaining({ email: "amina@example.com", checklistItems: [] }),
     );
-    expect(seedNewStarterCheckIns).toHaveBeenCalledWith(
+    expect(createStaffRamp).toHaveBeenCalledWith(
       expect.anything(),
       "new-user-1",
       expect.any(Date),
@@ -308,7 +308,7 @@ describe("POST /api/onboarding-requests", () => {
     expect(update.data.inviteStatus).toBe("suppressed");
     expect(update.data.inviteError).toMatch(/suppression/i);
     expect(update.data.inviteSentAt).toBeNull();
-    expect(seedNewStarterCheckIns).toHaveBeenCalled();
+    expect(createStaffRamp).toHaveBeenCalled();
   });
 
   it("records a provider rejection", async () => {

@@ -91,6 +91,7 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     include: { service: true },
   });
   if (!targetUser) notFound();
+  const ramp = await prisma.staffRamp.findUnique({ where: { userId: id }, select: { id: true } });
 
   const viewerRole = session.user.role ?? null;
   const allowed = await canAccessProfile(session.user.id, viewerRole, {
@@ -482,6 +483,7 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
       backHref={backHref}
       prevHref={prevHref}
       nextHref={nextHref}
+      hasRamp={!!ramp}
     />
   );
 }

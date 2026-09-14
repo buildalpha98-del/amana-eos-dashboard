@@ -67,6 +67,12 @@ export const NOTIFICATION_TYPES = {
   // once it's resolved/dismissed.
   PAY_DISCREPANCY_SUBMITTED: "pay_discrepancy_submitted",
   PAY_DISCREPANCY_RESOLVED: "pay_discrepancy_resolved",
+  // 2026-09-14: 90-day ramp — a starter's weekly check-in flagged low mood
+  // or "I need help" (→ service manager + State Managers); a 30/60/90
+  // manager checkpoint is due; the ramp closed (→ the starter).
+  RAMP_CHECKIN_FLAGGED: "ramp_checkin_flagged",
+  RAMP_CHECKPOINT_DUE: "ramp_checkpoint_due",
+  RAMP_COMPLETED: "ramp_completed",
   // 2026-08-31 (execution layer): meetings/scorecard/cascade fan-outs.
   MEETING_REVIEW_READY: "meeting_review_ready",
   SCORECARD_WATCHDOG: "scorecard_watchdog",
