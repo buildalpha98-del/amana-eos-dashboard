@@ -1,0 +1,228 @@
+// src/__tests__/components/meetings/MeetingRecorderProvider.test.tsx
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import "fake-indexeddb/auto";
+import { act, render, renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect, type ReactNode } from "react";
+
+const uploadFileSmart = vi.fn();
+const mutateApi = vi.fn();
+const toast = vi.fn();
+vi.mock("@/lib/upload-client", () => ({ uploadFileSmart: (...a: unknown[]) => uploadFileSmart(...a) }));
+vi.mock("@/lib/fetch-api", () => ({ mutateApi: (...a: unknown[]) => mutateApi(...a), fetchApi: vi.fn() }));
+vi.mock("@/hooks/useToast", () => ({ toast: (...a: unknown[]) => toast(...a) }));
+
+import { recordingStore } from "@/lib/recording-store";
+import {
+  MeetingRecorderProvider,
+  useMeetingRecorder,
+} from "@/components/meetings/MeetingRecorderProvider";
+
+// jsdom Blobs have no .text(); FileReader works in jsdom and browsers.
+function readBlobText(b: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(r.error);
+    r.readAsText(b);
+  });
+}
+
+// ── Fake MediaRecorder ──────────────────────────────────────────
+class FakeMediaRecorder {
+  static instances: FakeMediaRecorder[] = [];
+  static isTypeSupported = (t: string) => t === "audio/webm;codecs=opus";
+  ondataavailable: ((e: { data: Blob }) => void) | null = null;
+  onstop: (() => void) | null = null;
+  onerror: ((e: unknown) => void) | null = null;
+  state = "inactive";
+  constructor(public stream: unknown, public options: unknown) {
+    FakeMediaRecorder.instances.push(this);
+  }
+  start() { this.state = "recording"; }
+  stop() { this.state = "inactive"; this.onstop?.(); }
+  emit(text: string) { this.ondataavailable?.({ data: new Blob([text], { type: "audio/webm" }) }); }
+}
+
+function makeStream() {
+  const track = { stop: vi.fn(), onended: null as null | (() => void), kind: "audio" };
+  return {
+    getTracks: () => [track],
+    getAudioTracks: () => [track],
+    track,
+  };
+}
+
+// ONE QueryClient for the file: every renderHook must talk to the same
+// provider instance semantics (a fresh client per render is fine for the
+// hook tests, but test 1 below deliberately renders a single provider).
+function wrapper({ children }: { children: ReactNode }) {
+  const qc = new QueryClient();
+  return (
+    <QueryClientProvider client={qc}>
+      <MeetingRecorderProvider>{children}</MeetingRecorderProvider>
+    </QueryClientProvider>
+  );
+}
+
+// Consumer that exposes the context to the test; toggled off to simulate the
+// meeting page unmounting underneath the (still-mounted) provider.
+// Assigned from an effect (not during render) to satisfy react-hooks/globals;
+// render/rerender/act all flush effects, so `latest` is current when read.
+let latest: ReturnType<typeof useMeetingRecorder> | null = null;
+function Probe() {
+  const ctx = useMeetingRecorder();
+  useEffect(() => {
+    latest = ctx;
+  });
+  return null;
+}
+
+describe("MeetingRecorderProvider", () => {
+  let stream: ReturnType<typeof makeStream>;
+
+  beforeEach(async () => {
+    // shouldAdvanceTime is REQUIRED: without it `waitFor` never yields to the
+    // microtask queue and the async tests hang (see InstallBanner.test.tsx).
+    // setImmediate must stay REAL: fake-indexeddb (and jsdom's FileReader)
+    // schedule on it, and sinon's fake setImmediate fires queued tasks in one
+    // synchronous loop, so a transaction auto-commits before the `await`ed
+    // request continuation runs (InvalidStateError inside appendChunk).
+    vi.useFakeTimers({
+      shouldAdvanceTime: true,
+      toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"],
+    });
+    FakeMediaRecorder.instances = [];
+    vi.stubGlobal("MediaRecorder", FakeMediaRecorder);
+    stream = makeStream();
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+    });
+    uploadFileSmart.mockReset().mockResolvedValue({ fileUrl: "https://x.blob.vercel-storage.com/a.webm", fileName: "a.webm" });
+    mutateApi.mockReset().mockResolvedValue({ id: "rec1" });
+    toast.mockReset();
+    for (const s of await recordingStore.listSessions()) await recordingStore.deleteSession(s.id);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it("starts recording, persists chunks, and keeps recording when the consumer page unmounts", async () => {
+    const qc = new QueryClient();
+    const tree = (showPage: boolean) => (
+      <QueryClientProvider client={qc}>
+        <MeetingRecorderProvider>{showPage ? <Probe /> : null}</MeetingRecorderProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree(true));
+    await act(async () => { await latest!.start("m1"); });
+    expect(latest!.status).toBe("recording");
+    expect(latest!.meetingId).toBe("m1");
+
+    const rec = FakeMediaRecorder.instances[0];
+    await act(async () => { rec.emit("chunk-0"); });
+    await waitFor(async () => {
+      const [s] = await recordingStore.listSessions();
+      expect(s?.chunkCount).toBe(1);
+    });
+
+    // The meeting page (consumer) unmounts; the provider stays mounted.
+    rerender(tree(false));
+    expect(rec.state).toBe("recording");
+    expect(stream.track.stop).not.toHaveBeenCalled();
+
+    // Coming back sees the same live session.
+    rerender(tree(true));
+    expect(latest!.status).toBe("recording");
+    expect(latest!.meetingId).toBe("m1");
+    expect(FakeMediaRecorder.instances).toHaveLength(1);
+  });
+
+  it("stop assembles the chunks, uploads, registers the recording, and clears the store", async () => {
+    const { result } = renderHook(() => useMeetingRecorder(), { wrapper });
+    await act(async () => { await result.current.start("m1"); });
+    const rec = FakeMediaRecorder.instances[0];
+    await act(async () => { rec.emit("aa"); rec.emit("bb"); });
+    await act(async () => { await result.current.stop(); });
+
+    await waitFor(() => expect(result.current.status).toBe("idle"));
+    expect(uploadFileSmart).toHaveBeenCalledTimes(1);
+    const [file, opts] = uploadFileSmart.mock.calls[0] as [File, { context: string }];
+    expect(file.name).toMatch(/^l10-recording-\d+\.webm$/);
+    expect(await readBlobText(file)).toBe("aabb");
+    expect(opts).toEqual({ context: "recording" });
+    expect(mutateApi).toHaveBeenCalledWith(
+      "/api/meetings/m1/recordings",
+      expect.objectContaining({ method: "POST", body: expect.objectContaining({ source: "live_mic", url: "https://x.blob.vercel-storage.com/a.webm" }) }),
+    );
+    expect(await recordingStore.listSessions()).toEqual([]);
+    expect(stream.track.stop).toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ description: expect.stringMatching(/uploaded/i) }));
+  });
+
+  it("keeps the session recoverable and toasts when the upload fails", async () => {
+    uploadFileSmart.mockRejectedValueOnce(new Error("Blob down"));
+    const { result } = renderHook(() => useMeetingRecorder(), { wrapper });
+    await act(async () => { await result.current.start("m1"); });
+    await act(async () => { FakeMediaRecorder.instances[0].emit("aa"); });
+    await act(async () => { await result.current.stop(); });
+
+    await waitFor(() => expect(result.current.status).toBe("idle"));
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive", description: expect.stringContaining("Blob down") }));
+    await waitFor(() => expect(result.current.recoverable).toHaveLength(1));
+    expect(result.current.recoverable[0].meetingId).toBe("m1");
+    const [s] = await recordingStore.listSessions();
+    expect(s.status).toBe("stopped");
+  });
+
+  it("surfaces a denied microphone as a named error and stays idle", async () => {
+    (navigator.mediaDevices.getUserMedia as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new DOMException("x", "NotAllowedError"));
+    const { result } = renderHook(() => useMeetingRecorder(), { wrapper });
+    await act(async () => { await result.current.start("m1"); });
+    expect(result.current.status).toBe("idle");
+    expect(result.current.error).toMatch(/permission was denied/i);
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive" }));
+  });
+
+  it("a dropped microphone track cuts the recording short and uploads what exists", async () => {
+    const { result } = renderHook(() => useMeetingRecorder(), { wrapper });
+    await act(async () => { await result.current.start("m1"); });
+    await act(async () => { FakeMediaRecorder.instances[0].emit("aa"); });
+    await act(async () => { stream.track.onended?.(); });
+    await waitFor(() => expect(result.current.status).toBe("idle"));
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive", description: expect.stringMatching(/microphone stopped/i) }));
+    expect(uploadFileSmart).toHaveBeenCalledTimes(1);
+  });
+
+  it("finds an orphaned session on mount and can upload or discard it", async () => {
+    await recordingStore.createSession({ id: "orphan", meetingId: "m9", mimeType: "audio/webm;codecs=opus", startedAt: 1_000 });
+    await recordingStore.appendChunk("orphan", 0, new Blob(["zz"]), 61_000);
+
+    const { result } = renderHook(() => useMeetingRecorder(), { wrapper });
+    await waitFor(() => expect(result.current.recoverable).toHaveLength(1));
+    expect(result.current.recoverable[0]).toMatchObject({ sessionId: "orphan", meetingId: "m9", chunkCount: 1 });
+
+    await act(async () => { await result.current.uploadRecoverable("orphan"); });
+    expect(mutateApi).toHaveBeenCalledWith(
+      "/api/meetings/m9/recordings",
+      expect.objectContaining({ body: expect.objectContaining({ source: "live_mic", durationSeconds: 60 }) }),
+    );
+    await waitFor(() => expect(result.current.recoverable).toHaveLength(0));
+    expect(await recordingStore.listSessions()).toEqual([]);
+
+    await recordingStore.createSession({ id: "orphan2", meetingId: "m9", mimeType: "audio/webm", startedAt: 1 });
+    const { result: r2 } = renderHook(() => useMeetingRecorder(), { wrapper });
+    await waitFor(() => expect(r2.current.recoverable).toHaveLength(1));
+    await act(async () => { await r2.current.discardRecoverable("orphan2"); });
+    expect(await recordingStore.listSessions()).toEqual([]);
+    expect(uploadFileSmart).toHaveBeenCalledTimes(1);
+  });
+
+  it("useMeetingRecorder throws outside the provider", () => {
+    expect(() => renderHook(() => useMeetingRecorder())).toThrow(/MeetingRecorderProvider/);
+  });
+});
