@@ -6,6 +6,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { indexDocument } from "@/lib/document-indexer";
 import { parseJsonBody } from "@/lib/api-error";
+import { isAdminRole } from "@/lib/role-permissions";
 const createDocumentSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -36,6 +37,9 @@ const { searchParams } = new URL(req.url);
   // Staff/member users can only see documents for their assigned service + company-wide docs
   const isServiceScoped = ["staff", "member"].includes(session!.user.role);
   const staffServiceId = session!.user.serviceId;
+  // Owner / admin / head_office. Governs whether personal HR documents are
+  // listed here — see the `assignedToId` note on the where clause.
+  const isAdmin = isAdminRole(session!.user.role);
 
   // Coerce the query-string category to the Prisma enum; unknown values are
   // ignored rather than reaching Prisma's where clause.
@@ -60,16 +64,24 @@ const { searchParams } = new URL(req.url);
 
   const where: Prisma.DocumentWhereInput = {
     deleted: false,
-    // Personal HR documents never appear in the shared library.
+    // Personal HR documents are listed to org admins ONLY.
     //
     // `assignedToId` marks a document as being *about* a staff member —
-    // their contract, WWCC, performance letter. Those are reachable only
-    // from that person's profile (/staff/[id], admin + their own Director)
-    // and from their own portal. Leaving them in this listing is what let
-    // any Educator read a colleague's contract: DocumentsTab uploads them
-    // with no centreId, so they landed in the `{ centreId: null }`
+    // their contract, WWCC, performance letter. Leaving these unfiltered is
+    // what let any Educator read a colleague's contract: DocumentsTab
+    // uploads them with no centreId, so they matched the `{ centreId: null }`
     // org-wide branch below and rendered with a direct blob link.
-    assignedToId: null,
+    //
+    // Admins keep one searchable view across everything (they can open any
+    // staff profile anyway, so the library adds no access they lack).
+    // Everyone else — Educators AND Directors — sees none of them here;
+    // a Director reaches their own centre's staff documents through
+    // /staff/[id], which enforces the centre check this listing cannot.
+    //
+    // The condition is deliberately positive-listing: anything that is not
+    // a known admin gets the exclusion, so a new role added to the enum is
+    // excluded by default rather than silently admitted.
+    ...(isAdmin ? {} : { assignedToId: null }),
     ...(categoryFilter ? { category: categoryFilter } : {}),
     ...(folderId === "root" ? { folderId: null } : folderId ? { folderId } : {}),
   };
@@ -111,6 +123,11 @@ const { searchParams } = new URL(req.url);
       where,
       include: {
         uploadedBy: { select: { id: true, name: true, email: true } },
+        // Whose document this is. Only ever populated for admins (the
+        // filter above removes assigned rows for everyone else), and it is
+        // what lets the UI label a personal HR file as such instead of
+        // burying it among org resources.
+        assignedTo: { select: { id: true, name: true } },
         centre: { select: { id: true, name: true, code: true } },
         folder: { select: { id: true, name: true } },
       },

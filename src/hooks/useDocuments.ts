@@ -20,6 +20,14 @@ export interface DocumentData {
   folder: { id: string; name: string } | null;
   uploadedById: string;
   uploadedBy: { id: string; name: string; email: string };
+  /**
+   * The staff member this document is *about* (contract, WWCC, HR letter),
+   * as distinct from who uploaded it. Only ever populated for org admins —
+   * GET /api/documents filters assigned rows out of the listing for
+   * everyone else, so a non-admin never receives one.
+   */
+  assignedToId: string | null;
+  assignedTo: { id: string; name: string } | null;
   version: number;
   tags: string[];
   createdAt: string;

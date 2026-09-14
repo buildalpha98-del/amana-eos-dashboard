@@ -127,18 +127,51 @@ describe("GET /api/documents", () => {
     expect(callArgs.where.assignedToId).toBeNull();
   });
 
-  it("excludes assigned (personal) documents for admins too", async () => {
-    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+  it("excludes assigned (personal) documents for a Director of Service", async () => {
+    // A Director reaches their own centre's staff documents through
+    // /staff/[id], which enforces the centre check. This listing can't,
+    // so it shows them none.
+    mockSession({ id: "coord-1", name: "Coord", role: "member", serviceId: "svc-1" });
     prismaMock.document.findMany.mockResolvedValue([]);
     prismaMock.document.count.mockResolvedValue(0);
 
     await GET(createRequest("GET", "/api/documents"));
 
-    // Admins read personal docs from the staff profile, not the library —
-    // one exclusion with no role carve-out is far harder to regress.
     const callArgs = prismaMock.document.findMany.mock.calls[0][0];
     expect(callArgs.where.assignedToId).toBeNull();
   });
+
+  it("excludes assigned (personal) documents for a marketing user", async () => {
+    // Not service-scoped, but not an admin either — the exclusion is
+    // positive-listed on admin roles so any non-admin role is covered.
+    mockSession({ id: "mk-1", name: "Marketer", role: "marketing" });
+    prismaMock.document.findMany.mockResolvedValue([]);
+    prismaMock.document.count.mockResolvedValue(0);
+
+    await GET(createRequest("GET", "/api/documents"));
+
+    const callArgs = prismaMock.document.findMany.mock.calls[0][0];
+    expect(callArgs.where.assignedToId).toBeNull();
+  });
+
+  it.each(["owner", "admin", "head_office"])(
+    "lists assigned (personal) documents for %s",
+    async (role) => {
+      mockSession({ id: `${role}-1`, name: "Admin", role });
+      prismaMock.document.findMany.mockResolvedValue([]);
+      prismaMock.document.count.mockResolvedValue(0);
+
+      await GET(createRequest("GET", "/api/documents"));
+
+      // Admins keep one searchable view across everything — they can open
+      // any staff profile anyway, so the library grants no extra access.
+      const callArgs = prismaMock.document.findMany.mock.calls[0][0];
+      expect(callArgs.where.assignedToId).toBeUndefined();
+      // ...and the assignee comes back so the UI can label the row rather
+      // than burying an HR file among org resources.
+      expect(callArgs.include.assignedTo).toBeDefined();
+    },
+  );
 
   it("a staff search does not widen scope past their own centre", async () => {
     mockSession({ id: "u-1", name: "Staff", role: "staff", serviceId: "svc-1" });
