@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
+import { skipIfServiceAlertsPaused } from "@/lib/service-alerts-pause";
 import { getNetworkStaffingSummary } from "@/lib/staffing-analysis";
 import { getResend, sendEmail } from "@/lib/email";
 import { staffingAlertEmail } from "@/lib/email-templates";
@@ -17,6 +18,11 @@ export const GET = withApiHandler(async (req) => {
   if (!guard.acquired) {
     return NextResponse.json({ message: guard.reason, skipped: true });
   }
+
+  // 2026-09-14: service-ops alert emails are paused until the services
+  // portal is in use (Settings → Organisation → Service alert emails).
+  const paused = await skipIfServiceAlertsPaused(guard);
+  if (paused) return paused;
 
   // 3. Analyse tomorrow's staffing across all centres
   const tomorrow = new Date();

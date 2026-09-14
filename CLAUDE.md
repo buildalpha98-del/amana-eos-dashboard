@@ -178,6 +178,11 @@
 - **Backend**: Upstash Redis in production (`UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`). In-memory fallback when env vars not set (dev only).
 - **Rate limit key format**: `auth:{userId}:{pathname}` — per-endpoint to prevent false 429s when dashboard loads multiple APIs in parallel.
 
+## Service Alert Email Pause (2026-09-14)
+- **Why**: the services portal isn't in use yet, so the centre-operations alert stream was noise. `notifications.serviceAlertsPaused` in org settings (**default `true` = paused**; toggle in Settings → Organisation → "Service alert emails") gates eight crons: `attendance-alerts` (low occupancy email + Teams), `ratio-risk-forecast`, `shift-gap-detector`, `staffing-alerts`, `checklist-audit`, `unactioned-bookings`, `unsigned-in-alert`, `incident-digest`.
+- **Mechanism**: `skipIfServiceAlertsPaused(guard)` from `src/lib/service-alerts-pause.ts`, called immediately AFTER `acquireCronLock` — the lock is still taken and completed with `{ skipped: true, reason: "service_alerts_paused" }` so cron-health shows the run. Nothing after the gate executes (no data queries, no Resend, no Teams).
+- **Registry test**: `src/__tests__/api/cron/service-alerts-pause-gate.test.ts` enumerates the gated crons — a NEW service-ops alert cron must call the helper AND be added there. Staff-facing mail (cert/visa expiry, compliance-alerts, training, leave, timesheets, contracts, daily/weekly notification digests, weekly-report) is deliberately NOT gated.
+
 ## Auth Event Logging
 - All auth rejection paths in `withApiAuth` log structured warnings via `logger.warn()`:
   - `Auth: no session` — unauthenticated request

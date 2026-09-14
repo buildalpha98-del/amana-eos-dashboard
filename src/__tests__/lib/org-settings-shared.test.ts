@@ -130,6 +130,35 @@ describe("eos.measurableOffTrackWeeks", () => {
   });
 });
 
+// ─── notifications block (service-alert pause, 2026-09-14) ──────────────────
+
+describe("notifications.serviceAlertsPaused", () => {
+  it("legacy documents without the block still parse and default to PAUSED (object default)", () => {
+    const legacy = { ...(defaults2 as Record<string, unknown>) };
+    delete legacy.notifications;
+    const parsed = schema2.parse(legacy as never);
+    expect(parsed.notifications.serviceAlertsPaused).toBe(true);
+  });
+
+  it("round-trips ORG_SETTINGS_DEFAULTS (paused by default — the deploy itself silences the stream)", () => {
+    expect(defaults2.notifications.serviceAlertsPaused).toBe(true);
+    expect(schema2.parse(defaults2).notifications.serviceAlertsPaused).toBe(true);
+  });
+
+  it("rejects a non-boolean", () => {
+    expect(() =>
+      schema2.parse({ ...defaults2, notifications: { serviceAlertsPaused: "yes" } } as never),
+    ).toThrow();
+  });
+
+  it("merge branch carries an explicit false (un-paused) and defaults anything else to paused", () => {
+    expect(merge2({ notifications: { serviceAlertsPaused: false } }).notifications.serviceAlertsPaused).toBe(false);
+    expect(merge2({ notifications: { serviceAlertsPaused: true } }).notifications.serviceAlertsPaused).toBe(true);
+    expect(merge2({ notifications: { serviceAlertsPaused: "no" } }).notifications.serviceAlertsPaused).toBe(true);
+    expect(merge2({}).notifications.serviceAlertsPaused).toBe(true);
+  });
+});
+
 // ─── Phase 9 (Staff Portal v2): compliance.requiredCertsByRole ──────────────
 
 describe("compliance.requiredCertsByRole — schema", () => {
