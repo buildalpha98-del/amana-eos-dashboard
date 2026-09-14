@@ -95,6 +95,8 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
   const sessionRef = useRef<{ id: string; meetingId: string; mime: string; startedAt: number } | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stopResolveRef = useRef<(() => void) | null>(null);
+  // Guards the async gap in start() (permission prompt) against a double-click.
+  const startingRef = useRef(false);
   // Mirror of `status` for callbacks that must not depend on a stale closure.
   const statusRef = useRef<RecorderStatus>("idle");
   useEffect(() => {
@@ -194,77 +196,82 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
 
   const start = useCallback(
     async (targetMeetingId: string) => {
-      if (statusRef.current !== "idle" || sessionRef.current || recorderRef.current) return;
-      setError(null);
-      const mime = pickRecordingMime();
-      if (!mime) {
-        fail("This browser can't record audio — try Chrome, Edge or Safari.");
-        return;
-      }
-      let stream: MediaStream;
+      if (startingRef.current || statusRef.current !== "idle" || sessionRef.current || recorderRef.current) return;
+      startingRef.current = true;
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (err) {
-        fail(describeMicError(err));
-        return;
-      }
+        setError(null);
+        const mime = pickRecordingMime();
+        if (!mime) {
+          fail("This browser can't record audio — try Chrome, Edge or Safari.");
+          return;
+        }
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (err) {
+          fail(describeMicError(err));
+          return;
+        }
 
-      const session = { id: crypto.randomUUID(), meetingId: targetMeetingId, mime, startedAt: Date.now() };
-      sessionRef.current = session;
-      chunksRef.current = [];
-      try {
-        await recordingStore.createSession({ id: session.id, meetingId: targetMeetingId, mimeType: mime, startedAt: session.startedAt });
-      } catch (err) {
-        sessionRef.current = null;
-        stream.getTracks().forEach((t) => t.stop());
-        fail(`Couldn't prepare local storage for the recording: ${err instanceof Error ? err.message : "unknown error"}`);
-        return;
-      }
+        const session = { id: crypto.randomUUID(), meetingId: targetMeetingId, mime, startedAt: Date.now() };
+        sessionRef.current = session;
+        chunksRef.current = [];
+        try {
+          await recordingStore.createSession({ id: session.id, meetingId: targetMeetingId, mimeType: mime, startedAt: session.startedAt });
+        } catch (err) {
+          sessionRef.current = null;
+          stream.getTracks().forEach((t) => t.stop());
+          fail(`Couldn't prepare local storage for the recording: ${err instanceof Error ? err.message : "unknown error"}`);
+          return;
+        }
 
-      const recorder = new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 32_000 });
-      let index = 0;
-      recorder.ondataavailable = (e) => {
-        if (e.data.size === 0) return;
-        chunksRef.current.push(e.data);
-        recordingStore.appendChunk(session.id, index++, e.data, Date.now()).catch(() => {
-          /* memory copy still uploads on Stop */
-        });
-      };
-      recorder.onstop = () => {
-        void finalizeLive()
-          .catch((err) => {
-            fail(
-              `Could not finish the recording: ${err instanceof Error ? err.message : "unknown error"}. Open the meeting to retry from what was saved.`,
-            );
-            setStatus("idle");
-            setMeetingId(null);
-          })
-          .finally(() => {
-            stopResolveRef.current?.();
-            stopResolveRef.current = null;
+        const recorder = new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 32_000 });
+        let index = 0;
+        recorder.ondataavailable = (e) => {
+          if (e.data.size === 0) return;
+          chunksRef.current.push(e.data);
+          recordingStore.appendChunk(session.id, index++, e.data, Date.now()).catch(() => {
+            /* memory copy still uploads on Stop */
           });
-      };
-      const cutShort = () => {
-        // onerror and the track's `ended` can BOTH fire; only act once.
-        if (recorderRef.current !== recorder || recorder.state === "inactive") return;
-        fail("The microphone stopped — recording was cut short. Uploading what was captured.");
-        recorder.stop();
-      };
-      recorder.onerror = cutShort;
-      stream.getAudioTracks().forEach((t) => {
-        t.onended = cutShort;
-      });
+        };
+        recorder.onstop = () => {
+          void finalizeLive()
+            .catch((err) => {
+              fail(
+                `Could not finish the recording: ${err instanceof Error ? err.message : "unknown error"}. Open the meeting to retry from what was saved.`,
+              );
+              setStatus("idle");
+              setMeetingId(null);
+            })
+            .finally(() => {
+              stopResolveRef.current?.();
+              stopResolveRef.current = null;
+            });
+        };
+        const cutShort = () => {
+          // onerror and the track's `ended` can BOTH fire; only act once.
+          if (recorderRef.current !== recorder || recorder.state === "inactive") return;
+          fail("The microphone stopped — recording was cut short. Uploading what was captured.");
+          recorder.stop();
+        };
+        recorder.onerror = cutShort;
+        stream.getAudioTracks().forEach((t) => {
+          t.onended = cutShort;
+        });
 
-      recorderRef.current = recorder;
-      streamRef.current = stream;
-      recorder.start(TIMESLICE_MS);
-      setMeetingId(targetMeetingId);
-      setElapsedSeconds(0);
-      setStatus("recording");
-      tickRef.current = setInterval(() => {
-        setElapsedSeconds(Math.round((Date.now() - session.startedAt) / 1000));
-      }, 1000);
-      await refreshRecoverable();
+        recorderRef.current = recorder;
+        streamRef.current = stream;
+        recorder.start(TIMESLICE_MS);
+        setMeetingId(targetMeetingId);
+        setElapsedSeconds(0);
+        setStatus("recording");
+        tickRef.current = setInterval(() => {
+          setElapsedSeconds(Math.round((Date.now() - session.startedAt) / 1000));
+        }, 1000);
+        await refreshRecoverable();
+      } finally {
+        startingRef.current = false;
+      }
     },
     [fail, finalizeLive, refreshRecoverable],
   );

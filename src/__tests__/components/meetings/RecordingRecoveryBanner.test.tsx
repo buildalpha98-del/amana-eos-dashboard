@@ -20,6 +20,7 @@ import { RecordingRecoveryBanner } from "@/components/meetings/RecordingRecovery
 
 describe("RecordingRecoveryBanner", () => {
   beforeEach(() => {
+    ctx.status = "idle";
     ctx.recoverable = [];
     ctx.uploadRecoverable.mockReset();
     ctx.discardRecoverable.mockReset();
@@ -47,7 +48,6 @@ describe("RecordingRecoveryBanner", () => {
     ctx.recoverable = [{ sessionId: "s1", meetingId: "m1", startedAt: 0, updatedAt: 5_000, chunkCount: 1 }];
     render(<RecordingRecoveryBanner meetingId="m1" canManage />);
     expect(screen.getByRole("button", { name: /upload/i })).toBeDisabled();
-    ctx.status = "idle";
   });
 
   it("hides the actions for users who cannot manage recordings", () => {

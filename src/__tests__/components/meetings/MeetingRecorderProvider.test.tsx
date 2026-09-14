@@ -270,6 +270,55 @@ describe("MeetingRecorderProvider", () => {
     expect(uploadFileSmart).toHaveBeenCalledTimes(1);
   });
 
+  it("ignores a second start while the permission prompt is still open", async () => {
+    const { result } = renderHook(() => useMeetingRecorder(), { wrapper });
+    const p1 = result.current.start("m1");
+    const p2 = result.current.start("m1");
+    await act(async () => { await Promise.all([p1, p2]); });
+    expect(result.current.status).toBe("recording");
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(1);
+    expect(FakeMediaRecorder.instances).toHaveLength(1);
+    expect(await recordingStore.listSessions()).toHaveLength(1);
+  });
+
+  it("still uploads the in-memory chunk when persisting it to IndexedDB fails", async () => {
+    const appendChunk = vi.spyOn(recordingStore, "appendChunk").mockRejectedValueOnce(new Error("idb"));
+    const { result } = renderHook(() => useMeetingRecorder(), { wrapper });
+    await act(async () => { await result.current.start("m1"); });
+    await act(async () => { FakeMediaRecorder.instances[0].emit("aa"); });
+    await act(async () => { await result.current.stop(); });
+
+    await waitFor(() => expect(result.current.status).toBe("idle"));
+    expect(appendChunk).toHaveBeenCalledTimes(1);
+    expect(uploadFileSmart).toHaveBeenCalledTimes(1);
+    const [file] = uploadFileSmart.mock.calls[0] as [File];
+    expect(await readBlobText(file)).toBe("aa");
+    appendChunk.mockRestore();
+  });
+
+  it("settles recoverable to [] when listing sessions fails on mount", async () => {
+    const listSessions = vi.spyOn(recordingStore, "listSessions").mockRejectedValueOnce(new Error("idb"));
+    const { result } = renderHook(() => useMeetingRecorder(), { wrapper });
+    await waitFor(() => expect(listSessions).toHaveBeenCalled());
+    await act(async () => {});
+    expect(result.current.recoverable).toEqual([]);
+    expect(result.current.status).toBe("idle");
+    listSessions.mockRestore();
+  });
+
+  it("drops an orphan that another tab already deleted instead of uploading it", async () => {
+    await recordingStore.createSession({ id: "orphan", meetingId: "m9", mimeType: "audio/webm", startedAt: 1_000 });
+    await recordingStore.appendChunk("orphan", 0, new Blob(["zz"]), 61_000);
+    const { result } = renderHook(() => useMeetingRecorder(), { wrapper });
+    await waitFor(() => expect(result.current.recoverable).toHaveLength(1));
+
+    await recordingStore.deleteSession("orphan");
+    await act(async () => { await result.current.uploadRecoverable("orphan"); });
+    expect(uploadFileSmart).not.toHaveBeenCalled();
+    expect(mutateApi).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.recoverable).toEqual([]));
+  });
+
   it("useMeetingRecorder throws outside the provider", () => {
     expect(() => renderHook(() => useMeetingRecorder())).toThrow(/MeetingRecorderProvider/);
   });

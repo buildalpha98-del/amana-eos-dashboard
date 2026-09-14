@@ -104,6 +104,9 @@ export function ActiveMeetingView({
     "eos_implementer",
   ].includes(sessionData?.user?.role ?? "");
   const recorder = useMeetingRecorder();
+  // `recorder` is a new object every second while recording (elapsedSeconds);
+  // `stop` is stable, so callbacks depend on it rather than the whole context.
+  const { stop: stopRecording } = recorder;
   const isRecordingThisMeeting =
     recorder.status === "recording" && recorder.meetingId === meeting.id;
 
@@ -308,14 +311,14 @@ export function ActiveMeetingView({
       {
         onSuccess: () => {
           // Completing the meeting ends the recording — never the other way round.
-          if (isRecordingThisMeeting) void recorder.stop();
+          if (isRecordingThisMeeting) void stopRecording();
         },
         onError: (err: Error) => {
           toast({ variant: "destructive", description: err.message || "Failed to end meeting" });
         },
       }
     );
-  }, [meeting.id, currentSection, segueNotes, headlines, concludeNotes, cascadeMessages, rating, attendeeRatings, updateMeeting, isRecordingThisMeeting, recorder]);
+  }, [meeting.id, currentSection, segueNotes, headlines, concludeNotes, cascadeMessages, rating, attendeeRatings, updateMeeting, isRecordingThisMeeting, stopRecording]);
 
   const handleTodoToggle = useCallback(
     (id: string, done: boolean) => {

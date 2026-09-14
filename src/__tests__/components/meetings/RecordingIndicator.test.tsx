@@ -29,9 +29,12 @@ describe("RecordingIndicator", () => {
     usePathname.mockReturnValue("/todos");
   });
 
-  it("renders nothing while idle", () => {
-    const { container } = render(<RecordingIndicator />);
-    expect(container).toBeEmptyDOMElement();
+  it("shows no pill while idle but keeps an empty live region mounted", () => {
+    render(<RecordingIndicator />);
+    expect(screen.queryByText(/REC/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/uploading recording/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /stop recording/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
 
   it("shows elapsed time, Stop, and a back link away from the meetings page", () => {
@@ -62,7 +65,7 @@ describe("RecordingIndicator", () => {
   it("shows an uploading state without a Stop button", () => {
     ctx.status = "uploading";
     render(<RecordingIndicator />);
-    expect(screen.getByText("Uploading recording…")).toBeInTheDocument();
+    expect(screen.getByText("Uploading recording…")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByRole("status")).toHaveTextContent("Uploading recording");
     expect(screen.queryByRole("button", { name: /stop recording/i })).not.toBeInTheDocument();
   });

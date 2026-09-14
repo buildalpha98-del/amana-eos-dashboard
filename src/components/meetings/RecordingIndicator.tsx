@@ -20,47 +20,51 @@ export function formatElapsed(seconds: number): string {
 export function RecordingIndicator() {
   const { status, elapsedSeconds, stop } = useMeetingRecorder();
   const pathname = usePathname();
-  if (status === "idle") return null;
-
   const onMeetingsPage = pathname === "/meetings";
 
   return (
-    <div className="fixed z-50 right-6 bottom-36 md:bottom-20 flex items-center gap-2 rounded-full border border-border bg-card shadow-lg pl-3 pr-2 py-1.5">
-      {/* One announcement per state change — the ticking timer itself is
-          hidden from assistive tech so it isn't re-read every second. */}
+    <>
+      {/* Always mounted so screen readers get one announcement per state
+          change (a live region only announces when it exists before the text
+          changes). The ticking timer is hidden from AT so it isn't re-read
+          every second. */}
       <span className="sr-only" role="status">
-        {status === "recording" ? "Recording in progress" : "Uploading recording"}
+        {status === "recording" ? "Recording in progress" : status === "uploading" ? "Uploading recording" : ""}
       </span>
-      {status === "recording" ? (
-        <>
-          <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600" />
-          </span>
-          <span className="text-xs font-semibold tabular-nums text-foreground" aria-hidden="true">
-            REC {formatElapsed(elapsedSeconds)}
-          </span>
-          {!onMeetingsPage && (
-            <Link href="/meetings" className="text-xs text-brand hover:underline">
-              Back to meeting
-            </Link>
+      {status !== "idle" && (
+        <div className="fixed z-50 right-6 bottom-36 md:bottom-20 flex items-center gap-2 rounded-full border border-border bg-card shadow-lg pl-3 pr-2 py-1.5">
+          {status === "recording" ? (
+            <>
+              <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600" />
+              </span>
+              <span className="text-xs font-semibold tabular-nums text-foreground" aria-hidden="true">
+                REC {formatElapsed(elapsedSeconds)}
+              </span>
+              {!onMeetingsPage && (
+                <Link href="/meetings" className="text-xs text-brand hover:underline">
+                  Back to meeting
+                </Link>
+              )}
+              <Button
+                variant="destructive"
+                size="xs"
+                onClick={() => void stop()}
+                aria-label="Stop recording"
+                iconLeft={<Square className="w-3 h-3" />}
+              >
+                Stop
+              </Button>
+            </>
+          ) : (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-muted" aria-hidden="true" />
+              <span className="text-xs text-muted" aria-hidden="true">Uploading recording…</span>
+            </>
           )}
-          <Button
-            variant="destructive"
-            size="xs"
-            onClick={() => void stop()}
-            aria-label="Stop recording"
-            iconLeft={<Square className="w-3 h-3" />}
-          >
-            Stop
-          </Button>
-        </>
-      ) : (
-        <>
-          <Loader2 className="w-3.5 h-3.5 animate-spin text-muted" aria-hidden="true" />
-          <span className="text-xs text-muted">Uploading recording…</span>
-        </>
+        </div>
       )}
-    </div>
+    </>
   );
 }
