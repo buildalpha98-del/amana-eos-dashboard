@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
-import { canAccessProfile } from "@/lib/staff/can-access-profile";
+import { canAccessStaffProfile } from "@/lib/staff-access";
 import { loadRampScorecard } from "@/lib/ramp/scorecard";
 import { canReviewRamp } from "@/lib/ramp/recipients";
 
@@ -25,7 +25,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
     select: { id: true, name: true, serviceId: true, service: { select: { id: true, name: true, managerId: true } } },
   });
   if (!target) throw ApiError.notFound("User not found");
-  if (!(await canAccessProfile(viewerId, viewerRole, target))) {
+  if (!(await canAccessStaffProfile(viewerId, viewerRole, target))) {
     throw ApiError.notFound("User not found");
   }
 

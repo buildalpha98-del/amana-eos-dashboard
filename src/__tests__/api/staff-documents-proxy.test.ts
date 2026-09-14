@@ -7,8 +7,10 @@
  * Matrix:
  *   - Uploader OR assignee is the viewer: 307
  *   - Admin (owner / admin / head_office): 307
- *   - Coordinator in the same service as the doc's assignee: 307
+ *   - Director of Service (member) at any centre the assignee is attached
+ *     to — primary, their own membership, or one they manage: 307
  *   - Member in a different service: 403
+ *   - Educator (staff) in the SAME service as the assignee: 403
  *   - Missing fileUrl: 404
  *   - Deleted (soft-delete): 404
  *   - Missing document: 404
@@ -177,6 +179,103 @@ describe("GET /api/staff-documents/[id]", () => {
 
     const res = await callRoute("doc-1");
     expect(res.status).toBe(403);
+  });
+
+  // 2026-09-14: the same-service branch used to accept ANY role, so an
+  // Educator rostered alongside a colleague could open their contract or
+  // WWCC. Supervision of a centre's staff records is the Director's job.
+  it("returns 403 for an educator in the same service as the doc's assignee", async () => {
+    mockSession({ id: "edu-1", name: "Educator", role: "staff" });
+    prismaMock.document.findUnique.mockResolvedValue({
+      id: "doc-1",
+      fileUrl: BLOB,
+      fileName: "contract.pdf",
+      deleted: false,
+      uploadedById: "admin-99",
+      assignedToId: "staff-99",
+    });
+    prismaMock.user.findUnique.mockImplementation(({ where, select }: { where?: { id?: string }; select?: { active?: boolean; serviceId?: boolean } }) => {
+      if (where?.id === "edu-1" && select?.active) {
+        return Promise.resolve({ active: true });
+      }
+      if (where?.id === "edu-1" && select?.serviceId) {
+        return Promise.resolve({ serviceId: "svc-shared" });
+      }
+      if (where?.id === "staff-99" && select?.serviceId) {
+        return Promise.resolve({ id: "staff-99", serviceId: "svc-shared" });
+      }
+      return Promise.resolve(null);
+    });
+
+    const res = await callRoute("doc-1");
+    expect(res.status).toBe(403);
+  });
+
+  it("returns 403 for a member when the assignee has no service", async () => {
+    // Guards the null === null case: a Director with no centre must not
+    // inherit every unassigned staff member's documents.
+    mockSession({ id: "coord-3", name: "Coord", role: "member" });
+    prismaMock.document.findUnique.mockResolvedValue({
+      id: "doc-1",
+      fileUrl: BLOB,
+      fileName: "contract.pdf",
+      deleted: false,
+      uploadedById: "admin-99",
+      assignedToId: "staff-99",
+    });
+    prismaMock.user.findUnique.mockImplementation(({ where, select }: { where?: { id?: string }; select?: { active?: boolean; serviceId?: boolean } }) => {
+      if (where?.id === "coord-3" && select?.active) {
+        return Promise.resolve({ active: true });
+      }
+      if (where?.id === "coord-3" && select?.serviceId) {
+        return Promise.resolve({ serviceId: null });
+      }
+      if (where?.id === "staff-99" && select?.serviceId) {
+        return Promise.resolve({ id: "staff-99", serviceId: null });
+      }
+      return Promise.resolve(null);
+    });
+
+    const res = await callRoute("doc-1");
+    expect(res.status).toBe(403);
+  });
+
+  // Wiring check for the widened centre scope (the rule itself is covered
+  // in src/__tests__/lib/staff-access.test.ts). A Director whose second
+  // centre comes from a membership must reach that centre's staff files.
+  it("returns 307 for a member covering the assignee's centre via a membership", async () => {
+    mockSession({ id: "coord-4", name: "Coord", role: "member" });
+    prismaMock.document.findUnique.mockResolvedValue({
+      id: "doc-1",
+      fileUrl: BLOB,
+      fileName: "contract.pdf",
+      deleted: false,
+      uploadedById: "admin-99",
+      assignedToId: "staff-99",
+    });
+    prismaMock.service.findMany.mockResolvedValue([]);
+    prismaMock.userServiceMembership.findMany.mockImplementation(
+      ({ where }: { where?: { userId?: string } }) =>
+        Promise.resolve(
+          // The Director is attached to svc-second on top of their own centre.
+          where?.userId === "coord-4" ? [{ serviceId: "svc-second" }] : [],
+        ),
+    );
+    prismaMock.user.findUnique.mockImplementation(({ where, select }: { where?: { id?: string }; select?: { active?: boolean; serviceId?: boolean } }) => {
+      if (where?.id === "coord-4" && select?.active) {
+        return Promise.resolve({ active: true });
+      }
+      if (where?.id === "coord-4" && select?.serviceId) {
+        return Promise.resolve({ serviceId: "svc-primary" });
+      }
+      if (where?.id === "staff-99" && select?.serviceId) {
+        return Promise.resolve({ id: "staff-99", serviceId: "svc-second" });
+      }
+      return Promise.resolve(null);
+    });
+
+    const res = await callRoute("doc-1");
+    expect(res.status).toBe(307);
   });
 
   it("returns 404 when the document is soft-deleted", async () => {

@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/role-permissions";
-import { canAccessProfile } from "@/lib/staff/can-access-profile";
 import { requirePageSession } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { notFound } from "next/navigation";
@@ -12,6 +11,22 @@ import { getOrgSettings } from "@/lib/org-settings";
 import { getRequiredCertTypes } from "@/lib/cert-requirements";
 import { buildListWhere } from "@/lib/employees/build-list-where";
 import { getCentreScope } from "@/lib/centre-scope";
+import { canAccessStaffProfile } from "@/lib/staff-access";
+
+/**
+ * Re-export of the shared rule in @/lib/staff-access.
+ *
+ * The logic used to live here, which meant /api/staff-documents/[id] had its
+ * own near-copy that had drifted (it let any same-service role through, not
+ * just the Director). One definition now, imported by both.
+ */
+export async function canAccessProfile(
+  viewerId: string,
+  viewerRole: string | null,
+  target: { id: string; serviceId: string | null },
+): Promise<boolean> {
+  return canAccessStaffProfile(viewerId, viewerRole, target);
+}
 
 interface PageProps {
   params: Promise<{ id: string }>;

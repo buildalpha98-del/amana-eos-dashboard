@@ -5,7 +5,7 @@ describe("contractIssuedEmail", () => {
   const BASE_ARGS = {
     name: "Jane Smith",
     contractName: "Part-Time Educator Contract",
-    portalUrl: "https://amanaoshc.company/my-portal?contract=abc123",
+    portalUrl: "https://amanaoshc.company/my-contract?contract=abc123",
     pdfUrl: "https://blob.storage/contracts/contract-abc123.pdf",
   };
 

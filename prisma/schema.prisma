@@ -1077,7 +1077,14 @@ model NewStarterRequest {
   /// Reuses the Children's Services Award levels already on
   /// EmploymentContract.awardLevel — same taxonomy, same custom-label escape
   /// hatch.
-  awardLevel       AwardLevel
+  ///
+  /// 2026-09-14: dropped from the intake form and made optional. A State
+  /// Manager submitting a new starter doesn't know the award level yet —
+  /// that's settled when the contract is drafted, where the field already
+  /// exists on EmploymentContract. Qualification is what they DO know at
+  /// intake. Kept nullable rather than deleted so historical rows keep the
+  /// value they were submitted with.
+  awardLevel       AwardLevel?
   awardLevelCustom String?
 
   /// Null = no qualification yet ("just nothing at all" per the request).
@@ -1106,12 +1113,42 @@ model NewStarterRequest {
   completedUserId String? @unique
   completedUser   User?   @relation("NewStarterRequestCompletedUser", fields: [completedUserId], references: [id], onDelete: SetNull)
 
+  /// Did the dashboard invite actually reach them?
+  ///
+  /// 2026-09-14: a State Manager completed an onboarding and the new hire
+  /// never got their login. sendEmail returns suppression and provider
+  /// rejection as VALUES rather than throwing, and the invite helper
+  /// ignored the return value, so every failure looked like success. The
+  /// outcome is now recorded on the request so the panel can show it and
+  /// offer a resend. Null = submitted before this was tracked.
+  inviteStatus NewStarterInviteStatus?
+  /// Provider/suppression detail for a non-`sent` status — shown to the
+  /// admin so they know whether to un-suppress, fix the address, or chase
+  /// the domain setup.
+  inviteError  String?
+  inviteSentAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status])
   @@index([serviceId])
   @@index([requestedById])
+}
+
+/// Outcome of the new starter's dashboard invite email.
+enum NewStarterInviteStatus {
+  sent
+  /// Address is on the EmailSuppression list (past bounce/complaint/
+  /// unsubscribe) — nothing was sent and nothing will be until it's cleared.
+  suppressed
+  /// Resend accepted the request and rejected it: unverified domain, rate
+  /// limit, blocked recipient.
+  rejected
+  /// RESEND_API_KEY isn't configured in this environment.
+  not_configured
+  /// Anything else thrown while sending.
+  error
 }
 
 enum NewStarterCheckInMilestone {

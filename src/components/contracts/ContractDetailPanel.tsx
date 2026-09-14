@@ -228,8 +228,11 @@ export function ContractDetailPanel({
           <p className="text-xs font-medium text-muted uppercase tracking-wider mb-1">
             Document
           </p>
+          {/* Through the access-checked proxy, never the raw blob URL — a
+              blob link in the markup is a permanent, shareable bypass of
+              every permission check on this page. */}
           <a
-            href={contract.documentUrl}
+            href={`/api/contracts/${contract.id}/document`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-sm text-brand hover:underline"

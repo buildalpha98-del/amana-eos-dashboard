@@ -1491,7 +1491,7 @@ export default function MyPortalPage() {
                   startDate: activeContract.startDate,
                   endDate: activeContract.endDate,
                   isTemplateBased: !!activeContract.templateId,
-                  documentUrl: activeContract.documentUrl,
+                  hasDocument: !!activeContract.documentUrl,
                   acknowledged: activeContract.acknowledgedByStaff,
                   acknowledgedAt: activeContract.acknowledgedAt,
                   canAcknowledge: !activeContract.acknowledgedByStaff,
@@ -1513,6 +1513,12 @@ export default function MyPortalPage() {
                 ? "Read & acknowledge"
                 : "View Contract"}
             </button>
+            <Link
+              href="/my-contract"
+              className="text-sm text-brand hover:underline"
+            >
+              Contract history &amp; downloads
+            </Link>
           </div>
         </div>
       )}
@@ -1575,7 +1581,7 @@ export default function MyPortalPage() {
                         startDate: c.startDate,
                         endDate: c.endDate,
                         isTemplateBased: !!c.templateId,
-                        documentUrl: c.documentUrl,
+                        hasDocument: !!c.documentUrl,
                         acknowledged: !!c.acknowledgedAt,
                         acknowledgedAt: c.acknowledgedAt,
                         canAcknowledge: false,

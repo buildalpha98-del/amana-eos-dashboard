@@ -73,10 +73,11 @@ export function NewStarterRequestModal({
     email: "",
     targetPosition: "",
     employmentType: "casual" as EmploymentType,
-    awardLevel: "" as AwardLevel | "",
-    awardLevelCustom: "",
     qualification: "" as QualificationType | "",
-    serviceId: services[0]?.id ?? "",
+    // 2026-09-14: no longer defaults to the first centre. It pre-filled
+    // services[0], so submitting without touching the field silently
+    // assigned the new starter to whichever centre happened to sort first.
+    serviceId: "",
     expectedStartDate: "",
     notes: "",
   });
@@ -111,20 +112,12 @@ export function NewStarterRequestModal({
       toast({ variant: "destructive", description: "Enter the position they're joining as." });
       return;
     }
-    if (!form.awardLevel) {
-      toast({ variant: "destructive", description: "Select their award level." });
-      return;
-    }
     if (!form.address.trim()) {
       toast({ variant: "destructive", description: "Enter their address." });
       return;
     }
     if (!form.serviceId) {
       toast({ variant: "destructive", description: "Select which centre they're joining." });
-      return;
-    }
-    if (form.awardLevel === "custom" && !form.awardLevelCustom.trim()) {
-      toast({ variant: "destructive", description: "Enter a label for the custom award level." });
       return;
     }
 
@@ -136,8 +129,6 @@ export function NewStarterRequestModal({
       email: form.email.trim(),
       targetPosition: form.targetPosition.trim(),
       employmentType: form.employmentType,
-      awardLevel: form.awardLevel,
-      awardLevelCustom: form.awardLevel === "custom" ? form.awardLevelCustom.trim() : undefined,
       qualification: form.qualification || null,
       serviceId: form.serviceId,
       expectedStartDate: form.expectedStartDate,
@@ -241,13 +232,16 @@ export function NewStarterRequestModal({
               />
             </div>
             <div>
-              <label className="text-xs text-muted block mb-1">Centre</label>
+              <label className="text-xs text-muted block mb-1">Centre {REQUIRED_MARK}</label>
               <select
+                required
                 value={form.serviceId}
                 onChange={(e) => set("serviceId", e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
               >
-                {services.length === 0 && <option value="">No centres available</option>}
+                <option value="" disabled>
+                  {services.length === 0 ? "No centres available" : "Select centre…"}
+                </option>
                 {services.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
@@ -280,35 +274,6 @@ export function NewStarterRequestModal({
                 ))}
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-muted block mb-1">Award level {REQUIRED_MARK}</label>
-              <select
-                required
-                value={form.awardLevel}
-                onChange={(e) => set("awardLevel", e.target.value as AwardLevel | "")}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
-              >
-                <option value="" disabled>Select award level…</option>
-                {AWARD_LEVEL_OPTIONS.map((v) => (
-                  <option key={v} value={v}>{AWARD_LEVEL_LABELS[v]}</option>
-                ))}
-              </select>
-            </div>
-            {form.awardLevel === "custom" && (
-              <div>
-                <label className="text-xs text-muted block mb-1">Custom label</label>
-                <input
-                  type="text"
-                  value={form.awardLevelCustom}
-                  onChange={(e) => set("awardLevelCustom", e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
-                  placeholder="e.g. Above-award rate"
-                />
-              </div>
-            )}
           </div>
 
           <div>

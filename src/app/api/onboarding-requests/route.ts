@@ -11,6 +11,8 @@ import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
 import { seedOnboardingPackage } from "@/lib/onboarding-seed";
 import { assignOnboardingPack } from "@/lib/onboarding-assign";
 import { sendWelcomeInvite } from "@/lib/staff-invite";
+import { createOnboardingOwnerTodo } from "@/lib/new-starter-request/owner-todo";
+import { getOrgSettings } from "@/lib/org-settings";
 import { sendFirstShiftChecklistEmail } from "@/lib/new-starter-request/first-shift-email";
 import { createStaffRamp } from "@/lib/ramp/create";
 import { logger } from "@/lib/logger";
@@ -23,10 +25,12 @@ import { logger } from "@/lib/logger";
  *   2. seeds the standard onboarding todos + assigns a default pack if one
  *      exists for the centre
  *   3. emails the new hire their dashboard invite AND a first-shift
- *      checklist
+ *      checklist — and RECORDS whether the invite actually went out
  *   4. seeds the day-1/week-1/month-1 check-in touchpoints
- *   5. notifies every admin-tier user (in-app + email) to do the
- *      Employment Hero + contract paperwork
+ *   5. creates an assigned to-do for the onboarding owner
+ *      (`onboarding.ownerUserId` in org settings) and notifies every
+ *      admin-tier user (in-app + email) about the Employment Hero +
+ *      contract paperwork
  * The NewStarterRequest row itself is created already "completed" — it's
  * the audit record, not a pending ticket someone else has to action.
  */
@@ -79,7 +83,11 @@ const createBodySchema = z.object({
   email: z.string().email().max(200),
   targetPosition: z.string().min(1).max(200),
   employmentType: z.nativeEnum(EmploymentType),
-  awardLevel: z.nativeEnum(AwardLevel),
+  // 2026-09-14: dropped from the intake form and optional here. A State
+  // Manager doesn't know the award level when they submit a new starter —
+  // it's settled when the contract is drafted. Still accepted so an older
+  // client, or a future flow that does know it, can supply one.
+  awardLevel: z.nativeEnum(AwardLevel).optional().nullable(),
   awardLevelCustom: z.string().max(100).optional(),
   qualification: z.nativeEnum(QualificationType).optional().nullable(),
   serviceId: z.string().min(1),
@@ -153,7 +161,7 @@ export const POST = withApiAuth(
         email,
         targetPosition: data.targetPosition,
         employmentType: data.employmentType,
-        awardLevel: data.awardLevel,
+        awardLevel: data.awardLevel ?? null,
         awardLevelCustom: data.awardLevel === "custom" ? data.awardLevelCustom ?? null : null,
         qualification: data.qualification ?? null,
         serviceId: data.serviceId,
@@ -204,7 +212,28 @@ export const POST = withApiAuth(
     // Two emails to the new hire: the standard "here's your login" invite,
     // then the onboarding-specific "what to do before your first shift"
     // checklist (pulled from the pack just assigned, if any).
-    await sendWelcomeInvite({ email, name: data.fullName, tempPassword });
+    //
+    // The invite result is RECORDED, not discarded. sendEmail returns
+    // suppression and provider rejection as values rather than throwing,
+    // so a dropped invite used to look identical to a delivered one — a
+    // State Manager saw a completed onboarding and the new hire got
+    // nothing. The account and the rest of onboarding still stand; the
+    // panel surfaces the failure and offers a resend.
+    const invite = await sendWelcomeInvite({
+      email,
+      name: data.fullName,
+      tempPassword,
+    });
+    const withInvite = await prisma.newStarterRequest.update({
+      where: { id: created.id },
+      data: {
+        inviteStatus: invite.status,
+        inviteError: invite.detail ?? null,
+        inviteSentAt: invite.status === "sent" ? new Date() : null,
+      },
+      include: requestInclude,
+    });
+
     await sendFirstShiftChecklistEmail({
       email,
       name: data.fullName,
@@ -215,13 +244,26 @@ export const POST = withApiAuth(
     // 90-day ramp: weekly check-ins + 30/60/90 manager checkpoints.
     await createStaffRamp(prisma, user.id, data.expectedStartDate);
 
+    // The paperwork now has an owner as well as an audience: an assigned
+    // to-do for whoever runs onboarding, plus the existing heads-up email
+    // to the rest of the admin tier.
+    const orgSettings = await getOrgSettings().catch(() => null);
+    await createOnboardingOwnerTodo(prisma, {
+      requestId: created.id,
+      fullName: created.fullName,
+      ownerUserId: orgSettings?.onboarding?.ownerUserId ?? null,
+      createdById: session.user.id,
+      serviceId: created.serviceId,
+      expectedStartDate: data.expectedStartDate,
+    });
+
     await notifyNewStarterRequestSubmitted(prisma, {
       id: created.id,
       fullName: created.fullName,
       requestedById: created.requestedById,
     });
 
-    return NextResponse.json(created, { status: 201 });
+    return NextResponse.json(withInvite, { status: 201 });
   },
   { roles: ["owner", "head_office", "admin"] },
 );

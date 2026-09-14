@@ -16,6 +16,11 @@
  * The compliance API scopes `staff` to their own certs server-side, so a locked
  * user reaching it leaks nothing.
  *
+ * `/my-contract` is here because signing the employment contract is itself a
+ * new-starter task — a locked user needs to reach it, and the route is
+ * self-scoped (the API reads userId from the session), so it exposes nothing
+ * but their own contract.
+ *
  * `/onboarding` is deliberately NOT here. It is the admin induction surface
  * (practical sign-off, overrides), and middleware skips the role check for
  * allowed paths — listing it would hand every locked educator the sign-off
@@ -24,6 +29,7 @@
 export const INDUCTION_ALLOWED_PREFIXES = [
   "/my-training",
   "/learn",
+  "/my-contract",
   "/profile",
   "/handbook",
   "/policies",
