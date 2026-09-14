@@ -22,12 +22,19 @@
  * IP, privacy, deductions, general clauses, signature blocks — is shared
  * verbatim.
  *
- * `{{contract.hoursPerWeek}}` is deliberately KEPT in 4.1 rather than
- * hardcoded to the award's 38. The rendered contract then always states
- * the hours actually recorded on the EmploymentContract row, so the
- * document can never contradict the record it was issued from. Issuing a
- * full-time contract at anything other than 38 is a data-entry question
- * for the admin, not something the template should paper over.
+ * Clause 4.1 states 38 hours as a LITERAL, not via
+ * `{{contract.hoursPerWeek}}` (Jayden's call, 2026-09-14). 38 ordinary
+ * hours per week IS the Children's Services Award 2010 definition of
+ * full time, so the figure belongs to the template rather than to the
+ * row it is issued from — a full-time contract that rendered some other
+ * number would be describing something that is not full-time employment.
+ *
+ * The trade-off, stated plainly because it is real: if an
+ * EmploymentContract row carries hoursPerWeek other than 38, the issued
+ * document will still read 38 and will not match that field. The field
+ * remains the payroll figure; the clause is the contractual definition.
+ * If that divergence ever needs catching, the place to catch it is a
+ * validation at issue time, not a merge tag here.
  */
 
 import { COORDINATOR_PERMANENT_CONTENT_JSON } from "./coordinator-permanent-preset";
@@ -55,6 +62,13 @@ export const COORDINATOR_FULLTIME_MANUAL_FIELDS: Array<{
 // ─── Derivation ─────────────────────────────────────────────────────────────
 
 type Node = Record<string, unknown>;
+
+/**
+ * Ordinary hours for a full-time employee under the Children's Services
+ * Award 2010 (MA000120). Named rather than inlined so the one place the
+ * figure lives is obvious if the award ever moves.
+ */
+const FULL_TIME_ORDINARY_HOURS = 38;
 
 /**
  * Collect every text string in a node subtree, so a clause can be matched
@@ -101,6 +115,33 @@ function rewriteClause(
   });
 }
 
+/**
+ * Swap the single node whose combined text contains `needle` for
+ * `replacement`.
+ *
+ * Distinct from `rewriteClause` because a clause can contain non-text
+ * nodes: 4.1 holds a `mergeTag` node between two text runs, and no amount
+ * of string rewriting removes it. Same exactly-one-match contract, same
+ * loud failure.
+ */
+function replaceClause(
+  nodes: readonly unknown[],
+  needle: string,
+  replacement: Node,
+  label: string,
+): Node[] {
+  const matches = nodes.filter((n) => textOf(n).includes(needle));
+  if (matches.length !== 1) {
+    throw new Error(
+      `coordinator-fulltime-preset: expected exactly 1 node containing ${JSON.stringify(needle)} for ${label}, found ${matches.length}. ` +
+        "The part-time preset has changed — update the full-time derivation to match before issuing any contract from it.",
+    );
+  }
+  return nodes.map((node) =>
+    matches.includes(node) ? replacement : (node as Node),
+  );
+}
+
 /** Apply `rewrite` to every text node in a subtree, preserving marks. */
 function rewriteTextNodes(node: unknown, rewrite: (t: string) => string): unknown {
   if (!node || typeof node !== "object") return node;
@@ -139,15 +180,22 @@ content = rewriteClause(
   "clause 1.3 (prior agreements)",
 );
 
-// 4.1 — full-time ordinary hours are a fixed figure, not a floor.
-content = rewriteClause(
+// 4.1 — full time is 38 ordinary hours per week under the Children's
+// Services Award 2010. The whole paragraph is replaced rather than
+// rewritten: part-time's version holds a `contract.hoursPerWeek` merge-tag
+// NODE between two text runs, and the literal has to take its place.
+content = replaceClause(
   content,
   "Your ordinary hours of work will be a minimum of",
-  (text) =>
-    text.replace(
-      "Your ordinary hours of work will be a minimum of ",
-      "Your ordinary hours of work will be ",
-    ),
+  {
+    type: "paragraph",
+    content: [
+      {
+        type: "text",
+        text: `4.1 Your ordinary hours of work will be ${FULL_TIME_ORDINARY_HOURS} hours per week.`,
+      },
+    ],
+  },
   "clause 4.1 (ordinary hours)",
 );
 

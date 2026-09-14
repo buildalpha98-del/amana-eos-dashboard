@@ -49,8 +49,13 @@ describe("OSHC Coordinator — Full-Time Permanent preset", () => {
     expect(fullTimeText).toContain("on a full-time permanent basis going forward");
   });
 
-  it("states ordinary hours as a fixed figure, not a minimum (clause 4.1)", () => {
-    expect(fullTimeText).toContain("Your ordinary hours of work will be ");
+  it("states 38 ordinary hours per week as a literal (clause 4.1)", () => {
+    // 38 ordinary hours IS the Children's Services Award definition of
+    // full time, so the figure belongs to the template rather than to the
+    // row the contract is issued from.
+    expect(fullTimeText).toContain(
+      "Your ordinary hours of work will be 38 hours per week.",
+    );
     expect(fullTimeText).not.toContain("ordinary hours of work will be a minimum of");
   });
 
@@ -71,9 +76,29 @@ describe("OSHC Coordinator — Full-Time Permanent preset", () => {
     expect(withoutTheList).not.toMatch(/part[- ]time/i);
   });
 
-  it("keeps the hours merge tag so the contract matches the record it was issued from", () => {
-    const tags = JSON.stringify(COORDINATOR_FULLTIME_CONTENT_JSON);
-    expect(tags).toContain("contract.hoursPerWeek");
+  it("drops the hours merge tag entirely — 4.1 must not be data-driven", () => {
+    // The tag is a NODE, not text, so a rewrite would have left it in place
+    // rendering "…will be 38 hours per week." followed by a stray figure.
+    // Assert on the serialised doc, which is the only thing that proves the
+    // node is gone rather than merely unreferenced by the visible text.
+    const doc = JSON.stringify(COORDINATOR_FULLTIME_CONTENT_JSON);
+    expect(doc).not.toContain("contract.hoursPerWeek");
+
+    // The part-time original still has it — this is a full-time-only change.
+    expect(JSON.stringify(COORDINATOR_PERMANENT_CONTENT_JSON)).toContain(
+      "contract.hoursPerWeek",
+    );
+  });
+
+  it("renders 38 without needing any contract data", () => {
+    // The point of the literal: no EmploymentContract row is consulted, so
+    // the clause reads the same however the row is filled in.
+    const clause = COORDINATOR_FULLTIME_CONTENT_JSON.content
+      .map(flatten)
+      .find((line) => line.startsWith("4.1 "));
+    expect(clause).toBe(
+      "4.1 Your ordinary hours of work will be 38 hours per week.",
+    );
   });
 
   it("changes ONLY the three clauses it claims to change", () => {
@@ -110,6 +135,8 @@ describe("OSHC Coordinator — Full-Time Permanent preset", () => {
       "staff.fullName",
       "contract.startDate",
       "contract.position",
+      // NB: contract.hoursPerWeek is deliberately absent from the
+      // full-time template — see the 4.1 tests above.
       "contract.payRate",
       "signature.admin",
       "signature.staff",
