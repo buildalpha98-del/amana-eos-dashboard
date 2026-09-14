@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import {
@@ -46,9 +46,8 @@ import { ConcludeSection } from "./ConcludeSection";
 import { MeetingOutcomesPanel } from "./MeetingOutcomesPanel";
 import { AiAgendaPanel } from "./AiAgendaPanel";
 import { MeetingAiReviewPanel } from "./MeetingAiReviewPanel";
-import { useMeetingRecorder } from "@/hooks/useMeetingRecorder";
-import { useCreateRecording } from "@/hooks/useMeetingRecordings";
-import { uploadFileSmart } from "@/lib/upload-client";
+import { useMeetingRecorder } from "./MeetingRecorderProvider";
+import { RecordingRecoveryBanner } from "./RecordingRecoveryBanner";
 
 const ISSUE_PRIORITIES = ["critical", "high", "medium", "low"] as const;
 const isIssuePriority = (v: string): v is IssuePriority =>
@@ -104,25 +103,9 @@ export function ActiveMeetingView({
     "marketing",
     "eos_implementer",
   ].includes(sessionData?.user?.role ?? "");
-  const createRecording = useCreateRecording(meeting.id);
-  const recorder = useMeetingRecorder({
-    onRecorded: async (file, durationSeconds) => {
-      try {
-        const result = await uploadFileSmart(file, { context: "recording" });
-        createRecording.mutate({
-          url: result.fileUrl,
-          source: "live_mic",
-          durationSeconds,
-        });
-      } catch (err) {
-        toast({
-          variant: "destructive",
-          description:
-            err instanceof Error ? err.message : "Recording upload failed",
-        });
-      }
-    },
-  });
+  const recorder = useMeetingRecorder();
+  const isRecordingThisMeeting =
+    recorder.status === "recording" && recorder.meetingId === meeting.id;
 
   // Data hooks
   // 2026-07-28: a meeting can target a specific Scorecard. Meetings created
@@ -323,12 +306,16 @@ export function ActiveMeetingView({
         ...(attendeeUpdates.length > 0 ? { attendeeUpdates } : {}),
       },
       {
+        onSuccess: () => {
+          // Completing the meeting ends the recording — never the other way round.
+          if (isRecordingThisMeeting) void recorder.stop();
+        },
         onError: (err: Error) => {
           toast({ variant: "destructive", description: err.message || "Failed to end meeting" });
         },
       }
     );
-  }, [meeting.id, currentSection, segueNotes, headlines, concludeNotes, cascadeMessages, rating, attendeeRatings, updateMeeting]);
+  }, [meeting.id, currentSection, segueNotes, headlines, concludeNotes, cascadeMessages, rating, attendeeRatings, updateMeeting, isRecordingThisMeeting, recorder]);
 
   const handleTodoToggle = useCallback(
     (id: string, done: boolean) => {
@@ -498,14 +485,6 @@ export function ActiveMeetingView({
   const isCompleted = meeting.status === "completed";
   const SectionIcon = section.icon;
 
-  // Surface mic-permission / unsupported-browser errors as toasts.
-  const recorderError = recorder.error;
-  useEffect(() => {
-    if (recorderError) {
-      toast({ variant: "destructive", description: recorderError });
-    }
-  }, [recorderError]);
-
   return (
     <div className="max-w-7xl mx-auto">
       {/* Top Bar */}
@@ -546,11 +525,11 @@ export function ActiveMeetingView({
         {/* Recording controls — the on-screen indicator is the consent
             surface; the runner also announces recording verbally. */}
         {!isCompleted && canRecord && (
-          recorder.isRecording ? (
+          isRecordingThisMeeting ? (
             <Button
               variant="destructive"
               size="sm"
-              onClick={recorder.stop}
+              onClick={() => void recorder.stop()}
               iconLeft={
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
@@ -562,17 +541,17 @@ export function ActiveMeetingView({
               REC {String(Math.floor(recorder.elapsedSeconds / 60)).padStart(2, "0")}:
               {String(recorder.elapsedSeconds % 60).padStart(2, "0")}
             </Button>
-          ) : (
+          ) : recorder.status === "idle" ? (
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => recorder.start()}
+              onClick={() => void recorder.start(meeting.id)}
               title="Record this meeting — audio is transcribed then deleted; the AI review lands on the meeting afterwards"
               iconLeft={<Mic className="w-4 h-4" />}
             >
               Record
             </Button>
-          )
+          ) : null
         )}
         {isCompleted ? (
           <span className="text-xs px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-medium">
@@ -1031,6 +1010,8 @@ export function ActiveMeetingView({
               </div>
             </div>
           )}
+
+          <RecordingRecoveryBanner meetingId={meeting.id} canManage={canRecord} />
 
           {/* AI meeting review — recordings, transcripts, proposed action
               items (Phase 2, 2026-08-31) */}
