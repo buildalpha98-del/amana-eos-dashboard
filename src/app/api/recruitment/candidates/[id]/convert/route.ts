@@ -196,6 +196,10 @@ export const POST = withApiAuth(
     // Seed onboarding todos + welcome announcement (parity with POST /api/users).
     const { seedOnboardingPackage } = await import("@/lib/onboarding-seed");
     await seedOnboardingPackage(user.id, { serviceId: user.serviceId });
+    if (newStarter && startDate) {
+      const { createStaffRamp } = await import("@/lib/ramp/create");
+      await createStaffRamp(prisma, user.id, new Date(startDate));
+    }
 
     // Optional onboarding pack — shared helper with /api/onboarding/assign
     // (throws 409 on already-assigned / P2002, 404 on a missing pack; the

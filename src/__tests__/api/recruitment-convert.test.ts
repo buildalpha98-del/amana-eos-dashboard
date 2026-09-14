@@ -45,6 +45,10 @@ vi.mock("@/lib/notification-defaults", () => ({
 vi.mock("@/lib/onboarding-seed", () => ({
   seedOnboardingPackage: vi.fn(),
 }));
+const createStaffRamp = vi.fn(() => Promise.resolve({ created: true, rampId: "ramp-1" }));
+vi.mock("@/lib/ramp/create", () => ({
+  createStaffRamp: (...args: unknown[]) => createStaffRamp(...args),
+}));
 
 vi.mock("@/lib/staff-invite", () => ({
   sendWelcomeInvite: vi.fn(),
@@ -269,6 +273,8 @@ describe("POST /api/recruitment/candidates/[id]/convert", () => {
         }),
       }),
     );
+    // 2026-09-14: a new starter gets a 90-day ramp.
+    expect(createStaffRamp).toHaveBeenCalledWith(expect.anything(), expect.any(String), new Date(start));
   });
 
   it("201 marks a pending staff referral hired", async () => {

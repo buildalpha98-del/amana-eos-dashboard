@@ -45,6 +45,10 @@ vi.mock("@/lib/notification-defaults", () => ({
 vi.mock("@/lib/onboarding-seed", () => ({
   seedOnboardingPackage: vi.fn(),
 }));
+const createStaffRamp = vi.fn(() => Promise.resolve({ created: true, rampId: "ramp-1" }));
+vi.mock("@/lib/ramp/create", () => ({
+  createStaffRamp: (...args: unknown[]) => createStaffRamp(...args),
+}));
 
 // Mock logger + rate limit
 vi.mock("@/lib/logger", () => ({
@@ -288,6 +292,8 @@ describe("POST /api/users", () => {
     const createArg = prismaMock.user.create.mock.calls[0][0];
     expect(createArg.data.inductionStatus).toBe("new_starter");
     expect(createArg.data.inductionDueDate).toBeInstanceOf(Date);
+    // 2026-09-14: a new starter gets a 90-day ramp.
+    expect(createStaffRamp).toHaveBeenCalledWith(expect.anything(), expect.any(String), new Date("2026-08-01T00:00:00.000Z"));
   });
 
   it("invite mode (no password) creates the user + sends the welcome email", async () => {

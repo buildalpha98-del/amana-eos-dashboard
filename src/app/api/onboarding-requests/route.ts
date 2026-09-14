@@ -12,7 +12,7 @@ import { seedOnboardingPackage } from "@/lib/onboarding-seed";
 import { assignOnboardingPack } from "@/lib/onboarding-assign";
 import { sendWelcomeInvite } from "@/lib/staff-invite";
 import { sendFirstShiftChecklistEmail } from "@/lib/new-starter-request/first-shift-email";
-import { seedNewStarterCheckIns } from "@/lib/new-starter-request/check-ins";
+import { createStaffRamp } from "@/lib/ramp/create";
 import { logger } from "@/lib/logger";
 
 /**
@@ -212,7 +212,8 @@ export const POST = withApiAuth(
       checklistItems: defaultPack?.tasks.map((t) => t.title) ?? [],
     });
 
-    await seedNewStarterCheckIns(prisma, user.id, data.expectedStartDate);
+    // 90-day ramp: weekly check-ins + 30/60/90 manager checkpoints.
+    await createStaffRamp(prisma, user.id, data.expectedStartDate);
 
     await notifyNewStarterRequestSubmitted(prisma, {
       id: created.id,

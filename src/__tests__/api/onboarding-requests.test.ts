@@ -29,8 +29,8 @@ vi.mock("@/lib/staff-invite", () => ({
 vi.mock("@/lib/new-starter-request/first-shift-email", () => ({
   sendFirstShiftChecklistEmail: vi.fn(() => Promise.resolve()),
 }));
-vi.mock("@/lib/new-starter-request/check-ins", () => ({
-  seedNewStarterCheckIns: vi.fn(() => Promise.resolve()),
+vi.mock("@/lib/ramp/create", () => ({
+  createStaffRamp: vi.fn(() => Promise.resolve({ created: true, rampId: "ramp-1" })),
 }));
 vi.mock("@/lib/new-starter-request/notify", () => ({
   notifyNewStarterRequestSubmitted: vi.fn(() => Promise.resolve()),
@@ -41,7 +41,7 @@ import { seedOnboardingPackage } from "@/lib/onboarding-seed";
 import { assignOnboardingPack } from "@/lib/onboarding-assign";
 import { sendWelcomeInvite } from "@/lib/staff-invite";
 import { sendFirstShiftChecklistEmail } from "@/lib/new-starter-request/first-shift-email";
-import { seedNewStarterCheckIns } from "@/lib/new-starter-request/check-ins";
+import { createStaffRamp } from "@/lib/ramp/create";
 import { notifyNewStarterRequestSubmitted } from "@/lib/new-starter-request/notify";
 
 const baseRequest = {
@@ -214,7 +214,7 @@ describe("POST /api/onboarding-requests", () => {
     expect(sendFirstShiftChecklistEmail).toHaveBeenCalledWith(
       expect.objectContaining({ email: "amina@example.com", checklistItems: [] }),
     );
-    expect(seedNewStarterCheckIns).toHaveBeenCalledWith(
+    expect(createStaffRamp).toHaveBeenCalledWith(
       expect.anything(),
       "new-user-1",
       expect.any(Date),

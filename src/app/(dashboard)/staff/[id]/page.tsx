@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/role-permissions";
+import { canAccessProfile } from "@/lib/staff/can-access-profile";
 import { requirePageSession } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { notFound } from "next/navigation";
@@ -11,23 +12,6 @@ import { getOrgSettings } from "@/lib/org-settings";
 import { getRequiredCertTypes } from "@/lib/cert-requirements";
 import { buildListWhere } from "@/lib/employees/build-list-where";
 import { getCentreScope } from "@/lib/centre-scope";
-
-export async function canAccessProfile(
-  viewerId: string,
-  viewerRole: string | null,
-  target: { id: string; serviceId: string | null },
-): Promise<boolean> {
-  if (viewerId === target.id) return true;
-  if (isAdminRole(viewerRole)) return true;
-  if (viewerRole === "member") {
-    const viewer = await prisma.user.findUnique({
-      where: { id: viewerId },
-      select: { serviceId: true },
-    });
-    return !!viewer?.serviceId && viewer.serviceId === target.serviceId;
-  }
-  return false;
-}
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -92,6 +76,7 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     include: { service: true },
   });
   if (!targetUser) notFound();
+  const ramp = await prisma.staffRamp.findUnique({ where: { userId: id }, select: { id: true } });
 
   const viewerRole = session.user.role ?? null;
   const allowed = await canAccessProfile(session.user.id, viewerRole, {
@@ -483,6 +468,7 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
       backHref={backHref}
       prevHref={prevHref}
       nextHref={nextHref}
+      hasRamp={!!ramp}
     />
   );
 }

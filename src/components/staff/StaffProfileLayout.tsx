@@ -28,6 +28,7 @@ import { StaffProfileStatsPanel } from "./StaffProfileStatsPanel";
 import { EmploymentRecordsSection } from "./sections/EmploymentRecordsSection";
 import { PayCompensationSection } from "./sections/PayCompensationSection";
 import { DocumentsSection } from "./sections/DocumentsSection";
+import { RampSection } from "./sections/RampSection";
 import { PerformanceSection } from "./sections/PerformanceSection";
 import { HealthWHSSection } from "./sections/HealthWHSSection";
 import type { StaffProfileData } from "./types";
@@ -53,6 +54,9 @@ export interface StaffProfileLayoutProps {
   /** Next employee in the same filtered list. Null when current user
    *  is the last row or not in the filtered list. */
   nextHref: string | null;
+  /** 2026-09-14: the person has a 90-day ramp — renders the Ramp section
+   *  (and its pill). Loaded server-side so the pill never flashes. */
+  hasRamp?: boolean;
 }
 
 export function StaffProfileLayout({
@@ -67,6 +71,7 @@ export function StaffProfileLayout({
   backHref,
   prevHref,
   nextHref,
+  hasRamp = false,
 }: StaffProfileLayoutProps) {
   // Pay data is admin-or-self only.
   const canViewPay = isAdmin || isSelf;
@@ -107,7 +112,7 @@ export function StaffProfileLayout({
           />
 
           <div className="mt-6">
-            <StaffProfilePills />
+            <StaffProfilePills hiddenKeys={hasRamp ? [] : ["ramp"]} />
           </div>
 
           <div className="mt-6">
@@ -131,6 +136,12 @@ export function StaffProfileLayout({
               isAdmin={isAdmin}
               canManageCompliance={canManageCompliance}
             />
+            {hasRamp && (
+              <RampSection
+                targetUserId={data.targetUser.id}
+                targetUserName={data.targetUser.name}
+              />
+            )}
             <PerformanceSection
               targetUserId={data.targetUser.id}
               targetUserName={data.targetUser.name}

@@ -1007,7 +1007,9 @@ model User {
   newStarterRequestAccount    NewStarterRequest?  @relation("NewStarterRequestCompletedUser")
 
   // 2026-09-09: day-1/week-1/month-1 onboarding touchpoint check-ins.
-  newStarterCheckIns NewStarterCheckIn[]
+  newStarterCheckIns    NewStarterCheckIn[]
+  ramp                  StaffRamp?          @relation("UserRamp")
+  rampCheckpointReviews RampCheckpoint[]    @relation("RampCheckpointReviewer")
 
   // 2026-09-08 (My Portal: pay discrepancy reports): any staff member can
   // flag "my pay didn't match my hours" for admin/leadership to review.
@@ -1061,8 +1063,8 @@ model NewStarterRequest {
   /// mobile becomes User.phone, email becomes the actual login. Required
   /// now the request creates the real account immediately rather than
   /// waiting on admin to type them in later.
-  mobile String
-  email  String
+  mobile      String
+  email       String
 
   /// Free-text job title (e.g. "Social Educator", "Service Coordinator") —
   /// there's no dedicated job-title enum in the codebase (RecruitmentVacancy
@@ -1082,7 +1084,7 @@ model NewStarterRequest {
   qualification QualificationType?
 
   serviceId         String
-  service           Service   @relation("ServiceNewStarterRequests", fields: [serviceId], references: [id], onDelete: Restrict)
+  service           Service  @relation("ServiceNewStarterRequests", fields: [serviceId], references: [id], onDelete: Restrict)
   expectedStartDate DateTime
 
   notes String? @db.Text
@@ -1096,7 +1098,7 @@ model NewStarterRequest {
   assignedAdmin   User?   @relation("NewStarterRequestAssignee", fields: [assignedAdminId], references: [id], onDelete: SetNull)
 
   completedById String?
-  completedBy   User?   @relation("NewStarterRequestCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  completedBy   User?     @relation("NewStarterRequestCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
   completedAt   DateTime?
 
   /// Set once admin actually creates the User account from this request —
@@ -1126,16 +1128,16 @@ enum NewStarterCheckInMilestone {
 /// emails the due ones a link to a short, unauthenticated form —
 /// `token` is the URL secret, no login needed to answer from a phone.
 model NewStarterCheckIn {
-  id     String                     @id @default(cuid())
-  userId String
-  user   User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String                     @id @default(cuid())
+  userId    String
+  user      User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
   milestone NewStarterCheckInMilestone
 
   /// When this milestone becomes due — computed once at seed time from
   /// the user's startDate (+1/+7/+30 days), not recomputed later.
   dueAt DateTime
   /// Unique link secret for the unauthenticated response page.
-  token String @unique @default(cuid())
+  token String   @unique @default(cuid())
 
   /// Set once the reminder email actually goes out — the cron's "already
   /// handled" guard, since dueAt alone can't tell "not yet due" from
@@ -1145,13 +1147,123 @@ model NewStarterCheckIn {
   submittedAt DateTime?
   /// 1 (struggling) – 5 (great) — same scale as StaffPulseSurvey's mood
   /// questions, so the numbers read the same way everywhere in the app.
-  mood     Int?
-  comments String? @db.Text
+  mood        Int?
+  comments    String?   @db.Text
 
   createdAt DateTime @default(now())
 
   @@unique([userId, milestone])
   @@index([dueAt, sentAt])
+}
+
+// ─── 90-Day Ramp (2026-09-14) ───────────────────────────────────────────────
+// One automated ramp per new starter: weekly check-in emails to the starter
+// (13 Fridays), manager competency checkpoints at day 30/60/90, a live
+// scorecard, and a probation PerformanceReview created at close. Design:
+// docs/superpowers/specs/2026-09-14-ninety-day-ramp-design.md. Supersedes
+// NewStarterCheckIn (kept read-only so already-emailed links still resolve).
+
+enum RampStatus {
+  active
+  completed
+  extended
+  ended
+}
+
+enum RampRecommendation {
+  // day 30 / 60
+  on_track
+  needs_support
+  at_risk
+  // day 90 (and any extension checkpoint)
+  pass
+  extend
+  end
+}
+
+model StaffRamp {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation("UserRamp", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The real start date at creation. Milestones are computed from it once.
+  startDate DateTime @db.Date
+  /// startDate + 90 (+30 per extension).
+  endDate   DateTime @db.Date
+
+  status      RampStatus @default(active)
+  completedAt DateTime?
+
+  /// The probation PerformanceReview created when the day-90 checkpoint
+  /// is submitted with `pass`.
+  probationReviewId String? @unique
+
+  checkIns    RampCheckIn[]
+  checkpoints RampCheckpoint[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, endDate])
+}
+
+/// The starter's weekly pulse — sent every Friday for weeks 1–13.
+model RampCheckIn {
+  id     String    @id @default(cuid())
+  rampId String
+  ramp   StaffRamp @relation(fields: [rampId], references: [id], onDelete: Cascade)
+
+  weekNumber Int
+  dueAt      DateTime
+  /// Unique link secret for the unauthenticated response page.
+  token      String   @unique @default(cuid())
+
+  sentAt      DateTime?
+  /// True when the ramp was created after this week had already passed
+  /// (backfill) — never sent, excluded from response-rate maths.
+  skipped     Boolean   @default(false)
+  submittedAt DateTime?
+
+  /// 1 (struggling) – 5 (great), same scale as StaffPulseSurvey.
+  mood       Int?
+  wentWell   String?  @db.Text
+  struggling String?  @db.Text
+  needsHelp  Boolean?
+  helpDetail String?  @db.Text
+
+  /// Set once the low-mood / needs-help alert has been fanned out.
+  flaggedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([rampId, weekNumber])
+  @@index([dueAt, sentAt])
+}
+
+/// Manager competency rating at day 30 / 60 / 90 (and +30 per extension).
+model RampCheckpoint {
+  id     String    @id @default(cuid())
+  rampId String
+  ramp   StaffRamp @relation(fields: [rampId], references: [id], onDelete: Cascade)
+
+  day   Int
+  dueAt DateTime
+
+  sentAt         DateTime?
+  lastRemindedAt DateTime?
+  submittedAt    DateTime?
+  reviewerUserId String?
+  reviewer       User?     @relation("RampCheckpointReviewer", fields: [reviewerUserId], references: [id], onDelete: SetNull)
+
+  /// { competencyKey: 1–5 } — keys from RAMP_COMPETENCIES.
+  ratings        Json                @default("{}")
+  summary        String?             @db.Text
+  recommendation RampRecommendation?
+
+  createdAt DateTime @default(now())
+
+  @@unique([rampId, day])
+  @@index([dueAt, submittedAt])
 }
 
 enum PayDiscrepancyStatus {
@@ -1276,7 +1388,7 @@ model Rock {
   issues      Issue[]
   milestones  Milestone[]
   measurables Measurable[]
-  projects    Project[]     @relation("RockProjects")
+  projects    Project[]    @relation("RockProjects")
   attachments Attachment[]
 
   @@index([quarter])
@@ -1300,43 +1412,43 @@ model Milestone {
 }
 
 model Todo {
-  id          String     @id @default(cuid())
-  title       String
-  description String?    @db.Text
-  assigneeId  String?
-  assignee    User?      @relation("TodoAssignee", fields: [assigneeId], references: [id])
-  createdById String?
-  createdBy   User?      @relation("TodoCreator", fields: [createdById], references: [id])
-  rockId      String?
-  rock        Rock?      @relation(fields: [rockId], references: [id], onDelete: SetNull)
-  issueId     String?
-  issue       Issue?     @relation(fields: [issueId], references: [id], onDelete: SetNull)
-  serviceId   String?
-  service     Service?   @relation(fields: [serviceId], references: [id], onDelete: SetNull)
-  projectId   String?
-  project     Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  id             String     @id @default(cuid())
+  title          String
+  description    String?    @db.Text
+  assigneeId     String?
+  assignee       User?      @relation("TodoAssignee", fields: [assigneeId], references: [id])
+  createdById    String?
+  createdBy      User?      @relation("TodoCreator", fields: [createdById], references: [id])
+  rockId         String?
+  rock           Rock?      @relation(fields: [rockId], references: [id], onDelete: SetNull)
+  issueId        String?
+  issue          Issue?     @relation(fields: [issueId], references: [id], onDelete: SetNull)
+  serviceId      String?
+  service        Service?   @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  projectId      String?
+  project        Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
   // 2026-07-08: correlates a survey-generated todo with its source
   // Survey so the response-submit endpoint can auto-complete the
   // todo when the user submits. Populated only for todos created
   // by /api/surveys/[id]/publish; null for every other todo.
-  surveyId    String?
-  survey      Survey?    @relation("SurveyTodos", fields: [surveyId], references: [id], onDelete: SetNull)
+  surveyId       String?
+  survey         Survey?    @relation("SurveyTodos", fields: [surveyId], references: [id], onDelete: SetNull)
   // 2026-08-31: meeting this todo was created in (IDS create-todo,
   // To-Do Review quick-add). SetNull so deleting a mis-started meeting
   // never destroys todos.
-  meetingId   String?
-  meeting     Meeting?   @relation("MeetingTodos", fields: [meetingId], references: [id], onDelete: SetNull)
-  dueDate     DateTime
-  status      TodoStatus @default(pending)
-  weekOf      DateTime
-  isPrivate   Boolean    @default(false)
+  meetingId      String?
+  meeting        Meeting?   @relation("MeetingTodos", fields: [meetingId], references: [id], onDelete: SetNull)
+  dueDate        DateTime
+  status         TodoStatus @default(pending)
+  weekOf         DateTime
+  isPrivate      Boolean    @default(false)
   /// Optional outcome note recorded when the todo is completed; cleared
   /// server-side if the todo is re-opened (2026-08-31).
-  completionNote String? @db.Text
-  deleted     Boolean    @default(false)
-  createdAt   DateTime   @default(now())
-  completedAt DateTime?
-  updatedAt   DateTime   @updatedAt
+  completionNote String?    @db.Text
+  deleted        Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  completedAt    DateTime?
+  updatedAt      DateTime   @updatedAt
 
   assignees             TodoAssignee[]        @relation("TodoAssignees")
   aiDrafts              AiTaskDraft[]         @relation("TodoAiDraft")
@@ -3242,24 +3354,24 @@ model Project {
 // ============================================================
 
 model Meeting {
-  id              String        @id @default(cuid())
+  id              String         @id @default(cuid())
   title           String
   date            DateTime
-  status          MeetingStatus @default(scheduled)
-  currentSection  Int           @default(0)
+  status          MeetingStatus  @default(scheduled)
+  currentSection  Int            @default(0)
   rating          Float?
-  notes           String?       @db.Text
-  headlines       String?       @db.Text
-  segueNotes      String?       @db.Text
-  concludeNotes   String?       @db.Text
-  cascadeMessages String?       @db.Text
+  notes           String?        @db.Text
+  headlines       String?        @db.Text
+  segueNotes      String?        @db.Text
+  concludeNotes   String?        @db.Text
+  cascadeMessages String?        @db.Text
   serviceIds      String[] // IDs of services scoped to this meeting
   rockIds         String[] // IDs of rocks linked to this meeting
   // 2026-07-28: Leadership (L10) meeting. Drives the To-Do Review filter —
   // a leadership meeting only surfaces todos owned by attendees whose role
   // is in LEADERSHIP_MEETING_ROLES (owner/admin/marketing/eos), so a
   // centre educator's todos never appear in the leadership agenda.
-  isLeadership    Boolean       @default(false)
+  isLeadership    Boolean        @default(false)
   // 2026-07-28: which Scorecard this meeting reviews. Null = fall back to
   // the legacy single scorecard (/api/scorecard), so every pre-existing
   // meeting keeps working untouched.
@@ -3281,9 +3393,9 @@ model Meeting {
   startedAt       DateTime?
   completedAt     DateTime?
   createdById     String?
-  createdBy       User?         @relation("MeetingCreator", fields: [createdById], references: [id])
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdBy       User?          @relation("MeetingCreator", fields: [createdById], references: [id])
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   cascades   CascadeMessage[]   @relation("MeetingCascade")
   attendees  MeetingAttendee[]  @relation("MeetingAttendees")
@@ -4345,7 +4457,7 @@ model DailyAttendance {
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
   roomId       String
-  room         Room       @relation("RoomDailyAttendance", fields: [roomId], references: [id], onDelete: Restrict)
+  room         Room        @relation("RoomDailyAttendance", fields: [roomId], references: [id], onDelete: Restrict)
   enrolled     Int         @default(0)
   attended     Int         @default(0)
   capacity     Int         @default(0)
@@ -4357,14 +4469,13 @@ model DailyAttendance {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  @@unique([serviceId, date, sessionType])
-
   /// Stage 1 parallel unique. Held AT THE SAME TIME as the
 
   /// sessionType one above — a resolver bug then fails the write
 
   /// instead of diverging quietly.
 
+  @@unique([serviceId, date, sessionType])
   @@unique([roomId, date], map: "DailyAttendance_roomId_unique_idx")
   @@index([serviceId])
   @@index([date])
@@ -4383,7 +4494,7 @@ model AttendanceRecord {
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
   roomId        String
-  room          Room       @relation("RoomAttendanceRecord", fields: [roomId], references: [id], onDelete: Restrict)
+  room          Room        @relation("RoomAttendanceRecord", fields: [roomId], references: [id], onDelete: Restrict)
   status        String      @default("booked") // booked, present, absent
   signInTime    DateTime?
   signOutTime   DateTime?
@@ -4419,14 +4530,13 @@ model AttendanceRecord {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  @@unique([childId, serviceId, date, sessionType])
-
   /// Stage 1 parallel unique. Held AT THE SAME TIME as the
 
   /// sessionType one above — a resolver bug then fails the write
 
   /// instead of diverging quietly.
 
+  @@unique([childId, serviceId, date, sessionType])
   @@unique([childId, roomId, date], map: "AttendanceRecord_roomId_unique_idx")
   @@index([serviceId, date, sessionType])
   @@index([childId])
@@ -5532,14 +5642,12 @@ model BookingForecast {
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
   roomId      String
-  room        Room       @relation("RoomBookingForecast", fields: [roomId], references: [id], onDelete: Restrict)
+  room        Room        @relation("RoomBookingForecast", fields: [roomId], references: [id], onDelete: Restrict)
   regular     Int         @default(0)
   casual      Int         @default(0)
   total       Int         @default(0)
   capacity    Int         @default(0)
   syncedAt    DateTime    @default(now())
-
-  @@unique([serviceId, date, sessionType])
 
   /// Stage 1 parallel unique. Held AT THE SAME TIME as the
 
@@ -5547,6 +5655,7 @@ model BookingForecast {
 
   /// instead of diverging quietly.
 
+  @@unique([serviceId, date, sessionType])
   @@unique([roomId, date], map: "BookingForecast_roomId_unique_idx")
   @@index([serviceId])
   @@index([date])
@@ -5562,7 +5671,7 @@ model RosterShift {
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
   roomId      String
-  room        Room       @relation("RoomRosterShift", fields: [roomId], references: [id], onDelete: Restrict)
+  room        Room        @relation("RoomRosterShift", fields: [roomId], references: [id], onDelete: Restrict)
   staffName   String
   shiftStart  String // "HH:mm"
   shiftEnd    String // "HH:mm"
@@ -5652,7 +5761,7 @@ model ResponsiblePersonEntry {
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
   roomId      String
-  room        Room       @relation("RoomResponsiblePersonEntry", fields: [roomId], references: [id], onDelete: Restrict)
+  room        Room        @relation("RoomResponsiblePersonEntry", fields: [roomId], references: [id], onDelete: Restrict)
   personName  String
   personRole  String?
   userId      String?
@@ -5665,14 +5774,13 @@ model ResponsiblePersonEntry {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  @@unique([serviceId, date, sessionType])
-
   /// Stage 1 parallel unique. Held AT THE SAME TIME as the
 
   /// sessionType one above — a resolver bug then fails the write
 
   /// instead of diverging quietly.
 
+  @@unique([serviceId, date, sessionType])
   @@unique([roomId, date], map: "ResponsiblePersonEntry_roomId_unique_idx")
   @@index([serviceId])
   @@index([date])
@@ -5757,7 +5865,7 @@ model ShiftTemplate {
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
   roomId      String
-  room        Room       @relation("RoomShiftTemplate", fields: [roomId], references: [id], onDelete: Restrict)
+  room        Room        @relation("RoomShiftTemplate", fields: [roomId], references: [id], onDelete: Restrict)
   /// "HH:mm" — same shape as RosterShift.
   shiftStart  String
   shiftEnd    String
@@ -5784,7 +5892,7 @@ model ConversionOpportunity {
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
   roomId      String
-  room        Room       @relation("RoomConversionOpportunity", fields: [roomId], references: [id], onDelete: Restrict)
+  room        Room        @relation("RoomConversionOpportunity", fields: [roomId], references: [id], onDelete: Restrict)
   casualCount Int         @default(0) // casual bookings in analysis period
   periodStart DateTime
   periodEnd   DateTime
@@ -6712,7 +6820,7 @@ model DailyChecklist {
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
   roomId        String
-  room          Room                @relation("RoomDailyChecklist", fields: [roomId], references: [id], onDelete: Restrict)
+  room          Room                 @relation("RoomDailyChecklist", fields: [roomId], references: [id], onDelete: Restrict)
   status        String               @default("pending") // pending | in_progress | completed
   completedAt   DateTime?
   completedById String?
@@ -6722,14 +6830,13 @@ model DailyChecklist {
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
-  @@unique([serviceId, date, sessionType])
-
   /// Stage 1 parallel unique. Held AT THE SAME TIME as the
 
   /// sessionType one above — a resolver bug then fails the write
 
   /// instead of diverging quietly.
 
+  @@unique([serviceId, date, sessionType])
   @@unique([roomId, date], map: "DailyChecklist_roomId_unique_idx")
   @@index([serviceId])
   @@index([date])
@@ -7591,7 +7698,7 @@ model Booking {
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
   roomId        String
-  room          Room          @relation("RoomBooking", fields: [roomId], references: [id], onDelete: Restrict)
+  room          Room           @relation("RoomBooking", fields: [roomId], references: [id], onDelete: Restrict)
   status        BookingStatus  @default(requested)
   type          BookingType    @default(casual)
   fee           Float?
@@ -7607,14 +7714,13 @@ model Booking {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
-  @@unique([childId, serviceId, date, sessionType])
-
   /// Stage 1 parallel unique. Held AT THE SAME TIME as the
 
   /// sessionType one above — a resolver bug then fails the write
 
   /// instead of diverging quietly.
 
+  @@unique([childId, serviceId, date, sessionType])
   @@unique([childId, roomId, date], map: "Booking_roomId_unique_idx")
   @@index([childId])
   @@index([serviceId])
@@ -7638,7 +7744,7 @@ model Absence {
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
   roomId                String
-  room                  Room       @relation("RoomAbsence", fields: [roomId], references: [id], onDelete: Restrict)
+  room                  Room        @relation("RoomAbsence", fields: [roomId], references: [id], onDelete: Restrict)
   isIllness             Boolean     @default(false)
   medicalCertificateUrl String?
   reason                String? // "sick" | "holiday" | "other"
@@ -7647,14 +7753,13 @@ model Absence {
   notes                 String?     @db.Text
   createdAt             DateTime    @default(now())
 
-  @@unique([childId, serviceId, date, sessionType])
-
   /// Stage 1 parallel unique. Held AT THE SAME TIME as the
 
   /// sessionType one above — a resolver bug then fails the write
 
   /// instead of diverging quietly.
 
+  @@unique([childId, serviceId, date, sessionType])
   @@unique([childId, roomId, date], map: "Absence_roomId_unique_idx")
   @@index([childId, date])
   @@index([serviceId, date])
@@ -7701,7 +7806,7 @@ model StatementLineItem {
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
   roomId      String
-  room        Room       @relation("RoomStatementLineItem", fields: [roomId], references: [id], onDelete: Restrict)
+  room        Room        @relation("RoomStatementLineItem", fields: [roomId], references: [id], onDelete: Restrict)
   description String
   grossFee    Float
   ccsHours    Float       @default(0)
@@ -8595,7 +8700,7 @@ model ChildFeeAssignment {
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
   roomId      String
-  room        Room       @relation("RoomChildFeeAssignment", fields: [roomId], references: [id], onDelete: Restrict)
+  room        Room        @relation("RoomChildFeeAssignment", fields: [roomId], references: [id], onDelete: Restrict)
   /// The tier's id within that room's `fees` array.
   feeTierId   String
   /// Denormalised at write time; see the note above.
@@ -8643,7 +8748,7 @@ model ServiceFeeChange {
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
   roomId      String
-  room        Room       @relation("RoomServiceFeeChange", fields: [roomId], references: [id], onDelete: Restrict)
+  room        Room        @relation("RoomServiceFeeChange", fields: [roomId], references: [id], onDelete: Restrict)
   /// The fee tier's id within that room's `fees` array.
   feeTierId   String
   /// Denormalised so history stays readable after a fee is renamed or
@@ -8726,7 +8831,7 @@ model CasualDayConfig {
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
   roomId      String
-  room        Room       @relation("RoomCasualDayConfig", fields: [roomId], references: [id], onDelete: Restrict)
+  room        Room        @relation("RoomCasualDayConfig", fields: [roomId], references: [id], onDelete: Restrict)
   /// Spots for this day. Null means "use the room's usual number".
   spots       Int?
   /// Open the day for staff to fill without letting families book it —
@@ -8739,14 +8844,13 @@ model CasualDayConfig {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  @@unique([serviceId, date, sessionType])
-
   /// Stage 1 parallel unique. Held AT THE SAME TIME as the
 
   /// sessionType one above — a resolver bug then fails the write
 
   /// instead of diverging quietly.
 
+  @@unique([serviceId, date, sessionType])
   @@unique([roomId, date], map: "CasualDayConfig_roomId_unique_idx")
   @@index([serviceId, date])
 }

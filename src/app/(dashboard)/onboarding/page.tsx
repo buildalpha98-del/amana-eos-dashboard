@@ -26,6 +26,7 @@ import { OnboardingPacksTab } from "@/components/onboarding/OnboardingPacksTab";
 import { OffboardingPacksTab } from "@/components/offboarding/OffboardingPacksTab";
 import { LmsCoursesTab } from "@/components/onboarding/LmsCoursesTab";
 import { InductionAdminTab } from "@/components/induction/InductionAdminTab";
+import { RampBoardTab } from "@/components/ramp/RampBoardTab";
 import { TrainingComplianceTab } from "@/components/onboarding/TrainingComplianceTab";
 import { AssignmentsTab } from "@/components/onboarding/AssignmentsTab";
 import { TrainingRecordsTab } from "@/components/onboarding/TrainingRecordsTab";
@@ -44,6 +45,7 @@ import {
   AlertTriangle,
   FileSignature,
   UserX,
+  Rocket,
 } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -68,9 +70,9 @@ interface ServiceOption {
 // Single source of truth for the tab ids — used for the state union, the
 // deep-link allow-list, and the URL round-trip. Admin-only tabs are gated so
 // a non-admin deep link can't land on a blank body.
-const TAB_IDS = ["onboarding", "lms", "induction", "assignments", "records", "compliance", "surveys", "offboarding", "exit-surveys"] as const;
+const TAB_IDS = ["onboarding", "lms", "induction", "ramp", "assignments", "records", "compliance", "surveys", "offboarding", "exit-surveys"] as const;
 type TabId = (typeof TAB_IDS)[number];
-const ADMIN_ONLY_TABS: readonly TabId[] = ["induction", "assignments", "records", "compliance", "surveys", "offboarding"];
+const ADMIN_ONLY_TABS: readonly TabId[] = ["induction", "ramp", "assignments", "records", "compliance", "surveys", "offboarding"];
 
 function isTabId(value: string): value is TabId {
   return (TAB_IDS as readonly string[]).includes(value);
@@ -490,6 +492,18 @@ function OnboardingPageInner() {
         )}
         {isAdmin && (
           <button
+            onClick={() => changeTab("ramp")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
+              activeTab === "ramp" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
+            )}
+          >
+            <Rocket className="w-4 h-4" />
+            90-day ramp
+          </button>
+        )}
+        {isAdmin && (
+          <button
             onClick={() => changeTab("assignments")}
             className={cn(
               "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
@@ -567,6 +581,8 @@ function OnboardingPageInner() {
           canPublish={isAdmin}
         />
       )}
+
+      {activeTab === "ramp" && isAdmin && <RampBoardTab />}
 
       {/* Compliance Tab */}
       {activeTab === "assignments" && isAdmin && <AssignmentsTab />}
