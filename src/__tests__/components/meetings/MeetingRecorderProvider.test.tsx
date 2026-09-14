@@ -15,7 +15,9 @@ vi.mock("@/hooks/useToast", () => ({ toast: (...a: unknown[]) => toast(...a) }))
 
 import { recordingStore } from "@/lib/recording-store";
 import {
+  LIVE_SESSION_GRACE_MS,
   MeetingRecorderProvider,
+  useElapsedSeconds,
   useMeetingRecorder,
 } from "@/components/meetings/MeetingRecorderProvider";
 
@@ -119,9 +121,11 @@ describe("MeetingRecorderProvider", () => {
       </QueryClientProvider>
     );
     const { rerender } = render(tree(true));
+    expect(latest!.startedAt).toBeNull();
     await act(async () => { await latest!.start("m1"); });
     expect(latest!.status).toBe("recording");
     expect(latest!.meetingId).toBe("m1");
+    expect(typeof latest!.startedAt).toBe("number");
 
     const rec = FakeMediaRecorder.instances[0];
     await act(async () => { rec.emit("chunk-0"); });
@@ -150,6 +154,7 @@ describe("MeetingRecorderProvider", () => {
     await act(async () => { await result.current.stop(); });
 
     await waitFor(() => expect(result.current.status).toBe("idle"));
+    expect(result.current.startedAt).toBeNull();
     expect(uploadFileSmart).toHaveBeenCalledTimes(1);
     const [file, opts] = uploadFileSmart.mock.calls[0] as [File, { context: string }];
     expect(file.name).toMatch(/^l10-recording-\d+\.webm$/);
@@ -319,7 +324,59 @@ describe("MeetingRecorderProvider", () => {
     await waitFor(() => expect(result.current.recoverable).toEqual([]));
   });
 
+  it("releases the microphone when the provider itself unmounts mid-recording", async () => {
+    const { result, unmount } = renderHook(() => useMeetingRecorder(), { wrapper });
+    await act(async () => { await result.current.start("m1"); });
+    expect(stream.track.stop).not.toHaveBeenCalled();
+    unmount();
+    expect(stream.track.stop).toHaveBeenCalled();
+  });
+
+  it("never lists a session another tab is still recording; stale or stopped ones are recoverable", async () => {
+    const now = Date.now();
+    await recordingStore.createSession({ id: "live-elsewhere", meetingId: "m9", mimeType: "audio/webm", startedAt: now - 60_000 });
+    await recordingStore.appendChunk("live-elsewhere", 0, new Blob(["zz"]), now - 10_000);
+    await recordingStore.createSession({ id: "dead-tab", meetingId: "m9", mimeType: "audio/webm", startedAt: now - 300_000 });
+    await recordingStore.appendChunk("dead-tab", 0, new Blob(["zz"]), now - LIVE_SESSION_GRACE_MS - 30_000);
+    await recordingStore.createSession({ id: "failed-upload", meetingId: "m9", mimeType: "audio/webm", startedAt: now - 60_000 });
+    await recordingStore.appendChunk("failed-upload", 0, new Blob(["zz"]), now - 5_000);
+    await recordingStore.markStopped("failed-upload", now - 1_000);
+
+    const { result } = renderHook(() => useMeetingRecorder(), { wrapper });
+    await waitFor(() => expect(result.current.recoverable).toHaveLength(2));
+    const ids = result.current.recoverable.map((r) => r.sessionId).sort();
+    expect(ids).toEqual(["dead-tab", "failed-upload"]);
+  });
+
   it("useMeetingRecorder throws outside the provider", () => {
     expect(() => renderHook(() => useMeetingRecorder())).toThrow(/MeetingRecorderProvider/);
+  });
+});
+
+describe("useElapsedSeconds", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("ticks once a second from startedAt and stops when startedAt is null", () => {
+    const { result, rerender } = renderHook(({ startedAt }) => useElapsedSeconds(startedAt), {
+      initialProps: { startedAt: Date.now() as number | null },
+    });
+    expect(result.current).toBe(0);
+    act(() => { vi.advanceTimersByTime(3_000); });
+    expect(result.current).toBe(3);
+
+    rerender({ startedAt: null });
+    expect(result.current).toBe(0);
+    act(() => { vi.advanceTimersByTime(5_000); });
+    expect(result.current).toBe(0);
+  });
+
+  it("starts from the real elapsed time, not zero, when mounted mid-session", () => {
+    const { result } = renderHook(() => useElapsedSeconds(Date.now() - 754_000));
+    expect(result.current).toBe(754);
   });
 });

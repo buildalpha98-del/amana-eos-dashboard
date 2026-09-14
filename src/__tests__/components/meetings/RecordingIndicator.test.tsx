@@ -1,7 +1,7 @@
 // src/__tests__/components/meetings/RecordingIndicator.test.tsx
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, render, screen, fireEvent } from "@testing-library/react";
 
 const usePathname = vi.fn(() => "/todos");
 vi.mock("next/navigation", () => ({ usePathname: () => usePathname() }));
@@ -9,7 +9,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => usePathname() }));
 const ctx = {
   status: "idle" as "idle" | "recording" | "uploading",
   meetingId: null as string | null,
-  elapsedSeconds: 0,
+  startedAt: null as number | null,
   error: null,
   start: vi.fn(),
   stop: vi.fn(),
@@ -17,16 +17,27 @@ const ctx = {
   uploadRecoverable: vi.fn(),
   discardRecoverable: vi.fn(),
 };
-vi.mock("@/components/meetings/MeetingRecorderProvider", () => ({ useMeetingRecorder: () => ctx }));
+// Only the context is faked — the real useElapsedSeconds runs so the pill's
+// timer is exercised against a fixed clock.
+vi.mock("@/components/meetings/MeetingRecorderProvider", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/meetings/MeetingRecorderProvider")>()),
+  useMeetingRecorder: () => ctx,
+}));
 
-import { RecordingIndicator, formatElapsed } from "@/components/meetings/RecordingIndicator";
+import { RecordingIndicator } from "@/components/meetings/RecordingIndicator";
 
 describe("RecordingIndicator", () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"] });
+    vi.setSystemTime(new Date("2026-09-14T10:00:00Z"));
     ctx.status = "idle";
-    ctx.elapsedSeconds = 0;
+    ctx.startedAt = null;
     ctx.stop.mockReset();
     usePathname.mockReturnValue("/todos");
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("shows no pill while idle but keeps an empty live region mounted", () => {
@@ -39,7 +50,7 @@ describe("RecordingIndicator", () => {
 
   it("shows elapsed time, Stop, and a back link away from the meetings page", () => {
     ctx.status = "recording";
-    ctx.elapsedSeconds = 754;
+    ctx.startedAt = Date.now() - 754_000;
     render(<RecordingIndicator />);
     expect(screen.getByText("REC 12:34")).toBeInTheDocument();
     // The ticking timer is hidden from AT; only the state is announced.
@@ -57,9 +68,13 @@ describe("RecordingIndicator", () => {
     expect(screen.queryByRole("link", { name: /back to meeting/i })).not.toBeInTheDocument();
   });
 
-  it("formatElapsed pads and rolls minutes past 59", () => {
-    expect(formatElapsed(5)).toBe("00:05");
-    expect(formatElapsed(3661)).toBe("61:01");
+  it("ticks the pill once a second without the context changing", () => {
+    ctx.status = "recording";
+    ctx.startedAt = Date.now() - 754_000;
+    render(<RecordingIndicator />);
+    expect(screen.getByText("REC 12:34")).toBeInTheDocument();
+    act(() => { vi.advanceTimersByTime(2_000); });
+    expect(screen.getByText("REC 12:36")).toBeInTheDocument();
   });
 
   it("shows an uploading state without a Stop button", () => {

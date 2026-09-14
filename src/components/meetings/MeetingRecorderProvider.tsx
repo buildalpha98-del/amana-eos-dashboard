@@ -35,6 +35,13 @@ import type { MeetingRecordingData } from "@/hooks/useMeetingRecordings";
  */
 
 const TIMESLICE_MS = 30_000;
+/**
+ * A session another tab is still recording has status "recording" AND a
+ * fresh `updatedAt` (a chunk lands every TIMESLICE_MS). Three missed chunks
+ * means the owning tab is gone — only then may it be offered for recovery,
+ * otherwise a manager could Discard a colleague's live meeting mid-record.
+ */
+export const LIVE_SESSION_GRACE_MS = 90_000;
 
 export interface RecoverableRecording {
   sessionId: string;
@@ -49,7 +56,8 @@ export type RecorderStatus = "idle" | "recording" | "uploading";
 export interface MeetingRecorderContextValue {
   status: RecorderStatus;
   meetingId: string | null;
-  elapsedSeconds: number;
+  /** ms epoch of the live session; null when idle/uploading. */
+  startedAt: number | null;
   error: string | null;
   start: (meetingId: string) => Promise<void>;
   stop: () => Promise<void>;
@@ -64,6 +72,29 @@ export function useMeetingRecorder(): MeetingRecorderContextValue {
   const ctx = useContext(MeetingRecorderContext);
   if (!ctx) throw new Error("useMeetingRecorder must be used within MeetingRecorderProvider");
   return ctx;
+}
+
+function elapsedSince(startedAt: number | null): number {
+  return startedAt === null ? 0 : Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+}
+
+/** Ticks once a second while `startedAt` is set; consumers own the re-render, not the provider. */
+export function useElapsedSeconds(startedAt: number | null): number {
+  const [elapsed, setElapsed] = useState(() => elapsedSince(startedAt));
+  // Re-anchor in render when the session changes (React's "adjusting state
+  // when a prop changes" pattern) so a new startedAt never shows a stale
+  // count for its first second, and null snaps back to 0 immediately.
+  const [prevStartedAt, setPrevStartedAt] = useState(startedAt);
+  if (prevStartedAt !== startedAt) {
+    setPrevStartedAt(startedAt);
+    setElapsed(elapsedSince(startedAt));
+  }
+  useEffect(() => {
+    if (startedAt === null) return;
+    const id = setInterval(() => setElapsed(elapsedSince(startedAt)), 1000);
+    return () => clearInterval(id);
+  }, [startedAt]);
+  return elapsed;
 }
 
 function toRecoverable(s: RecordingSession): RecoverableRecording {
@@ -85,7 +116,7 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<RecorderStatus>("idle");
   const [meetingId, setMeetingId] = useState<string | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recoverable, setRecoverable] = useState<RecoverableRecording[]>([]);
 
@@ -93,7 +124,6 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const sessionRef = useRef<{ id: string; meetingId: string; mime: string; startedAt: number } | null>(null);
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stopResolveRef = useRef<(() => void) | null>(null);
   // Guards the async gap in start() (permission prompt) against a double-click.
   const startingRef = useRef(false);
@@ -106,7 +136,14 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
   const refreshRecoverable = useCallback(async () => {
     const sessions = await recordingStore.listSessions();
     const liveId = sessionRef.current?.id;
-    setRecoverable(sessions.filter((s) => s.id !== liveId).map(toRecoverable));
+    const staleBefore = Date.now() - LIVE_SESSION_GRACE_MS;
+    setRecoverable(
+      sessions
+        .filter((s) => s.id !== liveId)
+        // Still being written by another tab — not ours to upload or discard.
+        .filter((s) => !(s.status === "recording" && s.updatedAt > staleBefore))
+        .map(toRecoverable),
+    );
   }, []);
 
   useEffect(() => {
@@ -119,8 +156,6 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const releaseHardware = useCallback(() => {
-    if (tickRef.current) clearInterval(tickRef.current);
-    tickRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     recorderRef.current = null;
@@ -148,7 +183,7 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
       } finally {
         setStatus("idle");
         setMeetingId(null);
-        setElapsedSeconds(0);
+        setStartedAt(null);
         await refreshRecoverable();
       }
     },
@@ -164,6 +199,7 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
     if (!session) {
       setStatus("idle");
       setMeetingId(null);
+      setStartedAt(null);
       return;
     }
     const durationSeconds = Math.max(1, Math.round((Date.now() - session.startedAt) / 1000));
@@ -171,7 +207,7 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
       await recordingStore.deleteSession(session.id);
       setStatus("idle");
       setMeetingId(null);
-      setElapsedSeconds(0);
+      setStartedAt(null);
       await refreshRecoverable();
       return;
     }
@@ -242,6 +278,7 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
               );
               setStatus("idle");
               setMeetingId(null);
+              setStartedAt(null);
             })
             .finally(() => {
               stopResolveRef.current?.();
@@ -263,11 +300,8 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
         streamRef.current = stream;
         recorder.start(TIMESLICE_MS);
         setMeetingId(targetMeetingId);
-        setElapsedSeconds(0);
+        setStartedAt(session.startedAt);
         setStatus("recording");
-        tickRef.current = setInterval(() => {
-          setElapsedSeconds(Math.round((Date.now() - session.startedAt) / 1000));
-        }, 1000);
         await refreshRecoverable();
       } finally {
         startingRef.current = false;
@@ -323,9 +357,16 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("beforeunload", warn);
   }, [status]);
 
+  // Nothing below the provider can unmount it, but the provider itself can
+  // go (client-side navigation out of the dashboard layout). Never leave the
+  // mic live behind an unmounted tree.
+  useEffect(() => () => {
+    releaseHardware();
+  }, [releaseHardware]);
+
   const value = useMemo<MeetingRecorderContextValue>(
-    () => ({ status, meetingId, elapsedSeconds, error, start, stop, recoverable, uploadRecoverable, discardRecoverable }),
-    [status, meetingId, elapsedSeconds, error, start, stop, recoverable, uploadRecoverable, discardRecoverable],
+    () => ({ status, meetingId, startedAt, error, start, stop, recoverable, uploadRecoverable, discardRecoverable }),
+    [status, meetingId, startedAt, error, start, stop, recoverable, uploadRecoverable, discardRecoverable],
   );
 
   return <MeetingRecorderContext.Provider value={value}>{children}</MeetingRecorderContext.Provider>;

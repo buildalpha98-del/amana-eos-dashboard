@@ -4,13 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Loader2, Square } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { useMeetingRecorder } from "./MeetingRecorderProvider";
-
-export function formatElapsed(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
+import { formatElapsed } from "@/lib/recording-capture";
+import { useElapsedSeconds, useMeetingRecorder } from "./MeetingRecorderProvider";
 
 /**
  * Always-visible recording state (Recorder v2). Mounted by the dashboard
@@ -18,7 +13,10 @@ export function formatElapsed(seconds: number): string {
  * in MeetingRecorderProvider and does not care where the user is.
  */
 export function RecordingIndicator() {
-  const { status, elapsedSeconds, stop } = useMeetingRecorder();
+  const { status, startedAt, stop } = useMeetingRecorder();
+  // The once-a-second tick lives here, not in the provider, so the layout
+  // shell and the other consumers don't re-render for 90 minutes.
+  const elapsedSeconds = useElapsedSeconds(startedAt);
   const pathname = usePathname();
   const onMeetingsPage = pathname === "/meetings";
 

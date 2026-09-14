@@ -23,6 +23,13 @@ export function extensionForMime(mime: string): string {
   return mime.includes("mp4") ? "m4a" : "webm";
 }
 
+/** `mm:ss`, minutes unbounded (61:01 past the hour). */
+export function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
 /**
  * Name the ACTUAL getUserMedia failure. Lumping everything into "blocked"
  * once sent people hunting site permissions when the real problem was the

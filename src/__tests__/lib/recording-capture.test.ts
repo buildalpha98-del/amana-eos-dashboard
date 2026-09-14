@@ -4,6 +4,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   describeMicError,
   extensionForMime,
+  formatElapsed,
   pickRecordingMime,
   RECORDING_MIME_CANDIDATES,
 } from "@/lib/recording-capture";
@@ -36,6 +37,15 @@ describe("extensionForMime", () => {
   it("maps mp4 to m4a and everything else to webm", () => {
     expect(extensionForMime("audio/mp4")).toBe("m4a");
     expect(extensionForMime("audio/webm;codecs=opus")).toBe("webm");
+  });
+});
+
+describe("formatElapsed", () => {
+  it("pads and rolls minutes past 59", () => {
+    expect(formatElapsed(0)).toBe("00:00");
+    expect(formatElapsed(5)).toBe("00:05");
+    expect(formatElapsed(754)).toBe("12:34");
+    expect(formatElapsed(3661)).toBe("61:01");
   });
 });
 

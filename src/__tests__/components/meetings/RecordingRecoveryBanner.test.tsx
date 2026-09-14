@@ -6,7 +6,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 const ctx = {
   status: "idle" as "idle" | "recording" | "uploading",
   meetingId: null,
-  elapsedSeconds: 0,
+  startedAt: null,
   error: null,
   start: vi.fn(),
   stop: vi.fn(),

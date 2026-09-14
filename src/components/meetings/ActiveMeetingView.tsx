@@ -46,7 +46,8 @@ import { ConcludeSection } from "./ConcludeSection";
 import { MeetingOutcomesPanel } from "./MeetingOutcomesPanel";
 import { AiAgendaPanel } from "./AiAgendaPanel";
 import { MeetingAiReviewPanel } from "./MeetingAiReviewPanel";
-import { useMeetingRecorder } from "./MeetingRecorderProvider";
+import { useElapsedSeconds, useMeetingRecorder } from "./MeetingRecorderProvider";
+import { formatElapsed } from "@/lib/recording-capture";
 import { RecordingRecoveryBanner } from "./RecordingRecoveryBanner";
 
 const ISSUE_PRIORITIES = ["critical", "high", "medium", "low"] as const;
@@ -104,8 +105,9 @@ export function ActiveMeetingView({
     "eos_implementer",
   ].includes(sessionData?.user?.role ?? "");
   const recorder = useMeetingRecorder();
-  // `recorder` is a new object every second while recording (elapsedSeconds);
-  // `stop` is stable, so callbacks depend on it rather than the whole context.
+  // The elapsed tick is owned by this consumer (the context only carries
+  // `startedAt`); `stop` is stable, so callbacks depend on it, not the context.
+  const recorderElapsedSeconds = useElapsedSeconds(recorder.startedAt);
   const { stop: stopRecording } = recorder;
   const isRecordingThisMeeting =
     recorder.status === "recording" && recorder.meetingId === meeting.id;
@@ -541,8 +543,7 @@ export function ActiveMeetingView({
               }
               iconRight={<Square className="w-3.5 h-3.5" />}
             >
-              REC {String(Math.floor(recorder.elapsedSeconds / 60)).padStart(2, "0")}:
-              {String(recorder.elapsedSeconds % 60).padStart(2, "0")}
+              REC {formatElapsed(recorderElapsedSeconds)}
             </Button>
           ) : recorder.status === "idle" ? (
             <Button
