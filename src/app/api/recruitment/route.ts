@@ -4,8 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+/**
+ * 2026-09-15: an ad is now either site-specific (serviceId) or REGIONAL
+ * (region) — casual-pool ads read "Eastern Melbourne, across multiple
+ * schools", and requiring a single centre made those impossible to post.
+ * At least one must be given, or the public listing has no location to show.
+ */
 const createVacancySchema = z.object({
-  serviceId: z.string().min(1, "serviceId is required"),
+  serviceId: z.string().min(1).optional().nullable(),
+  region: z.string().max(120).optional().nullable(),
   role: z.string().min(1, "role is required"),
   employmentType: z.enum(["casual", "part_time", "permanent", "fixed_term"]),
   qualificationRequired: z.string().optional().nullable(),
@@ -16,6 +23,9 @@ const createVacancySchema = z.object({
   // Optional link to a Position Description — the interviewer sees
   // the PD inline on the vacancy detail surface when set.
   positionDescriptionId: z.string().optional().nullable(),
+}).refine((v) => Boolean(v.serviceId) || Boolean(v.region?.trim()), {
+  message: "Give the ad a centre or a region — the public listing needs a location",
+  path: ["region"],
 });
 
 export const GET = withApiAuth(async (req, session) => {
@@ -62,6 +72,7 @@ const body = await parseJsonBody(req);
 
   const {
     serviceId,
+    region,
     role,
     employmentType,
     qualificationRequired,
@@ -74,7 +85,8 @@ const body = await parseJsonBody(req);
 
   const vacancy = await prisma.recruitmentVacancy.create({
     data: {
-      serviceId,
+      serviceId: serviceId || null,
+      region: region?.trim() || null,
       role,
       employmentType,
       qualificationRequired: qualificationRequired || null,

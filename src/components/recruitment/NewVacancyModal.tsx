@@ -22,6 +22,7 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
   useEscapeClose(onClose);
   const [form, setForm] = useState({
     serviceId: "",
+    region: "",
     role: "educator",
     employmentType: "casual",
     qualificationRequired: "",
@@ -83,7 +84,7 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.serviceId || !form.role) return;
+    if ((!form.serviceId && !form.region.trim()) || !form.role) return;
 
     setSaving(true);
     try {
@@ -91,7 +92,8 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          serviceId: form.serviceId,
+          serviceId: form.serviceId || null,
+          region: form.region.trim() || null,
           role: form.role,
           employmentType: form.employmentType,
           notes: form.notes,
@@ -121,20 +123,38 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground/80 mb-1">Centre *</label>
-            <select
-              value={form.serviceId}
-              onChange={(e) => setForm({ ...form, serviceId: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg"
-              required
-            >
-              <option value="">Select centre...</option>
-              {services.map((s: { id: string; name: string }) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
+          {/* 2026-09-15: an ad is either for one centre or for a REGION.
+              A casual-pool ad reads "Eastern Melbourne, across multiple
+              schools" and has no single site, so Centre stopped being
+              mandatory — one of the two is required instead. */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">Centre</label>
+              <select
+                value={form.serviceId}
+                onChange={(e) => setForm({ ...form, serviceId: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg"
+              >
+                <option value="">No single centre</option>
+                {services.map((s: { id: string; name: string }) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">Region</label>
+              <input
+                value={form.region}
+                onChange={(e) => setForm({ ...form, region: e.target.value })}
+                placeholder="Eastern Melbourne"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg"
+              />
+            </div>
           </div>
+          <p className="text-2xs text-muted -mt-2">
+            Give the ad a centre or a region. A region posts one ad across
+            several schools &mdash; the usual shape for casual pool hiring.
+          </p>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -223,7 +243,10 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
                   role: form.role.replace(/_/g, " "),
                   employmentType: form.employmentType.replace(/_/g, " "),
                   qualification: form.qualificationRequired || "none specified",
-                  serviceName: services.find((s: { id: string; name: string }) => s.id === form.serviceId)?.name || "Amana OSHC",
+                  serviceName:
+                    services.find((s: { id: string; name: string }) => s.id === form.serviceId)?.name ||
+                    form.region.trim() ||
+                    "Amana OSHC",
                 }}
                 onResult={(text) => setForm({ ...form, notes: text })}
                 label="Draft with AI"
@@ -271,7 +294,7 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
             </button>
             <button
               type="submit"
-              disabled={saving || !form.serviceId}
+              disabled={saving || (!form.serviceId && !form.region.trim())}
               className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
               {saving ? "Creating..." : "Create Vacancy"}
