@@ -45,6 +45,7 @@
 - Vercel cron config in `vercel.json`
 - Build command: `npm run build` — always verify after changes
 - Toast system: `toast({ description: "..." })` — `description` is required, not optional
+- **Meeting recorder v2 (2026-09-14)**: the MediaRecorder lives in `MeetingRecorderProvider` (mounted in the dashboard layout), NOT in the meeting page — v1 lost the first real L10 because any sidebar click unmounted it. Chunks persist to IndexedDB (`src/lib/recording-store.ts`) every 30 s; Stop / meeting completion / a dead mic end a session and upload through the unchanged `POST /api/meetings/[id]/recordings` path. Orphans surface via `RecordingRecoveryBanner`. `RecordingIndicator` is the always-visible REC pill. Never move recording state back below routing.
 
 ## Design System (2026-07-11)
 - **Tokens only**: colors come from `src/app/globals.css` `@theme` — `text-foreground`/`text-muted`/`bg-card`/`bg-surface`/`bg-brand`/`border-border` etc. Never raw Tailwind grays, `bg-white`, or hex-in-className (ESLint warns via `design-token-rails`; `src/components/charts/` is exempt for Recharts). Translucent overlays on dark surfaces (`bg-white/10`) are fine.
