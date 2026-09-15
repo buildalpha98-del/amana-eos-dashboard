@@ -2,6 +2,7 @@ import type { Session } from "next-auth";
 import type { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { EOS_ROLES } from "@/lib/role-enum";
+import { stateMatchValues } from "@/lib/service-scope";
 
 // ---------------------------------------------------------------------------
 // Roles that always see ALL data (no centre filtering)
@@ -11,15 +12,16 @@ import { EOS_ROLES } from "@/lib/role-enum";
 // than falling through to the "no centre assigned" empty scope.
 //
 // 2026-07-13: State Managers (head_office) removed from this list per
-// Daniel's request — they now only see the centres they've been attached
-// to via UserServiceMembership. The "Add Centre" button is separately
-// hidden for them in the /services UI and blocked at POST /api/services.
+// Daniel's request — they now only see the centres in their patch (their
+// state, plus explicit UserServiceMembership rows — see getCentreScope).
+// The "Add Centre" button is separately hidden for them in the /services
+// UI and blocked at POST /api/services.
 const UNSCOPED_ROLES: readonly Role[] = ["owner", ...EOS_ROLES];
 
 // ---------------------------------------------------------------------------
 // Roles scoped to their assigned centres
 // ---------------------------------------------------------------------------
-// head_office (State Manager) — their UserServiceMembership rows
+// head_office (State Manager) — every centre in their User.state + memberships
 // member (Coordinator) — primary serviceId + services where they are managerId + memberships
 // staff (Educator) — primary serviceId + memberships
 // marketing — primary serviceId only (kept narrow; the services LIST is
@@ -40,6 +42,25 @@ async function fetchActiveMembershipServiceIds(
     select: { serviceId: true },
   });
   return rows.map((r) => r.serviceId);
+}
+
+/**
+ * Fetch every service sitting in the given Australian state.
+ *
+ * `Service.state` is free-form, so match case-insensitively across both the
+ * abbreviation and the full name (see `stateMatchValues`). A blank or
+ * unrecognised state resolves to no services rather than to all of them.
+ */
+async function fetchStateServiceIds(
+  state: string | null | undefined,
+): Promise<string[]> {
+  const values = stateMatchValues(state);
+  if (values.length === 0) return [];
+  const rows = await prisma.service.findMany({
+    where: { state: { in: values, mode: "insensitive" } },
+    select: { id: true },
+  });
+  return rows.map((r) => r.id);
 }
 
 /**
@@ -78,12 +99,31 @@ export async function getCentreScope(
   const userId = session.user.id as string;
   const userServiceId = session.user.serviceId as string | undefined;
 
-  // State Manager (head_office): scoped to whichever centres they've been
-  // attached to via UserServiceMembership. No primary serviceId concept for
-  // head_office — they're not "based" at a single centre.
+  // State Manager (head_office): every centre in their state, PLUS any centre
+  // they've been explicitly attached to via UserServiceMembership. No primary
+  // serviceId concept for head_office — they're not "based" at a single centre.
+  //
+  // 2026-09-15: memberships used to be the WHOLE scope, and in practice those
+  // rows were never created — so /team, the services dropdown and the
+  // new-starter modal all resolved to `serviceIds: []` and rendered empty. A
+  // State Manager could not see their educators or onboard anyone.
+  //
+  // The union is deliberate. State is an ADDITIONAL source of centres, never a
+  // replacement: a membership outside their state still counts, and a null or
+  // unrecognised `User.state` degrades to memberships-only rather than to
+  // nothing. The 2026-08-04 admin regression (see `getStateScope` in
+  // service-scope.ts) happened precisely because one scoping system silently
+  // OVERRODE the other; keeping these additive is what stops that recurring.
   if (role === "head_office") {
-    const memberships = await fetchActiveMembershipServiceIds(userId);
-    return { serviceIds: memberships };
+    const [memberships, user] = await Promise.all([
+      fetchActiveMembershipServiceIds(userId),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { state: true },
+      }),
+    ]);
+    const stateServiceIds = await fetchStateServiceIds(user?.state);
+    return { serviceIds: Array.from(new Set([...memberships, ...stateServiceIds])) };
   }
 
   // Coordinator: primary + managed + memberships

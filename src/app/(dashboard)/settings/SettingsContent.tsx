@@ -311,7 +311,7 @@ function InviteUserModal({
                 onChange={(e) => setState(e.target.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
-                <option value="">All states (all regions)</option>
+                <option value="">Not set</option>
                 {AUSTRALIAN_STATES.map((s) => (
                   <option key={s.value} value={s.value}>
                     {s.label} ({s.value})
@@ -319,7 +319,9 @@ function InviteUserModal({
                 ))}
               </select>
               <p className="mt-1 text-xs text-muted">
-                Leave as &ldquo;All states&rdquo; for org-wide access across every region. Pick a specific state to scope them to just that region.
+                {role === "head_office"
+                  ? "State Managers see every centre in this state, plus any centre they're individually assigned. Leave it unset and they see only their individually assigned centres."
+                  : "Recorded for reporting. Admins see every centre regardless of state."}
               </p>
             </div>
           )}

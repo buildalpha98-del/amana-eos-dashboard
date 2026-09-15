@@ -46,6 +46,11 @@ export function getServiceScope(session: Session | null): string | null {
  *
  * `User.state` still exists and is still worth recording — it just no
  * longer restricts what anyone can see.
+ *
+ * 2026-09-15: `User.state` DOES feed one scope again — a State Manager's
+ * centre list in `getCentreScope` (centre-scope.ts). That one is a UNION
+ * with their explicit memberships, never a replacement, which is the
+ * distinction that made the version above unsafe.
  */
 export function getStateScope(_session: Session | null): string | null {
   return null;
@@ -62,3 +67,26 @@ export const AUSTRALIAN_STATES = [
   { value: "NT", label: "Northern Territory" },
   { value: "ACT", label: "Australian Capital Territory" },
 ] as const;
+
+/**
+ * Every spelling of an Australian state to match a free-form state string
+ * against.
+ *
+ * Both `User.state` and `Service.state` are nullable free-form columns, so
+ * real rows carry a mix of "VIC", "vic" and "Victoria". Callers pair this
+ * with Prisma's `{ in: [...], mode: "insensitive" }`, so case never matters
+ * here — this only has to bridge the abbreviation-vs-full-name split.
+ *
+ * A blank value returns `[]`, and an unrecognised one returns just itself.
+ * Neither ever widens a scope: callers treat `[]` as "no state-derived
+ * rows", not "match everything".
+ */
+export function stateMatchValues(state: string | null | undefined): string[] {
+  const trimmed = state?.trim();
+  if (!trimmed) return [];
+  const lower = trimmed.toLowerCase();
+  const match = AUSTRALIAN_STATES.find(
+    (s) => s.value.toLowerCase() === lower || s.label.toLowerCase() === lower,
+  );
+  return match ? [match.value, match.label] : [trimmed];
+}
