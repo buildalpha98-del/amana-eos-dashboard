@@ -77,10 +77,12 @@ describe("CandidateDetailPanel — optimistic stage update", () => {
     );
 
     const select = screen.getByLabelText(/stage/i) as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: "screened" } });
+    // 2026-09-15: "screened" became "screening" when the stage vocabulary
+    // moved into src/lib/recruitment/pool.ts and stopped being free text.
+    fireEvent.change(select, { target: { value: "screening" } });
 
-    // Optimistic — immediately shows "screened"
-    expect(select.value).toBe("screened");
+    // Optimistic — immediately shows "screening"
+    expect(select.value).toBe("screening");
 
     // Wait for error → revert
     await waitFor(() => expect(select.value).toBe("applied"));

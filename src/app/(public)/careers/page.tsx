@@ -49,12 +49,35 @@ export default async function CareersIndexPage() {
           Open roles at our Islamic-school centres across NSW &amp; VIC.
         </p>
 
+        {/* Most people who want OSHC work aren't after one advertised role —
+            they want to go on the books for casual shifts. That path is the
+            pool registration, so it sits above the vacancy list rather than
+            buried under it. */}
+        <div className="mt-6 rounded-2xl bg-card p-5 shadow-sm ring-1 ring-black/5">
+          <p className="text-lg font-medium text-brand">
+            Looking for casual work?
+          </p>
+          <p className="mt-1 text-brand/80">
+            Join our casual team and we&rsquo;ll contact you when shifts come
+            up near you — before school, after school and school holidays.
+          </p>
+          <Link
+            href="/careers/register"
+            className="mt-3 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand/90"
+          >
+            Register your interest
+          </Link>
+        </div>
+
         {vacancies.length === 0 ? (
           <div className="mt-10 rounded-2xl bg-card p-8 text-center text-brand/80 shadow-sm ring-1 ring-black/5">
             <p className="text-lg font-medium text-brand">No open roles right now.</p>
             <p className="mt-2">
-              We&rsquo;re always keen to meet great educators — email your CV to{" "}
-              <a href="mailto:contact@amanaoshc.com.au" className="underline">contact@amanaoshc.com.au</a>.
+              We&rsquo;re always keen to meet great educators —{" "}
+              <Link href="/careers/register" className="underline">
+                register your interest
+              </Link>{" "}
+              and we&rsquo;ll be in touch when shifts come up.
             </p>
           </div>
         ) : (

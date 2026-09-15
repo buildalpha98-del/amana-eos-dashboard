@@ -27,6 +27,7 @@ import { OffboardingPacksTab } from "@/components/offboarding/OffboardingPacksTa
 import { LmsCoursesTab } from "@/components/onboarding/LmsCoursesTab";
 import { InductionAdminTab } from "@/components/induction/InductionAdminTab";
 import { RampBoardTab } from "@/components/ramp/RampBoardTab";
+import { CandidatePoolTab } from "@/components/recruitment/CandidatePoolTab";
 import { TrainingComplianceTab } from "@/components/onboarding/TrainingComplianceTab";
 import { AssignmentsTab } from "@/components/onboarding/AssignmentsTab";
 import { TrainingRecordsTab } from "@/components/onboarding/TrainingRecordsTab";
@@ -46,6 +47,7 @@ import {
   FileSignature,
   UserX,
   Rocket,
+  UserSearch,
 } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -70,9 +72,12 @@ interface ServiceOption {
 // Single source of truth for the tab ids — used for the state union, the
 // deep-link allow-list, and the URL round-trip. Admin-only tabs are gated so
 // a non-admin deep link can't land on a blank body.
-const TAB_IDS = ["onboarding", "lms", "induction", "ramp", "assignments", "records", "compliance", "surveys", "offboarding", "exit-surveys"] as const;
+const TAB_IDS = ["candidates", "onboarding", "lms", "induction", "ramp", "assignments", "records", "compliance", "surveys", "offboarding", "exit-surveys"] as const;
 type TabId = (typeof TAB_IDS)[number];
-const ADMIN_ONLY_TABS: readonly TabId[] = ["induction", "ramp", "assignments", "records", "compliance", "surveys", "offboarding"];
+// Candidates carries applicant contact details and screening opinions — the
+// same leadership tier that runs induction and offboarding, not every role
+// that can see the onboarding checklist.
+const ADMIN_ONLY_TABS: readonly TabId[] = ["candidates", "induction", "ramp", "assignments", "records", "compliance", "surveys", "offboarding"];
 
 function isTabId(value: string): value is TabId {
   return (TAB_IDS as readonly string[]).includes(value);
@@ -458,6 +463,18 @@ function OnboardingPageInner() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-surface rounded-lg p-1 w-fit">
+        {isAdmin && (
+          <button
+            onClick={() => changeTab("candidates")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
+              activeTab === "candidates" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
+            )}
+          >
+            <UserSearch className="w-4 h-4" />
+            Candidates
+          </button>
+        )}
         <button
           onClick={() => changeTab("onboarding")}
           className={cn(
@@ -582,6 +599,7 @@ function OnboardingPageInner() {
         />
       )}
 
+      {activeTab === "candidates" && isAdmin && <CandidatePoolTab />}
       {activeTab === "ramp" && isAdmin && <RampBoardTab />}
 
       {/* Compliance Tab */}
