@@ -131,6 +131,35 @@ describe("GET /api/employees", () => {
     expect(where.serviceId).toBeUndefined();
   });
 
+  it("State Manager sees EVERY staff member, not just their state's", async () => {
+    // 2026-09-15: head_office joins marketing in bypassing getCentreScope on
+    // this route. A State Manager is leadership — their limit is on WHAT they
+    // see about a person (pay, leave balances), never on WHICH people. Before
+    // this, a VIC State Manager's /team showed only VIC staff.
+    mockSession({ id: "sm-1", name: "Tracie", role: "head_office" });
+    // getCentreScope would hand back just their state's centres; the route
+    // must ignore it here.
+    mockedGetCentreScope.mockResolvedValue({ serviceIds: ["svc-vic-1"] });
+    prismaMock.user.findMany.mockResolvedValue([]);
+    prismaMock.user.count.mockResolvedValue(0);
+    await GET(createRequest("GET", "/api/employees"));
+    const where = prismaMock.user.findMany.mock.calls[0][0].where;
+    expect(where.serviceId).toBeUndefined();
+    expect(where.AND).toBeUndefined();
+  });
+
+  it("a State Manager with NO centres is not locked out of the directory", async () => {
+    // The route 403s a scoped caller whose scope is empty. head_office must
+    // never reach that branch — an unset User.state used to mean an empty
+    // scope, which is exactly how a State Manager ended up with no /team.
+    mockSession({ id: "sm-2", name: "Tracie", role: "head_office" });
+    mockedGetCentreScope.mockResolvedValue({ serviceIds: [] });
+    prismaMock.user.findMany.mockResolvedValue([]);
+    prismaMock.user.count.mockResolvedValue(0);
+    const res = await GET(createRequest("GET", "/api/employees"));
+    expect(res.status).toBe(200);
+  });
+
   it("applies centre-scope filter when caller is scoped", async () => {
     mockSession({
       id: "u-1",

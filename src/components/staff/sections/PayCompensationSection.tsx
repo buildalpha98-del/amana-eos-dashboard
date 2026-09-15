@@ -86,6 +86,12 @@ export function PayCompensationSection({
             />
           );
         }
+        // Leave balances are pay data too. 2026-09-15: this fell through
+        // WITHOUT a canViewPay check, so any viewer who reached the profile
+        // read a colleague's balances even while the salary tab beside it
+        // said "admin-only". The parent now hides the whole section when
+        // canViewPay is false; this guard is the second lock.
+        if (!canViewPay) return <PayPlaceholder />;
         return (
           <LeaveTab
             targetUserId={data.targetUser.id}

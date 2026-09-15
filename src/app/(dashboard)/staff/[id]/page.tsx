@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/role-permissions";
+import { canViewStaffPay } from "@/lib/staff-pay-visibility";
 import { requirePageSession } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { notFound } from "next/navigation";
@@ -364,8 +365,18 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     .sort((a, b) => b.weekEnding.getTime() - a.weekEnding.getTime())
     .slice(0, 5);
 
+  // 2026-09-15: pay and leave data is withheld from viewers who may not see
+  // it — State Managers included (see canViewStaffPay). The layout hides the
+  // Pay & compensation section, but the balances must not travel to the
+  // browser at all: they are the one pay signal nothing else on the page
+  // surfaces. Contracts deliberately still load — the Documents section
+  // renders them, and tenure is derived from the earliest start date.
+  const viewerCanViewPay = canViewStaffPay(viewerRole, isSelf);
+  const visibleBalances = viewerCanViewPay ? balances : [];
+  const visibleLeaveRequests = viewerCanViewPay ? recentLeaveRequests : [];
+
   // Derived stats
-  const annualLeave = balances.find((b) => b.leaveType === "annual");
+  const annualLeave = visibleBalances.find((b) => b.leaveType === "annual");
   const annualLeaveRemaining = annualLeave ? annualLeave.balance : null;
   const certStatuses = certificates.map((c) => getCertStatus(c.expiryDate));
   const validCertCount = certStatuses.filter((s) => s.status === "valid").length;
@@ -411,8 +422,8 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     emergencyContacts,
     latestContract,
     contracts,
-    balances,
-    recentLeaveRequests,
+    balances: visibleBalances,
+    recentLeaveRequests: visibleLeaveRequests,
     timesheetWeeks,
     qualifications,
     certificates,
