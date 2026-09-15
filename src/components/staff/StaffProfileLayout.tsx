@@ -23,6 +23,7 @@ function composeAddress(u: {
   return parts.length > 0 ? parts.join(", ") : null;
 }
 
+import { canViewStaffPay } from "@/lib/staff-pay-visibility";
 import { StaffProfilePills } from "./StaffProfilePills";
 import { StaffProfileStatsPanel } from "./StaffProfileStatsPanel";
 import { EmploymentRecordsSection } from "./sections/EmploymentRecordsSection";
@@ -73,8 +74,12 @@ export function StaffProfileLayout({
   nextHref,
   hasRamp = false,
 }: StaffProfileLayoutProps) {
-  // Pay data is admin-or-self only.
-  const canViewPay = isAdmin || isSelf;
+  // Pay data is admin-or-self only — and since 2026-09-15 State Managers are
+  // deliberately excluded even though they are admin-tier (see
+  // canViewStaffPay). When nobody may see it the whole section is omitted,
+  // pill included: four sub-tabs of "Pay information is admin-only" is worse
+  // than no section at all.
+  const canViewPay = canViewStaffPay(viewerRole, isSelf);
   // Admin-only role editor — hide on own profile to prevent one-click
   // self-demotion / self-elevation from the staff page.
   const canEditAccount = isAdmin && !isSelf;
@@ -112,7 +117,12 @@ export function StaffProfileLayout({
           />
 
           <div className="mt-6">
-            <StaffProfilePills hiddenKeys={hasRamp ? [] : ["ramp"]} />
+            <StaffProfilePills
+              hiddenKeys={[
+                ...(hasRamp ? [] : (["ramp"] as const)),
+                ...(canViewPay ? [] : (["pay"] as const)),
+              ]}
+            />
           </div>
 
           <div className="mt-6">
@@ -124,12 +134,14 @@ export function StaffProfileLayout({
               viewerIsOwner={viewerIsOwner}
               canManageSeparation={isAdmin}
             />
-            <PayCompensationSection
-              data={data}
-              isSelf={isSelf}
-              canViewPay={canViewPay}
-              canManagePayroll={isAdmin}
-            />
+            {canViewPay && (
+              <PayCompensationSection
+                data={data}
+                isSelf={isSelf}
+                canViewPay={canViewPay}
+                canManagePayroll={isAdmin && canViewPay}
+              />
+            )}
             <DocumentsSection
               data={data}
               isSelf={isSelf}
