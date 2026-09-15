@@ -1,13 +1,20 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
+import { streamStoredFile } from "@/lib/blob-proxy";
 
 /**
  * GET /api/compliance/[id]/download
  *
- * Access-checked redirect to the cert's blob URL. Access matrix:
+ * Access-checked stream of the cert out of blob storage. *
+ * 2026-09-15: streams the bytes back over our own origin instead of
+ * redirecting to blob storage — a cross-origin redirect is unrenderable in
+ * the in-app file viewer, because the app's CSP sets no frame-src and so
+ * falls back to `default-src 'self'`. See src/lib/blob-proxy.ts.
+ *
+ * Access matrix:
  *   - Own cert (userId matches viewer): allowed
  *   - Admin role (owner/head_office/admin): allowed
  *   - Coordinator whose service matches the cert's service: allowed
@@ -47,9 +54,8 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
 
   if (!canAccess) throw ApiError.forbidden();
 
-  const target = wantsDownload
-    ? `${cert.fileUrl}${cert.fileUrl.includes("?") ? "&" : "?"}download=${encodeURIComponent(cert.fileName ?? `${cert.type}-certificate`)}`
-    : cert.fileUrl;
-
-  return NextResponse.redirect(target);
+  return streamStoredFile(cert.fileUrl, {
+    fileName: cert.fileName ?? `${cert.type}-certificate`,
+    download: wantsDownload,
+  });
 });

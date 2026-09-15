@@ -1,12 +1,12 @@
 /**
  * Access matrix tests for GET /api/staff-documents/[id].
  *
- * The route is an auth-checked redirect proxy used by the staff profile
+ * The route is an auth-checked streaming proxy used by the staff profile
  * Documents tab so HR docs aren't surfaced as raw blob URLs in markup.
  *
  * Matrix:
- *   - Uploader OR assignee is the viewer: 307
- *   - Admin (owner / admin / head_office): 307
+ *   - Uploader OR assignee is the viewer: 200 (streamed)
+ *   - Admin (owner / admin / head_office): 200 (streamed)
  *   - Director of Service (member) at any centre the assignee is attached
  *     to — primary, their own membership, or one they manage: 307
  *   - Member in a different service: 403
@@ -15,9 +15,9 @@
  *   - Deleted (soft-delete): 404
  *   - Missing document: 404
  *   - Unauthenticated: 401
- *   - ?download=1 appends ?download=<filename> to the target URL
+ *   - ?download=1 answers Content-Disposition: attachment
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession, mockNoSession } from "../helpers/auth-mock";
 import { createRequest } from "../helpers/request";
@@ -45,13 +45,33 @@ vi.mock("@/lib/rate-limit", () => ({
 import { GET } from "@/app/api/staff-documents/[id]/route";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 
-const BLOB = "https://blob.example.com/docs/abc.pdf";
+const BLOB = "https://t3st.public.blob.vercel-storage.com/docs/abc.pdf";
 
 function callRoute(docId: string, query?: string) {
   const url = `/api/staff-documents/${docId}${query ? `?${query}` : ""}`;
   const req = createRequest("GET", url);
   return GET(req, { params: Promise.resolve({ id: docId }) });
 }
+
+// 2026-09-15: these routes STREAM the stored file back over our own origin
+// instead of redirecting to blob storage — a cross-origin redirect is
+// unrenderable in the in-app viewer because CSP has no frame-src. So the
+// fixture URL has to be a real Blob host (streamStoredFile refuses anything
+// else as an SSRF guard) and the upstream fetch has to be stubbed.
+const fetchMock = vi.fn();
+beforeEach(() => {
+  vi.stubGlobal("fetch", fetchMock);
+  fetchMock.mockReset();
+  fetchMock.mockResolvedValue(
+    new Response("PDFBYTES", {
+      status: 200,
+      headers: { "content-type": "application/pdf" },
+    }),
+  );
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("GET /api/staff-documents/[id]", () => {
   beforeEach(() => {
@@ -66,7 +86,7 @@ describe("GET /api/staff-documents/[id]", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns 307 when the viewer is the document uploader", async () => {
+  it("streams the file when the viewer is the document uploader", async () => {
     mockSession({ id: "staff-1", name: "Staff", role: "member" });
     prismaMock.document.findUnique.mockResolvedValue({
       id: "doc-1",
@@ -82,11 +102,12 @@ describe("GET /api/staff-documents/[id]", () => {
     });
 
     const res = await callRoute("doc-1");
-    expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toBe(BLOB);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+    expect(res.headers.get("Content-Type")).toBe("application/pdf");
   });
 
-  it("returns 307 when the viewer is the document assignee", async () => {
+  it("streams the file when the viewer is the document assignee", async () => {
     mockSession({ id: "staff-1", name: "Staff", role: "member" });
     prismaMock.document.findUnique.mockResolvedValue({
       id: "doc-1",
@@ -102,11 +123,12 @@ describe("GET /api/staff-documents/[id]", () => {
     });
 
     const res = await callRoute("doc-1");
-    expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toBe(BLOB);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+    expect(res.headers.get("Content-Type")).toBe("application/pdf");
   });
 
-  it("returns 307 for an admin viewing another user's document", async () => {
+  it("streams the file for an admin viewing another user's document", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.document.findUnique.mockResolvedValue({
       id: "doc-1",
@@ -122,10 +144,10 @@ describe("GET /api/staff-documents/[id]", () => {
     });
 
     const res = await callRoute("doc-1");
-    expect(res.status).toBe(307);
+    expect(res.status).toBe(200);
   });
 
-  it("returns 307 for a member in the same service as the doc's assignee", async () => {
+  it("streams the file for a member in the same service as the doc's assignee", async () => {
     mockSession({ id: "coord-1", name: "Coord", role: "member" });
     prismaMock.document.findUnique.mockResolvedValue({
       id: "doc-1",
@@ -151,7 +173,7 @@ describe("GET /api/staff-documents/[id]", () => {
     });
 
     const res = await callRoute("doc-1");
-    expect(res.status).toBe(307);
+    expect(res.status).toBe(200);
   });
 
   it("returns 403 for a member in a different service than the doc's assignee", async () => {
@@ -243,7 +265,7 @@ describe("GET /api/staff-documents/[id]", () => {
   // Wiring check for the widened centre scope (the rule itself is covered
   // in src/__tests__/lib/staff-access.test.ts). A Director whose second
   // centre comes from a membership must reach that centre's staff files.
-  it("returns 307 for a member covering the assignee's centre via a membership", async () => {
+  it("streams the file for a member covering the assignee's centre via a membership", async () => {
     mockSession({ id: "coord-4", name: "Coord", role: "member" });
     prismaMock.document.findUnique.mockResolvedValue({
       id: "doc-1",
@@ -275,7 +297,7 @@ describe("GET /api/staff-documents/[id]", () => {
     });
 
     const res = await callRoute("doc-1");
-    expect(res.status).toBe(307);
+    expect(res.status).toBe(200);
   });
 
   it("returns 404 when the document is soft-deleted", async () => {
@@ -319,7 +341,7 @@ describe("GET /api/staff-documents/[id]", () => {
     expect(res.status).toBe(404);
   });
 
-  it("?download=1 appends &download=<filename> to the redirect target", async () => {
+  it("?download=1 delivers the file as an attachment, not inline", async () => {
     mockSession({ id: "staff-1", name: "Staff", role: "member" });
     prismaMock.document.findUnique.mockResolvedValue({
       id: "doc-1",
@@ -335,9 +357,9 @@ describe("GET /api/staff-documents/[id]", () => {
     });
 
     const res = await callRoute("doc-1", "download=1");
-    expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toBe(
-      `${BLOB}?download=${encodeURIComponent("Final Contract v2.pdf")}`,
-    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+    expect(res.headers.get("Content-Type")).toBe("application/pdf");
+    expect(res.headers.get("Content-Disposition")).toMatch(/^attachment;/);
   });
 });

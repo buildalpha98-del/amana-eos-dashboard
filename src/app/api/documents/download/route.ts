@@ -3,6 +3,7 @@ import { readFile, stat } from "fs/promises";
 import path from "path";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
+import { streamStoredFile } from "@/lib/blob-proxy";
 // Mapping of file extensions to MIME types
 const MIME_TYPES: Record<string, string> = {
   ".pdf": "application/pdf",
@@ -35,9 +36,20 @@ export const GET = withApiAuth(async (req, session) => {
     );
   }
 
-  // If the file is a Vercel Blob URL, redirect to it directly
+  // Stored in Vercel Blob: stream it back over our own origin.
+  //
+  // 2026-09-15: this used to `NextResponse.redirect(file)` for ANY https
+  // URL, which was two bugs in one line. It made the file unviewable in the
+  // in-app viewer (CSP has no frame-src, so `default-src 'self'` blocks the
+  // cross-origin hop — see src/lib/blob-proxy.ts), and it turned this route
+  // into an open redirect: a caller could send a signed-in user anywhere by
+  // passing their own URL. `streamStoredFile` refuses any host that isn't
+  // our Blob storage, which closes both.
   if (file.startsWith("https://")) {
-    return NextResponse.redirect(file);
+    return streamStoredFile(file, {
+      fileName: path.basename(new URL(file).pathname) || "document",
+      download: searchParams.get("download") === "1",
+    });
   }
 
   // Sanitize: prevent directory traversal attacks

@@ -1,17 +1,18 @@
 /**
  * Access matrix tests for GET /api/compliance/[id]/download.
  *
- * The route performs an access-checked redirect to the cert's blob URL. The
+ * The route performs an access-checked stream of the cert out of blob
+ * storage (was a redirect until 2026-09-15). The
  * matrix:
- *   - Own cert (userId === viewerId): 302
- *   - Admin (owner/head_office/admin): 302
- *   - Coordinator in same service as cert: 302
+ *   - Own cert (userId === viewerId): 200 (streamed)
+ *   - Admin (owner/head_office/admin): 200 (streamed)
+ *   - Coordinator in same service as cert: 200 (streamed)
  *   - Coordinator in a different service: 403
  *   - Staff viewing someone else's cert: 403
  *   - Missing file (fileUrl is null): 404
  *   - Not-found cert: 404
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession, mockNoSession } from "../helpers/auth-mock";
 import { createRequest } from "../helpers/request";
@@ -47,6 +48,26 @@ function callRoute(certId: string) {
   return GET(req, { params: Promise.resolve({ id: certId }) });
 }
 
+// 2026-09-15: these routes STREAM the stored file back over our own origin
+// instead of redirecting to blob storage — a cross-origin redirect is
+// unrenderable in the in-app viewer because CSP has no frame-src. So the
+// fixture URL has to be a real Blob host (streamStoredFile refuses anything
+// else as an SSRF guard) and the upstream fetch has to be stubbed.
+const fetchMock = vi.fn();
+beforeEach(() => {
+  vi.stubGlobal("fetch", fetchMock);
+  fetchMock.mockReset();
+  fetchMock.mockResolvedValue(
+    new Response("PDFBYTES", {
+      status: 200,
+      headers: { "content-type": "application/pdf" },
+    }),
+  );
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe("GET /api/compliance/[id]/download", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -61,13 +82,13 @@ describe("GET /api/compliance/[id]/download", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns 302 for the cert owner", async () => {
+  it("streams the file for the cert owner", async () => {
     mockSession({ id: "user-1", name: "Owner User", role: "staff" });
     prismaMock.complianceCertificate.findUnique.mockResolvedValue({
       id: "cert-1",
       userId: "user-1",
       serviceId: "svc-1",
-      fileUrl: "https://blob.example.com/cert-1.pdf",
+      fileUrl: "https://t3st.public.blob.vercel-storage.com/cert-1.pdf",
     });
     prismaMock.user.findUnique.mockImplementation(({ where }: { where?: { id?: string } }) => {
       if (where?.id === "user-1") return Promise.resolve({ active: true });
@@ -75,17 +96,18 @@ describe("GET /api/compliance/[id]/download", () => {
     });
 
     const res = await callRoute("cert-1");
-    expect(res.status).toBe(307); // NextResponse.redirect default is 307
-    expect(res.headers.get("location")).toBe("https://blob.example.com/cert-1.pdf");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+    expect(res.headers.get("Content-Type")).toBe("application/pdf");
   });
 
-  it("returns 302 for an admin viewer", async () => {
+  it("streams the file for an admin viewer", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.complianceCertificate.findUnique.mockResolvedValue({
       id: "cert-1",
       userId: "user-99",
       serviceId: "svc-1",
-      fileUrl: "https://blob.example.com/cert-1.pdf",
+      fileUrl: "https://t3st.public.blob.vercel-storage.com/cert-1.pdf",
     });
     prismaMock.user.findUnique.mockImplementation(({ where }: { where?: { id?: string } }) => {
       if (where?.id === "admin-1") return Promise.resolve({ active: true });
@@ -93,17 +115,18 @@ describe("GET /api/compliance/[id]/download", () => {
     });
 
     const res = await callRoute("cert-1");
-    expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toBe("https://blob.example.com/cert-1.pdf");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+    expect(res.headers.get("Content-Type")).toBe("application/pdf");
   });
 
-  it("returns 302 for a coordinator in the same service", async () => {
+  it("streams the file for a coordinator in the same service", async () => {
     mockSession({ id: "coord-1", name: "Coord", role: "member", serviceId: "svc-1" });
     prismaMock.complianceCertificate.findUnique.mockResolvedValue({
       id: "cert-1",
       userId: "user-99",
       serviceId: "svc-1",
-      fileUrl: "https://blob.example.com/cert-1.pdf",
+      fileUrl: "https://t3st.public.blob.vercel-storage.com/cert-1.pdf",
     });
     // First findUnique = active check; second = coord's serviceId lookup
     prismaMock.user.findUnique.mockImplementation(({ where, select }: { where?: { id?: string }; select?: { active?: boolean; serviceId?: boolean } }) => {
@@ -117,8 +140,9 @@ describe("GET /api/compliance/[id]/download", () => {
     });
 
     const res = await callRoute("cert-1");
-    expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toBe("https://blob.example.com/cert-1.pdf");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+    expect(res.headers.get("Content-Type")).toBe("application/pdf");
   });
 
   it("returns 403 for a coordinator in a different service", async () => {
@@ -127,7 +151,7 @@ describe("GET /api/compliance/[id]/download", () => {
       id: "cert-1",
       userId: "user-99",
       serviceId: "svc-1",
-      fileUrl: "https://blob.example.com/cert-1.pdf",
+      fileUrl: "https://t3st.public.blob.vercel-storage.com/cert-1.pdf",
     });
     prismaMock.user.findUnique.mockImplementation(({ where, select }: { where?: { id?: string }; select?: { active?: boolean; serviceId?: boolean } }) => {
       if (where?.id === "coord-2" && select?.active) {
@@ -149,7 +173,7 @@ describe("GET /api/compliance/[id]/download", () => {
       id: "cert-1",
       userId: "user-99",
       serviceId: "svc-1",
-      fileUrl: "https://blob.example.com/cert-1.pdf",
+      fileUrl: "https://t3st.public.blob.vercel-storage.com/cert-1.pdf",
     });
     prismaMock.user.findUnique.mockImplementation(({ where }: { where?: { id?: string } }) => {
       if (where?.id === "staff-1") return Promise.resolve({ active: true });
