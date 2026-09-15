@@ -278,6 +278,32 @@ describe("nav consolidation phase 1 (2026-07-05)", () => {
 
 // ─── Curated sidebar partition (2026-07-12) ─────────────────
 
+describe("People section curation for leadership", () => {
+  // 2026-09-15: a State Manager could reach /onboarding (Staff Lifecycle) but
+  // never saw it — the item carried no `core` tier, so the curated sidebar
+  // buried it behind the People section's "+N more" toggle. Reachable but
+  // undiscoverable is indistinguishable from missing.
+  const peopleFor = (role: Role) =>
+    filterNavItems(navItems, role).filter((i) => i.section === "People");
+
+  for (const role of ["owner", "head_office", "admin"] as Role[]) {
+    it(`shows Team, Staff Lifecycle and Roster by default for ${role}`, () => {
+      const { core } = partitionNavSection(peopleFor(role), role);
+      const hrefs = core.map((i) => i.href);
+      expect(hrefs).toContain("/team");
+      expect(hrefs).toContain("/onboarding");
+      expect(hrefs).toContain("/roster");
+    });
+  }
+
+  it("does not surface Staff Lifecycle to roles that cannot open it", () => {
+    for (const role of ["member", "staff"] as Role[]) {
+      const items = peopleFor(role);
+      expect(items.some((i) => i.href === "/onboarding")).toBe(false);
+    }
+  });
+});
+
 describe("partitionNavSection", () => {
   const mk = (href: string, core?: boolean | Role[]): NavItem => ({
     href,
