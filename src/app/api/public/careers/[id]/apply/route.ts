@@ -11,31 +11,37 @@
  * Abuse controls: per-IP rate limit + honeypot field. Resume upload is inline
  * (base64) and reuses the same validated storage path as enrolment documents.
  */
-import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { uploadFile } from "@/lib/storage";
-import { validateFileContent } from "@/lib/file-validation";
+import { storeResume } from "@/lib/recruitment/resume-upload";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import { POOL_SESSIONS, POOL_DAYS } from "@/lib/recruitment/pool";
 
-const MAX_RESUME_SIZE = 10 * 1024 * 1024; // 10 MB
-const ALLOWED_EXTENSIONS = new Set([".pdf", ".docx"]);
-const EXTENSION_TO_MIME: Record<string, string> = {
-  ".pdf": "application/pdf",
-  ".docx":
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-};
 
 const applySchema = z.object({
   name: z.string().min(1, "name is required").max(120),
   email: z.string().email("a valid email is required").max(200),
   phone: z.string().max(40).optional().nullable(),
   message: z.string().max(5000).optional().nullable(),
+  // 2026-09-15: the same funnel fields the pool registration form collects, so
+  // an applicant to a specific ad lands in the pool as complete as anyone else.
+  suburb: z.string().max(120).optional().nullable(),
+  postcode: z.string().max(10).optional().nullable(),
+  qualification: z
+    .enum(["cert_iii", "diploma", "bachelor", "masters", "other"])
+    .optional()
+    .nullable(),
+  studying: z.boolean().optional(),
+  previousRole: z.string().max(200).optional().nullable(),
+  previousEmployer: z.string().max(200).optional().nullable(),
+  availableSessions: z.array(z.enum(POOL_SESSIONS)).optional(),
+  availableDays: z.array(z.enum(POOL_DAYS)).optional(),
+  hasTransport: z.boolean().optional(),
   resumeFile: z.string().optional().nullable(), // base64, no data: prefix
   resumeFilename: z.string().max(200).optional().nullable(),
   resumeContentType: z.string().max(120).optional().nullable(),
@@ -100,50 +106,9 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
     );
   }
 
-  // ── Optional resume upload (inline base64) ───────────────────────────
-  let resumeFileUrl: string | null = null;
-  if (data.resumeFile) {
-    const filename = data.resumeFilename ?? "resume";
-    const ext = path.extname(filename).toLowerCase();
-    if (!ALLOWED_EXTENSIONS.has(ext)) {
-      throw ApiError.badRequest(
-        `Resume must be a PDF or Word (.docx) file (got "${ext || "unknown"}").`,
-      );
-    }
-
-    const buffer = Buffer.from(data.resumeFile, "base64");
-    if (buffer.length === 0) {
-      throw ApiError.badRequest("Resume file is empty or malformed.");
-    }
-    if (buffer.length > MAX_RESUME_SIZE) {
-      throw ApiError.badRequest("Resume exceeds the 10MB limit.");
-    }
-
-    const declaredMime =
-      data.resumeContentType ||
-      EXTENSION_TO_MIME[ext] ||
-      "application/octet-stream";
-    const arrayBuffer = buffer.buffer.slice(
-      buffer.byteOffset,
-      buffer.byteOffset + buffer.byteLength,
-    );
-    if (!validateFileContent(arrayBuffer, declaredMime)) {
-      throw ApiError.badRequest(
-        "Resume content does not match its file type.",
-      );
-    }
-
-    const baseName = path
-      .basename(filename, ext)
-      .replace(/[^a-zA-Z0-9-_]/g, "-")
-      .substring(0, 80);
-    const uniqueName = `${baseName || "resume"}-${Date.now()}${ext}`;
-    const { url } = await uploadFile(buffer, uniqueName, {
-      contentType: declaredMime,
-      folder: "resumes",
-    });
-    resumeFileUrl = url;
-  }
+  // Résumé handling is shared with the pool registration form so the two
+  // public intake paths can't drift on what they accept.
+  const resumeFileUrl = await storeResume(data);
 
   const roleLabel = ROLE_LABELS[vacancy.role] ?? vacancy.role.replace(/_/g, " ");
   const centre = vacancy.service?.name ?? "Amana OSHC";
@@ -157,6 +122,15 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
       source: "website",
       notes: data.message?.trim() || null,
       resumeFileUrl,
+      suburb: data.suburb?.trim() || null,
+      postcode: data.postcode?.trim() || null,
+      qualification: data.qualification ?? null,
+      studying: data.studying ?? false,
+      previousRole: data.previousRole?.trim() || null,
+      previousEmployer: data.previousEmployer?.trim() || null,
+      availableSessions: data.availableSessions ?? [],
+      availableDays: data.availableDays ?? [],
+      hasTransport: data.hasTransport ?? false,
     },
     select: { id: true },
   });

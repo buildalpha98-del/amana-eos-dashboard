@@ -84,10 +84,13 @@ export const POST = withApiAuth(
     }
     const email = candidate.email.toLowerCase().trim();
 
-    // Centre roles need a centre; default to the vacancy's service.
+    // Centre roles need a centre; default to the vacancy's service when the
+    // candidate applied to one. 2026-09-15: pool candidates have no vacancy
+    // (and a regional vacancy has no single centre), so the caller supplies
+    // the centre — the guard below already refuses to proceed without one.
     const serviceId =
       role === "staff" || role === "member"
-        ? (parsed.data.serviceId ?? candidate.vacancy.serviceId)
+        ? (parsed.data.serviceId ?? candidate.vacancy?.serviceId ?? null)
         : null;
     if ((role === "staff" || role === "member") && !serviceId) {
       throw ApiError.badRequest(
@@ -146,14 +149,19 @@ export const POST = withApiAuth(
       where: { id: candidate.id },
       data: { stage: "hired", stageChangedAt: new Date() },
     });
-    await prisma.recruitmentVacancy.update({
-      where: { id: candidate.vacancy.id },
-      data: {
-        filledByUserId: user.id,
-        status: "filled",
-        ...(candidate.vacancy.filledAt ? {} : { filledAt: new Date() }),
-      },
-    });
+    // Only an actual advertised vacancy gets marked filled. Hiring someone
+    // out of the standing pool fills no opening, and a regional casual ad
+    // stays open after one hire — so neither closes anything here.
+    if (candidate.vacancy) {
+      await prisma.recruitmentVacancy.update({
+        where: { id: candidate.vacancy.id },
+        data: {
+          filledByUserId: user.id,
+          status: "filled",
+          ...(candidate.vacancy.filledAt ? {} : { filledAt: new Date() }),
+        },
+      });
+    }
 
     // A pending staff referral for this candidate becomes `hired` (the
     // bonus-paid step stays a deliberate manual action on /recruitment).
@@ -176,7 +184,7 @@ export const POST = withApiAuth(
           role: user.role,
           serviceId: user.serviceId,
           candidateId: candidate.id,
-          vacancyId: candidate.vacancy.id,
+          vacancyId: candidate.vacancy?.id ?? null,
         },
       },
     });

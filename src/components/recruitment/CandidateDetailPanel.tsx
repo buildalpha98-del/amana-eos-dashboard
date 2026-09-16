@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useRecruitment";
 import { fetchApi } from "@/lib/fetch-api";
 import { AiScreenBadge } from "./AiScreenBadge";
+import { POOL_STAGES, stageLabel, normaliseStage } from "@/lib/recruitment/pool";
 
 interface Props {
   candidateId: string | null;
@@ -18,15 +19,10 @@ interface Props {
   onClose: () => void;
 }
 
-const STAGES = [
-  "applied",
-  "screened",
-  "interviewed",
-  "offered",
-  "accepted",
-  "rejected",
-  "withdrawn",
-] as const;
+// 2026-09-15: stages moved to the shared pool vocabulary. This panel used to
+// carry its own list ("offered", "rejected"…) which the API now rejects, and
+// which meant the vacancy view and the pool view disagreed about the funnel.
+const STAGES = POOL_STAGES;
 
 export function CandidateDetailPanel({ candidateId, vacancyId, onClose }: Props) {
   // Subscribe to the same vacancy cache key used by VacancyDetailPanel so that
@@ -58,7 +54,9 @@ export function CandidateDetailPanel({ candidateId, vacancyId, onClose }: Props)
       setPendingStage(null);
     }
   }, [updateMutation.status, updateMutation.submittedAt]);
-  const displayStage = pendingStage ?? candidate?.stage ?? "applied";
+  // Normalised so a row still carrying a legacy stage ("offered", "accepted")
+  // selects a real option instead of rendering a blank select.
+  const displayStage = normaliseStage(pendingStage ?? candidate?.stage);
 
   // Debounced auto-save for notes
   const [notesDraft, setNotesDraft] = useState(candidate?.notes ?? "");
@@ -122,7 +120,7 @@ export function CandidateDetailPanel({ candidateId, vacancyId, onClose }: Props)
           >
             {STAGES.map((s) => (
               <option key={s} value={s}>
-                {s.charAt(0).toUpperCase() + s.slice(1)}
+                {stageLabel(s)}
               </option>
             ))}
             {/* Terminal stage stamped by convert-to-employee — shown but not
@@ -191,7 +189,7 @@ export function CandidateDetailPanel({ candidateId, vacancyId, onClose }: Props)
           <button
             type="button"
             onClick={() =>
-              updateMutation.mutate({ id: candidate.id, stage: "offered" })
+              updateMutation.mutate({ id: candidate.id, stage: "interviewed" })
             }
             className="flex-1 text-sm font-medium px-3 py-2 rounded-lg bg-brand text-white hover:bg-brand/90"
           >
@@ -200,7 +198,7 @@ export function CandidateDetailPanel({ candidateId, vacancyId, onClose }: Props)
           <button
             type="button"
             onClick={() =>
-              updateMutation.mutate({ id: candidate.id, stage: "rejected" })
+              updateMutation.mutate({ id: candidate.id, stage: "not_suitable" })
             }
             className="flex-1 text-sm font-medium px-3 py-2 rounded-lg border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40"
           >

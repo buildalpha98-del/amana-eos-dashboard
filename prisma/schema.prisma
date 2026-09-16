@@ -827,6 +827,7 @@ model User {
   filledVacancies    RecruitmentVacancy[]   @relation("VacancyFilledBy")
   assignedVacancies  RecruitmentVacancy[]   @relation("VacancyAssignee")
   candidateReferrals RecruitmentCandidate[] @relation("CandidateReferrer")
+  candidateNotes     CandidateNote[]        @relation("CandidateNoteAuthor")
   // Set when this account was created by converting a recruitment
   // candidate (hire → employee). @unique doubles as the "already
   // converted" guard — one User per candidate. SetNull because
@@ -6233,9 +6234,17 @@ model Referral {
 // ============================================================
 
 model RecruitmentVacancy {
-  id                    String         @id @default(cuid())
-  serviceId             String
-  service               Service        @relation("ServiceVacancies", fields: [serviceId], references: [id])
+  id String @id @default(cuid())
+
+  /// The centre this ad is for. OPTIONAL since 2026-09-15: casual-pool ads are
+  /// advertised by REGION ("Eastern Melbourne — work across multiple schools"),
+  /// not by site, and forcing a single centre made those impossible to express.
+  /// A site-specific ad still sets it; a regional one sets `region` instead.
+  serviceId             String?
+  service               Service?       @relation("ServiceVacancies", fields: [serviceId], references: [id])
+  /// Free-text catchment shown as the public ad's location when there is no
+  /// single centre, e.g. "Eastern Melbourne" or "South-West Sydney".
+  region                String?
   role                  String // educator, senior_educator, coordinator, director
   employmentType        EmploymentType
   qualificationRequired String? // none, cert_iii, diploma
@@ -6266,32 +6275,105 @@ model RecruitmentVacancy {
   @@index([assignedToId])
 }
 
+/// A person in the staff funnel.
+///
+/// 2026-09-15: reworked from "an application to one vacancy" into a standing
+/// CASUAL POOL. `vacancyId` is now optional — most people register general
+/// interest and are drawn on later for Holiday Quest, a new centre, or cover.
+/// An application to a specific advertised role still sets it.
+///
+/// The extra columns exist so a coordinator can answer "who can work Tuesday
+/// afternoon in Eastern Melbourne, and are they cleared to start?" without
+/// opening a r\u00e9sum\u00e9 or making a phone call.
 model RecruitmentCandidate {
-  id               String             @id @default(cuid())
-  vacancyId        String
-  vacancy          RecruitmentVacancy @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
+  id               String              @id @default(cuid())
+  vacancyId        String?
+  vacancy          RecruitmentVacancy? @relation(fields: [vacancyId], references: [id], onDelete: SetNull)
   name             String
   email            String?
   phone            String?
-  source           String // indeed, seek, referral, community, mosque, university, walkin
-  stage            String             @default("applied") // applied, screened, interviewed, offered, accepted, rejected, withdrawn
-  appliedAt        DateTime           @default(now())
-  stageChangedAt   DateTime           @default(now())
-  interviewNotes   String?            @db.Text
+  /// Where they live — the pool is searched by proximity, because a casual who
+  /// can reach the centre in 15 minutes is worth more than a better CV an hour
+  /// away.
+  suburb           String?
+  postcode         String?
+  /// Catchment they want to work in; matches RecruitmentVacancy.region.
+  preferredRegion  String?
+  source           String // website, indeed, seek, referral, community, mosque, university, walkin
+  stage            String              @default("applied") // see POOL_STAGES in src/lib/recruitment/pool.ts
+  appliedAt        DateTime            @default(now())
+  stageChangedAt   DateTime            @default(now())
+  interviewNotes   String?             @db.Text
   referredByUserId String?
-  referredByUser   User?              @relation("CandidateReferrer", fields: [referredByUserId], references: [id])
-  notes            String?            @db.Text
-  resumeText       String?            @db.Text
+  referredByUser   User?               @relation("CandidateReferrer", fields: [referredByUserId], references: [id])
+  notes            String?             @db.Text
+  resumeText       String?             @db.Text
   resumeFileUrl    String?
   aiScreenScore    Int? // 0-100 fit score
-  aiScreenSummary  String?            @db.Text
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  staffReferral    StaffReferral?
-  convertedUser    User?              @relation("UserConvertedFromCandidate")
+  aiScreenSummary  String?             @db.Text
+
+  // ── Eligibility: can this person legally start? ───────────────────────
+  /// Highest qualification. NULL means unqualified — normal for OSHC casuals,
+  /// not missing data. Same enum the new-starter intake uses.
+  qualification QualificationType?
+  /// Currently studying towards it (a large share of OSHC casuals are students).
+  studying      Boolean            @default(false)
+  wwccNumber    String?
+  wwccExpiry    DateTime?          @db.Date
+  hasFirstAid   Boolean            @default(false)
+  /// citizen | permanent_resident | visa | unknown — see RIGHT_TO_WORK.
+  rightToWork   String?
+
+  // ── Experience ────────────────────────────────────────────────────────
+  previousRole     String?
+  previousEmployer String?
+  yearsExperience  Int?
+
+  // ── Availability: the whole point of a casual pool ────────────────────
+  /// Session types they can cover — bsc | asc | vacation_care.
+  availableSessions String[]
+  /// Weekdays they can cover — mon | tue | wed | thu | fri.
+  availableDays     String[]
+  earliestStart     DateTime? @db.Date
+  /// Own transport matters when an ad spans several schools in a region.
+  hasTransport      Boolean   @default(false)
+
+  // ── Funnel management ─────────────────────────────────────────────────
+  /// 1-5 gut rating from whoever screened them.
+  rating          Int?
+  /// Last time anyone actually contacted them — a pool nobody touches goes
+  /// stale, and this is what the "not contacted in 90 days" view reads.
+  lastContactedAt DateTime?
+  archivedAt      DateTime?
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  staffReferral  StaffReferral?
+  convertedUser  User?           @relation("UserConvertedFromCandidate")
+  candidateNotes CandidateNote[]
 
   @@index([vacancyId])
   @@index([stage])
+  @@index([preferredRegion])
+  @@index([archivedAt])
+}
+
+/// An authored, timestamped note on a candidate.
+///
+/// 2026-09-15: `RecruitmentCandidate.notes` is a single text box, which loses
+/// who said what and when. Several State Managers record why someone was or
+/// wasn't a fit over months, so each observation is its own row. The legacy
+/// field stays for existing content and is shown above the thread.
+model CandidateNote {
+  id          String               @id @default(cuid())
+  candidateId String
+  candidate   RecruitmentCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  authorId    String?
+  author      User?                @relation("CandidateNoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  body        String               @db.Text
+  createdAt   DateTime             @default(now())
+
+  @@index([candidateId, createdAt])
 }
 
 model StaffReferral {
