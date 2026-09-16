@@ -199,3 +199,82 @@ export function daysSinceContact(
 
 /** A pool nobody touches goes stale; this is the threshold the UI flags. */
 export const STALE_CONTACT_DAYS = 90;
+
+// ── Outcomes ────────────────────────────────────────────────────────────
+
+/**
+ * Why someone wasn't hired.
+ *
+ * 2026-09-16. Half the point of keeping the people you didn't hire is seeing
+ * the pattern: a run of "couldn't do afternoons" is an advertising problem,
+ * a run of "no WWCC" is an intake problem. A free-text note can't be counted,
+ * so the reason is a code and the detail goes in `notHiredNote`.
+ *
+ * Deliberately separates OUR decision from THEIRS — someone who took another
+ * job is worth re-contacting next holidays; someone we judged unsuitable is
+ * not. The two look identical if both just read "not hired".
+ */
+export const NOT_HIRED_REASONS = [
+  "no_wwcc",
+  "availability_mismatch",
+  "location",
+  "experience",
+  "qualification",
+  "interview_concerns",
+  "reference_check",
+  "withdrew",
+  "took_other_role",
+  "no_response",
+  "role_filled",
+  "other",
+] as const;
+export type NotHiredReason = (typeof NOT_HIRED_REASONS)[number];
+
+export const NOT_HIRED_REASON_LABELS: Record<NotHiredReason, string> = {
+  no_wwcc: "No WWCC / not cleared",
+  availability_mismatch: "Availability didn't match",
+  location: "Too far from our centres",
+  experience: "Not enough experience",
+  qualification: "Qualification didn't suit",
+  interview_concerns: "Concerns at interview",
+  reference_check: "Reference check",
+  withdrew: "They withdrew",
+  took_other_role: "Took another job",
+  no_response: "Stopped responding",
+  role_filled: "Role filled by someone else",
+  other: "Other",
+};
+
+/** Reasons that are THEIR decision, not ours — still worth re-contacting. */
+export const REAPPROACHABLE_REASONS: readonly NotHiredReason[] = [
+  "withdrew",
+  "took_other_role",
+  "role_filled",
+  "availability_mismatch",
+];
+
+export function notHiredReasonLabel(value: string | null | undefined): string {
+  if (!value) return "Not recorded";
+  return (
+    NOT_HIRED_REASON_LABELS[value as NotHiredReason] ?? value.replace(/_/g, " ")
+  );
+}
+
+// ── Interviews ──────────────────────────────────────────────────────────
+
+export const INTERVIEW_MODES = ["in_person", "phone", "video"] as const;
+export type InterviewMode = (typeof INTERVIEW_MODES)[number];
+export const INTERVIEW_MODE_LABELS: Record<InterviewMode, string> = {
+  in_person: "In person",
+  phone: "Phone",
+  video: "Video call",
+};
+
+/** The interviewer's recommendation — not the final decision. */
+export const INTERVIEW_OUTCOMES = ["progress", "hold", "decline"] as const;
+export type InterviewOutcome = (typeof INTERVIEW_OUTCOMES)[number];
+export const INTERVIEW_OUTCOME_LABELS: Record<InterviewOutcome, string> = {
+  progress: "Progress",
+  hold: "Hold / maybe",
+  decline: "Decline",
+};

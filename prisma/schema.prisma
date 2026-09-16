@@ -828,6 +828,8 @@ model User {
   assignedVacancies  RecruitmentVacancy[]   @relation("VacancyAssignee")
   candidateReferrals RecruitmentCandidate[] @relation("CandidateReferrer")
   candidateNotes     CandidateNote[]        @relation("CandidateNoteAuthor")
+  interviewsRun      CandidateInterview[]   @relation("CandidateInterviewer")
+  interviewsLogged   CandidateInterview[]   @relation("CandidateInterviewAuthor")
   // Set when this account was created by converting a recruitment
   // candidate (hire → employee). @unique doubles as the "already
   // converted" guard — one User per candidate. SetNull because
@@ -6338,6 +6340,18 @@ model RecruitmentCandidate {
   /// Own transport matters when an ad spans several schools in a region.
   hasTransport      Boolean   @default(false)
 
+  // ── Outcome ───────────────────────────────────────────────────────────
+  /// WHY we didn't hire them, as a code from NOT_HIRED_REASONS.
+  ///
+  /// 2026-09-16: the stage already said `not_suitable`, and the reason could
+  /// go in a note — but a note can't be filtered or counted. Half the value of
+  /// keeping the people you didn't hire is spotting the pattern: if most
+  /// declines are "couldn't do afternoons", that's an advertising problem, not
+  /// a candidate problem.
+  notHiredReason String?
+  /// The specifics behind the code, in the words of whoever decided it.
+  notHiredNote   String? @db.Text
+
   // ── Funnel management ─────────────────────────────────────────────────
   /// 1-5 gut rating from whoever screened them.
   rating          Int?
@@ -6346,16 +6360,47 @@ model RecruitmentCandidate {
   lastContactedAt DateTime?
   archivedAt      DateTime?
 
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
   staffReferral  StaffReferral?
-  convertedUser  User?           @relation("UserConvertedFromCandidate")
+  convertedUser  User?                @relation("UserConvertedFromCandidate")
   candidateNotes CandidateNote[]
+  interviews     CandidateInterview[]
 
   @@index([vacancyId])
   @@index([stage])
   @@index([preferredRegion])
   @@index([archivedAt])
+  @@index([notHiredReason])
+}
+
+/// A record of an actual interview.
+///
+/// 2026-09-16: `RecruitmentCandidate.interviewNotes` is one text box, so a
+/// second interview overwrote the first and nothing recorded when it happened
+/// or who was in the room. Each interview is now its own row. The legacy field
+/// is left alone and shown as "earlier interview notes".
+model CandidateInterview {
+  id            String               @id @default(cuid())
+  candidateId   String
+  candidate     RecruitmentCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  heldAt        DateTime
+  /// in_person | phone | video — see INTERVIEW_MODES.
+  mode          String?
+  /// The Amana person who ran it.
+  conductedById String?
+  conductedBy   User?                @relation("CandidateInterviewer", fields: [conductedById], references: [id], onDelete: SetNull)
+  /// Anyone else in the room, free text — panel members are often the centre
+  /// coordinator rather than a dashboard user.
+  panel         String?
+  notes         String               @db.Text
+  /// progress | hold | decline — the recommendation, not the final decision.
+  outcome       String?
+  createdById   String?
+  createdBy     User?                @relation("CandidateInterviewAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime             @default(now())
+
+  @@index([candidateId, heldAt])
 }
 
 /// An authored, timestamped note on a candidate.

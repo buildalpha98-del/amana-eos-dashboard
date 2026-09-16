@@ -15,6 +15,8 @@ import {
   useCandidateNotes,
   useAddCandidateNote,
   useUpdateCandidate,
+  useCandidateInterviews,
+  useAddCandidateInterview,
   type PoolCandidate,
 } from "@/hooks/useCandidatePool";
 import {
@@ -25,6 +27,16 @@ import {
   RIGHT_TO_WORK_LABELS,
   sourceLabel,
   poolReadiness,
+  normaliseStage,
+  NOT_HIRED_REASONS,
+  NOT_HIRED_REASON_LABELS,
+  REAPPROACHABLE_REASONS,
+  notHiredReasonLabel,
+  INTERVIEW_MODES,
+  INTERVIEW_MODE_LABELS,
+  INTERVIEW_OUTCOMES,
+  INTERVIEW_OUTCOME_LABELS,
+  type NotHiredReason,
   type RightToWork,
   type PoolSession,
   type PoolDay,
@@ -66,10 +78,21 @@ export function CandidatePoolPanel({
   onClose: () => void;
 }) {
   const [note, setNote] = useState("");
+  const [loggingInterview, setLoggingInterview] = useState(false);
+  const [iv, setIv] = useState({
+    heldAt: new Date().toISOString().slice(0, 10),
+    mode: "in_person",
+    panel: "",
+    notes: "",
+    outcome: "progress",
+  });
   const { data: notesData, isLoading: notesLoading } = useCandidateNotes(
     candidate?.id ?? null,
   );
   const addNote = useAddCandidateNote(candidate?.id ?? "");
+  const { data: interviewData, isLoading: interviewsLoading } =
+    useCandidateInterviews(candidate?.id ?? null);
+  const addInterview = useAddCandidateInterview(candidate?.id ?? "");
   const update = useUpdateCandidate();
 
   if (!candidate) return null;
@@ -262,6 +285,196 @@ export function CandidatePoolPanel({
               <Field label="AI screen" value={`${c.aiScreenScore} / 100`} />
             )}
           </dl>
+
+          {/* Why we didn't hire them — only once that's the outcome. Asking
+              for a reason before a decision exists just adds noise. */}
+          {normaliseStage(c.stage) === "not_suitable" && (
+            <section className="rounded-lg border border-border bg-surface p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-2">
+                Why we didn&apos;t hire
+              </h3>
+              <select
+                value={c.notHiredReason ?? ""}
+                onChange={(e) => patch({ notHiredReason: e.target.value || null })}
+                className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground"
+              >
+                <option value="">Not recorded</option>
+                {NOT_HIRED_REASONS.map((r) => (
+                  <option key={r} value={r}>{NOT_HIRED_REASON_LABELS[r]}</option>
+                ))}
+              </select>
+              <textarea
+                defaultValue={c.notHiredNote ?? ""}
+                onBlur={(e) => {
+                  const next = e.target.value.trim() || null;
+                  if (next !== (c.notHiredNote ?? null)) patch({ notHiredNote: next });
+                }}
+                rows={2}
+                placeholder="The detail — what specifically, in your words."
+                className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+              />
+              {c.notHiredReason &&
+                REAPPROACHABLE_REASONS.includes(c.notHiredReason as NotHiredReason) && (
+                  <p className="mt-2 text-2xs text-emerald-700 dark:text-emerald-300">
+                    Worth re-contacting &mdash; {notHiredReasonLabel(c.notHiredReason).toLowerCase()} was
+                    their call or our timing, not a judgement on them.
+                  </p>
+                )}
+            </section>
+          )}
+
+          {/* Interviews */}
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-foreground">Interviews</h3>
+              {!loggingInterview && (
+                <button
+                  type="button"
+                  onClick={() => setLoggingInterview(true)}
+                  className="text-2xs text-brand hover:underline"
+                >
+                  Record an interview
+                </button>
+              )}
+            </div>
+
+            {c.interviewNotes && (
+              <div className="mb-3 rounded-lg border border-border bg-surface p-3">
+                <p className="text-2xs uppercase tracking-wide text-muted mb-1">
+                  Earlier interview notes
+                </p>
+                <p className="text-sm text-foreground whitespace-pre-wrap">
+                  {c.interviewNotes}
+                </p>
+              </div>
+            )}
+
+            {loggingInterview && (
+              <form
+                className="space-y-2 rounded-lg border border-border p-3 mb-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!iv.notes.trim()) return;
+                  addInterview.mutate(
+                    {
+                      heldAt: new Date(iv.heldAt).toISOString(),
+                      mode: iv.mode,
+                      panel: iv.panel.trim() || null,
+                      notes: iv.notes.trim(),
+                      outcome: iv.outcome,
+                    },
+                    {
+                      onSuccess: () => {
+                        setLoggingInterview(false);
+                        setIv({ ...iv, panel: "", notes: "" });
+                      },
+                    },
+                  );
+                }}
+              >
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block">
+                    <span className="text-2xs uppercase tracking-wide text-muted">Date</span>
+                    <input
+                      type="date"
+                      value={iv.heldAt}
+                      onChange={(e) => setIv({ ...iv, heldAt: e.target.value })}
+                      className="mt-1 w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-2xs uppercase tracking-wide text-muted">How</span>
+                    <select
+                      value={iv.mode}
+                      onChange={(e) => setIv({ ...iv, mode: e.target.value })}
+                      className="mt-1 w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground"
+                    >
+                      {INTERVIEW_MODES.map((m) => (
+                        <option key={m} value={m}>{INTERVIEW_MODE_LABELS[m]}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <label className="block">
+                  <span className="text-2xs uppercase tracking-wide text-muted">
+                    Anyone else in the room
+                  </span>
+                  <input
+                    value={iv.panel}
+                    onChange={(e) => setIv({ ...iv, panel: e.target.value })}
+                    placeholder="e.g. centre coordinator"
+                    className="mt-1 w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground"
+                  />
+                </label>
+                <textarea
+                  value={iv.notes}
+                  onChange={(e) => setIv({ ...iv, notes: e.target.value })}
+                  rows={4}
+                  placeholder="How it went, what they said, anything to follow up…"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+                />
+                <label className="block">
+                  <span className="text-2xs uppercase tracking-wide text-muted">
+                    Your recommendation
+                  </span>
+                  <select
+                    value={iv.outcome}
+                    onChange={(e) => setIv({ ...iv, outcome: e.target.value })}
+                    className="mt-1 w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground"
+                  >
+                    {INTERVIEW_OUTCOMES.map((o) => (
+                      <option key={o} value={o}>{INTERVIEW_OUTCOME_LABELS[o]}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setLoggingInterview(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={!iv.notes.trim() || addInterview.isPending}
+                    className="flex-1"
+                  >
+                    {addInterview.isPending && (
+                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                    )}
+                    Save interview
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            <div className="space-y-3">
+              {interviewsLoading && <p className="text-sm text-muted">Loading…</p>}
+              {interviewData?.interviews.map((i) => (
+                <div key={i.id} className="border-l-2 border-border pl-3">
+                  <p className="text-2xs text-muted">
+                    {fmtDate(i.heldAt)}
+                    {i.mode
+                      ? ` · ${INTERVIEW_MODE_LABELS[i.mode as keyof typeof INTERVIEW_MODE_LABELS] ?? i.mode}`
+                      : ""}
+                    {i.conductedBy ? ` · ${i.conductedBy.name}` : ""}
+                    {i.panel ? ` with ${i.panel}` : ""}
+                    {i.outcome
+                      ? ` · ${INTERVIEW_OUTCOME_LABELS[i.outcome as keyof typeof INTERVIEW_OUTCOME_LABELS] ?? i.outcome}`
+                      : ""}
+                  </p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap mt-0.5">
+                    {i.notes}
+                  </p>
+                </div>
+              ))}
+              {!interviewsLoading && (interviewData?.interviews.length ?? 0) === 0 && !c.interviewNotes && (
+                <p className="text-sm text-muted">No interviews recorded.</p>
+              )}
+            </div>
+          </section>
 
           {/* Notes */}
           <section>
