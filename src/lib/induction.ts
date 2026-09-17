@@ -16,6 +16,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
+import { logger } from "@/lib/logger";
 
 // Pure, edge-safe helpers live in induction-lock.ts (imported by middleware).
 // Re-exported here so server code can import everything from "@/lib/induction".
@@ -219,4 +220,43 @@ export async function onModuleProgressed(userId: string): Promise<string> {
     });
   }
   return recomputeInductionState(userId);
+}
+
+/**
+ * Recompute after a NON-COURSE blocker was resolved — a WWCC uploaded, a
+ * policy acknowledged, a phone number, photo or emergency contact added.
+ *
+ * 2026-09-17: this exists because the gate had exactly ONE exit. Recompute ran
+ * only from `onModuleProgressed` (LMS progress) and course publishing, so three
+ * of the four blockers in `getInductionReadiness` could be cleared by the user
+ * with nothing re-evaluating their status. A locked coordinator could do every
+ * single thing the blocker list told them to do and stay locked — and where no
+ * essential course was published there was no module to progress either, so
+ * there was no exit at all. Real coordinators sat locked out of their own
+ * centre with a four-item sidebar.
+ *
+ * The same class of bug as the 2026-08-25 lockout, and the same invariant:
+ * every blocker must be resolvable by the locked user, END TO END. A link to a
+ * page they can reach is only half of it — something has to notice they did it.
+ *
+ * Swallow-and-log: induction is a side effect of these saves, never their
+ * point. A user uploading their WWCC must not see an error because the
+ * recompute failed, and the next recompute (or the admin surface) will catch
+ * up regardless.
+ */
+export async function refreshInductionAfterBlockerChange(
+  userId: string | null | undefined,
+): Promise<void> {
+  // Nullable because not every caller has a user: a compliance certificate can
+  // belong to a SERVICE rather than a person (a fire-safety certificate has no
+  // induction to recompute).
+  if (!userId) return;
+  try {
+    await recomputeInductionState(userId);
+  } catch (err) {
+    logger.warn("Induction recompute after blocker change failed", {
+      userId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
 }

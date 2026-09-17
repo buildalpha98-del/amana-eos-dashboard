@@ -149,7 +149,10 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
       "/timesheets",        // Cross-service HR
       "/contracts",         // Cross-service HR
       "/compliance/templates", // Admin audit-template config
-      "/holiday-quest",     // Marketing planner
+      // 2026-09-17: /holiday-quest LEFT this list. It was excluded as "a
+      // marketing planner", but the coordinator is the person who actually
+      // runs vacation care at their centre. Covered by the "OSHC Coordinator
+      // sidebar" block below.
       // 2026-04-30: removed from member sidebar so they log incidents
       // inside the service detail page (cross-service /incidents view is
       // for State Manager / Admin only).
@@ -519,5 +522,36 @@ describe("My Portal grouping (2026-08-06)", () => {
     expect(staffHrefs).toContain("/my-training");
     expect(staffHrefs).toContain("/roster/me");
     expect(staffHrefs).toContain("/my-day");
+  });
+});
+
+describe("OSHC Coordinator sidebar", () => {
+  // 2026-09-17: a coordinator's day is their centre, vacation care, design
+  // requests and looking things up. Holiday Quest was withheld as "a marketing
+  // planner" when the coordinator is the person who RUNS vacation care, and
+  // the Knowledge Base sat in the "+N more" overflow, which for a daily
+  // reference is the same as missing.
+  const coordinatorNav = () => {
+    const items = filterNavItems(navItems, "member" as Role).filter(
+      (i) => !i.hidden,
+    );
+    const ops = items.filter((i) => i.section === "Operations");
+    return {
+      hrefs: items.map((i) => i.href),
+      opsCore: partitionNavSection(ops, "member" as Role).core.map((i) => i.href),
+    };
+  };
+
+  it("surfaces the coordinator's daily surfaces without a '+N more' click", () => {
+    const { opsCore } = coordinatorNav();
+    for (const href of ["/services", "/holiday-quest", "/knowledge", "/requests"]) {
+      expect(opsCore).toContain(href);
+    }
+  });
+
+  it("keeps the cross-centre Children list out", () => {
+    // Deliberate: a coordinator reaches their own children via
+    // /services/[id]?tab=children rather than an org-wide list.
+    expect(coordinatorNav().hrefs).not.toContain("/children");
   });
 });

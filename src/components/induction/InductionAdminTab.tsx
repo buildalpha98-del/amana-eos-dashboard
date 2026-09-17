@@ -13,12 +13,14 @@ import {
   Loader2,
   Trash2,
   Plus,
+  Unlock,
 } from "lucide-react";
 import {
   useInductionPipeline,
   useInductionReadiness,
   useSignoffPractical,
   useLaunchBackfill,
+  useClearInduction,
   type PipelineRow,
 } from "@/hooks/useInduction";
 import {
@@ -48,6 +50,76 @@ function statusBadge(status: string) {
     awaiting_signoff: "bg-green-500/10 text-green-600 border-green-500/30",
   };
   return map[status] ?? "bg-surface text-muted border-border";
+}
+
+/**
+ * One person in the pipeline, with the release valve.
+ *
+ * A locked user sees only training surfaces — no Services, no centre, no
+ * roster. That is correct for a genuine new starter and wrong for a
+ * coordinator who was swept into the gate, so leadership needs to be able to
+ * let them out from here without a database edit.
+ */
+function PipelinePerson({ row }: { row: PipelineRow }) {
+  const clear = useClearInduction();
+  const [confirming, setConfirming] = useState(false);
+  const [reason, setReason] = useState("");
+
+  return (
+    <li className="rounded-lg border border-border bg-surface px-3 py-2">
+      <p className="text-sm font-medium text-foreground">{row.name}</p>
+      <p className="flex items-center gap-1 text-xs text-muted">
+        <Clock className="h-3 w-3" />
+        {row.daysInStage}d in stage{row.serviceName ? ` · ${row.serviceName}` : ""}
+      </p>
+
+      {confirming ? (
+        <div className="mt-2 space-y-2">
+          <label htmlFor={`clear-reason-${row.id}`} className="block text-2xs text-muted">
+            Why are you clearing {row.name}? (recorded in the audit log)
+          </label>
+          <input
+            id={`clear-reason-${row.id}`}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="e.g. Experienced coordinator, not a new starter"
+            className="w-full rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-brand"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={reason.trim().length < 3 || clear.isPending}
+              onClick={() =>
+                clear.mutate(
+                  { userId: row.id, reason: reason.trim() },
+                  { onSuccess: () => setConfirming(false) },
+                )
+              }
+              className="rounded-md bg-brand px-2 py-1 text-2xs font-medium text-white disabled:opacity-40"
+            >
+              {clear.isPending ? "Clearing…" : "Clear induction"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              className="rounded-md px-2 py-1 text-2xs text-muted hover:text-foreground"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          className="mt-2 inline-flex items-center gap-1 text-2xs text-muted transition-colors hover:text-foreground"
+        >
+          <Unlock className="h-3 w-3" />
+          Clear induction
+        </button>
+      )}
+    </li>
+  );
 }
 
 /** Sign-off card — loads the user's practical checklist and lets a signer tick items. */
@@ -203,13 +275,7 @@ export function InductionAdminTab({
                 <p className="mb-3 text-xs text-muted">{stage.hint}</p>
                 <ul className="space-y-2">
                   {byStage(stage.key).map((r) => (
-                    <li key={r.id} className="rounded-lg border border-border bg-surface px-3 py-2">
-                      <p className="text-sm font-medium text-foreground">{r.name}</p>
-                      <p className="flex items-center gap-1 text-xs text-muted">
-                        <Clock className="h-3 w-3" />
-                        {r.daysInStage}d in stage{r.serviceName ? ` · ${r.serviceName}` : ""}
-                      </p>
-                    </li>
+                    <PipelinePerson key={r.id} row={r} />
                   ))}
                 </ul>
               </div>

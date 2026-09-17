@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { refreshInductionAfterBlockerChange } from "@/lib/induction";
 const createContactSchema = z.object({
   name: z.string().min(1, "Name is required"),
   phone: z.string().min(1, "Phone is required"),
@@ -62,6 +63,10 @@ const { id } = await context!.params!;
       details: { name: contact.name, forUserId: id },
     },
   });
+
+  // "Profile incomplete" counts emergency contacts — re-evaluate the gate for
+  // the contact's OWNER, who may not be the person adding it.
+  await refreshInductionAfterBlockerChange(id);
 
   return NextResponse.json(contact, { status: 201 });
 });

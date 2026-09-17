@@ -225,8 +225,13 @@ export const navItems: NavItem[] = [
   // head_office/admin since 2026-04-30). Deprecated in favour of the
   // leadership card + per-service Compliance → Incidents tabs. The page
   // itself stays reachable by URL.
-  { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator" },
-  { href: "/knowledge", label: "Knowledge Base", icon: BookOpen, section: "Operations", tooltip: "Ask questions about your policies, procedures and documents" },
+  // 2026-09-17: core for coordinators. Holiday Quest is a vacation-care
+  // PLANNER, and the coordinator is the person who runs vacation care at their
+  // centre — it was classed as a marketing surface and kept from them. The
+  // Knowledge Base was reachable but buried in the "+N more" overflow, which
+  // for a day-to-day reference is the same as missing.
+  { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator", core: ["member"] },
+  { href: "/knowledge", label: "Knowledge Base", icon: BookOpen, section: "Operations", tooltip: "Ask questions about your policies, procedures and documents", core: ["member"] },
 
   // ── Growth — pipeline, parents & outreach ─────────────────
   { href: "/contact-centre", label: "Contact Centre", icon: Inbox, section: "Growth", tooltip: "Enquiries, support tickets, and VAPI call logs in one place", roles: ALL_NON_MARKETING , core: true },
