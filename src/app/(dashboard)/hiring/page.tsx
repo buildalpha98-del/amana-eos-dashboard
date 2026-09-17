@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Briefcase, Plus, Users, Clock, CheckCircle2, Search, FileText } from "lucide-react";
+import Link from "next/link";
+import { Briefcase, Plus, Users, Clock, CheckCircle2, Search, FileText, ArrowRight } from "lucide-react";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 import { ServiceFilter } from "@/components/marketing/ServiceFilter";
@@ -24,6 +25,13 @@ import { toast } from "@/hooks/useToast";
  * ad, the applicants it produced and the people you'd already met were never
  * on the same screen. Staff Lifecycle now starts where hiring ends.
  * /recruitment redirects here so old links keep working.
+ *
+ * 2026-09-17: the tab strip carries an Onboarding entry that hands over to
+ * /onboarding. It is a LINK, not a fourth panel: Staff Lifecycle is a ten-tab
+ * hub (packs, LMS, induction, 90-day ramp, compliance, offboarding, exit
+ * surveys) and nesting that inside a tab would put two tab strips on one
+ * screen. This keeps the path visible — job ad, candidate, referral, then
+ * onboarding — without pretending the hub is a sub-view of hiring.
  */
 type Tab = "vacancies" | "candidates" | "referrals";
 
@@ -204,6 +212,14 @@ export default function RecruitmentPage() {
         >
           Staff Referrals
         </button>
+        {/* Where hiring ends. A link rather than a tab — see the file header. */}
+        <Link
+          href="/onboarding"
+          className="ml-auto flex items-center gap-1 px-4 py-2 text-sm font-medium border-b-2 -mb-px border-transparent text-muted transition-colors hover:text-foreground"
+        >
+          Onboarding
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
       </div>
 
       {activeTab === "vacancies" ? (

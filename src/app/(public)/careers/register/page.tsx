@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { normalisePublicSource } from "@/lib/recruitment/pool";
 import { RegisterInterestForm } from "./RegisterInterestForm";
 
 /**
@@ -8,7 +9,8 @@ import { RegisterInterestForm } from "./RegisterInterestForm";
  * Deliberately separate from the per-vacancy apply pages: most people who want
  * OSHC work aren't applying to one advertised role, they want to go on the
  * books for casual shifts. This is also the link an Indeed ad points at, since
- * Indeed gives us no way to pull applicants automatically.
+ * Indeed gives us no way to pull applicants automatically — `?src=indeed` on
+ * that link is what keeps those registrations attributable.
  */
 export const metadata: Metadata = {
   title: "Join the Amana OSHC casual team",
@@ -18,7 +20,12 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default function RegisterInterestPage() {
+export default async function RegisterInterestPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ src?: string }>;
+}) {
+  const { src } = await searchParams;
   return (
     <main className="min-h-screen bg-surface py-10 px-4">
       <div className="max-w-2xl mx-auto">
@@ -42,7 +49,7 @@ export default function RegisterInterestPage() {
           </p>
         </header>
 
-        <RegisterInterestForm />
+        <RegisterInterestForm source={normalisePublicSource(src)} />
       </div>
     </main>
   );

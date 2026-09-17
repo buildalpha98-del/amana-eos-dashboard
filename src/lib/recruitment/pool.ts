@@ -112,7 +112,15 @@ export const RIGHT_TO_WORK_LABELS: Record<RightToWork, string> = {
   unknown: "Not stated",
 };
 
-/** Where a candidate came from. `website` covers both public intake forms. */
+/**
+ * Where a candidate came from.
+ *
+ * 2026-09-17: `website` is the DEFAULT for the two public intake forms, not a
+ * blanket label for them. Both forms now accept a `?src=` parameter so an ad
+ * that lives somewhere else — an Indeed post, a Seek listing, a flyer QR —
+ * carries its origin through to the pool. Without it every applicant looked
+ * organic and there was no way to tell which ad was actually working.
+ */
 export const POOL_SOURCES = [
   "website",
   "indeed",
@@ -134,6 +142,24 @@ export const POOL_SOURCE_LABELS: Record<PoolSource, string> = {
   walkin: "Walk-in",
   other: "Other",
 };
+
+/**
+ * Resolve a `?src=` parameter from a public link into a real pool source.
+ *
+ * DELIBERATELY a whitelist. The value arrives on a public URL, so anyone can
+ * put anything in it; accepting it verbatim would let a stranger invent source
+ * values that then clutter the funnel filters forever. Anything we don't
+ * recognise is treated as an ordinary website visit, which is what it is.
+ */
+export function normalisePublicSource(
+  raw: string | null | undefined,
+): PoolSource {
+  const value = raw?.trim().toLowerCase();
+  if (!value) return "website";
+  return (POOL_SOURCES as readonly string[]).includes(value)
+    ? (value as PoolSource)
+    : "website";
+}
 
 export function sourceLabel(value: string | null | undefined): string {
   if (!value) return "Unknown";

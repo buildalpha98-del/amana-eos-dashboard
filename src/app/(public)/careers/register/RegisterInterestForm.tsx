@@ -44,7 +44,16 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-export function RegisterInterestForm() {
+interface Props {
+  /**
+   * Which ad sent this person here, resolved server-side from `?src=`.
+   * Posted with the registration so a casual who came off an Indeed ad is
+   * attributed to it instead of reading as organic website traffic.
+   */
+  source: string;
+}
+
+export function RegisterInterestForm({ source }: Props) {
   const [f, setF] = useState({
     name: "",
     email: "",
@@ -104,6 +113,7 @@ export function RegisterInterestForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...f,
+          source,
           qualification: f.qualification || null,
           rightToWork: f.rightToWork || null,
           availableSessions: sessions,

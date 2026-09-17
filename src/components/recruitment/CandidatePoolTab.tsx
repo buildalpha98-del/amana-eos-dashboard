@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Staff Lifecycle → Candidates: the casual staff pool.
+ * Hiring → Candidates: the casual staff pool.
  *
  * The list answers the question the pool exists for — "who can work this
  * session, near here, and are they cleared to start?" — so readiness and
@@ -34,6 +34,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import { CandidatePoolPanel } from "./CandidatePoolPanel";
 import { AddCandidateModal } from "./AddCandidateModal";
+import { PoolLinkCopy } from "./PoolLinkCopy";
 
 const QUALIFICATION_LABELS: Record<string, string> = {
   cert_iii: "Cert III",
@@ -135,6 +136,10 @@ export function CandidatePoolTab() {
           Add candidate
         </Button>
       </div>
+
+      {/* The link that feeds this list. Attribution can only be set at the
+          point of advertising, so the link lives where the pool is read. */}
+      <PoolLinkCopy />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">

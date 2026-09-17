@@ -225,8 +225,13 @@ export const navItems: NavItem[] = [
   // head_office/admin since 2026-04-30). Deprecated in favour of the
   // leadership card + per-service Compliance → Incidents tabs. The page
   // itself stays reachable by URL.
-  { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator" },
-  { href: "/knowledge", label: "Knowledge Base", icon: BookOpen, section: "Operations", tooltip: "Ask questions about your policies, procedures and documents" },
+  // 2026-09-17: core for coordinators. Holiday Quest is a vacation-care
+  // PLANNER, and the coordinator is the person who runs vacation care at their
+  // centre — it was classed as a marketing surface and kept from them. The
+  // Knowledge Base was reachable but buried in the "+N more" overflow, which
+  // for a day-to-day reference is the same as missing.
+  { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator", core: ["member"] },
+  { href: "/knowledge", label: "Knowledge Base", icon: BookOpen, section: "Operations", tooltip: "Ask questions about your policies, procedures and documents", core: ["member"] },
 
   // ── Growth — pipeline, parents & outreach ─────────────────
   { href: "/contact-centre", label: "Contact Centre", icon: Inbox, section: "Growth", tooltip: "Enquiries, support tickets, and VAPI call logs in one place", roles: ALL_NON_MARKETING , core: true },
@@ -268,7 +273,7 @@ export const navItems: NavItem[] = [
   // induction and the LMS — an Educator or Director of Service does their
   // own onboarding and training in My Training, and having both meant two
   // doors to the same subject with different contents behind them.
-  { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "People", tooltip: "Onboarding, LMS & offboarding", roles: ["head_office", "admin", "eos"], core: ["head_office", "admin", "eos"] },
+  { href: "/onboarding", label: "Onboarding", icon: GraduationCap, section: "People", tooltip: "Onboarding packs, training, induction, 90-day ramp & offboarding", roles: ["head_office", "admin", "eos"], core: ["head_office", "admin", "eos"] },
   { href: "/contracts", label: "Contracts", icon: FileSignature, section: "People", tooltip: "Employment contracts & award rates", feature: "contracts.view", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Staff Lifecycle
   { href: "/position-descriptions", label: "Position Descriptions", icon: FileText, section: "People", tooltip: "Per-role job description library" , hidden: true }, // folded 2026-07-12 — linked from Recruitment
   // 2026-07-05 (nav consolidation phase 1): /diversity-dashboard +

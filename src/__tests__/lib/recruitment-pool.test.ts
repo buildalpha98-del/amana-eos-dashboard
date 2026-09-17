@@ -17,6 +17,8 @@ import {
   NOT_HIRED_REASONS,
   REAPPROACHABLE_REASONS,
   notHiredReasonLabel,
+  normalisePublicSource,
+  POOL_SOURCES,
 } from "@/lib/recruitment/pool";
 
 describe("pool stages", () => {
@@ -133,5 +135,26 @@ describe("not-hired reasons", () => {
   it("says so plainly when no reason was recorded", () => {
     expect(notHiredReasonLabel(null)).toBe("Not recorded");
     expect(notHiredReasonLabel("")).toBe("Not recorded");
+  });
+});
+
+describe("normalisePublicSource", () => {
+  it("accepts every real channel", () => {
+    for (const s of POOL_SOURCES) expect(normalisePublicSource(s)).toBe(s);
+  });
+
+  it("is forgiving about case and padding in a pasted link", () => {
+    expect(normalisePublicSource(" Indeed ")).toBe("indeed");
+    expect(normalisePublicSource("SEEK")).toBe("seek");
+  });
+
+  it("treats an unknown or missing src as an ordinary website visit", () => {
+    // It arrives on a public URL, so it is attacker-controlled. Anything we
+    // don't recognise is exactly what it looks like: someone on our website.
+    expect(normalisePublicSource("google-ads")).toBe("website");
+    expect(normalisePublicSource("<script>")).toBe("website");
+    expect(normalisePublicSource(null)).toBe("website");
+    expect(normalisePublicSource(undefined)).toBe("website");
+    expect(normalisePublicSource("")).toBe("website");
   });
 });

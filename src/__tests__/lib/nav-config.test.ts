@@ -149,7 +149,10 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
       "/timesheets",        // Cross-service HR
       "/contracts",         // Cross-service HR
       "/compliance/templates", // Admin audit-template config
-      "/holiday-quest",     // Marketing planner
+      // 2026-09-17: /holiday-quest LEFT this list. It was excluded as "a
+      // marketing planner", but the coordinator is the person who actually
+      // runs vacation care at their centre. Covered by the "OSHC Coordinator
+      // sidebar" block below.
       // 2026-04-30: removed from member sidebar so they log incidents
       // inside the service detail page (cross-service /incidents view is
       // for State Manager / Admin only).
@@ -279,7 +282,7 @@ describe("nav consolidation phase 1 (2026-07-05)", () => {
 // ─── Curated sidebar partition (2026-07-12) ─────────────────
 
 describe("People section curation for leadership", () => {
-  // 2026-09-15: a State Manager could reach /onboarding (Staff Lifecycle) but
+  // 2026-09-15: a State Manager could reach /onboarding (Onboarding) but
   // never saw it — the item carried no `core` tier, so the curated sidebar
   // buried it behind the People section's "+N more" toggle. Reachable but
   // undiscoverable is indistinguishable from missing.
@@ -287,7 +290,7 @@ describe("People section curation for leadership", () => {
     filterNavItems(navItems, role).filter((i) => i.section === "People");
 
   for (const role of ["owner", "head_office", "admin"] as Role[]) {
-    it(`shows Team, Staff Lifecycle and Roster by default for ${role}`, () => {
+    it(`shows Team, Onboarding and Roster by default for ${role}`, () => {
       const { core } = partitionNavSection(peopleFor(role), role);
       const hrefs = core.map((i) => i.href);
       expect(hrefs).toContain("/team");
@@ -296,10 +299,27 @@ describe("People section curation for leadership", () => {
     });
   }
 
-  it("does not surface Staff Lifecycle to roles that cannot open it", () => {
-    for (const role of ["member", "staff"] as Role[]) {
+  it("does not surface Onboarding to roles that cannot open it", () => {
+    // Marketing is deliberately in this list: they have no child-facing or
+    // people-management duties, which is the same reason they are exempt from
+    // the induction gate.
+    for (const role of ["member", "staff", "marketing"] as Role[]) {
       const items = peopleFor(role);
       expect(items.some((i) => i.href === "/onboarding")).toBe(false);
+    }
+  });
+
+  it("keeps Hiring and Onboarding side by side for leadership", () => {
+    // The two halves of one journey: you hire someone, then you onboard them.
+    // Hiring's tab strip hands over to /onboarding, so a State Manager who
+    // can open one and not the other hits a dead end mid-task.
+    for (const role of ["owner", "head_office", "admin"] as Role[]) {
+      const hrefs = peopleFor(role).map((i) => i.href);
+      expect(hrefs).toContain("/hiring");
+      expect(hrefs).toContain("/onboarding");
+      expect(hrefs.indexOf("/onboarding")).toBeGreaterThan(
+        hrefs.indexOf("/hiring"),
+      );
     }
   });
 });
@@ -484,7 +504,7 @@ describe("My Portal grouping (2026-08-06)", () => {
     }
   });
 
-  it("keeps Staff Lifecycle for leadership only — centre roles use My Training", () => {
+  it("keeps Onboarding for leadership only — centre roles use My Training", () => {
     // Two doors to the same subject with different contents behind them
     // is worse than one.
     for (const role of ["staff", "member"] as const) {
@@ -502,5 +522,36 @@ describe("My Portal grouping (2026-08-06)", () => {
     expect(staffHrefs).toContain("/my-training");
     expect(staffHrefs).toContain("/roster/me");
     expect(staffHrefs).toContain("/my-day");
+  });
+});
+
+describe("OSHC Coordinator sidebar", () => {
+  // 2026-09-17: a coordinator's day is their centre, vacation care, design
+  // requests and looking things up. Holiday Quest was withheld as "a marketing
+  // planner" when the coordinator is the person who RUNS vacation care, and
+  // the Knowledge Base sat in the "+N more" overflow, which for a daily
+  // reference is the same as missing.
+  const coordinatorNav = () => {
+    const items = filterNavItems(navItems, "member" as Role).filter(
+      (i) => !i.hidden,
+    );
+    const ops = items.filter((i) => i.section === "Operations");
+    return {
+      hrefs: items.map((i) => i.href),
+      opsCore: partitionNavSection(ops, "member" as Role).core.map((i) => i.href),
+    };
+  };
+
+  it("surfaces the coordinator's daily surfaces without a '+N more' click", () => {
+    const { opsCore } = coordinatorNav();
+    for (const href of ["/services", "/holiday-quest", "/knowledge", "/requests"]) {
+      expect(opsCore).toContain(href);
+    }
+  });
+
+  it("keeps the cross-centre Children list out", () => {
+    // Deliberate: a coordinator reaches their own children via
+    // /services/[id]?tab=children rather than an org-wide list.
+    expect(coordinatorNav().hrefs).not.toContain("/children");
   });
 });
