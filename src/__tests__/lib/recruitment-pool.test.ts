@@ -14,6 +14,9 @@ import {
   sourceLabel,
   poolReadiness,
   daysSinceContact,
+  NOT_HIRED_REASONS,
+  REAPPROACHABLE_REASONS,
+  notHiredReasonLabel,
 } from "@/lib/recruitment/pool";
 
 describe("pool stages", () => {
@@ -98,5 +101,37 @@ describe("daysSinceContact", () => {
 
   it("treats an unparseable timestamp as never contacted", () => {
     expect(daysSinceContact("rubbish", now)).toBeNull();
+  });
+});
+
+describe("not-hired reasons", () => {
+  it("labels every reason", () => {
+    for (const r of NOT_HIRED_REASONS) {
+      expect(notHiredReasonLabel(r)).not.toMatch(/_/);
+      expect(notHiredReasonLabel(r).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("separates their decision from ours — the re-contactable ones", () => {
+    // Someone who took another job is worth a call next holidays. Someone we
+    // judged unsuitable is not. If these collapsed into one "not hired" the
+    // pool would quietly lose half its value.
+    expect(REAPPROACHABLE_REASONS).toContain("took_other_role");
+    expect(REAPPROACHABLE_REASONS).toContain("withdrew");
+    expect(REAPPROACHABLE_REASONS).toContain("role_filled");
+    expect(REAPPROACHABLE_REASONS).not.toContain("interview_concerns");
+    expect(REAPPROACHABLE_REASONS).not.toContain("no_wwcc");
+    expect(REAPPROACHABLE_REASONS).not.toContain("reference_check");
+  });
+
+  it("every re-contactable reason is a real reason", () => {
+    for (const r of REAPPROACHABLE_REASONS) {
+      expect(NOT_HIRED_REASONS).toContain(r);
+    }
+  });
+
+  it("says so plainly when no reason was recorded", () => {
+    expect(notHiredReasonLabel(null)).toBe("Not recorded");
+    expect(notHiredReasonLabel("")).toBe("Not recorded");
   });
 });

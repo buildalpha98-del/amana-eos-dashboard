@@ -11,6 +11,7 @@ import {
   POOL_SESSIONS,
   POOL_DAYS,
   RIGHT_TO_WORK,
+  NOT_HIRED_REASONS,
 } from "@/lib/recruitment/pool";
 /**
  * 2026-09-15: extended for the casual pool (see src/lib/recruitment/pool.ts).
@@ -45,6 +46,9 @@ const updateCandidateSchema = z.object({
   earliestStart: z.coerce.date().nullable().optional(),
   hasTransport: z.boolean().optional(),
   rating: z.number().int().min(1).max(5).nullable().optional(),
+  /** Why we didn't hire them — a code, so declines can be counted. */
+  notHiredReason: z.enum(NOT_HIRED_REASONS).nullable().optional(),
+  notHiredNote: z.string().max(5000).nullable().optional(),
   /** Set when someone actually rings or emails them — drives the stale view. */
   lastContactedAt: z.coerce.date().nullable().optional(),
   archivedAt: z.coerce.date().nullable().optional(),

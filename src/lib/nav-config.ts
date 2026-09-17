@@ -260,7 +260,10 @@ export const navItems: NavItem[] = [
 
   // ── People — HR & workforce ───────────────────────────────
   { href: "/team", label: "Team", icon: Users, section: "People", roles: ALL_NON_MARKETING , core: true },
-  { href: "/recruitment", label: "Recruitment", icon: Briefcase, section: "People", tooltip: "Track vacancies, candidates & staff referrals", roles: ALL_NON_MARKETING },
+  // 2026-09-16: renamed from Recruitment and pinned for leadership. /hiring is
+  // now the single home for job ads, the candidate pool and referrals;
+  // /recruitment redirects to it.
+  { href: "/hiring", label: "Hiring", icon: Briefcase, section: "People", tooltip: "Job ads, candidate pool & staff referrals", roles: ALL_NON_MARKETING, core: ["head_office", "admin", "eos"] },
   // 2026-08-06: leadership only. Staff Lifecycle is the ADMIN surface for
   // induction and the LMS — an Educator or Director of Service does their
   // own onboarding and training in My Training, and having both meant two

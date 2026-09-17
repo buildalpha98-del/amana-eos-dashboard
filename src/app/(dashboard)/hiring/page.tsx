@@ -1,0 +1,309 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Briefcase, Plus, Users, Clock, CheckCircle2, Search, FileText } from "lucide-react";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCsv } from "@/lib/csv-export";
+import { ServiceFilter } from "@/components/marketing/ServiceFilter";
+import { NewVacancyModal } from "@/components/recruitment/NewVacancyModal";
+import { VacancyTable } from "@/components/recruitment/VacancyTable";
+import { VacancyDetailPanel } from "@/components/recruitment/VacancyDetailPanel";
+import { ReferralsTable } from "@/components/recruitment/ReferralsTable";
+import { CandidatePoolTab } from "@/components/recruitment/CandidatePoolTab";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { toast } from "@/hooks/useToast";
+
+/**
+ * /hiring — one home for everything before someone is an employee.
+ *
+ * 2026-09-16: was /recruitment (vacancies + referrals) with the candidate pool
+ * living separately under Staff Lifecycle. Two places for one job meant the
+ * ad, the applicants it produced and the people you'd already met were never
+ * on the same screen. Staff Lifecycle now starts where hiring ends.
+ * /recruitment redirects here so old links keep working.
+ */
+type Tab = "vacancies" | "candidates" | "referrals";
+
+function isTab(value: string | null): value is Tab {
+  return value === "vacancies" || value === "candidates" || value === "referrals";
+}
+
+export default function RecruitmentPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const urlTab: Tab = isTab(tabParam) ? tabParam : "vacancies";
+  const [activeTab, setActiveTab] = useState<Tab>(urlTab);
+
+  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useState("");
+  // Debounced copy of the search input — the query re-fires 300ms after the
+  // user stops typing rather than on every keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+  const [showNewVacancy, setShowNewVacancy] = useState(false);
+  const [selectedVacancyId, setSelectedVacancyId] = useState<string | null>(null);
+
+  function handleTabChange(tab: Tab) {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "vacancies") {
+      params.delete("tab");
+    } else {
+      params.set("tab", tab);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `/hiring?${qs}` : "/hiring", { scroll: false });
+  }
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["recruitment-vacancies", selectedServiceId, statusFilter, debouncedSearch],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedServiceId) params.set("serviceId", selectedServiceId);
+      if (statusFilter) params.set("status", statusFilter);
+      if (debouncedSearch) params.set("q", debouncedSearch);
+      const res = await fetch(`/api/recruitment?${params}`);
+      if (!res.ok) throw new Error("Failed to fetch vacancies");
+      return res.json();
+    },
+    retry: 2,
+    staleTime: 30_000,
+  });
+
+  const vacancies = data?.vacancies || [];
+
+  const stats = {
+    open: vacancies.filter((v: { status: string }) => v.status === "open").length,
+    interviewing: vacancies.filter((v: { status: string }) => v.status === "interviewing").length,
+    offered: vacancies.filter((v: { status: string }) => v.status === "offered").length,
+    filled: vacancies.filter((v: { status: string }) => v.status === "filled").length,
+  };
+
+  if (error && activeTab === "vacancies") {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <ErrorState
+          title="Failed to load vacancies"
+          error={error instanceof Error ? error : new Error("Something went wrong while fetching the recruitment pipeline.")}
+          onRetry={() => refetch()}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto">
+      {/* Header */}
+      <PageHeader
+        title="Hiring"
+        description="Job ads, your candidate pool, and staff referrals"
+        primaryAction={
+          activeTab === "vacancies"
+            ? {
+                label: "New Vacancy",
+                icon: Plus,
+                onClick: () => setShowNewVacancy(true),
+              }
+            : undefined
+        }
+        secondaryActions={[
+          // 2026-07-12 (nav fold): Position Descriptions left the sidebar —
+          // PDs exist to hire against, so they live here.
+          { label: "Position Descriptions", icon: FileText, onClick: () => router.push("/position-descriptions") },
+        ]}
+      >
+        {activeTab === "vacancies" && (
+          <div className="flex flex-wrap items-center gap-3">
+            <ServiceFilter value={selectedServiceId} onChange={setSelectedServiceId} />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 text-sm border border-border rounded-lg"
+            >
+              <option value="">All Statuses</option>
+              <option value="open">Open</option>
+              <option value="interviewing">Interviewing</option>
+              <option value="offered">Offered</option>
+              <option value="filled">Filled</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search vacancies..."
+                aria-label="Search vacancies"
+                className="pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent w-full sm:w-48"
+              />
+            </div>
+            <ExportButton
+              onClick={() =>
+                exportToCsv(
+                  `amana-recruitment-${new Date().toISOString().slice(0, 10)}`,
+                  vacancies,
+                  [
+                    { header: "ID", accessor: (v: Record<string, unknown>) => v.id as string },
+                    { header: "Role", accessor: (v: Record<string, unknown>) => ((v.role as string) ?? "").replace(/_/g, " ") },
+                    { header: "Status", accessor: (v: Record<string, unknown>) => v.status as string },
+                    { header: "Qualification Required", accessor: (v: Record<string, unknown>) => ((v.qualificationRequired as string) ?? "").replace(/_/g, " ") },
+                    { header: "Employment Type", accessor: (v: Record<string, unknown>) => ((v.employmentType as string) ?? "").replace(/_/g, " ") },
+                    { header: "Centre", accessor: (v: Record<string, unknown>) => ((v.service as Record<string, unknown>)?.name as string) ?? "" },
+                    { header: "Candidates", accessor: (v: Record<string, unknown>) => ((v._count as Record<string, unknown>)?.candidates as number) ?? 0 },
+                    { header: "Created", accessor: (v: Record<string, unknown>) => v.createdAt ? new Date(v.createdAt as string).toLocaleDateString("en-AU") : "" },
+                  ],
+                )
+              }
+              disabled={vacancies.length === 0}
+            />
+          </div>
+        )}
+      </PageHeader>
+
+      {/* Tab Switcher */}
+      <div className="flex items-center gap-1 mb-6 border-b border-border">
+        <button
+          type="button"
+          onClick={() => handleTabChange("vacancies")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            activeTab === "vacancies"
+              ? "border-brand text-brand"
+              : "border-transparent text-muted hover:text-foreground"
+          }`}
+        >
+          Job ads
+        </button>
+        <button
+          type="button"
+          onClick={() => handleTabChange("candidates")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            activeTab === "candidates"
+              ? "border-brand text-brand"
+              : "border-transparent text-muted hover:text-foreground"
+          }`}
+        >
+          Candidates
+        </button>
+        <button
+          type="button"
+          onClick={() => handleTabChange("referrals")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            activeTab === "referrals"
+              ? "border-brand text-brand"
+              : "border-transparent text-muted hover:text-foreground"
+          }`}
+        >
+          Staff Referrals
+        </button>
+      </div>
+
+      {activeTab === "vacancies" ? (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <StatCard icon={Briefcase} label="Open" value={stats.open} color="blue" />
+            <StatCard icon={Users} label="Interviewing" value={stats.interviewing} color="amber" />
+            <StatCard icon={Clock} label="Offered" value={stats.offered} color="purple" />
+            <StatCard icon={CheckCircle2} label="Filled" value={stats.filled} color="emerald" />
+          </div>
+
+          {/* Empty State */}
+          {!isLoading && vacancies.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 bg-card rounded-xl border border-border">
+              <div className="p-4 bg-surface rounded-full mb-4">
+                <Briefcase className="h-8 w-8 text-muted" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">No vacancies found</h3>
+              <p className="text-sm text-muted mb-4">
+                {search || statusFilter || selectedServiceId
+                  ? "Try adjusting your filters or search terms."
+                  : "Get started by creating your first vacancy."}
+              </p>
+              <button
+                onClick={() => setShowNewVacancy(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-md bg-brand text-white text-sm font-medium hover:bg-brand-hover transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                New Vacancy
+              </button>
+            </div>
+          ) : (
+            /* Vacancy Table */
+            <VacancyTable
+              vacancies={vacancies}
+              isLoading={isLoading}
+              onSelect={(id) => setSelectedVacancyId(id)}
+            />
+          )}
+        </>
+      ) : activeTab === "candidates" ? (
+        <CandidatePoolTab />
+      ) : (
+        <ReferralsTable />
+      )}
+
+      {/* New Vacancy Modal */}
+      {showNewVacancy && (
+        <NewVacancyModal
+          onClose={() => setShowNewVacancy(false)}
+          onCreated={() => {
+            setShowNewVacancy(false);
+            refetch();
+            toast({ title: "Vacancy created", description: "The new vacancy has been added to the pipeline." });
+          }}
+        />
+      )}
+
+      {/* Detail Panel */}
+      {selectedVacancyId && (
+        <VacancyDetailPanel
+          vacancyId={selectedVacancyId}
+          onClose={() => setSelectedVacancyId(null)}
+          onUpdated={() => refetch()}
+        />
+      )}
+    </div>
+  );
+}
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  color,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number;
+  color: string;
+}) {
+  const colors: Record<string, string> = {
+    blue: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400",
+    amber: "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400",
+    purple: "bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400",
+    emerald: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400",
+  };
+
+  return (
+    <div className="bg-card rounded-xl border border-border p-4">
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-lg ${colors[color]}`}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-foreground">{value}</p>
+          <p className="text-xs text-muted">{label}</p>
+        </div>
+      </div>
+    </div>
+  );
+}

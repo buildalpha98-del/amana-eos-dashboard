@@ -157,6 +157,7 @@ export const allPages = [
   "/knowledge",
   // HR
   "/recruitment",
+  "/hiring",
   // 2026-07-05 (nav consolidation phase 1): consolidated D&I + WGEA hub.
   // Owner/head_office/admin only (inherited via allPages — deliberately
   // NOT added to the marketing/member/staff/EOS allowlists).

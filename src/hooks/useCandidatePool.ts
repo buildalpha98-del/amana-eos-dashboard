@@ -42,6 +42,8 @@ export interface PoolCandidate {
   notes: string | null;
   interviewNotes: string | null;
   aiScreenScore: number | null;
+  notHiredReason: string | null;
+  notHiredNote: string | null;
   vacancy: {
     id: string;
     role: string;
@@ -145,6 +147,48 @@ export function useCreateCandidate() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["candidate-pool"] });
       toast({ description: "Candidate added to the pool." });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
+}
+
+export interface CandidateInterview {
+  id: string;
+  heldAt: string;
+  mode: string | null;
+  panel: string | null;
+  notes: string;
+  outcome: string | null;
+  conductedBy: { id: string; name: string; avatar: string | null } | null;
+  createdBy: { id: string; name: string } | null;
+}
+
+export function useCandidateInterviews(candidateId: string | null) {
+  return useQuery({
+    queryKey: ["candidate-interviews", candidateId],
+    queryFn: () =>
+      fetchApi<{ interviews: CandidateInterview[] }>(
+        `/api/recruitment/candidates/${candidateId}/interviews`,
+      ),
+    enabled: !!candidateId,
+    retry: 2,
+  });
+}
+
+export function useAddCandidateInterview(candidateId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      mutateApi<CandidateInterview>(
+        `/api/recruitment/candidates/${candidateId}/interviews`,
+        { method: "POST", body },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["candidate-interviews", candidateId] });
+      // The route also stamps lastContactedAt, so the list is stale too.
+      qc.invalidateQueries({ queryKey: ["candidate-pool"] });
+      toast({ description: "Interview recorded." });
     },
     onError: (err: Error) =>
       toast({ variant: "destructive", description: err.message }),
