@@ -264,7 +264,7 @@ describe("GET /api/children — includeParents=true", () => {
     });
   });
 
-  it("silently drops parent entries that fail schema parsing", async () => {
+  it("keeps a parent who has a first name but no surname", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.child.findMany.mockResolvedValue([
       makeChild({
@@ -275,7 +275,11 @@ describe("GET /api/children — includeParents=true", () => {
             surname: "Smith",
             email: "priya@example.com",
           },
-          // Malformed — surname missing, should be dropped.
+          // 2026-09-17: a missing surname used to fail the schema and drop the
+          // whole entry. A parent recorded with only a first name is still a
+          // real contact for this child — dropping them from the list is worse
+          // than showing a partial name. Only a nameless entry is dropped now
+          // (covered below).
           secondaryParent: { firstName: "Broken" },
           status: "submitted",
           createdAt: new Date("2026-01-01"),
@@ -288,8 +292,13 @@ describe("GET /api/children — includeParents=true", () => {
       createRequest("GET", "/api/children?includeParents=true"),
     );
     const body = await res.json();
-    expect(body.children[0].parents).toHaveLength(1);
+    expect(body.children[0].parents).toHaveLength(2);
     expect(body.children[0].parents[0].firstName).toBe("Priya");
+    expect(body.children[0].parents[1]).toMatchObject({
+      firstName: "Broken",
+      surname: "",
+      isPrimary: false,
+    });
   });
 
   it("does not crash when enrolment is null", async () => {

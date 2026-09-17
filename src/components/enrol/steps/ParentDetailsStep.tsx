@@ -64,6 +64,8 @@ function ParentSection({
   childAddress,
   onCopyChildAddress,
   copyAddressLabel,
+  dobRequired,
+  sharedAddress,
 }: {
   title: string;
   parent: ParentDetails;
@@ -73,6 +75,22 @@ function ParentSection({
   childAddress?: { street: string; suburb: string; state: string; postcode: string };
   onCopyChildAddress?: () => void;
   copyAddressLabel?: string;
+  /**
+   * Ask for the date of birth even where the rest of the section is optional.
+   * The second parent's DOB is the field the enrolment pack is most often sent
+   * back for, so it is not optional once there IS a second parent.
+   */
+  dobRequired?: boolean;
+  /**
+   * Offer "lives with the primary carer" INSTEAD of a second address. Most
+   * families share one, and a tick keeps the two in step where a copied
+   * address silently goes stale.
+   */
+  sharedAddress?: {
+    checked: boolean;
+    onToggle: (checked: boolean) => void;
+    primaryAddress: string;
+  };
 }) {
   return (
     <div>
@@ -80,7 +98,7 @@ function ParentSection({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input label="First Name" value={parent.firstName} onChange={(v) => onChange("firstName", v)} required={required} />
         <Input label="Surname" value={parent.surname} onChange={(v) => onChange("surname", v)} required={required} />
-        <Input label="Date of Birth" value={parent.dob} onChange={(v) => onChange("dob", v)} type="date" required={required} />
+        <Input label="Date of Birth" value={parent.dob} onChange={(v) => onChange("dob", v)} type="date" required={required || dobRequired} />
         <Input label="Email" value={parent.email} onChange={(v) => onChange("email", v)} type="email" required={required} />
         <Input label="Mobile" value={parent.mobile} onChange={(v) => onChange("mobile", v)} type="tel" required={required} />
         <div>
@@ -103,7 +121,7 @@ function ParentSection({
 
       <div className="flex items-center justify-between mt-6 mb-3">
         <h4 className="text-sm font-semibold text-muted">Address</h4>
-        {onCopyChildAddress && (
+        {onCopyChildAddress && !sharedAddress?.checked && (
           <button
             type="button"
             onClick={onCopyChildAddress}
@@ -113,7 +131,35 @@ function ParentSection({
           </button>
         )}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+      {sharedAddress && (
+        <label className="mb-3 flex items-start gap-2.5 rounded-lg border border-border bg-surface/50 p-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={sharedAddress.checked}
+            onChange={(e) => sharedAddress.onToggle(e.target.checked)}
+            className="mt-0.5 h-4 w-4"
+          />
+          <span className="text-sm">
+            <span className="font-medium text-foreground/90">
+              Lives with the primary parent / guardian
+            </span>
+            <span className="block text-xs text-muted mt-0.5">
+              {sharedAddress.checked
+                ? sharedAddress.primaryAddress
+                  ? `We'll use ${sharedAddress.primaryAddress}.`
+                  : "We'll use the primary parent's address once it's filled in above."
+                : "Tick this if they live at the same address — no need to type it twice."}
+            </span>
+          </span>
+        </label>
+      )}
+
+      <div
+        className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${
+          sharedAddress?.checked ? "hidden" : ""
+        }`}
+      >
         <div className="sm:col-span-2">
           <Input label="Street" value={parent.street} onChange={(v) => onChange("street", v)} />
         </div>
@@ -164,6 +210,16 @@ function ParentSection({
 
 export function ParentDetailsStep({ data, updateData }: Props) {
   const [showSecondary, setShowSecondary] = useState(true);
+  /** Shown under the "lives with the primary carer" tick so it is checkable. */
+  const primaryAddressLine = [
+    data.primaryParent.street,
+    data.primaryParent.suburb,
+    data.primaryParent.state,
+    data.primaryParent.postcode,
+  ]
+    .map((v) => v?.trim())
+    .filter(Boolean)
+    .join(", ");
   const [uploading, setUploading] = useState(false);
 
   // Use functional updater so rapid back-to-back calls (e.g. postcode handler
@@ -352,6 +408,26 @@ export function ParentDetailsStep({ data, updateData }: Props) {
                 parent={data.secondaryParent}
                 onChange={updateSecondary}
                 onBatchChange={batchUpdateSecondary}
+                // Once there IS a second parent, their DOB stops being
+                // optional: it is the field the enrolment pack gets sent back
+                // for most often.
+                dobRequired={Boolean(data.secondaryParent.firstName)}
+                sharedAddress={{
+                  checked: data.secondaryParent.livesWithPrimary,
+                  primaryAddress: primaryAddressLine,
+                  onToggle: (checked) =>
+                    updateData({
+                      secondaryParent: {
+                        ...data.secondaryParent,
+                        livesWithPrimary: checked,
+                        // Clear the typed address when the tick takes over, so
+                        // the record never holds two competing answers.
+                        ...(checked
+                          ? { street: "", suburb: "", state: "", postcode: "" }
+                          : {}),
+                      },
+                    }),
+                }}
                 onCopyChildAddress={() => {
                   updateData({
                     secondaryParent: {

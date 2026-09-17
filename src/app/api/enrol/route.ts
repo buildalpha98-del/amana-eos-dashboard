@@ -66,6 +66,12 @@ const secondaryParentSchema = z.object({
   workPhone: z.string().default(""),
   crn: z.string().default(""),
   soleCustody: z.boolean().nullable().default(null),
+  /**
+   * They live at the primary carer's address, so the form didn't ask for it
+   * twice. The PDF resolves the actual address at render time — storing a copy
+   * here would go stale the first time the primary's address is corrected.
+   */
+  livesWithPrimary: z.boolean().default(false),
 });
 
 const medicationSchema = z.object({

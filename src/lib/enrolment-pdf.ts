@@ -1,5 +1,5 @@
 import type jsPDF from "jspdf";
-import { parseJsonField, primaryParentSchema } from "@/lib/schemas/json-fields";
+import { primaryParentSchema } from "@/lib/schemas/json-fields";
 import { BRAND, drawLogo, createPdfBuilder } from "@/lib/pdf/branding";
 
 /**
@@ -23,6 +23,54 @@ function asRows(v: unknown): Record<string, unknown>[] {
   return Array.isArray(v)
     ? (v.filter((r) => r && typeof r === "object") as Record<string, unknown>[])
     : [];
+}
+
+/**
+ * Read one stored parent blob.
+ *
+ * This used to go through `parseJsonField(..., { firstName: "", surname: "" })`,
+ * whose fallback is the whole problem: every field on `primaryParentSchema`
+ * was `.optional()`, which rejects `null`, so ONE null field — a `crn` nobody
+ * filled in — failed the object and the pack printed an empty Primary Parent /
+ * Guardian section. The dashboard reads the raw JSON, so it showed the family
+ * in full while the PDF a coordinator actually sends looked like we had never
+ * collected them.
+ *
+ * The schema now degrades per field (see `parentText`), and this keeps the
+ * parsed result ONLY when parsing succeeded — never a blank stand-in for a
+ * record that exists. Anything unparseable falls back to the raw object and is
+ * coerced field by field at render time, because a pack that prints what it
+ * can beat a pack that silently prints nothing.
+ */
+function parentRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const parsed = primaryParentSchema.safeParse(value);
+  return parsed.success
+    ? (parsed.data as Record<string, unknown>)
+    : (value as Record<string, unknown>);
+}
+
+/** Render a stored value as text, or "" for anything that isn't printable. */
+function text(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value);
+  return "";
+}
+
+function fullName(p: Record<string, unknown>): string {
+  return [text(p.firstName), text(p.surname)].filter(Boolean).join(" ");
+}
+
+/** The four-part address, falling back to the legacy single-line field. */
+function parentAddress(p: Record<string, unknown>): string {
+  const parts = [p.street, p.suburb, p.state, p.postcode].map(text).filter(Boolean);
+  return parts.length > 0 ? parts.join(", ") : text(p.address);
+}
+
+function yesNo(value: unknown): string {
+  if (value === true) return "Yes";
+  if (value === false) return "No";
+  return "";
 }
 
 interface EnrolmentSubmission {
@@ -171,30 +219,56 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
     }
   }
 
-  // ── Primary Parent ──
-  const pp = parseJsonField(submission.primaryParent, primaryParentSchema, { firstName: "", surname: "" }) as Record<string, unknown>;
-  heading("Primary Parent / Guardian");
-  row("Name", `${pp.firstName} ${pp.surname}`);
-  row("DOB", pp.dob as string);
-  row("Email", pp.email as string);
-  row("Mobile", pp.mobile as string);
-  row("Relationship", pp.relationship as string);
-  const ppAddr = [pp.street, pp.suburb, pp.state, pp.postcode].filter(Boolean).join(", ");
-  row("Address", ppAddr);
-  row("Occupation", pp.occupation as string);
-  row("Workplace", pp.workplace as string);
-  row("Work Phone", pp.workPhone as string);
-  row("CRN", pp.crn as string);
+  // ── Parents / Guardians ──
+  //
+  // Both sections print the SAME fields. The pack's job is to be re-keyed into
+  // another system (OWNA), and a second parent recorded as a name and a mobile
+  // means someone has to ring the family back for the rest.
+  const pp = parentRecord(submission.primaryParent);
+  const sp = parentRecord(submission.secondaryParent);
 
-  // ── Secondary Parent ──
-  const sp = submission.secondaryParent as Record<string, unknown> | null;
-  if (sp?.firstName) {
+  const ppAddr = parentAddress(pp);
+
+  heading("Primary Parent / Guardian");
+  row("Name", fullName(pp));
+  row("DOB", text(pp.dob));
+  row("Email", text(pp.email));
+  row("Mobile", text(pp.mobile));
+  row("Relationship", text(pp.relationship));
+  row("Address", ppAddr);
+  row("Occupation", text(pp.occupation));
+  row("Workplace", text(pp.workplace));
+  row("Work Phone", text(pp.workPhone));
+  row("CRN", text(pp.crn));
+
+  if (text(pp.firstName) || text(pp.surname)) {
+    // Only meaningful once there is a second parent to have custody OF.
+    row("Sole custody", yesNo(pp.soleCustody));
+  }
+
+  if (text(sp.firstName)) {
     heading("Secondary Parent / Guardian");
-    row("Name", `${sp.firstName} ${sp.surname}`);
-    row("DOB", sp.dob as string);
-    row("Email", sp.email as string);
-    row("Mobile", sp.mobile as string);
-    row("Relationship", sp.relationship as string);
+    row("Name", fullName(sp));
+    row("DOB", text(sp.dob));
+    row("Email", text(sp.email));
+    row("Mobile", text(sp.mobile));
+    row("Relationship", text(sp.relationship));
+
+    // Families overwhelmingly share one address, so the form asks once and
+    // ticks a box rather than making them type it twice. Resolving it HERE
+    // (not at submit time) means the second parent's address follows the
+    // primary's if it is ever corrected, instead of freezing a stale copy.
+    const spOwnAddr = parentAddress(sp);
+    if (sp.livesWithPrimary === true) {
+      row("Address", ppAddr ? `${ppAddr} (same as primary)` : "Same as primary");
+    } else {
+      row("Address", spOwnAddr);
+    }
+
+    row("Occupation", text(sp.occupation));
+    row("Workplace", text(sp.workplace));
+    row("Work Phone", text(sp.workPhone));
+    row("CRN", text(sp.crn));
   }
 
   // ── Emergency Contacts ──

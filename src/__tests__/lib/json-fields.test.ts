@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { z } from "zod";
 import {
   parseJsonField,
   notificationPrefsSchema,
@@ -34,15 +35,26 @@ describe("parseJsonField", () => {
     expect(result).toBe(fallback);
   });
 
-  it("returns fallback for invalid data (wrong shape)", () => {
-    const fallback = {};
-    // primaryParentSchema requires firstName and surname as strings
-    const result = parseJsonField(
-      { firstName: 123 },
-      primaryParentSchema,
-      fallback,
-    );
+  it("returns the fallback when the schema genuinely rejects the value", () => {
+    const fallback = { name: "none" };
+    // A schema with no per-field recovery: the whole parse fails, so the
+    // caller gets its fallback. (primaryParentSchema deliberately no longer
+    // behaves this way — see its own describe block below.)
+    const strict = z.object({ name: z.string() });
+    const result = parseJsonField({ name: 123 }, strict, fallback);
     expect(result).toBe(fallback);
+  });
+
+  it("recovers a parent record field by field rather than falling back", () => {
+    // The enrolment-PDF regression: a numeric firstName used to sink the
+    // record and blank the whole Primary Parent section downstream.
+    const result = parseJsonField(
+      { firstName: 123, surname: "Doe", email: "d@e.com" },
+      primaryParentSchema,
+      { firstName: "", surname: "" },
+    );
+    expect(result.surname).toBe("Doe");
+    expect(result.email).toBe("d@e.com");
   });
 
   it("works with nested objects", () => {
@@ -117,10 +129,32 @@ describe("primaryParentSchema", () => {
     }
   });
 
-  it("rejects missing firstName", () => {
-    const input = { surname: "Doe" };
-    const result = primaryParentSchema.safeParse(input);
-    expect(result.success).toBe(false);
+  it("degrades a missing or null field instead of failing the record", () => {
+    // 2026-09-17: these fields used to be `z.string().optional()`, which
+    // accepts `undefined` but REJECTS `null`. One null field failed the whole
+    // object, `parseJsonField` returned its blank fallback, and the enrolment
+    // PDF printed an EMPTY Primary Parent section for a family whose details
+    // the dashboard was showing in full. A stored blob written by several code
+    // paths over two years has to render what it has.
+    const missingFirstName = primaryParentSchema.safeParse({ surname: "Doe" });
+    expect(missingFirstName.success).toBe(true);
+    if (missingFirstName.success) {
+      expect(missingFirstName.data.firstName).toBe("");
+      expect(missingFirstName.data.surname).toBe("Doe");
+    }
+
+    const nullCrn = primaryParentSchema.safeParse({
+      firstName: "Jane",
+      surname: "Doe",
+      email: "jane@example.com",
+      crn: null,
+    });
+    expect(nullCrn.success).toBe(true);
+    if (nullCrn.success) {
+      // The null field drops itself; its siblings survive.
+      expect(nullCrn.data.crn).toBeUndefined();
+      expect(nullCrn.data.email).toBe("jane@example.com");
+    }
   });
 
   it("passes through extra fields", () => {

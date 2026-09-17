@@ -35,6 +35,15 @@ export interface ParentDetails {
   workPhone: string;
   crn: string;
   soleCustody: boolean | null;
+  /**
+   * Secondary parent only: they live at the primary carer's address.
+   *
+   * A flag rather than a copy of the address. The form used to offer a "Same
+   * as primary parent" button that duplicated the four fields at click time,
+   * so correcting the primary's address later left the second parent at the
+   * old one with nothing to say they had ever matched.
+   */
+  livesWithPrimary: boolean;
 }
 
 export interface MedicalInfo {
@@ -188,6 +197,7 @@ export const EMPTY_PARENT: ParentDetails = {
   workPhone: "",
   crn: "",
   soleCustody: null,
+  livesWithPrimary: false,
 };
 
 export const EMPTY_MEDICAL: MedicalInfo = {
