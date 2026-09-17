@@ -279,7 +279,7 @@ describe("nav consolidation phase 1 (2026-07-05)", () => {
 // ─── Curated sidebar partition (2026-07-12) ─────────────────
 
 describe("People section curation for leadership", () => {
-  // 2026-09-15: a State Manager could reach /onboarding (Staff Lifecycle) but
+  // 2026-09-15: a State Manager could reach /onboarding (Onboarding) but
   // never saw it — the item carried no `core` tier, so the curated sidebar
   // buried it behind the People section's "+N more" toggle. Reachable but
   // undiscoverable is indistinguishable from missing.
@@ -287,7 +287,7 @@ describe("People section curation for leadership", () => {
     filterNavItems(navItems, role).filter((i) => i.section === "People");
 
   for (const role of ["owner", "head_office", "admin"] as Role[]) {
-    it(`shows Team, Staff Lifecycle and Roster by default for ${role}`, () => {
+    it(`shows Team, Onboarding and Roster by default for ${role}`, () => {
       const { core } = partitionNavSection(peopleFor(role), role);
       const hrefs = core.map((i) => i.href);
       expect(hrefs).toContain("/team");
@@ -296,10 +296,27 @@ describe("People section curation for leadership", () => {
     });
   }
 
-  it("does not surface Staff Lifecycle to roles that cannot open it", () => {
-    for (const role of ["member", "staff"] as Role[]) {
+  it("does not surface Onboarding to roles that cannot open it", () => {
+    // Marketing is deliberately in this list: they have no child-facing or
+    // people-management duties, which is the same reason they are exempt from
+    // the induction gate.
+    for (const role of ["member", "staff", "marketing"] as Role[]) {
       const items = peopleFor(role);
       expect(items.some((i) => i.href === "/onboarding")).toBe(false);
+    }
+  });
+
+  it("keeps Hiring and Onboarding side by side for leadership", () => {
+    // The two halves of one journey: you hire someone, then you onboard them.
+    // Hiring's tab strip hands over to /onboarding, so a State Manager who
+    // can open one and not the other hits a dead end mid-task.
+    for (const role of ["owner", "head_office", "admin"] as Role[]) {
+      const hrefs = peopleFor(role).map((i) => i.href);
+      expect(hrefs).toContain("/hiring");
+      expect(hrefs).toContain("/onboarding");
+      expect(hrefs.indexOf("/onboarding")).toBeGreaterThan(
+        hrefs.indexOf("/hiring"),
+      );
     }
   });
 });
@@ -484,7 +501,7 @@ describe("My Portal grouping (2026-08-06)", () => {
     }
   });
 
-  it("keeps Staff Lifecycle for leadership only — centre roles use My Training", () => {
+  it("keeps Onboarding for leadership only — centre roles use My Training", () => {
     // Two doors to the same subject with different contents behind them
     // is worse than one.
     for (const role of ["staff", "member"] as const) {

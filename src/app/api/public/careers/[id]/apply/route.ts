@@ -2,11 +2,13 @@
  * POST /api/public/careers/[id]/apply — public job application intake.
  *
  * INTENTIONALLY UNAUTHENTICATED. A member of the public applies for a vacancy
- * that has been published to the website. Creates a RecruitmentCandidate with
- * `source: "website"`, which drops straight into the recruiter's pipeline (and
- * AI screening). Applications are only accepted for vacancies that are still
- * open AND flagged for the website — you can't apply to an unpublished or
- * filled role by guessing its id.
+ * that has been published to the website. Creates a RecruitmentCandidate that
+ * drops straight into the recruiter's pipeline (and AI screening), attributed
+ * to wherever they came from — `website` unless the link carried a `?src=`
+ * (see `normalisePublicSource`), which is how an Indeed ad's applicants are
+ * told apart from organic ones. Applications are only accepted for vacancies
+ * that are still open AND flagged for the website — you can't apply to an
+ * unpublished or filled role by guessing its id.
  *
  * Abuse controls: per-IP rate limit + honeypot field. Resume upload is inline
  * (base64) and reuses the same validated storage path as enrolment documents.
@@ -20,7 +22,13 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { storeResume } from "@/lib/recruitment/resume-upload";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
-import { POOL_SESSIONS, POOL_DAYS } from "@/lib/recruitment/pool";
+import {
+  POOL_SESSIONS,
+  POOL_DAYS,
+  POOL_SOURCES,
+  normalisePublicSource,
+  sourceLabel,
+} from "@/lib/recruitment/pool";
 
 
 const applySchema = z.object({
@@ -42,6 +50,12 @@ const applySchema = z.object({
   availableSessions: z.array(z.enum(POOL_SESSIONS)).optional(),
   availableDays: z.array(z.enum(POOL_DAYS)).optional(),
   hasTransport: z.boolean().optional(),
+  /**
+   * Where this application came from, carried on the ad's link as `?src=`.
+   * Whitelisted rather than free text — see `normalisePublicSource`. An
+   * unknown value is not an error; it just reads as an ordinary website visit.
+   */
+  source: z.enum(POOL_SOURCES).optional().nullable(),
   resumeFile: z.string().optional().nullable(), // base64, no data: prefix
   resumeFilename: z.string().max(200).optional().nullable(),
   resumeContentType: z.string().max(120).optional().nullable(),
@@ -80,6 +94,7 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
     );
   }
   const data = parsed.data;
+  const source = normalisePublicSource(data.source);
 
   // Honeypot: silently accept (so the bot thinks it worked) but do nothing.
   if (data.company && data.company.trim() !== "") {
@@ -119,7 +134,7 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
       name: data.name.trim(),
       email: data.email.trim(),
       phone: data.phone?.trim() || null,
-      source: "website",
+      source,
       notes: data.message?.trim() || null,
       resumeFileUrl,
       suburb: data.suburb?.trim() || null,
@@ -138,6 +153,7 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
   logger.info("Website job application received", {
     candidateId: candidate.id,
     vacancyId: vacancy.id,
+    source,
     role: vacancy.role,
     hasResume: Boolean(resumeFileUrl),
   });
@@ -157,11 +173,11 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
       recipients = owners.map((o) => o.email);
     }
     if (recipients.length > 0) {
-      const dashUrl = `${process.env.NEXTAUTH_URL ?? "https://amanaoshc.company"}/recruitment`;
+      const dashUrl = `${process.env.NEXTAUTH_URL ?? "https://amanaoshc.company"}/hiring`;
       await sendEmail({
         to: recipients,
         subject: `New application: ${roleLabel} — ${centre}`,
-        html: `<p>A new application came in from the website careers page.</p>
+        html: `<p>A new application came in from the ${escapeHtml(sourceLabel(source))} careers link.</p>
                <p><strong>Applicant:</strong> ${escapeHtml(data.name)}</p>
                <p><strong>Role:</strong> ${escapeHtml(roleLabel)} — ${escapeHtml(centre)}</p>
                <p><strong>Email:</strong> ${escapeHtml(data.email)}</p>

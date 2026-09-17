@@ -268,7 +268,7 @@ export const navItems: NavItem[] = [
   // induction and the LMS — an Educator or Director of Service does their
   // own onboarding and training in My Training, and having both meant two
   // doors to the same subject with different contents behind them.
-  { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "People", tooltip: "Onboarding, LMS & offboarding", roles: ["head_office", "admin", "eos"], core: ["head_office", "admin", "eos"] },
+  { href: "/onboarding", label: "Onboarding", icon: GraduationCap, section: "People", tooltip: "Onboarding packs, training, induction, 90-day ramp & offboarding", roles: ["head_office", "admin", "eos"], core: ["head_office", "admin", "eos"] },
   { href: "/contracts", label: "Contracts", icon: FileSignature, section: "People", tooltip: "Employment contracts & award rates", feature: "contracts.view", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Staff Lifecycle
   { href: "/position-descriptions", label: "Position Descriptions", icon: FileText, section: "People", tooltip: "Per-role job description library" , hidden: true }, // folded 2026-07-12 — linked from Recruitment
   // 2026-07-05 (nav consolidation phase 1): /diversity-dashboard +

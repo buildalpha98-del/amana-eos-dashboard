@@ -10,7 +10,9 @@
  *
  * This is also where Indeed applicants are meant to arrive — Indeed has no API
  * we can pull from, so the ad links here and the applicant fills this in once,
- * structured, instead of someone re-keying a PDF later.
+ * structured, instead of someone re-keying a PDF later. The link carries
+ * `?src=indeed` so those registrations are attributed to the ad rather than
+ * blending into organic website traffic.
  *
  * Abuse controls match the apply route: per-IP rate limit plus a honeypot.
  */
@@ -21,7 +23,13 @@ import { withApiHandler } from "@/lib/api-handler";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { storeResume } from "@/lib/recruitment/resume-upload";
-import { POOL_SESSIONS, POOL_DAYS, RIGHT_TO_WORK } from "@/lib/recruitment/pool";
+import {
+  POOL_SESSIONS,
+  POOL_DAYS,
+  POOL_SOURCES,
+  RIGHT_TO_WORK,
+  normalisePublicSource,
+} from "@/lib/recruitment/pool";
 import { logger } from "@/lib/logger";
 
 const registerSchema = z.object({
@@ -50,6 +58,8 @@ const registerSchema = z.object({
   hasTransport: z.boolean().optional(),
 
   message: z.string().max(5000).optional().nullable(),
+  /** Carried from the ad's link as `?src=` — whitelisted, never free text. */
+  source: z.enum(POOL_SOURCES).optional().nullable(),
   resumeFile: z.string().optional().nullable(),
   resumeFilename: z.string().max(200).optional().nullable(),
   resumeContentType: z.string().max(120).optional().nullable(),
@@ -126,13 +136,23 @@ export const POST = withApiHandler(async (req: NextRequest) => {
         select: { id: true },
       })
     : await prisma.recruitmentCandidate.create({
-        data: { ...fields, source: "website", stage: "applied" },
+        // Source is set on CREATE only. Someone who found us through Indeed
+        // in March and re-registers through the website in November was still
+        // won by the Indeed ad — overwriting it on every return visit would
+        // quietly re-attribute the whole pool to whatever channel is busiest
+        // right now.
+        data: {
+          ...fields,
+          source: normalisePublicSource(data.source),
+          stage: "applied",
+        },
         select: { id: true },
       });
 
   logger.info("Casual pool registration received", {
     candidateId: candidate.id,
     updatedExisting: Boolean(existing),
+    source: normalisePublicSource(data.source),
     hasResume: Boolean(resumeFileUrl),
   });
 

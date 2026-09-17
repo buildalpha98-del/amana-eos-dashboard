@@ -9,14 +9,14 @@
  * this copy is parent/candidate-facing and on-brand.
  */
 
-const ROLE_TITLES: Record<string, string> = {
+export const ROLE_TITLES: Record<string, string> = {
   educator: "OSHC Educator",
   senior_educator: "Senior OSHC Educator",
   member: "OSHC Coordinator",
   director: "Service Director",
 };
 
-const EMPLOYMENT_LABELS: Record<string, string> = {
+export const EMPLOYMENT_LABELS: Record<string, string> = {
   casual: "Casual",
   part_time: "Part-time",
   permanent: "Permanent",

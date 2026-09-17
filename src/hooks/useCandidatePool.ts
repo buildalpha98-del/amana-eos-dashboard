@@ -1,5 +1,5 @@
 /**
- * Data layer for the casual staff pool (Staff Lifecycle → Candidates).
+ * Data layer for the casual staff pool (Hiring → Candidates).
  *
  * Filters live in the query key so the server does the filtering — the pool is
  * meant to grow into the hundreds, and "who's free Tuesday near Officer" is a

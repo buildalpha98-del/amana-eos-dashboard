@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { ROLE_DISPLAY_NAMES } from "@/lib/role-permissions";
 import { normaliseStage } from "@/lib/recruitment/pool";
+import { IndeedPostPanel } from "@/components/recruitment/IndeedPostPanel";
 
 const ROLE_LABELS: Record<string, string> = {
   educator: "Educator",
@@ -229,7 +230,8 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
               {ROLE_LABELS[vacancy.role] || vacancy.role}
             </h3>
             <p className="text-sm text-muted">
-              {vacancy.service?.name} &middot; {vacancy.employmentType.replace("_", " ")}
+              {vacancy.service?.name ?? vacancy.region ?? "No location set"}{" "}
+              &middot; {vacancy.employmentType.replace("_", " ")}
             </p>
           </div>
           <button onClick={onClose} className="text-muted hover:text-foreground">
@@ -274,6 +276,11 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
               </span>
             </span>
           </label>
+
+          {/* Indeed posting kit — Indeed has no API we can post through, so
+              this is the copy-paste path plus the tracked apply link that
+              brings those applicants back into the pool. */}
+          <IndeedPostPanel vacancy={vacancy} />
 
           {/* Details */}
           <div className="grid grid-cols-2 gap-4 text-sm">

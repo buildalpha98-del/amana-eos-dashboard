@@ -44,6 +44,7 @@ import {
   Download,
   AlertTriangle,
   FileSignature,
+  Briefcase,
   UserX,
   Rocket,
 } from "lucide-react";
@@ -405,6 +406,18 @@ function OnboardingPageInner() {
           onClick: () => activeTab === "onboarding" ? setShowCreatePack(true) : setShowCreateCourse(true),
         } : undefined}
         secondaryActions={[
+          // 2026-09-17: the way back to where these people came from. Hiring's
+          // tab strip hands over to this page, and a one-way door is how a
+          // State Manager ends up hunting through the sidebar mid-task.
+          ...(isStaff
+            ? []
+            : [
+                {
+                  label: "Hiring",
+                  icon: Briefcase,
+                  onClick: () => router.push("/hiring"),
+                },
+              ]),
           // 2026-07-12 (nav fold): Contracts left the sidebar — the staff
           // lifecycle spans onboarding through offboarding, contracts included.
           // The /contracts page itself scopes what each role can see.
