@@ -45,6 +45,7 @@
 - Vercel cron config in `vercel.json`
 - Build command: `npm run build` — always verify after changes
 - Toast system: `toast({ description: "..." })` — `description` is required, not optional
+- **Public careers visibility**: every public vacancy surface (`GET /api/public/careers`, `/careers`, `/careers/[id]`, `POST …/apply`) builds its `where` from `publicVacancyWhere()` in `src/lib/recruitment/public-vacancy.ts` — never hand-roll `status: "open"`. A website-published role stays live through `open`/`interviewing`/`offered` and drops only on `filled`/`cancelled`; the "Show on public careers page" toggle is the explicit off switch. (2026-09-18: the Coburg Coordinator ad 404'd the moment it was moved to "interviewing" because all four surfaces filtered on `open`.)
 - **Meeting recorder v2 (2026-09-14)**: the MediaRecorder lives in `MeetingRecorderProvider` (mounted in the dashboard layout), NOT in the meeting page — v1 lost the first real L10 because any sidebar click unmounted it. Chunks persist to IndexedDB (`src/lib/recording-store.ts`) every 30 s; Stop / meeting completion / a dead mic end a session and upload through the unchanged `POST /api/meetings/[id]/recordings` path. Orphans surface via `RecordingRecoveryBanner`. `RecordingIndicator` is the always-visible REC pill. Never move recording state back below routing.
 
 ## Design System (2026-07-11)
