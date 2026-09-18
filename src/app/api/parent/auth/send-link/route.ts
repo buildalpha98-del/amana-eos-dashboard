@@ -90,7 +90,15 @@ export const POST = withApiHandler(async (req) => {
   // Generate token
   const token = crypto.randomBytes(32).toString("hex");
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+  /**
+   * 2026-09-18: was 15 minutes, which assumes someone sitting at the sign-in
+   * page with their inbox open. Parents request these from a phone at pick-up
+   * and read the email that evening — by which time the link was dead, and
+   * their read on it was simply "the link doesn't work". An hour still bounds
+   * a forwarded email while surviving the ordinary gap between asking and
+   * reading. Matches RESET_TTL_MS, and the email copy says "1 hour".
+   */
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
   await prisma.parentMagicLink.create({
     data: {

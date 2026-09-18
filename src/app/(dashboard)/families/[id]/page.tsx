@@ -30,10 +30,12 @@ import {
   Ban,
   Trash2,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { FamilyAccessPanel } from "@/components/families/FamilyAccessPanel";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   BILLING_FREQUENCIES,
@@ -154,6 +156,8 @@ export default function FamilyDetailPage({
   const [edits, setEdits] = useState<Record<string, unknown> | null>(null);
   const [limitInput, setLimitInput] = useState<string | null>(null);
   const router = useRouter();
+  const { data: authSession } = useSession();
+  const viewerRole = authSession?.user?.role;
   const [familyNameInput, setFamilyNameInput] = useState<string | null>(null);
   // Overlaid rather than hydrated, same as the billing block: a refetch
   // mid-edit must not clobber what staff are typing.
@@ -518,6 +522,16 @@ export default function FamilyDetailPage({
             </p>
           )}
         </div>
+
+        {/* ── Getting back in ──────────────────────────────────
+            The portal had no password reset at all, so a locked-out
+            family was a phone call staff could not resolve. */}
+        <FamilyAccessPanel
+          familyId={id}
+          email={data.email}
+          deactivated={Boolean(data.deactivatedAt)}
+          canSetPassword={viewerRole === "owner" || viewerRole === "admin"}
+        />
 
         {/* ── Access ───────────────────────────────────────────
             Deactivate keeps the record and the billing arrangement;

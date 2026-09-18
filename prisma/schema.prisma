@@ -7838,6 +7838,36 @@ model EnrolmentDraft {
   @@index([accountId])
 }
 
+/// A parent's password-reset token.
+///
+/// 2026-09-18: until now there was NO way for a parent to change their
+/// password — `passwordHash` was written once at sign-up and never again.
+/// "Forgot your password?" sent a magic LOGIN link, which signs them in but
+/// leaves the forgotten password in place, so the next sign-in stalls in
+/// exactly the same way. The sign-up route even told people they could "reset
+/// your password from the sign-in page", which was never true.
+///
+/// Separate from ParentMagicLink on purpose: a login link and a password-reset
+/// link have different lifetimes, different consequences if leaked, and must be
+/// invalidated independently — a completed reset kills every other outstanding
+/// reset, and should not silently kill a login link the parent is mid-way
+/// through using.
+model ParentPasswordReset {
+  id             String    @id @default(cuid())
+  /// Lowercased + trimmed, like every other parent lookup.
+  email          String
+  /// SHA-256 of the emailed token — the raw value is never stored.
+  tokenHash      String    @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  /// Set when staff sent it from the dashboard rather than the parent asking.
+  issuedByUserId String?
+  createdAt      DateTime  @default(now())
+
+  @@index([email])
+  @@index([tokenHash])
+}
+
 model ParentMagicLink {
   id        String    @id @default(cuid())
   email     String
