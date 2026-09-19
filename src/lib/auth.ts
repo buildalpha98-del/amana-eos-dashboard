@@ -5,6 +5,7 @@ import { compare } from "bcryptjs";
 import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
+import { hasPublishedEssentials } from "@/lib/induction-essentials";
 import { getOrgSettings } from "@/lib/org-settings";
 import { logAuditEvent } from "@/lib/audit-log";
 
@@ -84,6 +85,9 @@ export const authOptions: NextAuthOptions = {
             | string
             | Date
             | null) ?? null;
+        // Whether there is a curriculum to be gated on at all. Without this
+        // the lock fires against an empty course list — see induction-lock.ts.
+        token.essentialsPublished = await hasPublishedEssentials();
         token.mfaRequired = (user as unknown as Record<string, unknown>).mfaRequired ?? false;
         token.mfaVerified = false;
 
@@ -155,6 +159,10 @@ export const authOptions: NextAuthOptions = {
             // is never stale — only the UI nav lock lags by this window).
             token.inductionStatus = dbUser.inductionStatus;
             token.inductionGraceUntil = dbUser.inductionGraceUntil;
+            // Re-read on the same cadence so publishing the first essential
+            // course starts gating new starters within ~5 min, and un-publishing
+            // (or a fresh org with no curriculum) lifts the lock just as fast.
+            token.essentialsPublished = await hasPublishedEssentials();
 
             // Refresh the page-access override for this user's role.
             // Null = use compile-time defaults (kept in token so the
@@ -185,6 +193,9 @@ export const authOptions: NextAuthOptions = {
         session.user.inductionStatus = token.inductionStatus as string | undefined;
         session.user.inductionGraceUntil =
           (token.inductionGraceUntil as string | null | undefined) ?? null;
+        session.user.essentialsPublished = token.essentialsPublished as
+          | boolean
+          | undefined;
       }
       return session;
     },
