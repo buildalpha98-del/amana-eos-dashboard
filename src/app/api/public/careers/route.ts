@@ -3,7 +3,8 @@
  *
  * INTENTIONALLY UNAUTHENTICATED. This returns only the roles a recruiter has
  * explicitly flagged for the public careers page (`postedChannels` contains
- * "website") and only while they're still open. It exposes job-ad fields only —
+ * "website") and only while they're still being hired for (see
+ * `publicVacancyWhere`). It exposes job-ad fields only —
  * never candidate data, internal notes beyond the drafted ad, assignees, or PDs.
  *
  * Consumed by the marketing site (amanaoshc.com.au/careers) and the
@@ -12,6 +13,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
+import { publicVacancyWhere } from "@/lib/recruitment/public-vacancy";
 
 // Human-facing labels for the enum-ish stored values.
 const ROLE_LABELS: Record<string, string> = {
@@ -33,11 +35,7 @@ const QUALIFICATION_LABELS: Record<string, string> = {
 
 export const GET = withApiHandler(async () => {
   const vacancies = await prisma.recruitmentVacancy.findMany({
-    where: {
-      deleted: false,
-      status: "open",
-      postedChannels: { has: "website" },
-    },
+    where: publicVacancyWhere(),
     include: {
       service: { select: { name: true, suburb: true, state: true } },
     },

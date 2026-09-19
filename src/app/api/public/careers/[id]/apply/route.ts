@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
+import { publicVacancyWhere } from "@/lib/recruitment/public-vacancy";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { storeResume } from "@/lib/recruitment/resume-upload";
@@ -101,14 +102,9 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
     return NextResponse.json({ ok: true }, { status: 201 });
   }
 
-  // Only open, website-published vacancies accept applications.
+  // Only website-published vacancies still being hired for accept applications.
   const vacancy = await prisma.recruitmentVacancy.findFirst({
-    where: {
-      id,
-      deleted: false,
-      status: "open",
-      postedChannels: { has: "website" },
-    },
+    where: publicVacancyWhere(id),
     include: {
       service: { select: { name: true } },
       assignedTo: { select: { email: true, name: true } },

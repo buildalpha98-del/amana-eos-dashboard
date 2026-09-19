@@ -271,8 +271,9 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
             <span className="text-sm">
               <span className="font-medium text-foreground/90">Show on public careers page</span>
               <span className="block text-xs text-muted mt-0.5">
-                Lists this role at amanaoshc.com.au/careers with an apply link, while
-                status is &ldquo;open&rdquo;. The Notes below become the public job ad.
+                Lists this role at amanaoshc.com.au/careers with an apply link until it is
+                marked &ldquo;filled&rdquo; or &ldquo;cancelled&rdquo; (interviewing and offered
+                roles stay live). The Notes below become the public job ad.
               </span>
             </span>
           </label>
