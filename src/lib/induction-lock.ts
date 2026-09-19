@@ -84,10 +84,30 @@ export function isInductionExemptRole(role: string | undefined | null): boolean 
 export function isInductionLocked(
   status: string | undefined | null,
   graceUntil: Date | string | null | undefined,
-  opts: { role?: string | null; now?: Date } = {},
+  opts: {
+    role?: string | null;
+    now?: Date;
+    /**
+     * Whether ANY essential course is published (see `hasPublishedEssentials`).
+     *
+     * 2026-09-19: locked-mode read status alone, so it fired whether or not
+     * there was a curriculum to complete. Amana's essential courses are seeded
+     * as DRAFTS with placeholder content, so real coordinators were shut out of
+     * their own centre — four sidebar items, no budget, no attendance — and
+     * nothing on /my-training they could finish to get out. The readiness check
+     * has always counted published courses only; this makes the lock agree.
+     *
+     * Explicitly `false` lifts the lock. `undefined` (an older token, or a
+     * caller that hasn't plumbed it through) keeps the previous behaviour —
+     * the conservative direction, and it self-corrects on the next refresh.
+     */
+    essentialsPublished?: boolean;
+  } = {},
 ): boolean {
-  const { role, now = new Date() } = opts;
+  const { role, now = new Date(), essentialsPublished } = opts;
   if (isInductionExemptRole(role)) return false; // administers the gate
+  // Nothing published to complete → nothing to lock anyone out over.
+  if (essentialsPublished === false) return false;
   if (status !== "new_starter" && status !== "in_training") return false;
   if (graceUntil && new Date(graceUntil) > now) return false; // backfilled w/ active grace
   return true;
