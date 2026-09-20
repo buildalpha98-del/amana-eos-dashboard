@@ -1,6 +1,11 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 
@@ -66,22 +71,88 @@ export interface EnrolmentSubmission {
   createdAt: string;
 }
 
-interface EnrolmentsResponse {
+export interface EnrolmentsResponse {
   submissions: EnrolmentSubmission[];
+  /** Rows matching the current status tab + search, across every page. */
   total: number;
+  /** Per-status totals for the whole filtered set, keyed by status + `all`. */
+  counts: Record<string, number>;
+  /** Submissions with no service — children on no roll and no invoice. */
+  unplaced: number;
+  limit: number;
+  offset: number;
 }
 
-export function useEnrolments(status?: string) {
+/**
+ * One screenful. Each row carries the family's whole JSON, so pages stay
+ * modest and "Load more" does the rest.
+ */
+export const ENROLMENTS_PAGE_SIZE = 50;
+
+function enrolmentsQuery(status?: string, search?: string) {
   const params = new URLSearchParams();
   if (status && status !== "all") params.set("status", status);
-  params.set("limit", "100");
+  if (search) params.set("search", search);
+  return params;
+}
 
-  return useQuery<EnrolmentsResponse>({
+/**
+ * The enrolments list, a page at a time.
+ *
+ * Was a single `limit=100` fetch with the search box filtering the result in
+ * the browser — so submission 101 onwards could not be reached OR found, and
+ * the list looked like it had lost them. Paging and search both run on the
+ * server now; `counts` describes the full set rather than the loaded pages.
+ */
+export function useEnrolments(status?: string, search?: string) {
+  const trimmed = (search ?? "").trim();
+
+  return useInfiniteQuery<EnrolmentsResponse>({
     staleTime: 30_000,
-    queryKey: ["enrolments", status || "all"],
-    queryFn: () => fetchApi<EnrolmentsResponse>(`/api/enrolments?${params}`),
+    queryKey: ["enrolments", status || "all", trimmed],
+    queryFn: ({ pageParam }) => {
+      const params = enrolmentsQuery(status, trimmed);
+      params.set("limit", String(ENROLMENTS_PAGE_SIZE));
+      params.set("offset", String(pageParam ?? 0));
+      return fetchApi<EnrolmentsResponse>(`/api/enrolments?${params}`);
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, pages) => {
+      const loaded = pages.reduce((n, p) => n + p.submissions.length, 0);
+      // A page that came back short means the server has nothing more, even
+      // if `total` disagrees because a row was processed mid-scroll.
+      if (lastPage.submissions.length === 0) return undefined;
+      return loaded < lastPage.total ? loaded : undefined;
+    },
     retry: 2,
   });
+}
+
+/**
+ * Every row matching the current filters, for CSV export.
+ *
+ * Export used to write out whatever happened to be loaded and call it the
+ * enrolment list — a silent truncation in a file people reconcile against
+ * OWNA. This walks the pages instead, so the download matches the count on
+ * screen.
+ */
+export async function fetchAllEnrolments(
+  status?: string,
+  search?: string,
+): Promise<EnrolmentSubmission[]> {
+  const rows: EnrolmentSubmission[] = [];
+  const pageSize = 200; // the API's MAX_LIMIT — fewer round trips than the UI page
+
+  for (let offset = 0; ; offset += pageSize) {
+    const params = enrolmentsQuery(status, (search ?? "").trim());
+    params.set("limit", String(pageSize));
+    params.set("offset", String(offset));
+    const page = await fetchApi<EnrolmentsResponse>(`/api/enrolments?${params}`);
+    rows.push(...page.submissions);
+    if (page.submissions.length < pageSize || rows.length >= page.total) break;
+  }
+
+  return rows;
 }
 
 export function useEnrolment(id: string | null) {
