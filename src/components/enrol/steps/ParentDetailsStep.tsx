@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Upload, Trash2 } from "lucide-react";
-import { EnrolmentFormData, ParentDetails, AUSTRALIAN_STATES, RELATIONSHIP_OPTIONS } from "../types";
+import {
+  EnrolmentFormData,
+  ParentDetails,
+  AUSTRALIAN_STATES,
+  RELATIONSHIP_OPTIONS,
+  secondaryParentStarted,
+} from "../types";
 import { stateFromPostcode } from "@/lib/au-postcodes";
 
 interface Props {
@@ -64,7 +70,6 @@ function ParentSection({
   childAddress,
   onCopyChildAddress,
   copyAddressLabel,
-  dobRequired,
   sharedAddress,
 }: {
   title: string;
@@ -75,12 +80,6 @@ function ParentSection({
   childAddress?: { street: string; suburb: string; state: string; postcode: string };
   onCopyChildAddress?: () => void;
   copyAddressLabel?: string;
-  /**
-   * Ask for the date of birth even where the rest of the section is optional.
-   * The second parent's DOB is the field the enrolment pack is most often sent
-   * back for, so it is not optional once there IS a second parent.
-   */
-  dobRequired?: boolean;
   /**
    * Offer "lives with the primary carer" INSTEAD of a second address. Most
    * families share one, and a tick keeps the two in step where a copied
@@ -98,7 +97,7 @@ function ParentSection({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input label="First Name" value={parent.firstName} onChange={(v) => onChange("firstName", v)} required={required} />
         <Input label="Surname" value={parent.surname} onChange={(v) => onChange("surname", v)} required={required} />
-        <Input label="Date of Birth" value={parent.dob} onChange={(v) => onChange("dob", v)} type="date" required={required || dobRequired} />
+        <Input label="Date of Birth" value={parent.dob} onChange={(v) => onChange("dob", v)} type="date" required={required} />
         <Input label="Email" value={parent.email} onChange={(v) => onChange("email", v)} type="email" required={required} />
         <Input label="Mobile" value={parent.mobile} onChange={(v) => onChange("mobile", v)} type="tel" required={required} />
         <div>
@@ -408,10 +407,19 @@ export function ParentDetailsStep({ data, updateData }: Props) {
                 parent={data.secondaryParent}
                 onChange={updateSecondary}
                 onBatchChange={batchUpdateSecondary}
-                // Once there IS a second parent, their DOB stops being
-                // optional: it is the field the enrolment pack gets sent back
-                // for most often.
-                dobRequired={Boolean(data.secondaryParent.firstName)}
+                /*
+                 * Mark every field the step actually enforces.
+                 *
+                 * `required` is what draws the red star; without it only the
+                 * DOB was starred, and only once a FIRST NAME had been typed —
+                 * so a parent who started with the surname saw no asterisks at
+                 * all, then hit a wall of errors on Next. The condition now
+                 * mirrors validateStep exactly via the shared helper.
+                 */
+                required={
+                  data.courtOrders === false ||
+                  secondaryParentStarted(data.secondaryParent)
+                }
                 sharedAddress={{
                   checked: data.secondaryParent.livesWithPrimary,
                   primaryAddress: primaryAddressLine,
