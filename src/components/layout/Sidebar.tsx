@@ -53,7 +53,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const inductionLocked = isInductionLocked(
     session?.user?.inductionStatus,
     session?.user?.inductionGraceUntil,
-    { role: session?.user?.role }
+    {
+      role: session?.user?.role,
+      essentialsPublished: session?.user?.essentialsPublished,
+    }
   );
 
   // Group filtered nav items by section.

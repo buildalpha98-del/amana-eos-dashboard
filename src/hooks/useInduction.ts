@@ -91,11 +91,22 @@ export function useSignoffPractical() {
 export function useClearInduction() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { userId: string; reason: string }) =>
-      mutateApi("/api/induction/clear", { method: "POST", body: input }),
-    onSuccess: (_data, vars) => {
-      toast({ description: "Cleared — they have their full dashboard back." });
-      qc.invalidateQueries({ queryKey: ["induction-readiness", vars.userId] });
+    mutationFn: async (
+      input: { userId: string; reason: string } | { all: true; reason: string },
+    ) => mutateApi("/api/induction/clear", { method: "POST", body: input }),
+    onSuccess: (data, vars) => {
+      const count = (data as { cleared?: number } | null)?.cleared;
+      toast({
+        description:
+          typeof count === "number"
+            ? count === 0
+              ? "Nobody was being held by the gate."
+              : `${count} ${count === 1 ? "person has" : "people have"} their full dashboard back.`
+            : "Cleared — they have their full dashboard back.",
+      });
+      if ("userId" in vars) {
+        qc.invalidateQueries({ queryKey: ["induction-readiness", vars.userId] });
+      }
       qc.invalidateQueries({ queryKey: ["induction-pipeline"] });
     },
     onError: (err: Error) => {

@@ -145,6 +145,98 @@ describe("POST /api/induction/clear", () => {
   });
 });
 
+describe("POST /api/induction/clear — releasing everyone at once", () => {
+  /**
+   * The per-person button does not scale to the situation that creates the
+   * problem: a backfill run before any course is published locks a whole
+   * organisation at once.
+   */
+  it("clears everyone the gate is holding and audits each one", async () => {
+    mockSession({ id: "boss", role: "owner", name: "Jayden" });
+    prismaMock.user.findMany.mockResolvedValue([
+      { id: "u1", inductionStatus: "in_training" },
+      { id: "u2", inductionStatus: "new_starter" },
+    ] as never);
+    prismaMock.user.updateMany.mockResolvedValue({ count: 2 } as never);
+    prismaMock.activityLog.createMany.mockResolvedValue({ count: 2 } as never);
+
+    const res = await POST(
+      createRequest("POST", "/api/induction/clear", {
+        body: { all: true, reason: "No essential courses published yet" },
+      }),
+      ctx,
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ cleared: 2 });
+
+    // One audit row PER PERSON — "was this staff member cleared, and by
+    // whom?" must be answerable from their own record, not by finding a batch.
+    const logged = prismaMock.activityLog.createMany.mock.calls[0]?.[0]
+      ?.data as Array<{ entityId: string; details: Record<string, unknown> }>;
+    expect(logged).toHaveLength(2);
+    expect(logged.map((l) => l.entityId)).toEqual(["u1", "u2"]);
+    expect(logged[0].details).toMatchObject({ previousStatus: "in_training" });
+  });
+
+  it("excludes the person doing the clearing from the sweep", async () => {
+    // The gated person must not lift the gate — by either door.
+    mockSession({ id: "boss", role: "owner", name: "Jayden" });
+    prismaMock.user.findMany.mockResolvedValue([] as never);
+
+    await POST(
+      createRequest("POST", "/api/induction/clear", {
+        body: { all: true, reason: "Tidying up" },
+      }),
+      ctx,
+    );
+
+    const where = prismaMock.user.findMany.mock.calls[0]?.[0]?.where as
+      | { id?: { not?: string } }
+      | undefined;
+    expect(where?.id?.not).toBe("boss");
+  });
+
+  it("reports zero rather than erroring when nobody is held", async () => {
+    mockSession({ id: "boss", role: "owner", name: "Jayden" });
+    prismaMock.user.findMany.mockResolvedValue([] as never);
+
+    const res = await POST(
+      createRequest("POST", "/api/induction/clear", {
+        body: { all: true, reason: "Checking" },
+      }),
+      ctx,
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ cleared: 0 });
+    expect(prismaMock.user.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("still demands a reason", async () => {
+    mockSession({ id: "boss", role: "owner", name: "Jayden" });
+    const res = await POST(
+      createRequest("POST", "/api/induction/clear", {
+        body: { all: true, reason: "" },
+      }),
+      ctx,
+    );
+    expect(res.status).toBe(400);
+    expect(prismaMock.user.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("is not open to a State Manager's deputy — same role gate as one-by-one", async () => {
+    mockSession({ id: "c1", role: "member", name: "Coordinator" });
+    const res = await POST(
+      createRequest("POST", "/api/induction/clear", {
+        body: { all: true, reason: "Let us all out" },
+      }),
+      ctx,
+    );
+    expect(res.status).toBe(403);
+    expect(prismaMock.user.updateMany).not.toHaveBeenCalled();
+  });
+});
+
 describe("gate satisfiability — every blocker must be re-evaluated", () => {
   // getInductionReadiness has four blockers: courses, WWCC, policies, profile.
   // Courses recompute via onModuleProgressed. These are the other three, and
