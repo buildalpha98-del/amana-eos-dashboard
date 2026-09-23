@@ -125,6 +125,36 @@ describe("RelationshipsTab", () => {
     expect(mailLink!.getAttribute("href")).toBe("mailto:linh@example.com");
   });
 
+  // 2026-09-18: Daniel reported the enrolment PDF "loses" the primary
+  // carer's DOB — the PDF actually has it (src/lib/enrolment-pdf.ts
+  // reads the same field), it's this tab that never rendered it. Same
+  // gap existed for address and CRN.
+  it("renders the primary carer's DOB, address, and CRN — captured on enrolment but previously never shown here", () => {
+    const enrolment = makeEnrolment({
+      primaryParent: {
+        firstName: "Linh",
+        surname: "Nguyen",
+        relationship: "Mother",
+        mobile: "0411 111 111",
+        email: "linh@example.com",
+        dob: "1984-03-24",
+        street: "68 Falcon Circuit",
+        suburb: "Green Valley",
+        state: "NSW",
+        postcode: "2168",
+        crn: "304755721C",
+      },
+    });
+    const { container } = render(
+      withQueryClient(
+        <RelationshipsTab child={makeChild(enrolment)} canEdit={false} />,
+      ),
+    );
+    expect(container.textContent).toContain("24 Mar 1984");
+    expect(container.textContent).toContain("68 Falcon Circuit, Green Valley, NSW, 2168");
+    expect(container.textContent).toContain("304755721C");
+  });
+
   it("renders secondary carer when present, hides when null", () => {
     const withSecondary = makeEnrolment({
       secondaryParent: {

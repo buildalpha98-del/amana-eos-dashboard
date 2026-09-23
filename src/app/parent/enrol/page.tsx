@@ -173,8 +173,23 @@ export default function ParentEnrolPage() {
     try {
       // Make sure the last keystroke is on the server before we ask it to
       // validate what's there — the debounce would otherwise still be in
-      // flight and the submit would fail on stale data.
-      await flush();
+      // flight and the submit would fail on stale data. A single retry
+      // covers the flaky-mobile-connection case (the exact moment a
+      // parent taps a final consent then immediately hits Submit); if it
+      // still fails, surface something actionable instead of letting the
+      // server reject an incomplete draft with a confusing step error.
+      try {
+        await flush({ throwOnError: true });
+      } catch {
+        await new Promise((r) => setTimeout(r, 1000));
+        try {
+          await flush({ throwOnError: true });
+        } catch {
+          throw new Error(
+            "We couldn't save your last change — check your connection and press Submit again.",
+          );
+        }
+      }
       const result = await mutateApi<{ submissionId: string; serviceId: string | null }>(
         "/api/parent/enrolment-draft/submit",
         { method: "POST", body: { payment } },
