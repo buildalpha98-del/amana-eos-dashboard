@@ -81,6 +81,15 @@ export const serviceContentSchema = z.object({
    * a blank section.
    */
   enrolmentThankYou: z.string().max(2_000),
+
+  /**
+   * 2026-09-24: this centre's SharePoint folder. Shown as an "Open
+   * SharePoint" button in the service detail page header — visible on
+   * every tab, not just Content, since it's a quick-access jump-off
+   * point staff want reachable no matter what they're looking at.
+   * Empty means the button is hidden rather than a dead link.
+   */
+  sharepointUrl: z.string().max(2_048),
 });
 
 export type ServiceContent = z.infer<typeof serviceContentSchema>;
@@ -100,6 +109,7 @@ export const SERVICE_CONTENT_DEFAULTS: ServiceContent = {
   serviceMapName: "",
   policyDocumentIds: [],
   enrolmentThankYou: "",
+  sharepointUrl: "",
 };
 
 /**
@@ -153,5 +163,6 @@ export function mergeServiceContent(
     serviceMapName: str("serviceMapName"),
     policyDocumentIds,
     enrolmentThankYou: str("enrolmentThankYou"),
+    sharepointUrl: str("sharepointUrl"),
   };
 }
