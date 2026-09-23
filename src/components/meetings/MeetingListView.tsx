@@ -33,7 +33,7 @@ import { Trash2 } from "lucide-react";
 import { cn, formatDateAU, getWeekStart } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { L10_SECTIONS } from "./sections";
+import { getMeetingSections } from "./sections";
 import { MeetingInsightsCard } from "./MeetingInsightsCard";
 
 /**
@@ -211,8 +211,9 @@ export function MeetingListView({
             </p>
             <p className="text-xs text-muted truncate">
               {activeMeeting.title} &mdash; Section{" "}
-              {activeMeeting.currentSection + 1} of 7:{" "}
-              {L10_SECTIONS[activeMeeting.currentSection]?.label}
+              {activeMeeting.currentSection + 1} of{" "}
+              {getMeetingSections(activeMeeting.type).length}:{" "}
+              {getMeetingSections(activeMeeting.type)[activeMeeting.currentSection]?.label}
             </p>
           </div>
           <div className="flex items-center gap-2 text-brand">

@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
-import type { MeetingStatus } from "@prisma/client";
+import type { MeetingStatus, MeetingType } from "@prisma/client";
 
 export interface MeetingUser {
   id: string;
@@ -59,6 +59,8 @@ export interface MeetingData {
   title: string;
   date: string;
   status: MeetingStatus;
+  /** Which run sheet this meeting follows. Defaults to l10 server-side. */
+  type: MeetingType;
   currentSection: number;
   rating: number | null;
   notes: string | null;
@@ -121,6 +123,8 @@ export function useCreateMeeting() {
       attendeeIds?: string[];
       isLeadership?: boolean;
       scorecardId?: string | null;
+      /** Which run sheet to follow. Server defaults to "l10" when omitted. */
+      type?: MeetingType;
       /** ISO datetime — creates the meeting as `scheduled` instead of starting now. */
       scheduledFor?: string;
       /** Recurring series this occurrence belongs to. */

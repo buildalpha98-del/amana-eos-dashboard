@@ -31,7 +31,11 @@ export interface RockData {
   _count: { todos: number; issues: number; milestones: number };
 }
 
-export function useRocks(quarter?: string, rockType?: string) {
+export function useRocks(
+  quarter?: string,
+  rockType?: string,
+  options?: { enabled?: boolean },
+) {
   return useQuery<RockData[]>({
     queryKey: ["rocks", quarter, rockType],
     queryFn: () => {
@@ -43,6 +47,7 @@ export function useRocks(quarter?: string, rockType?: string) {
     },
     staleTime: 30_000,
     retry: 2,
+    enabled: options?.enabled,
   });
 }
 
@@ -98,6 +103,7 @@ export function useCreateRock() {
       priority?: RockPriority;
       rockType?: RockType;
       oneYearGoalId?: string | null;
+      serviceId?: string | null;
     }) => {
       return mutateApi<RockData>("/api/rocks", {
         method: "POST",

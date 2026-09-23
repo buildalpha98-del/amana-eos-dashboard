@@ -13,6 +13,9 @@ const createMeetingSchema = z.object({
   // 2026-07-28: Leadership (L10) meeting — restricts the To-Do Review to
   // attendees holding a leadership role.
   isLeadership: z.boolean().optional(),
+  // 2026-09-24: which run sheet this meeting follows. Omitted = l10, so
+  // every existing caller keeps creating l10 meetings unchanged.
+  type: z.enum(["l10", "quarterly_pulse"]).optional(),
   // 2026-07-28: which Scorecard to review. Omitted = legacy single scorecard.
   scorecardId: z.string().optional().nullable(),
   // 2026-08-31: schedule-for-later. When present the meeting is created
@@ -109,6 +112,7 @@ const body = await parseJsonBody(req);
       createdById: session!.user.id,
       serviceIds: parsed.data.serviceIds || [],
       isLeadership: parsed.data.isLeadership ?? false,
+      type: parsed.data.type ?? "l10",
       scorecardId: parsed.data.scorecardId ?? null,
       seriesId: parsed.data.seriesId ?? null,
     },
