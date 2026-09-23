@@ -22,7 +22,9 @@ export function IDSSection({
   onCreateTodo: (data: { title: string; description?: string; assigneeIds: string[]; issueId: string }) => void;
   onUpdatePriority: (id: string, priority: string) => void;
   onUpdateDescription: (id: string, description: string) => void;
-  onDropToLongTerm: (id: string) => void;
+  /** Omitted when this list is already the long_term backlog (Quarterly
+   *  Pulse's IDS) — there's nowhere further to drop it. */
+  onDropToLongTerm?: (id: string) => void;
   users: { id: string; name: string }[] | undefined;
 }) {
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
@@ -228,13 +230,15 @@ export function IDSSection({
                       Solved
                     </button>
                   )}
-                  <button
-                    onClick={() => onDropToLongTerm(issue.id)}
-                    className="text-xs px-3 py-1 rounded-md bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 hover:bg-purple-200 transition-colors font-medium"
-                    title="Too big for this week — park it on the long-term list (V/TO)"
-                  >
-                    Drop to Long-Term
-                  </button>
+                  {onDropToLongTerm && (
+                    <button
+                      onClick={() => onDropToLongTerm(issue.id)}
+                      className="text-xs px-3 py-1 rounded-md bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 hover:bg-purple-200 transition-colors font-medium"
+                      title="Too big for this week — park it on the long-term list (V/TO)"
+                    >
+                      Drop to Long-Term
+                    </button>
+                  )}
                 </div>
 
                 {/* Inline Create To-Do */}

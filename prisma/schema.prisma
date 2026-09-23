@@ -234,6 +234,17 @@ enum MeetingStatus {
   cancelled
 }
 
+/// 2026-09-24: every Meeting was structurally an L10 (segue → scorecard →
+/// rocks → headlines → todos → ids → conclude) — nothing distinguished a
+/// cadence. quarterly_pulse gets its own run sheet (check-in → review the
+/// quarter → V/TO review → break → set next quarter's Rocks → IDS →
+/// conclude), picked in StartMeetingDialog and rendered by a parallel
+/// sections array (see src/components/meetings/quarterly-sections.ts).
+enum MeetingType {
+  l10
+  quarterly_pulse
+}
+
 // ============================================================
 // Marketing
 // ============================================================
@@ -3398,6 +3409,10 @@ model Meeting {
   title           String
   date            DateTime
   status          MeetingStatus  @default(scheduled)
+  /// Which run sheet this meeting follows. Defaults to l10 so every
+  /// existing row (and every route that doesn't pass it) keeps behaving
+  /// exactly as before.
+  type            MeetingType    @default(l10)
   currentSection  Int            @default(0)
   rating          Float?
   notes           String?        @db.Text
