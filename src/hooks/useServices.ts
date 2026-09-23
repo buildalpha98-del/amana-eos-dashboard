@@ -36,6 +36,9 @@ export interface ServiceSummary {
 }
 
 export interface ServiceDetail extends Omit<ServiceSummary, "_count"> {
+  /** Per-service editable content (About, contacts, SharePoint link, etc.)
+   *  — a raw Json blob, validated with mergeServiceContent() at read time. */
+  content?: unknown;
   bscDailyRate: number | null;
   ascDailyRate: number | null;
   vcDailyRate: number | null;

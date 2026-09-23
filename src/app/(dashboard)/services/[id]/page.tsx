@@ -42,7 +42,9 @@ import {
   Sunrise,
   Eye,
   CheckCircle2,
+  ExternalLink,
 } from "lucide-react";
+import { mergeServiceContent } from "@/lib/service-content-shared";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
 import { ServiceContentTab } from "@/components/services/ServiceContentTab";
 import { ServiceStaffTab } from "@/components/services/ServiceStaffTab";
@@ -427,6 +429,9 @@ export default function ServiceDetailPage() {
 
   const statusStyle =
     statusBadgeStyles[service.status] || statusBadgeStyles.closed;
+  // Empty when the centre hasn't set one (Content tab → Quick links) —
+  // hidden rather than a dead button pointing nowhere.
+  const sharepointUrl = mergeServiceContent(service.content).sharepointUrl;
 
   return (
     <div
@@ -457,14 +462,28 @@ export default function ServiceDetailPage() {
             )}
           </div>
         </div>
-        <span
-          className={cn(
-            "px-3 py-1 text-xs font-medium rounded-full border capitalize shrink-0",
-            statusStyle
+        <div className="flex items-center gap-2 shrink-0">
+          {sharepointUrl && (
+            <a
+              href={sharepointUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-card text-foreground hover:bg-surface transition-colors"
+              title="Open this centre's SharePoint folder"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-brand" />
+              SharePoint
+            </a>
           )}
-        >
-          {service.status}
-        </span>
+          <span
+            className={cn(
+              "px-3 py-1 text-xs font-medium rounded-full border capitalize shrink-0",
+              statusStyle
+            )}
+          >
+            {service.status}
+          </span>
+        </div>
       </div>
 
       {/* Touch devices keep the tab bar for fast switching — a 240px

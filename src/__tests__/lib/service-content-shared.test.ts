@@ -36,6 +36,32 @@ describe("service content — the My Centre fields", () => {
     expect(merged.enrolmentThankYou).toBe("");
   });
 
+  // 2026-09-24: the per-centre SharePoint quick-link shown in the
+  // service page header.
+  describe("sharepointUrl", () => {
+    it("keeps a saved link on read", () => {
+      const merged = mergeServiceContent({
+        sharepointUrl: "https://amanaoshc.sharepoint.com/sites/greenacre",
+      });
+      expect(merged.sharepointUrl).toBe(
+        "https://amanaoshc.sharepoint.com/sites/greenacre",
+      );
+    });
+
+    it("defaults to empty — the header button hides rather than dead-linking", () => {
+      const merged = mergeServiceContent({ about: "Hi" });
+      expect(merged.sharepointUrl).toBe("");
+    });
+
+    it("validates on write", () => {
+      const ok = serviceContentSchema.safeParse({
+        ...SERVICE_CONTENT_DEFAULTS,
+        sharepointUrl: "https://amanaoshc.sharepoint.com/sites/greenacre",
+      });
+      expect(ok.success).toBe(true);
+    });
+  });
+
   // 2026-09-08: the parent enrolment thank-you page's per-centre message.
   describe("enrolmentThankYou", () => {
     it("keeps a saved thank-you message on read", () => {
