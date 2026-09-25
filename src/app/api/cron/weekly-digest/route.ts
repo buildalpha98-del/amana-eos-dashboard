@@ -143,7 +143,7 @@ function buildDigestHtml(data: DigestData): string {
           <tr>
             <td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
               <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">
-                Amana OSHC &mdash; EOS Dashboard<br/>
+                Amana OSHC &mdash; Management Dashboard<br/>
                 You received this because weekly digests are enabled in your notification preferences.
               </p>
             </td>
@@ -329,7 +329,7 @@ export const GET = withApiHandler(async (req) => {
 
       await sendEmail({
         to: recipient.email,
-        subject: "Your Weekly EOS Dashboard Digest",
+        subject: "Your Weekly Management Dashboard Digest",
         html,
       });
 

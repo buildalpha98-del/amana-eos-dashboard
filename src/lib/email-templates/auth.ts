@@ -66,7 +66,7 @@ const WELCOME_DEFAULT_BODY = `
       Hi {{name}},
     </p>
     <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Your account on the Amana OSHC EOS Dashboard has been created.
+      Your account on the Amana OSHC Management Dashboard has been created.
       Use the credentials below to sign in:
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;background-color:#f9fafb;">

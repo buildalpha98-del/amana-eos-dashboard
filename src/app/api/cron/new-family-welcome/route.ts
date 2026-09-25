@@ -114,7 +114,7 @@ function buildWelcomeCheckHtml(
           <tr>
             <td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
               <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">
-                Amana OSHC &mdash; EOS Dashboard<br/>
+                Amana OSHC &mdash; Management Dashboard<br/>
                 Sent daily to help you follow up with new families in their first weeks.
               </p>
             </td>

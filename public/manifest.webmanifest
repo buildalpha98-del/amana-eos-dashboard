@@ -1,7 +1,7 @@
 {
   "name": "Amana OSHC Dashboard",
   "short_name": "Amana",
-  "description": "EOS Management Dashboard for Amana OSHC",
+  "description": "Management Dashboard for Amana OSHC",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#ffffff",

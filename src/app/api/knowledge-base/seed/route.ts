@@ -6,7 +6,7 @@ const seedArticles = [
   // ─── Getting Started ────────────────────────────────────────────────
   {
     title: "Your First Day on the Dashboard",
-    body: `Welcome to the Amana EOS Dashboard — the central hub for managing your OSHC centre.
+    body: `Welcome to the Amana Management Dashboard — the central hub for managing your OSHC centre.
 
 When you first log in, you'll land on the **Dashboard** page. Here's what you'll see:
 
@@ -85,7 +85,7 @@ You'll receive email reminders before certificates expire, but it's good practic
   },
   {
     title: "Using the Mobile App",
-    body: `The Amana EOS Dashboard works on your phone as a Progressive Web App (PWA). This means you can install it like a regular app without going to an app store.
+    body: `The Amana Management Dashboard works on your phone as a Progressive Web App (PWA). This means you can install it like a regular app without going to an app store.
 
 **To install on iPhone:**
 1. Open the dashboard URL in Safari

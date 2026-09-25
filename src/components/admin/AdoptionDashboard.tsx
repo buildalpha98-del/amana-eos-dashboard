@@ -205,7 +205,7 @@ function UserCard({ user }: { user: AdoptionUser }) {
       </div>
       {status.filter === "inactive" || status.filter === "never" ? (
         <a
-          href={`mailto:${user.email}?subject=Amana Dashboard — We miss you!&body=Hi ${user.name},%0A%0AJust a friendly reminder to log in to the Amana EOS Dashboard. Let us know if you need any help getting started!`}
+          href={`mailto:${user.email}?subject=Amana Dashboard — We miss you!&body=Hi ${user.name},%0A%0AJust a friendly reminder to log in to the Amana Management Dashboard. Let us know if you need any help getting started!`}
           className="inline-flex items-center gap-1 text-xs text-brand hover:text-brand-hover font-medium"
         >
           <Mail className="w-3 h-3" />
@@ -409,7 +409,7 @@ export function AdoptionDashboard() {
                     <td className="py-2.5 px-3">
                       {showReminder && (
                         <a
-                          href={`mailto:${user.email}?subject=Amana Dashboard — We miss you!&body=Hi ${user.name},%0A%0AJust a friendly reminder to log in to the Amana EOS Dashboard. Let us know if you need any help getting started!`}
+                          href={`mailto:${user.email}?subject=Amana Dashboard — We miss you!&body=Hi ${user.name},%0A%0AJust a friendly reminder to log in to the Amana Management Dashboard. Let us know if you need any help getting started!`}
                           className="text-brand hover:text-brand-hover"
                           title="Send reminder email"
                         >

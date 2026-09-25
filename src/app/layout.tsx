@@ -41,8 +41,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Amana OSHC — EOS Dashboard",
-  description: "EOS Management Dashboard for Amana OSHC",
+  title: "Amana OSHC — Management Dashboard",
+  description: "Management Dashboard for Amana OSHC",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
