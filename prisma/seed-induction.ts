@@ -656,7 +656,7 @@ async function ensureModule(
   });
   if (existing) return; // already seeded — do not duplicate module or questions
 
-  const module = await prisma.lMSModule.create({
+  const createdModule = await prisma.lMSModule.create({
     data: {
       courseId,
       title: data.title,
@@ -675,7 +675,7 @@ async function ensureModule(
       const q = data.questions[i];
       await prisma.lMSQuizQuestion.create({
         data: {
-          moduleId: module.id,
+          moduleId: createdModule.id,
           question: q.question,
           options: q.options as unknown as Prisma.InputJsonValue,
           correctIndex: q.correctIndex,

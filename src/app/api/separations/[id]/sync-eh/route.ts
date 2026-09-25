@@ -23,6 +23,7 @@ import {
   terminateEmployee,
   EhPayrollError,
 } from "@/lib/eh-payroll";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const POST = withApiAuth(
   async (_req, session, context) => {
@@ -108,5 +109,5 @@ export const POST = withApiAuth(
       );
     }
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

@@ -63,7 +63,8 @@ function makeTargetUser(overrides: Record<string, unknown> = {}) {
 function setupCommonMocks() {
   // Return empty arrays / null for every profile sub-query
   prismaMock.emergencyContact.findMany.mockResolvedValue([]);
-  prismaMock.employmentContract.findFirst.mockResolvedValue(null);
+  // Task 10.3: the loader fetches ALL contracts (findMany desc), not findFirst.
+  prismaMock.employmentContract.findMany.mockResolvedValue([]);
   prismaMock.leaveBalance.findMany.mockResolvedValue([]);
   prismaMock.leaveRequest.findMany.mockResolvedValue([]);
   prismaMock.timesheetEntry.findMany.mockResolvedValue([]);
@@ -188,15 +189,21 @@ describe("StaffProfilePage (server component)", () => {
     ).rejects.toThrowError(/NEXT_REDIRECT:\/login/);
   });
 
-  it("calls notFound() when target user doesn't exist", async () => {
+  it("explains a deleted staff record instead of a bare 404", async () => {
+    // 2026-09-15: this used to notFound(). The 90-day ramp alert emails link
+    // State Managers straight to /staff/<id>#section-ramp, so when the staff
+    // record had been deleted since the email went out they got the generic
+    // "Page not found" — indistinguishable from a broken dashboard. Say what
+    // happened and offer the way back instead.
     mockSession({ id: "u1", name: "Viewer", role: "admin" });
     prismaMock.user.findUnique.mockResolvedValue(null);
-    await expect(
-      StaffProfilePage({
-        params: wrap({ id: "missing" }),
-        searchParams: wrap({}),
-      }),
-    ).rejects.toThrowError(/NEXT_NOT_FOUND/);
+    const result = await StaffProfilePage({
+      params: wrap({ id: "missing" }),
+      searchParams: wrap({}),
+    });
+    const asString = JSON.stringify(result);
+    expect(asString).toContain("no longer exists");
+    expect(asString).toContain("/team");
   });
 
   it("renders profile for self", async () => {

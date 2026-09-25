@@ -11,6 +11,7 @@ import {
   type DeepgramCallbackPayload,
 } from "@/lib/deepgram";
 import { generateMeetingReview } from "@/lib/meeting-review";
+import { sendMeetingDigestSafe } from "@/lib/meeting-digest";
 
 // The inline Sonnet summarisation is the long pole.
 export const maxDuration = 120;
@@ -144,6 +145,9 @@ export const POST = withApiHandler(
         where: { id: recording.id },
         data: { aiReview: review as object, status: "complete" },
       });
+      // Attendee digest (email + in-app). Fire-and-forget — the
+      // digestSentAt claim makes multi-caller double-sends impossible.
+      await sendMeetingDigestSafe(recording.id);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await prisma.meetingRecording.update({

@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const patchConversionSchema = z.object({
   id: z.string().min(1),
   status: z.enum(["identified", "contacted", "converted", "declined"]),
@@ -75,4 +76,4 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json(updated);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

@@ -6,6 +6,7 @@ import { Phone, MapPin, Cake, CalendarDays, Loader2, User as UserIcon, Mail, Moo
 import { useRouter, useSearchParams } from "next/navigation";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+import { AUSTRALIAN_STATES } from "@/lib/service-scope";
 
 interface PersonalTabProps {
   targetUser: User;
@@ -66,18 +67,27 @@ export function PersonalTab({
   const [editing, setEditing] = useState(false);
 
   // Auto-open the edit form when arriving via the header's "Edit profile"
-  // Quick Action (which sets `?edit=personal`). One-shot on mount: we strip
-  // the param so a manual refresh doesn't re-open the form unexpectedly.
+  // Quick Action (which sets `?edit=personal`). Reacts to the param, not just
+  // mount — if this tab is already open when the Quick Action fires, a
+  // mount-only check never sees the param and the editor silently fails to
+  // open. The state flip happens render-phase (React's "adjust state on prop
+  // change" pattern); the effect below only strips the param so a manual
+  // refresh doesn't re-open the form.
+  const wantsEdit = searchParams.get("edit") === "personal";
+  // Starts false (not wantsEdit) so a fresh page load that already carries
+  // the param still fires the adjust branch on first render.
+  const [prevWantsEdit, setPrevWantsEdit] = useState(false);
+  if (wantsEdit !== prevWantsEdit) {
+    setPrevWantsEdit(wantsEdit);
+    if (wantsEdit && canEdit) setEditing(true);
+  }
   useEffect(() => {
-    if (!canEdit) return;
-    if (searchParams.get("edit") !== "personal") return;
-    setEditing(true);
+    if (!wantsEdit) return;
     const next = new URLSearchParams(searchParams.toString());
     next.delete("edit");
     const qs = next.toString();
     router.replace(qs ? `?${qs}` : "?", { scroll: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [wantsEdit, searchParams, router]);
 
   if (editing && canEdit) {
     return (
@@ -390,11 +400,20 @@ function Input({
 }
 
 // ── AccountPanel ───────────────────────────────────────────────────
-// Admin-only role editor. Shown on the staff profile when the viewer is an
-// admin and is NOT viewing their own profile (we don't want one-click
-// self-elevation/demotion from this UI; the user-list page handles that).
-// Saves via PATCH /api/users/[id] which enforces the canonical role guards
-// (only-owners-can-promote-to-owner, last-owner protection, etc.).
+// Admin-only role + State Manager patch editor. Shown on the staff profile
+// when the viewer is an admin and is NOT viewing their own profile (we don't
+// want one-click self-elevation/demotion from this UI; the user-list page
+// handles that). Saves via PATCH /api/users/[id] which enforces the canonical
+// role guards (only-owners-can-promote-to-owner, last-owner protection, etc.).
+//
+// 2026-09-15: the State field moved here from create-only. A State Manager's
+// centre scope is driven by `User.state` (see getCentreScope in
+// src/lib/centre-scope.ts), and until now it could only ever be set at
+// account creation — so every State Manager created before that had a null
+// state, an empty centre scope, and an empty /team.
+
+/** Roles whose visible centres are derived from `User.state`. */
+const STATE_SCOPED_ROLES = new Set(["head_office"]);
 
 const ROLE_OPTIONS: { value: string; label: string; ownerOnly?: boolean }[] = [
   { value: "owner", label: "Owner", ownerOnly: true },
@@ -416,13 +435,20 @@ function AccountPanel({
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [role, setRole] = useState<string>(targetUser.role);
+  const [state, setState] = useState<string>(targetUser.state ?? "");
 
   const selectableRoles = ROLE_OPTIONS.filter(
     (r) => viewerIsOwner || !r.ownerOnly,
   );
+  const showState = STATE_SCOPED_ROLES.has(role);
 
   async function handleSave() {
-    if (role === targetUser.role) {
+    const roleChanged = role !== targetUser.role;
+    // Only send `state` when the role it applies to is selected — otherwise
+    // demoting a State Manager would silently clear a field the form no
+    // longer shows.
+    const stateChanged = showState && state !== (targetUser.state ?? "");
+    if (!roleChanged && !stateChanged) {
       setEditing(false);
       return;
     }
@@ -430,17 +456,23 @@ function AccountPanel({
     try {
       await mutateApi(`/api/users/${targetUser.id}`, {
         method: "PATCH",
-        body: { role },
+        body: {
+          ...(roleChanged ? { role } : {}),
+          ...(stateChanged ? { state: state || null } : {}),
+        },
       });
-      toast({ description: "Role updated." });
+      toast({
+        description: roleChanged ? "Account updated." : "State updated.",
+      });
       router.refresh();
       setEditing(false);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Failed to update role";
+        err instanceof Error ? err.message : "Failed to update account";
       toast({ variant: "destructive", description: message });
-      // Reset the local role to the canonical value if the server rejected.
+      // Reset to the canonical values if the server rejected.
       setRole(targetUser.role);
+      setState(targetUser.state ?? "");
     } finally {
       setSaving(false);
     }
@@ -501,7 +533,7 @@ function AccountPanel({
               className="text-sm font-medium text-white bg-brand hover:bg-brand/90 px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 disabled:opacity-60"
             >
               {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              Save role
+              Save
             </button>
           </div>
         ) : (
@@ -510,10 +542,43 @@ function AccountPanel({
             onClick={() => setEditing(true)}
             className="text-sm text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-md border border-border"
           >
-            Change role
+            Edit
           </button>
         )}
       </div>
+
+      {showState && (
+        <div className="mt-4 pt-4 border-t border-amber-200 dark:border-amber-800">
+          <span className="text-xs uppercase tracking-wide text-muted">
+            State
+          </span>
+          {editing ? (
+            <select
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              disabled={saving}
+              className="mt-1 w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+            >
+              <option value="">Not set</option>
+              {AUSTRALIAN_STATES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label} ({s.value})
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="mt-1 text-sm font-medium text-foreground">
+              {targetUser.state || "Not set"}
+            </div>
+          )}
+          <p className="mt-1.5 text-xs text-muted">
+            State Managers see every centre in this state, plus any centre
+            they&rsquo;ve been individually assigned. Leave it unset and they
+            see only their individually assigned centres &mdash; which for most
+            accounts means none at all.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

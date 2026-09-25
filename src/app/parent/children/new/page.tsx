@@ -35,7 +35,7 @@ export default function NewChildPage() {
         </Link>
         <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border">
           <p className="text-muted text-sm">
-            We couldn't load your details just now — try again in a moment.
+            We couldn&apos;t load your details just now — try again in a moment.
           </p>
         </div>
       </div>
@@ -59,6 +59,7 @@ export default function NewChildPage() {
     workPhone: "",
     crn: "",
     soleCustody: null,
+    livesWithPrimary: false,
   };
 
   const handleComplete = (result: { token: string; childNames: string }) => {
@@ -80,10 +81,11 @@ export default function NewChildPage() {
 
       <div>
         <h1 className="text-2xl font-heading font-bold text-foreground">
-          Enrol a Sibling
+          New Enrolment
         </h1>
         <p className="text-sm text-muted mt-1">
-          Your details are pre-filled. Just add the new child&apos;s information.
+          Your details are pre-filled. Just add the new child&apos;s information —
+          we&apos;ll be in touch within 2 business days.
         </p>
       </div>
 

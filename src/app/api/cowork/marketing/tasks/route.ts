@@ -7,11 +7,14 @@ import { logger } from "@/lib/logger";
 import { logCoworkActivity } from "@/app/api/cowork/_lib/cowork-activity-log";
 
 import { parseJsonBody } from "@/lib/api-error";
+const taskStatusSchema = z.enum(["todo", "in_progress", "in_review", "done"]);
+const taskPrioritySchema = z.enum(["high", "medium", "low"]);
+
 const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
-  status: z.enum(["todo", "in_progress", "in_review", "done"]).default("todo"),
-  priority: z.enum(["high", "medium", "low"]).default("medium"),
+  status: taskStatusSchema.default("todo"),
+  priority: taskPrioritySchema.default("medium"),
   dueDate: z.string().datetime().optional(),
   assigneeId: z.string().optional(),
   assigneeEmail: z.string().email().optional(),
@@ -75,8 +78,8 @@ export const POST = withApiHandler(async (req) => {
           data: {
             title: t.title,
             description: t.description || null,
-            status: t.status as any,
-            priority: t.priority as any,
+            status: t.status,
+            priority: t.priority,
             dueDate: t.dueDate ? new Date(t.dueDate) : null,
             assigneeId: assigneeId || null,
             campaignId: t.campaignId || null,
@@ -141,8 +144,28 @@ export const GET = withApiHandler(async (req) => {
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
-  const status = searchParams.get("status");
-  const priority = searchParams.get("priority");
+  const statusParam = searchParams.get("status");
+  const priorityParam = searchParams.get("priority");
+  const statusParsed = statusParam
+    ? taskStatusSchema.safeParse(statusParam)
+    : null;
+  if (statusParsed && !statusParsed.success) {
+    return NextResponse.json(
+      { success: false, error: "Invalid status" },
+      { status: 400 },
+    );
+  }
+  const priorityParsed = priorityParam
+    ? taskPrioritySchema.safeParse(priorityParam)
+    : null;
+  if (priorityParsed && !priorityParsed.success) {
+    return NextResponse.json(
+      { success: false, error: "Invalid priority" },
+      { status: 400 },
+    );
+  }
+  const status = statusParsed?.success ? statusParsed.data : null;
+  const priority = priorityParsed?.success ? priorityParsed.data : null;
   const assigneeEmail = searchParams.get("assigneeEmail");
   const serviceCode = searchParams.get("serviceCode");
   const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
@@ -168,8 +191,8 @@ export const GET = withApiHandler(async (req) => {
   const tasks = await prisma.marketingTask.findMany({
     where: {
       deleted: false,
-      ...(status ? { status: status as any } : {}),
-      ...(priority ? { priority: priority as any } : {}),
+      ...(status ? { status } : {}),
+      ...(priority ? { priority } : {}),
       ...(assigneeId ? { assigneeId } : {}),
       ...(serviceId ? { serviceId } : {}),
     },

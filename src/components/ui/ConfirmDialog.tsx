@@ -1,13 +1,16 @@
 "use client";
 
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 
 interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   description: string;
+  /** Optional amber caution block rendered under the description —
+   *  e.g. "No separation record exists" on a deactivate confirm. */
+  warning?: React.ReactNode;
   confirmLabel?: string;
   variant?: "danger" | "default";
   onConfirm: () => void;
@@ -19,6 +22,7 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
+  warning,
   confirmLabel = "Confirm",
   variant = "danger",
   onConfirm,
@@ -35,6 +39,15 @@ export function ConfirmDialog({
           <AlertDialog.Description className="mt-2 text-sm text-muted">
             {description}
           </AlertDialog.Description>
+          {warning ? (
+            <div
+              className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-sm text-amber-800 dark:text-amber-300"
+              data-testid="confirm-dialog-warning"
+            >
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
+              <div>{warning}</div>
+            </div>
+          ) : null}
           <div className="mt-6 flex justify-end gap-3">
             <AlertDialog.Cancel asChild>
               <button

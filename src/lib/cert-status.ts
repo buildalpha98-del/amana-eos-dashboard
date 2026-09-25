@@ -31,7 +31,11 @@ export function getCertStatus(
   expiry.setHours(0, 0, 0, 0);
 
   const msPerDay = 24 * 60 * 60 * 1000;
-  const daysLeft = Math.floor((expiry.getTime() - now.getTime()) / msPerDay);
+  // Math.round, not floor: both timestamps are local midnights, so the
+  // difference is a whole number of days ±1h across a DST change. Floor
+  // shaved a day off any span crossing the AEDT spring-forward (e.g.
+  // "31 days from 4 Sep" computed as 30 and flipped valid → expiring).
+  const daysLeft = Math.round((expiry.getTime() - now.getTime()) / msPerDay);
 
   if (daysLeft < 0) return { status: "expired", daysLeft };
   if (daysLeft <= 30) return { status: "expiring", daysLeft };

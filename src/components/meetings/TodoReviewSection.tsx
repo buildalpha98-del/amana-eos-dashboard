@@ -219,6 +219,15 @@ export function TodoReviewSection({
                   >
                     {todo.title}
                   </p>
+                  {todo.status === "complete" && todo.completionNote && (
+                    <span
+                      className="text-xs flex-shrink-0 cursor-help"
+                      title={todo.completionNote}
+                      aria-label="Completion note"
+                    >
+                      📝
+                    </span>
+                  )}
                   {lastMeetingId && todo.meetingId === lastMeetingId && (
                     <span className="text-2xs px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 font-medium flex-shrink-0">
                       from last meeting

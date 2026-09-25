@@ -1,18 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES_WITH_EOS } from "@/lib/role-permissions";
 
 /**
  * GET /api/audit-log
  *
- * Returns security audit log entries. Owner / head_office / admin only.
+ * Returns security audit log entries. Admin tier + `eos` — mirrors the page
+ * access granted by `rolePageAccess`, which previously 403'd EOS Members on
+ * a page their own sidebar offered them.
  * Query params: ?page=1&limit=50&action=user.login&actorId=xxx
  */
-export const GET = withApiAuth(async (req, session) => {
-  const role = (session.user as any).role;
-  if (!["owner", "head_office", "admin"].includes(role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+export const GET = withApiAuth(async (req) => {
 
   const url = req.nextUrl;
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
@@ -45,4 +44,4 @@ export const GET = withApiAuth(async (req, session) => {
     total,
     totalPages: Math.ceil(total / limit),
   });
-});
+}, { roles: [...ADMIN_ROLES_WITH_EOS] });

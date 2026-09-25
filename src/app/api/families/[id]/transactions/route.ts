@@ -14,6 +14,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { toCents } from "@/lib/money";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -145,5 +146,5 @@ export const GET = withApiAuth(
       paidCents,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

@@ -134,8 +134,10 @@ export async function extractText(
 }
 
 /**
- * Extract text from an in-memory buffer. Split out so ZIP archives
- * can extract each contained file without a round-trip to storage.
+ * Extract text from an in-memory buffer. Split out so ZIP archives can
+ * extract each contained file without a round-trip to storage; also used by
+ * contract term extraction, which reads an uploaded file before deciding
+ * whether it is worth storing.
  *
  * Supported: PDF (unpdf), DOCX (mammoth), text (utf-8), ZIP
  * (recurses through supported entries, prefixes each with a
@@ -145,7 +147,7 @@ export async function extractText(
  * ZIP (images, spreadsheets, etc.) — the caller ignores it for
  * top-level files where mimeType is authoritative.
  */
-async function extractTextFromBuffer(
+export async function extractTextFromBuffer(
   buffer: Buffer,
   mimeType: string,
   filename?: string,

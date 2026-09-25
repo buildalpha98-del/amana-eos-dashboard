@@ -108,7 +108,7 @@ const ALL_PACKS = [
       { title: "Schedule family meet-and-greet or information session", category: "Communication", sortOrder: 26, isRequired: false },
 
       // IT & Dashboard
-      { title: "Set up Amana EOS Dashboard access (owner/admin)", category: "IT Setup", sortOrder: 27, isRequired: true },
+      { title: "Set up Amana Management Dashboard access (owner/admin)", category: "IT Setup", sortOrder: 27, isRequired: true },
       { title: "Learn how to use Scorecard, Rocks, and To-Dos", category: "IT Setup", sortOrder: 28, isRequired: true },
 
       // Probation
@@ -155,7 +155,7 @@ const ALL_PACKS = [
       { title: "Meet with manager for role expectations and KPI briefing", category: "Orientation", sortOrder: 7, isRequired: true },
       { title: "Tour head office / main centre and meet key staff", category: "Orientation", sortOrder: 8, isRequired: true },
       { title: "Set up email, staff portal, and software access", category: "IT Setup", sortOrder: 9, isRequired: true },
-      { title: "Set up Amana EOS Dashboard access", category: "IT Setup", sortOrder: 10, isRequired: true },
+      { title: "Set up Amana Management Dashboard access", category: "IT Setup", sortOrder: 10, isRequired: true },
       { title: "Learn CCS administration system (if applicable)", category: "Training", sortOrder: 11, isRequired: false },
       { title: "Learn enrolment and parent billing processes", category: "Training", sortOrder: 12, isRequired: false },
       { title: "Learn Xero / financial reporting workflows (if applicable)", category: "Training", sortOrder: 13, isRequired: false },

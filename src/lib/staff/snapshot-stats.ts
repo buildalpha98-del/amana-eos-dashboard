@@ -27,7 +27,15 @@ export interface SnapshotStatsInput {
   } | null;
   // expiryDate is nullable per the schema migration ("No expiry" certs).
   // "missing" certs aren't counted in any bucket (see loop below).
-  certificates: Array<{ expiryDate: Date | null }>;
+  certificates: Array<{ type?: string | null; expiryDate: Date | null }>;
+  /**
+   * Phase 9 (cert-requirements matrix): when non-empty, cert counts switch
+   * to REQUIRED-ONLY, per-TYPE mode — for each required type the best cert
+   * on file decides the bucket (valid > expiring > expired; no cert at all
+   * → missing) and `requiredCertTotal` is set. Empty/absent keeps the
+   * legacy per-document counts (office roles with no requirements).
+   */
+  requiredCertTypes?: readonly string[];
   activeRocks: number;
   openTodos: number;
 }
@@ -43,7 +51,12 @@ export interface SnapshotStats {
     valid: number;
     expiring: number;
     expired: number;
+    /** Required types with NO cert on file — only set in required-only mode. */
+    missing?: number;
   };
+  /** Number of cert types required for the target's role (required-only
+   *  mode), or null when counting every document (legacy mode). */
+  requiredCertTotal: number | null;
   activeRocks: number;
   openTodos: number;
 }
@@ -101,19 +114,50 @@ export function computeSnapshotStats(
       ? input.earliestContractStart
       : input.user.createdAt;
 
-  const certCounts = { valid: 0, expiring: 0, expired: 0 };
-  for (const c of input.certificates) {
-    const { status } = getCertStatus(c.expiryDate, asOf);
-    if (status === "valid") certCounts.valid += 1;
-    else if (status === "expiring") certCounts.expiring += 1;
-    else if (status === "expired") certCounts.expired += 1;
-    // "missing" certs (null expiryDate) aren't counted in any bucket.
+  const required = input.requiredCertTypes ?? [];
+  let certCounts: SnapshotStats["certCounts"];
+  let requiredCertTotal: number | null;
+
+  if (required.length > 0) {
+    // Required-only, per-TYPE mode (Phase 9): the best cert of each
+    // required type decides its bucket; a required type with no cert on
+    // file counts as missing. valid+expiring+expired+missing = total.
+    certCounts = { valid: 0, expiring: 0, expired: 0, missing: 0 };
+    requiredCertTotal = required.length;
+    for (const type of required) {
+      const ofType = input.certificates.filter((c) => c.type === type);
+      if (ofType.length === 0) {
+        certCounts.missing! += 1;
+        continue;
+      }
+      const statuses = ofType.map((c) => getCertStatus(c.expiryDate, asOf).status);
+      // A null-expiry cert is "valid forever" here — the staff upload flow
+      // explicitly supports "no expiry" documents and both /compliance and
+      // /my-portal already count them as valid. (getCertStatus labels a
+      // null expiry "missing", but in required mode the cert EXISTS — the
+      // legacy don't-count convention would misreport it as missing.)
+      if (statuses.includes("valid") || statuses.includes("missing")) {
+        certCounts.valid += 1;
+      } else if (statuses.includes("expiring")) certCounts.expiring += 1;
+      else certCounts.expired += 1;
+    }
+  } else {
+    certCounts = { valid: 0, expiring: 0, expired: 0 };
+    requiredCertTotal = null;
+    for (const c of input.certificates) {
+      const { status } = getCertStatus(c.expiryDate, asOf);
+      if (status === "valid") certCounts.valid += 1;
+      else if (status === "expiring") certCounts.expiring += 1;
+      else if (status === "expired") certCounts.expired += 1;
+      // "missing" certs (null expiryDate) aren't counted in any bucket.
+    }
   }
 
   return {
     tenure: tenureDescription(tenureStart, asOf),
     nextShiftLabel: formatNextShiftLabel(input.nextShift),
     certCounts,
+    requiredCertTotal,
     activeRocks: input.activeRocks,
     openTodos: input.openTodos,
   };

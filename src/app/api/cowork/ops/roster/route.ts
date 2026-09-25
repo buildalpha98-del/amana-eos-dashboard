@@ -56,33 +56,45 @@ export const POST = withApiHandler(async (req) => {
     let upserted = 0;
     for (const shift of shifts) {
       const dateObj = new Date(shift.date + "T00:00:00Z");
-      await prisma.rosterShift.upsert({
+      // 2026-09-04: the DB unique key moved to (serviceId, date, userId,
+      // shiftStart) so open shifts stopped colliding. OWNA rows carry no
+      // userId, so this ingest keeps its staffName-based idempotency in
+      // application code: findFirst then update/create. Single-writer
+      // ingest, so the lost race window is theoretical.
+      const existing = await prisma.rosterShift.findFirst({
         where: {
-          serviceId_date_staffName_shiftStart: {
-            serviceId: service.id,
-            date: dateObj,
-            staffName: shift.staffName,
-            shiftStart: shift.shiftStart,
-          },
-        },
-        update: {
-          shiftEnd: shift.shiftEnd,
-          sessionType: shift.sessionType || "asc",
-          role: shift.role || null,
-          syncedAt: new Date(),
-        },
-        create: {
           serviceId: service.id,
           date: dateObj,
-          // Stage 1 dual key — see room-resolver.ts.
-          roomId: await requireRoomId(service.id, shift.sessionType || "asc"),
-          sessionType: shift.sessionType || "asc",
           staffName: shift.staffName,
           shiftStart: shift.shiftStart,
-          shiftEnd: shift.shiftEnd,
-          role: shift.role || null,
         },
+        select: { id: true },
       });
+      if (existing) {
+        await prisma.rosterShift.update({
+          where: { id: existing.id },
+          data: {
+            shiftEnd: shift.shiftEnd,
+            sessionType: shift.sessionType || "asc",
+            role: shift.role || null,
+            syncedAt: new Date(),
+          },
+        });
+      } else {
+        await prisma.rosterShift.create({
+          data: {
+            serviceId: service.id,
+            date: dateObj,
+            // Stage 1 dual key — see room-resolver.ts.
+            roomId: await requireRoomId(service.id, shift.sessionType || "asc"),
+            sessionType: shift.sessionType || "asc",
+            staffName: shift.staffName,
+            shiftStart: shift.shiftStart,
+            shiftEnd: shift.shiftEnd,
+            role: shift.role || null,
+          },
+        });
+      }
       upserted++;
     }
 

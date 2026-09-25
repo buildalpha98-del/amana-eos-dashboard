@@ -2,16 +2,40 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Sun,
   LayoutDashboard,
   CheckSquare,
   Building2,
   MoreHorizontal,
+  Home,
+  Wallet,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUnreadNotificationCount } from "@/hooks/useNotifications";
 
-const tabs = [
+// Mirrors NotificationBell's poll cadence — the inbox isn't one of the
+// four tabs on either set, so the "More" button is the only mobile
+// surface that can signal unread notifications.
+const NOTIFICATION_POLL_INTERVAL_MS = 60_000;
+
+// 2026-09-04 staff portal v2: two tab sets. Staff-tier roles get the
+// self-service app (Home hub, My Day, Pay, Leave — Expenses and profile
+// are one tap away via Home tiles and More); everyone else keeps the
+// ops-centric set. Four tabs + the More button is the ceiling — six
+// slots at min-w-[64px] overflow a 375px viewport.
+const STAFF_TIER_ROLES = new Set(["staff", "member", "marketing"]);
+
+const staffTabs = [
+  { href: "/my-portal", label: "Home", icon: Home },
+  { href: "/my-day", label: "My Day", icon: Sun },
+  { href: "/my-pay", label: "Pay", icon: Wallet },
+  { href: "/my-leave", label: "Leave", icon: CalendarDays },
+] as const;
+
+const defaultTabs = [
   // 2026-07-06 design system: My Day leads — educators on phones land
   // on their during-session surface (clock, roll call, checklists).
   { href: "/my-day", label: "My Day", icon: Sun },
@@ -26,6 +50,17 @@ interface MobileTabBarProps {
 
 export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const role = session?.user?.role as string | undefined;
+  // While the session loads, render the generic set — a one-render swap
+  // at 4 items is imperceptible and avoids a blank bar.
+  const tabs = role && STAFF_TIER_ROLES.has(role) ? staffTabs : defaultTabs;
+
+  const { data: unreadData } = useUnreadNotificationCount({
+    refetchInterval: NOTIFICATION_POLL_INTERVAL_MS,
+  });
+  const unreadCount = unreadData?.count ?? 0;
+  const unreadBadgeLabel = unreadCount > 9 ? "9+" : String(unreadCount);
 
   return (
     <nav
@@ -67,14 +102,30 @@ export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
           );
         })}
 
-        {/* More button — opens sidebar */}
+        {/* More button — opens sidebar. Also the only mobile entry point
+            to /notifications, so it carries the unread badge. */}
         <button
           type="button"
           onClick={onMorePress}
-          className="flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[64px] text-muted hover:text-foreground"
-          aria-label="Open full navigation menu"
+          className="relative flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[64px] text-muted hover:text-foreground"
+          aria-label={
+            unreadCount > 0
+              ? `Open full navigation menu (${unreadCount} unread notifications)`
+              : "Open full navigation menu"
+          }
         >
-          <MoreHorizontal className="w-5 h-5" />
+          <span className="relative">
+            <MoreHorizontal className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span
+                data-testid="mobile-tabbar-notification-badge"
+                aria-hidden="true"
+                className="absolute -top-1 -right-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-2xs font-bold leading-none text-white bg-red-500"
+              >
+                {unreadBadgeLabel}
+              </span>
+            )}
+          </span>
           <span className="text-2xs leading-tight font-medium">More</span>
         </button>
       </div>

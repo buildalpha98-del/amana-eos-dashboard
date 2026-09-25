@@ -6,6 +6,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { uploadFile, deleteFile } from "@/lib/storage";
 import { isAdminRole } from "@/lib/role-permissions";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const updateCertSchema = z.object({
   // 2026-06-04: was a hard-coded literal list missing the newer cert
   // types (child_safe_code_of_conduct, mandatory_reporter_training,
@@ -157,4 +158,4 @@ export const DELETE = withApiAuth(async (req, session, context) => {
   }
   await prisma.complianceCertificate.delete({ where: { id } });
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

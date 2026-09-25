@@ -5,6 +5,7 @@ import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const updateTimesheetSchema = z.object({
   notes: z.string().optional().nullable(),
   importSource: z.string().optional(),
@@ -132,4 +133,4 @@ export const DELETE = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

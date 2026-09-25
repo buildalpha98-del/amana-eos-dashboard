@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
@@ -65,7 +65,12 @@ export function CrmEmailTemplateForm({
   const [pipeline, setPipeline] = useState(initialData?.pipeline || "");
   const [sortOrder, setSortOrder] = useState(initialData?.sortOrder ?? 0);
 
-  useEffect(() => {
+  // Reset the form whenever the modal opens/closes or the template being
+  // edited changes (render-time sync guarded by the last-synced values, per
+  // React's "adjusting state when props change" pattern)
+  const [prevSync, setPrevSync] = useState({ open, initialData });
+  if (prevSync.open !== open || prevSync.initialData !== initialData) {
+    setPrevSync({ open, initialData });
     if (initialData) {
       setName(initialData.name);
       setSubject(initialData.subject);
@@ -81,7 +86,7 @@ export function CrmEmailTemplateForm({
       setPipeline("");
       setSortOrder(0);
     }
-  }, [initialData, open]);
+  }
 
   if (!open) return null;
 

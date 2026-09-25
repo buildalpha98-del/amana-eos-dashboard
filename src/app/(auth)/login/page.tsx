@@ -6,6 +6,7 @@ import { signIn, getSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import { getLandingPage } from "@/lib/role-permissions";
+import { AuthBackdrop, SunMark } from "@/components/layout/AuthBackdrop";
 
 /**
  * Pick the post-sign-in destination. Service-scoped roles (staff / member /
@@ -87,56 +88,34 @@ function LoginForm() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-[#001824] via-[#003344] to-[#0A5E7E] overflow-hidden">
-      {/* Animated floating background shapes */}
-      <div
-        className="absolute top-[-10%] left-[-5%] w-96 h-96 rounded-full bg-accent/10 blur-3xl"
-        style={{ animation: "float 6s ease-in-out infinite" }}
-      />
-      <div
-        className="absolute bottom-[-8%] right-[-5%] w-64 h-64 rounded-full bg-brand-light/15 blur-2xl"
-        style={{ animation: "float 8s ease-in-out infinite 1s" }}
-      />
-      <div
-        className="absolute top-[20%] right-[10%] w-48 h-48 rounded-full bg-accent/[0.08] blur-xl"
-        style={{ animation: "float 7s ease-in-out infinite 2s" }}
-      />
-      <div
-        className="absolute bottom-[25%] left-[8%] w-36 h-36 rounded-full bg-brand-light/10 blur-2xl"
-        style={{ animation: "float 9s ease-in-out infinite 0.5s" }}
-      />
-
-      <div
-        className="relative z-10 w-full max-w-md mx-4"
-        style={{ animation: "scale-in 0.6s ease-out both" }}
-      >
+    <AuthBackdrop>
+      <div className="relative z-10 w-full max-w-md mx-4 animate-scale-in">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div
-            className="inline-flex items-center justify-center mb-4"
-            style={{ animation: "fade-in-up 0.5s ease-out both" }}
-          >
+          <div className="inline-flex items-center justify-center mb-4 animate-slide-up">
             <Image src="/logo-full-white.svg" alt="Amana OSHC" width={200} height={100} priority />
           </div>
           <h1
-            className="text-4xl font-heading font-bold text-white tracking-tight"
-            style={{
-              textShadow: "0 2px 12px rgba(0,0,0,0.3)",
-              animation: "fade-in-up 0.5s ease-out 0.1s both",
-            }}
+            className="text-4xl font-heading font-bold text-white tracking-tight animate-slide-up stagger-2"
+            style={{ textShadow: "0 2px 12px rgba(0,0,0,0.3)" }}
           >
             Amana OSHC
           </h1>
-          <p
-            className="text-white/50 mt-2 text-base tracking-wide"
-            style={{ animation: "fade-in-up 0.5s ease-out 0.25s both" }}
-          >
-            EOS Management Dashboard
+          <div className="mt-3 flex items-center justify-center gap-3 animate-slide-up stagger-4">
+            <span aria-hidden className="h-px w-10 bg-white/20" />
+            <SunMark className="w-7 text-accent" />
+            <span aria-hidden className="h-px w-10 bg-white/20" />
+          </div>
+          <p className="text-white/70 mt-3 text-base tracking-wide animate-slide-up stagger-5">
+            Management Dashboard
           </p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-card/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 sm:p-10 border border-white/50">
+        {/* Login Card. Cream rather than pure white so it sits in the warm
+            light rising off the horizon, with a single accent rule along the
+            top edge — the one place the identity yellow is structural. */}
+        <div className="relative bg-cream-soft/95 backdrop-blur-xl rounded-[var(--radius-xl)] shadow-warm-lg p-8 sm:p-10 border border-white/60 overflow-hidden">
+          <div aria-hidden className="absolute inset-x-0 top-0 h-1 bg-accent" />
           <h2 className="text-xl font-heading font-semibold text-foreground mb-6">
             Sign in to your account
           </h2>
@@ -245,27 +224,11 @@ function LoginForm() {
           </form>
         </div>
 
-        <p className="text-center text-white/30 font-heading tracking-wider uppercase text-2xs mt-6">
+        <p className="text-center text-white/55 font-heading tracking-wider uppercase text-2xs mt-6">
           Amana OSHC Leadership Team Portal
         </p>
       </div>
-
-      {/* Keyframe animations */}
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) scale(1); }
-          50% { transform: translateY(-20px) scale(1.05); }
-        }
-        @keyframes scale-in {
-          0% { opacity: 0; transform: scale(0.95); }
-          100% { opacity: 1; transform: scale(1); }
-        }
-        @keyframes fade-in-up {
-          0% { opacity: 0; transform: translateY(10px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-    </div>
+    </AuthBackdrop>
   );
 }
 

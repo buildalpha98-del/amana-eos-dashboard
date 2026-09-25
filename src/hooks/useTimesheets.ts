@@ -378,6 +378,32 @@ export function useApproveTimesheet() {
   });
 }
 
+// ── Bulk approve timesheets ────────────────────────────────────
+
+export interface BulkApproveResult {
+  approved: string[];
+  skipped: { id: string; reason: string }[];
+}
+
+export function useBulkApproveTimesheets() {
+  const qc = useQueryClient();
+  return useMutation<BulkApproveResult, Error, string[]>({
+    mutationFn: async (ids) => {
+      return mutateApi<BulkApproveResult>("/api/timesheets/bulk-approve", {
+        method: "POST",
+        body: { ids },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["timesheets"] });
+      qc.invalidateQueries({ queryKey: ["timesheet"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
 // ── Reject timesheet ──────────────────────────────────────────
 
 export function useRejectTimesheet() {
@@ -402,11 +428,17 @@ export function useRejectTimesheet() {
 // ── Export to Xero (placeholder) ───────────────────────────────
 
 export function useExportTimesheetToXero() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      return mutateApi(`/api/timesheets/${id}/export-to-xero`, {
+      return mutateApi<{ message?: string }>(`/api/timesheets/${id}/export-to-xero`, {
         method: "POST",
       });
+    },
+    onSuccess: (data) => {
+      toast({ description: data?.message || "Timesheet exported to Xero" });
+      qc.invalidateQueries({ queryKey: ["timesheets"] });
+      qc.invalidateQueries({ queryKey: ["timesheet"] });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });

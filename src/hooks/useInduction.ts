@@ -81,6 +81,40 @@ export function useSignoffPractical() {
   });
 }
 
+/**
+ * Owner / State Manager releases someone from the gate outright.
+ *
+ * The everyday exit is finishing the induction. This is the lever for the
+ * account that should never have been gated — added 2026-09-17 after real
+ * coordinators sat locked out of their own centre with no admin way back in.
+ */
+export function useClearInduction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      input: { userId: string; reason: string } | { all: true; reason: string },
+    ) => mutateApi("/api/induction/clear", { method: "POST", body: input }),
+    onSuccess: (data, vars) => {
+      const count = (data as { cleared?: number } | null)?.cleared;
+      toast({
+        description:
+          typeof count === "number"
+            ? count === 0
+              ? "Nobody was being held by the gate."
+              : `${count} ${count === 1 ? "person has" : "people have"} their full dashboard back.`
+            : "Cleared — they have their full dashboard back.",
+      });
+      if ("userId" in vars) {
+        qc.invalidateQueries({ queryKey: ["induction-readiness", vars.userId] });
+      }
+      qc.invalidateQueries({ queryKey: ["induction-pipeline"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
 /** Owner / State Manager grants a temporary override window. */
 export function useInductionOverride() {
   const qc = useQueryClient();

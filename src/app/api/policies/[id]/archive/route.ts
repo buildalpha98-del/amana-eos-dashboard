@@ -3,8 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
-const ADMIN_ROLES = ["owner", "head_office", "admin"] as const;
 
 const archiveSchema = z.object({
   isArchived: z.boolean().default(true),

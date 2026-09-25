@@ -28,6 +28,8 @@ process.env.VAPID_SUBJECT = "mailto:test@example.com";
 let sendPush: typeof import("@/lib/push/webPush").sendPush;
 let sendPushToContact: typeof import("@/lib/push/webPush").sendPushToContact;
 let sendPushToParentEmail: typeof import("@/lib/push/webPush").sendPushToParentEmail;
+let sendPushToUser: typeof import("@/lib/push/webPush").sendPushToUser;
+let sendPushToUsers: typeof import("@/lib/push/webPush").sendPushToUsers;
 
 beforeEach(async () => {
   vi.resetModules();
@@ -36,6 +38,8 @@ beforeEach(async () => {
   sendPush = mod.sendPush;
   sendPushToContact = mod.sendPushToContact;
   sendPushToParentEmail = mod.sendPushToParentEmail;
+  sendPushToUser = mod.sendPushToUser;
+  sendPushToUsers = mod.sendPushToUsers;
 });
 
 describe("sendPush", () => {
@@ -143,6 +147,69 @@ describe("sendPushToContact", () => {
     });
     expect(res).toEqual({ sent: 0, removed: 0 });
     expect(prismaMock.pushSubscription.deleteMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("sendPushToUser / sendPushToUsers", () => {
+  it("queries subscriptions by userId and sends to each", async () => {
+    prismaMock.pushSubscription.findMany.mockResolvedValueOnce([
+      { id: "s1", endpoint: "e1", p256dh: "k1", auth: "a1" },
+      { id: "s2", endpoint: "e2", p256dh: "k2", auth: "a2" },
+    ]);
+    sendNotification.mockResolvedValue(undefined);
+
+    const res = await sendPushToUser("user-1", {
+      title: "New shift",
+      body: "An open shift is up for grabs.",
+      url: "/my-portal",
+    });
+
+    expect(prismaMock.pushSubscription.findMany).toHaveBeenCalledWith({
+      where: { userId: { in: ["user-1"] } },
+      select: { id: true, endpoint: true, p256dh: true, auth: true },
+    });
+    expect(sendNotification).toHaveBeenCalledTimes(2);
+    expect(res).toEqual({ sent: 2, removed: 0 });
+  });
+
+  it("returns 0/0 without a query for an empty/falsy user list", async () => {
+    const res = await sendPushToUsers(["", ""], { title: "t", body: "b" });
+    expect(res).toEqual({ sent: 0, removed: 0 });
+    expect(prismaMock.pushSubscription.findMany).not.toHaveBeenCalled();
+  });
+
+  it("dedupes userIds and queries once for the batch", async () => {
+    prismaMock.pushSubscription.findMany.mockResolvedValueOnce([]);
+    const res = await sendPushToUsers(["u1", "u2", "u1"], {
+      title: "t",
+      body: "b",
+    });
+    expect(prismaMock.pushSubscription.findMany).toHaveBeenCalledTimes(1);
+    const call = prismaMock.pushSubscription.findMany.mock.calls[0][0];
+    expect(call.where).toEqual({ userId: { in: ["u1", "u2"] } });
+    expect(res).toEqual({ sent: 0, removed: 0 });
+  });
+
+  it("prunes dead endpoints (410) like the parent variants", async () => {
+    prismaMock.pushSubscription.findMany.mockResolvedValueOnce([
+      { id: "s-dead", endpoint: "e-dead", p256dh: "k", auth: "a" },
+      { id: "s-live", endpoint: "e-live", p256dh: "k", auth: "a" },
+    ]);
+    sendNotification.mockImplementation((sub: unknown) => {
+      if ((sub as { endpoint: string }).endpoint === "e-dead") {
+        return Promise.reject(
+          Object.assign(new Error("gone"), { statusCode: 410 }),
+        );
+      }
+      return Promise.resolve(undefined);
+    });
+    prismaMock.pushSubscription.deleteMany.mockResolvedValueOnce({ count: 1 });
+
+    const res = await sendPushToUser("user-1", { title: "t", body: "b" });
+    expect(res).toEqual({ sent: 1, removed: 1 });
+    expect(prismaMock.pushSubscription.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ["s-dead"] } },
+    });
   });
 });
 

@@ -3,12 +3,14 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const updateProjectSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
   status: z.enum(["not_started", "in_progress", "complete", "on_hold", "cancelled"]).optional(),
   ownerId: z.string().nullable().optional(),
   serviceId: z.string().nullable().optional(),
+  rockId: z.string().nullable().optional(),
   startDate: z.string().nullable().optional(),
   targetDate: z.string().nullable().optional(),
 });
@@ -22,6 +24,7 @@ export const GET = withApiAuth(async (req, session, context) => {
     include: {
       owner: { select: { id: true, name: true, email: true, avatar: true } },
       service: { select: { id: true, name: true, code: true } },
+      rock: { select: { id: true, title: true } },
       template: { select: { id: true, name: true } },
       todos: {
         where: { deleted: false },
@@ -55,6 +58,18 @@ const { id } = await context!.params!;
   if (parsed.data.status !== undefined) data.status = parsed.data.status;
   if (parsed.data.ownerId !== undefined) data.ownerId = parsed.data.ownerId;
   if (parsed.data.serviceId !== undefined) data.serviceId = parsed.data.serviceId;
+  if (parsed.data.rockId !== undefined) {
+    if (parsed.data.rockId) {
+      const rock = await prisma.rock.findFirst({
+        where: { id: parsed.data.rockId, deleted: false },
+        select: { id: true },
+      });
+      if (!rock) {
+        return NextResponse.json({ error: "Rock not found" }, { status: 400 });
+      }
+    }
+    data.rockId = parsed.data.rockId || null;
+  }
   if (parsed.data.startDate !== undefined) data.startDate = parsed.data.startDate ? new Date(parsed.data.startDate) : null;
   if (parsed.data.targetDate !== undefined) data.targetDate = parsed.data.targetDate ? new Date(parsed.data.targetDate) : null;
 
@@ -71,6 +86,7 @@ const { id } = await context!.params!;
     include: {
       owner: { select: { id: true, name: true, email: true, avatar: true } },
       service: { select: { id: true, name: true, code: true } },
+      rock: { select: { id: true, title: true } },
     },
   });
 
@@ -85,7 +101,7 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(project);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // DELETE /api/projects/[id] - soft delete
 export const DELETE = withApiAuth(async (req, session, context) => {
@@ -107,4 +123,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

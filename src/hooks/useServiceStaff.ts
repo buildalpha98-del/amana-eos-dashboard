@@ -21,7 +21,8 @@ export type ServiceMembershipStatus = "active" | "inactive";
 export interface ServiceStaffMember {
   userId: string;
   name: string;
-  email: string;
+  /** Admin-only — the API returns null for non-admin callers. */
+  email: string | null;
   avatar: string | null;
   role: Role;
   isPrimary: boolean;

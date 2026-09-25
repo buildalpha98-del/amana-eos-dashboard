@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { getWeekStart } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { isAdminRole } from "@/lib/role-permissions";
 import {
   ChevronLeft,
   ChevronRight,
@@ -21,6 +23,7 @@ import {
   Search,
   Tag,
   FileText,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -1011,6 +1014,13 @@ function ActivityLibraryPickerModal({
 }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
+  const { data: session } = useSession();
+  const role = session?.user?.role;
+  // /activity-library nav is head_office/admin/eos (owner always passes
+  // role checks — see canAccessPage). This picker is embedded for every
+  // role that can open a service's Program tab, so the "manage" escape
+  // hatch only shows for roles that can actually land on that page.
+  const canManageLibrary = isAdminRole(role) || role === "eos";
 
   const filters: ActivityTemplateFilters = {
     search: search || undefined,
@@ -1031,9 +1041,22 @@ function ActivityLibraryPickerModal({
             <Library className="w-5 h-5 text-brand" />
             Browse Activity Library
           </h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-surface" aria-label="Close">
-            <X className="w-5 h-5 text-muted" />
-          </button>
+          <div className="flex items-center gap-3">
+            {canManageLibrary && (
+              <a
+                href="/activity-library"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+              >
+                Manage library
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+            <button onClick={onClose} className="p-1 rounded hover:bg-surface" aria-label="Close">
+              <X className="w-5 h-5 text-muted" />
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 p-4 border-b border-border/30">

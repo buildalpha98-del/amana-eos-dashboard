@@ -20,6 +20,40 @@ const priorityConfig = {
 
 type SortField = "title" | "owner" | "priority" | "percentComplete" | "status";
 
+function SortHeader({
+  field,
+  sortField,
+  sortAsc,
+  onSort,
+  children,
+}: {
+  field: SortField;
+  sortField: SortField;
+  sortAsc: boolean;
+  onSort: (field: SortField) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <th
+      className="text-left py-3 px-4 text-xs font-medium text-muted uppercase tracking-wider cursor-pointer hover:text-foreground select-none"
+      onClick={() => onSort(field)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {children}
+        {sortField === field ? (
+          sortAsc ? (
+            <ChevronUp className="w-3 h-3" />
+          ) : (
+            <ChevronDown className="w-3 h-3" />
+          )
+        ) : (
+          <ArrowUpDown className="w-3 h-3 opacity-30" />
+        )}
+      </span>
+    </th>
+  );
+}
+
 export function RockListView({
   rocks,
   onRockClick,
@@ -63,42 +97,16 @@ export function RockListView({
     return sortAsc ? cmp : -cmp;
   });
 
-  const SortHeader = ({
-    field,
-    children,
-  }: {
-    field: SortField;
-    children: React.ReactNode;
-  }) => (
-    <th
-      className="text-left py-3 px-4 text-xs font-medium text-muted uppercase tracking-wider cursor-pointer hover:text-foreground select-none"
-      onClick={() => handleSort(field)}
-    >
-      <span className="inline-flex items-center gap-1">
-        {children}
-        {sortField === field ? (
-          sortAsc ? (
-            <ChevronUp className="w-3 h-3" />
-          ) : (
-            <ChevronDown className="w-3 h-3" />
-          )
-        ) : (
-          <ArrowUpDown className="w-3 h-3 opacity-30" />
-        )}
-      </span>
-    </th>
-  );
-
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
       <table className="w-full">
         <thead className="bg-surface border-b border-border">
           <tr>
-            <SortHeader field="title">Title</SortHeader>
-            <SortHeader field="owner">Owner</SortHeader>
-            <SortHeader field="priority">Priority</SortHeader>
-            <SortHeader field="status">Status</SortHeader>
-            <SortHeader field="percentComplete">Progress</SortHeader>
+            <SortHeader field="title" sortField={sortField} sortAsc={sortAsc} onSort={handleSort}>Title</SortHeader>
+            <SortHeader field="owner" sortField={sortField} sortAsc={sortAsc} onSort={handleSort}>Owner</SortHeader>
+            <SortHeader field="priority" sortField={sortField} sortAsc={sortAsc} onSort={handleSort}>Priority</SortHeader>
+            <SortHeader field="status" sortField={sortField} sortAsc={sortAsc} onSort={handleSort}>Status</SortHeader>
+            <SortHeader field="percentComplete" sortField={sortField} sortAsc={sortAsc} onSort={handleSort}>Progress</SortHeader>
             <th className="text-left py-3 px-4 text-xs font-medium text-muted uppercase tracking-wider">
               Linked Goal
             </th>

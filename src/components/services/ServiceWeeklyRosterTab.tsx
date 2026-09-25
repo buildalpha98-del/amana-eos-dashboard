@@ -237,9 +237,10 @@ function BookingsView({
                   key={dateStr}
                   dayName={WEEKDAY_NAMES[i]}
                   dayNumber={dayDate.getUTCDate()}
-                  children={dayChildren}
                   isToday={dateStr === new Date().toISOString().split("T")[0]}
-                />
+                >
+                  {dayChildren}
+                </DayColumn>
               );
             })}
           </div>

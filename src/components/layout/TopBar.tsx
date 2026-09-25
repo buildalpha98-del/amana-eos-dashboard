@@ -136,10 +136,13 @@ export function TopBar() {
   const [menuPosition, setMenuPosition] = useState<QuickAddMenuPosition>({ top: 0, right: 0 });
   const [searchOpen, setSearchOpen] = useState(false);
 
-  // Close quick-add on route change
-  useEffect(() => {
+  // Close quick-add on route change (adjust state during render when the
+  // pathname changes rather than in an effect)
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
     setQuickAddOpen(false);
-  }, [pathname]);
+  }
 
   // Track recent pages on route change
   useEffect(() => {
@@ -254,6 +257,7 @@ function MobileHeaderActions({ children }: { children: React.ReactNode }) {
   const [container, setContainer] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- portal target only exists in the DOM after mount; reading it during render would be impure and SSR-unsafe
     setContainer(document.getElementById("mobile-header-actions"));
   }, []);
 

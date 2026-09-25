@@ -45,6 +45,7 @@ export function useAssistant(currentPage?: string) {
 
       const decoder = new TextDecoder();
       let buffer = "";
+      let sawDone = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -60,7 +61,10 @@ export function useAssistant(currentPage?: string) {
           if (!line.startsWith("data: ")) continue;
           const data = line.slice(6).trim();
 
-          if (data === "[DONE]") break;
+          if (data === "[DONE]") {
+            sawDone = true;
+            break;
+          }
 
           try {
             const parsed = JSON.parse(data);
@@ -85,6 +89,16 @@ export function useAssistant(currentPage?: string) {
             throw e;
           }
         }
+      }
+
+      // The stream ended without the server's [DONE] sentinel — the
+      // connection was severed mid-answer (e.g. the serverless function
+      // hit its duration limit). Without this, the spinner just stopped
+      // on an empty bubble and the assistant looked unresponsive.
+      if (!sawDone) {
+        throw new Error(
+          "The assistant's connection dropped before it finished. Please try again.",
+        );
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") {

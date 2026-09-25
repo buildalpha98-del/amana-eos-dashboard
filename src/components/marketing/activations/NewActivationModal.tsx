@@ -52,17 +52,26 @@ export function NewActivationModal({ open, onClose, initialServiceId, initialCam
   const [expectedAttendance, setExpectedAttendance] = useState("");
   const [notes, setNotes] = useState("");
 
+  // Reset the form when the modal (re)opens or the preselected ids change —
+  // adjust-state-during-render pattern, see react.dev "You Might Not Need an Effect"
+  const resetKey = `${open}|${initialServiceId ?? ""}|${initialCampaignId ?? ""}`;
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (resetKey !== prevResetKey) {
+    setPrevResetKey(resetKey);
+    if (open) {
+      setTitle("");
+      setLinkCampaign(!!initialCampaignId);
+      setCampaignId(initialCampaignId ?? "");
+      setServiceId(initialServiceId ?? "");
+      setActivationType("");
+      setScheduledFor("");
+      setExpectedAttendance("");
+      setNotes("");
+    }
+  }
+
   useEffect(() => {
     if (!open) return;
-    setTitle("");
-    setLinkCampaign(!!initialCampaignId);
-    setCampaignId(initialCampaignId ?? "");
-    setServiceId(initialServiceId ?? "");
-    setActivationType("");
-    setScheduledFor("");
-    setExpectedAttendance("");
-    setNotes("");
-
     fetchApi<ServiceOption[]>("/api/services?status=active")
       .then((servs) => setServices(Array.isArray(servs) ? servs : []))
       .catch(() => setServices([]));

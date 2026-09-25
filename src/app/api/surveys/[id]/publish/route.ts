@@ -25,8 +25,10 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUsers } from "@/lib/notify-user";
 import { isInAudience, type AudienceUser } from "@/lib/survey-audience";
 import { getWeekStart } from "@/lib/utils";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const POST = withApiAuth(
   async (_req, session, context) => {
@@ -105,18 +107,18 @@ export const POST = withApiAuth(
             })();
         const weekOf = getWeekStart();
 
-        await prisma.$transaction([
-          prisma.userNotification.createMany({
-            data: targets.map((u) => ({
-              userId: u.id,
+        await prisma.$transaction(async (tx) => {
+          await notifyUsers(
+            tx,
+            targets.map((u) => u.id),
+            {
               type: NOTIFICATION_TYPES.SURVEY_ASSIGNED,
               title: "You've been added to a survey",
               body: `${existing.title} — please complete it.`,
               link: "/surveys",
-            })),
-            skipDuplicates: true,
-          }),
-          prisma.todo.createMany({
+            },
+          );
+          await tx.todo.createMany({
             data: targets.map((u) => ({
               title: `Complete survey: ${existing.title}`,
               description:
@@ -130,8 +132,8 @@ export const POST = withApiAuth(
               surveyId: id,
             })),
             skipDuplicates: true,
-          }),
-        ]);
+          });
+        });
 
         logger.info("Survey published + audience notified", {
           surveyId: id,
@@ -148,5 +150,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json(updated);
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

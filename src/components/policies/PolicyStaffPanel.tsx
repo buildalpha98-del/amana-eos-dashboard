@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { CheckCircle2, AlertCircle, FileText } from "lucide-react";
+import { CheckCircle2, AlertCircle, FileText, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { toast } from "@/hooks/useToast";
 import {
@@ -28,7 +29,7 @@ const READ_DELAY_SECONDS = 5;
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function PolicyStaffPanel() {
-  const { data: docs, isLoading } = usePolicies();
+  const { data: docs, isLoading, isError, error, refetch } = usePolicies();
   const [openDocId, setOpenDocId] = useState<string | null>(null);
 
   // Unacknowledged docs first, then alphabetical within each group.
@@ -51,6 +52,18 @@ export function PolicyStaffPanel() {
           <Skeleton key={i} className="h-14 w-full rounded-lg" />
         ))}
       </div>
+    );
+  }
+
+  // A failed fetch must never look like "nothing to review" — a staff member
+  // with unacknowledged policies would be told there are none.
+  if (isError) {
+    return (
+      <ErrorState
+        title="Couldn't load policies"
+        error={error instanceof Error ? error : null}
+        onRetry={() => refetch()}
+      />
     );
   }
 
@@ -150,13 +163,21 @@ function PolicyViewerModal({
   );
 
   // Countdown — only when the user has not already acknowledged this version.
+  // The interval is created ONCE when the gate starts (not re-created every
+  // tick); the functional decrement self-clears at zero.
   useEffect(() => {
-    if (doc.myAcknowledgedAt || secondsLeft === 0) return;
+    if (doc.myAcknowledgedAt) return;
     const t = window.setInterval(() => {
-      setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          window.clearInterval(t);
+          return 0;
+        }
+        return s - 1;
+      });
     }, 1000);
     return () => window.clearInterval(t);
-  }, [doc.myAcknowledgedAt, secondsLeft]);
+  }, [doc.myAcknowledgedAt]);
 
   const acked = !!doc.myAcknowledgedAt;
   const canAck = !acked && secondsLeft === 0;
@@ -196,11 +217,25 @@ function PolicyViewerModal({
           </header>
 
           {doc.currentVersion ? (
-            <iframe
-              src={fileSrc}
-              title={`${doc.title} PDF`}
-              className="flex-1 min-h-0 border-0 bg-muted"
-            />
+            <div className="flex flex-1 min-h-0 flex-col">
+              {/* iOS Safari renders PDF iframes blank — give mobile users a real way to read the doc. */}
+              <div className="border-b border-border bg-surface/50 px-4 py-2 text-right md:px-6">
+                <a
+                  href={fileSrc}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Open PDF in a new tab
+                </a>
+              </div>
+              <iframe
+                src={fileSrc}
+                title={`${doc.title} PDF`}
+                className="flex-1 min-h-0 border-0 bg-muted"
+              />
+            </div>
           ) : (
             <div className="flex flex-1 items-center justify-center bg-muted/30">
               <p className="text-sm text-muted">

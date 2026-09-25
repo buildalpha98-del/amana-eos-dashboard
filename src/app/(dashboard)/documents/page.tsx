@@ -43,6 +43,7 @@ import {
   Files,
   Download,
   FolderLock,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StickyTable } from "@/components/ui/StickyTable";
@@ -76,16 +77,33 @@ interface Service {
 }
 
 /**
- * Convert a stored fileUrl (e.g. /uploads/file-123.pdf) to the download API
- * route so files are served reliably in both dev and standalone production builds.
+ * The link target for a document row.
+ *
+ * A document *about* a staff member (assignedToId set — their contract,
+ * WWCC, HR letter) always goes through /api/staff-documents/[id], which
+ * re-checks the viewer against that staff member on every fetch. Only
+ * admins are served these rows at all, but a raw blob URL in the markup
+ * is a permanent, shareable handle that outlives whoever pasted it, so
+ * the sensitive rows never get one.
+ *
+ * Org and centre documents keep the existing behaviour: legacy
+ * /uploads/ paths route through the download API so they resolve in both
+ * dev and standalone production builds; absolute URLs pass through.
  */
-function getDownloadUrl(fileUrl: string): string {
-  if (fileUrl.startsWith("/uploads/")) {
-    const fileName = fileUrl.replace("/uploads/", "");
+function getDownloadUrl(doc: {
+  id: string;
+  fileUrl: string;
+  assignedToId?: string | null;
+}): string {
+  if (doc.assignedToId) {
+    return `/api/staff-documents/${doc.id}`;
+  }
+  if (doc.fileUrl.startsWith("/uploads/")) {
+    const fileName = doc.fileUrl.replace("/uploads/", "");
     return `/api/documents/download?file=${encodeURIComponent(fileName)}`;
   }
   // If it's already an absolute URL or different path, return as-is
-  return fileUrl;
+  return doc.fileUrl;
 }
 
 export default function DocumentsPage() {
@@ -300,8 +318,11 @@ export default function DocumentsPage() {
     try {
       await deleteFolder.mutateAsync(folderId);
       setDeleteFolderId(null);
-    } catch (err: any) {
-      toast({ description: err.message || "Failed to delete folder", variant: "destructive" });
+    } catch (err) {
+      toast({
+        description: err instanceof Error && err.message ? err.message : "Failed to delete folder",
+        variant: "destructive",
+      });
     }
   };
 
@@ -328,7 +349,7 @@ export default function DocumentsPage() {
   const handleExport = () => {
     if (!documents || documents.length === 0) return;
     exportToCSV(
-      documents.map((doc: any) => ({
+      documents.map((doc) => ({
         title: doc.title,
         category: doc.category,
         centre: doc.centre?.name || "",
@@ -627,6 +648,15 @@ export default function DocumentsPage() {
                   ) : doc.centre ? (
                     <p className="text-sm text-muted mb-2">📍 {doc.centre.name}</p>
                   ) : null}
+                  {/* Personal HR file. Only admins are served these rows,
+                      and without a label they'd read as ordinary org
+                      resources sitting in the same grid. */}
+                  {doc.assignedTo && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 mb-2 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-2xs font-semibold">
+                      <Lock className="w-3 h-3" />
+                      {doc.assignedTo.name}&apos;s personal file
+                    </span>
+                  )}
                   <div className="space-y-1 mb-4 text-xs text-muted">
                     <div className="flex items-center gap-2">
                       <User className="w-3 h-3" /> {doc.uploadedBy?.name ?? "Unknown"}
@@ -642,7 +672,7 @@ export default function DocumentsPage() {
                   </div>
                   <div className="flex gap-2 pt-3 border-t border-border/50">
                     <a
-                      href={getDownloadUrl(doc.fileUrl)}
+                      href={getDownloadUrl(doc)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 bg-brand hover:bg-brand-hover text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
@@ -714,7 +744,12 @@ export default function DocumentsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-muted">
-                          {doc.allServices ? (
+                          {doc.assignedTo ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-medium">
+                              <Lock className="w-3 h-3" />
+                              {doc.assignedTo.name}
+                            </span>
+                          ) : doc.allServices ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-medium">
                               All services
                             </span>
@@ -734,7 +769,7 @@ export default function DocumentsPage() {
                         <td className="px-4 py-3">
                           <div className="flex gap-3">
                             <a
-                              href={getDownloadUrl(doc.fileUrl)}
+                              href={getDownloadUrl(doc)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-brand hover:text-brand-hover transition-colors"

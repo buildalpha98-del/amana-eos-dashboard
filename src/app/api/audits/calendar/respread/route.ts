@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const schema = z.object({
   year: z.number().int().min(2024).max(2030),
@@ -67,4 +68,4 @@ export const POST = withApiAuth(async (req) => {
     fixed,
     message: `Recalculated ${fixed} of ${instances.length} audit instance due dates for ${year}.`,
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

@@ -408,7 +408,7 @@ function AddChildDialog({
           Add child to {sessionLabel} · {dateLabel}
         </DialogTitle>
         <p className="text-xs text-muted mt-1 mb-3">
-          Pick an enrolled child to sign in. They'll appear on the roll call as
+          Pick an enrolled child to sign in. They&apos;ll appear on the roll call as
           a walk-in (no booking required).
         </p>
 
@@ -666,7 +666,7 @@ function RollCallRow({
               <Sparkles className="w-3 h-3" />
               All About Me
               {aboutMe?.nickname && (
-                <span className="text-muted font-normal">· "{aboutMe.nickname}"</span>
+                <span className="text-muted font-normal">· &quot;{aboutMe.nickname}&quot;</span>
               )}
             </button>
           )}

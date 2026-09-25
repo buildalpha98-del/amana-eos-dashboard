@@ -35,6 +35,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { uploadFile } from "@/lib/storage";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB — matches /api/upload and the
                                    // existing ContractFormFields uploader
@@ -53,6 +54,7 @@ export const POST = withApiAuth(
     const file = form.get("file");
     const contractTypeRaw = form.get("contractType");
     const payRateRaw = form.get("payRate");
+    const classificationRaw = form.get("classification");
 
     if (typeof userId !== "string" || !userId) {
       throw ApiError.badRequest("Missing userId");
@@ -89,6 +91,17 @@ export const POST = withApiAuth(
         );
       }
       payRate = parsed;
+    }
+    // Task 10.3: optional free-text award classification for the salary
+    // history (e.g. "Children's Services Employee Level 3.1").
+    let classification: string | null = null;
+    if (typeof classificationRaw === "string" && classificationRaw.trim()) {
+      if (classificationRaw.trim().length > 200) {
+        throw ApiError.badRequest(
+          "Classification must be 200 characters or fewer.",
+        );
+      }
+      classification = classificationRaw.trim();
     }
 
     const fileObj = file as File;
@@ -131,6 +144,7 @@ export const POST = withApiAuth(
         userId,
         contractType,
         payRate,
+        classification,
         startDate: now,
         status: "active",
         documentUrl: uploaded.url,
@@ -160,6 +174,7 @@ export const POST = withApiAuth(
           fileSize: fileObj.size,
           contractType,
           payRate,
+          classification,
         },
       },
     });
@@ -173,5 +188,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json(contract, { status: 201 });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

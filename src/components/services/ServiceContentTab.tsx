@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, Plus, Trash2, Upload, FileText } from "lucide-react";
+import { Save, Loader2, Plus, Trash2, Upload, FileText, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 import type { Role } from "@prisma/client";
@@ -256,6 +256,44 @@ export function ServiceContentTab({ serviceId }: Props) {
           </Button>
         )}
       </div>
+
+      {/* Quick links — 2026-09-24: a one-click jump to this centre's
+          SharePoint folder, shown as a button in the service page header
+          (visible on every tab, not just here) so it's reachable no
+          matter what a staff member is looking at. Hidden entirely when
+          blank rather than showing a dead link. */}
+      <Section title="Quick links">
+        <Field label="SharePoint folder URL">
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={content.sharepointUrl}
+              onChange={(e) =>
+                setContent((c) => ({ ...c, sharepointUrl: e.target.value }))
+              }
+              disabled={!canEdit}
+              placeholder="https://amanaoshc.sharepoint.com/sites/..."
+              className="flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand/40"
+            />
+            {content.sharepointUrl && (
+              <a
+                href={content.sharepointUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-border text-sm text-foreground hover:bg-surface whitespace-nowrap"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Open
+              </a>
+            )}
+          </div>
+          <span className="text-2xs text-muted">
+            Paste this centre&apos;s SharePoint folder link. Staff get an
+            &quot;Open SharePoint&quot; button at the top of every tab on
+            this page once it&apos;s set.
+          </span>
+        </Field>
+      </Section>
 
       {/* Hero */}
       <Section title="Hero image + tagline">
@@ -577,6 +615,20 @@ export function ServiceContentTab({ serviceId }: Props) {
           disabled={!canEdit}
           rows={5}
           placeholder="What new families can expect when they enrol — orientation steps, first-day routine, who to call."
+        />
+      </Section>
+
+      {/* 2026-09-08: shown on the parent-facing thank-you page right after
+          they submit the enrolment form — a chance to say something
+          specific to THIS centre (a start date, uniform pickup, who'll
+          call them) rather than a generic confirmation. */}
+      <Section title="Enrolment thank-you message">
+        <Textarea
+          value={content.enrolmentThankYou}
+          onChange={(v) => setContent((c) => ({ ...c, enrolmentThankYou: v }))}
+          disabled={!canEdit}
+          rows={4}
+          placeholder="What should a family see right after submitting their enrolment for THIS centre? e.g. 'Someone from our team will call within 2 business days to confirm your start date.' Falls back to a generic thank-you when blank."
         />
       </Section>
 

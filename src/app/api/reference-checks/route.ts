@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const METHODS = [
   "phone",
@@ -71,7 +72,7 @@ export const GET = withApiAuth(
 
     return NextResponse.json({ checks });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const POST = withApiAuth(
@@ -138,5 +139,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json(created, { status: 201 });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

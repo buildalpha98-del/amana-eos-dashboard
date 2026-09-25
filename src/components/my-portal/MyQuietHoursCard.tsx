@@ -17,7 +17,7 @@
  * pinging at 9pm.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Moon, Loader2, CheckCircle2 } from "lucide-react";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
@@ -42,15 +42,18 @@ export function MyQuietHoursCard() {
   const [notes, setNotes] = useState("");
   const [dirty, setDirty] = useState(false);
 
-  // Seed once the data lands.
-  useEffect(() => {
-    if (data) {
-      setStart(data.quietHoursStart ?? "");
-      setEnd(data.quietHoursEnd ?? "");
-      setNotes(data.quietHoursNotes ?? "");
-      setDirty(false);
-    }
-  }, [data]);
+  // Seed once the data lands (render-time sync guarded by the last-synced
+  // response object, per React's "adjusting state when props change" pattern).
+  const [syncedData, setSyncedData] = useState<QuietHoursState | undefined>(
+    undefined,
+  );
+  if (data && data !== syncedData) {
+    setSyncedData(data);
+    setStart(data.quietHoursStart ?? "");
+    setEnd(data.quietHoursEnd ?? "");
+    setNotes(data.quietHoursNotes ?? "");
+    setDirty(false);
+  }
 
   const save = useMutation({
     mutationFn: () =>

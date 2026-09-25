@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const updateModuleSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
@@ -25,13 +26,13 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const module = await prisma.lMSModule.update({
+  const updatedModule = await prisma.lMSModule.update({
     where: { id: moduleId },
     data: parsed.data,
   });
 
-  return NextResponse.json(module);
-}, { roles: ["owner", "head_office", "admin"] });
+  return NextResponse.json(updatedModule);
+}, { roles: [...ADMIN_ROLES] });
 
 // DELETE /api/lms/modules/[moduleId] — delete a module
 export const DELETE = withApiAuth(async (req, session, context) => {
@@ -42,4 +43,4 @@ export const DELETE = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

@@ -36,22 +36,6 @@ export default function DataRoomPage() {
 
   const allExpanded = expandedSections.size === DATA_ROOM_SECTIONS.length;
 
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Due Diligence Data Room"
-          description="Investor-ready document tracking and exit readiness scoring"
-        />
-        <ErrorState
-          title="Failed to load data room"
-          error={error as Error}
-          onRetry={refetch}
-        />
-      </div>
-    );
-  }
-
   const handleExport = useCallback(() => {
     if (!data) return;
     const rows = data.sections.flatMap((section) =>
@@ -77,6 +61,22 @@ export default function DataRoomPage() {
     exportToCSV(rows, `data-room-index-${new Date().toISOString().split("T")[0]}`, columns);
     toast({ description: "Data Room Index exported successfully" });
   }, [data]);
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Due Diligence Data Room"
+          description="Investor-ready document tracking and exit readiness scoring"
+        />
+        <ErrorState
+          title="Failed to load data room"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

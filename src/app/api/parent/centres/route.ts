@@ -127,6 +127,12 @@ export const GET = withParentAuth(async (_req, { parent }) => {
       postcode: true,
       phone: true,
       email: true,
+      // 2026-09-08: the enrolment thank-you page's "extensive info"
+      // section — families sometimes need this for their own CCS/tax
+      // records, so it travels alongside contact details rather than
+      // making them dig for it later.
+      serviceApprovalNumber: true,
+      operatingDays: true,
       content: true,
       // Which programmes this centre takes casual bookings for. Parents
       // must only ever be offered a programme the centre has turned ON —
@@ -246,6 +252,8 @@ export const GET = withParentAuth(async (_req, { parent }) => {
       .join(", "),
     phone: s.phone,
     email: s.email,
+    serviceApprovalNumber: s.serviceApprovalNumber,
+    operatingDays: s.operatingDays,
     content: contentByService.get(s.id)!,
     casualSessions: enabledCasualSessions(
       s.casualBookingSettings,

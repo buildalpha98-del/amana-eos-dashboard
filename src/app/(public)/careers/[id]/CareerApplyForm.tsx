@@ -6,11 +6,18 @@
  * no separate upload round-trip, one atomic submit.
  */
 import { useState } from "react";
+import { describeInlineOversizeError } from "@/lib/upload-strategy";
 
 interface Props {
   vacancyId: string;
   roleLabel: string;
   centre: string;
+  /**
+   * Which ad sent this person here, resolved server-side from `?src=`.
+   * Sent with the application so the pool can tell an Indeed applicant from
+   * someone who found the careers page on their own.
+   */
+  source: string;
 }
 
 function readAsBase64(file: File): Promise<string> {
@@ -26,7 +33,12 @@ function readAsBase64(file: File): Promise<string> {
   });
 }
 
-export function CareerApplyForm({ vacancyId, roleLabel, centre }: Props) {
+export function CareerApplyForm({
+  vacancyId,
+  roleLabel,
+  centre,
+  source,
+}: Props) {
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -48,9 +60,14 @@ export function CareerApplyForm({ vacancyId, roleLabel, centre }: Props) {
     try {
       let resumeFields = {};
       if (resume) {
-        if (resume.size > 10 * 1024 * 1024) {
-          throw new Error("Your resume is larger than 10MB. Please attach a smaller file.");
-        }
+        // The real ceiling is the serverless body cap, not the app's general
+        // 10 MB file limit: this resume travels inline as base64, which
+        // inflates it by a third. The form used to advertise 10 MB, so
+        // anything over ~3.4 MB was rejected at the edge before the route ran
+        // and the application was silently lost.
+        const oversize = describeInlineOversizeError(resume.size);
+        if (oversize) throw new Error(oversize);
+
         const base64 = await readAsBase64(resume);
         resumeFields = {
           resumeFile: base64,
@@ -62,10 +79,18 @@ export function CareerApplyForm({ vacancyId, roleLabel, centre }: Props) {
       const res = await fetch(`/api/public/careers/${vacancyId}/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, ...resumeFields }),
+        body: JSON.stringify({ ...form, source, ...resumeFields }),
       });
 
       if (!res.ok) {
+        // A 413 from the platform edge is an HTML page, not our JSON error
+        // shape — say something useful instead of letting the parse fail
+        // through to a generic message.
+        if (res.status === 413) {
+          throw new Error(
+            "Your resume is too large to send. Please attach a smaller file and try again.",
+          );
+        }
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Something went wrong. Please try again.");
       }
@@ -124,13 +149,13 @@ export function CareerApplyForm({ vacancyId, roleLabel, centre }: Props) {
 
       <div>
         <label className="mb-1 block text-sm font-medium text-brand/80">
-          Resume <span className="font-normal text-brand/50">(PDF or Word .docx, optional)</span>
+          Resume <span className="font-normal text-brand/50">(PDF or Word .docx, up to 2.5MB, optional)</span>
         </label>
         <input
           type="file"
           accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           onChange={(e) => setResume(e.target.files?.[0] ?? null)}
-          className="block w-full text-sm text-brand file:mr-4 file:rounded-full file:border-0 file:bg-[#FFF2BF] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand hover:file:bg-accent"
+          className="block w-full text-sm text-brand file:mr-4 file:rounded-full file:border-0 file:bg-accent-light file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand hover:file:bg-accent"
         />
       </div>
 
@@ -144,7 +169,7 @@ export function CareerApplyForm({ vacancyId, roleLabel, centre }: Props) {
       <button
         type="submit"
         disabled={status === "submitting"}
-        className="w-full rounded-full bg-brand px-6 py-3.5 text-lg font-semibold text-[#FFFAE6] transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="w-full rounded-full bg-brand px-6 py-3.5 text-lg font-semibold text-parent-bg transition-opacity hover:opacity-90 disabled:opacity-50"
       >
         {status === "submitting" ? "Sending…" : "Submit application"}
       </button>

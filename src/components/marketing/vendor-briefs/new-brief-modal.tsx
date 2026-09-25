@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { useServices } from "@/hooks/useServices";
 import {
@@ -118,8 +118,13 @@ export function NewBriefModal({
     onClose();
   };
 
-  // Reset form when modal opens with new prefill
-  useEffect(() => {
+  // Reset form when modal opens with new prefill (adjust-during-render pattern)
+  const [prevReset, setPrevReset] = useState<{
+    open: boolean;
+    prefill?: NewBriefPrefill;
+  }>({ open, prefill });
+  if (open !== prevReset.open || prefill !== prevReset.prefill) {
+    setPrevReset({ open, prefill });
     if (open) {
       setTitle("");
       setType(prefill?.type ?? "print_collateral");
@@ -135,15 +140,13 @@ export function NewBriefModal({
       setTermNumber(prefill?.termNumber ? String(prefill.termNumber) : "");
       setTermCategory(prefill?.termReadinessCategory ?? "flyers");
     }
-  }, [open, prefill]);
+  }
 
   // Default vendor contact to whichever has this type in defaultForTypes
-  useEffect(() => {
-    if (vendorContactId) return;
-    if (!contacts) return;
+  if (!vendorContactId && contacts) {
     const match = contacts.find((c) => c.defaultForTypes.includes(type));
     if (match) setVendorContactId(match.id);
-  }, [type, contacts, vendorContactId]);
+  }
 
   const submit = async (sendNow: boolean) => {
     if (!title.trim()) {

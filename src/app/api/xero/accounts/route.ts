@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { xeroApiRequest } from "@/lib/xero";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 interface XeroAccount {
   Code: string;
@@ -14,9 +15,9 @@ interface XeroAccount {
 
 export const GET = withApiAuth(async (req, session) => {
   try {
-    const data = await xeroApiRequest("/Accounts");
+    const data = await xeroApiRequest<{ Accounts: XeroAccount[] }>("/Accounts");
 
-    const filtered = (data.Accounts as XeroAccount[])
+    const filtered = data.Accounts
       .filter(
         (account) =>
           account.Status === "ACTIVE" &&
@@ -35,4 +36,4 @@ export const GET = withApiAuth(async (req, session) => {
       { status: 500 }
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

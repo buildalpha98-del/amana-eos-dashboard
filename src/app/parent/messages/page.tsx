@@ -1,10 +1,13 @@
 "use client";
 
-import { useV2Flag } from "../utils/useV2Flag";
-import MessagesV1 from "./MessagesV1";
-import MessagesV2 from "./MessagesV2";
+/**
+ * 2026-09-25: the V1/V2 switch is gone, same reasoning as Home and Child
+ * Detail — NEXT_PUBLIC_PARENT_PORTAL_V2 was never set in production, so
+ * MessagesV2 had never rendered for a single family while every change to
+ * Messages had to be made twice or silently rot in the copy nobody could
+ * reach.
+ */
 
-export default function MessagesPage() {
-  const v2 = useV2Flag();
-  return v2 ? <MessagesV2 /> : <MessagesV1 />;
-}
+import ParentMessages from "./MessagesV1";
+
+export default ParentMessages;

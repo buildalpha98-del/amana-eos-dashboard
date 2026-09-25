@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 // DELETE /api/activity-templates/[id]/files/[fileId]
 export const DELETE = withApiAuth(async (req, session, context) => {
 const { id, fileId } = await context!.params!;
@@ -27,4 +28,4 @@ const { id, fileId } = await context!.params!;
   });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

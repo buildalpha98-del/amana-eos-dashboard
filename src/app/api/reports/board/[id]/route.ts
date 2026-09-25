@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const patchSchema = z.object({
   executiveSummary: z.string().optional(),
   financialNarrative: z.string().optional(),
@@ -27,7 +28,7 @@ export const GET = withApiAuth(async (req, session, context) => {
   }
 
   return NextResponse.json(report);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 /**
  * PATCH /api/reports/board/[id] — Update narratives and/or status
@@ -65,7 +66,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(report);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 /**
  * DELETE /api/reports/board/[id] — Delete a report (owner only)

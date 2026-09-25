@@ -18,6 +18,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { indexTextContent } from "@/lib/document-indexer";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 // Sentinel + constants. The fileUrl prefix lets us distinguish
 // knowledge entries from genuine file uploads. fileName is required
@@ -75,7 +76,7 @@ export const GET = withApiAuth(
     }));
     return NextResponse.json({ entries: decorated });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const POST = withApiAuth(
@@ -122,5 +123,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json(created, { status: 201 });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

@@ -749,13 +749,13 @@ function EntryModal({
   const [body, setBody] = useState("");
   const [hydrated, setHydrated] = useState(false);
 
-  useEffect(() => {
-    if (existing && !hydrated) {
-      setTitle(existing.title);
-      setBody(existing.body);
-      setHydrated(true);
-    }
-  }, [existing, hydrated]);
+  // Hydrate once when the existing entry loads (render-time sync guarded by
+  // the hydrated flag, per React's "adjusting state when props change" pattern)
+  if (existing && !hydrated) {
+    setHydrated(true);
+    setTitle(existing.title);
+    setBody(existing.body);
+  }
 
   const byteSize = useMemo(() => Buffer.byteLength(body, "utf-8"), [body]);
 

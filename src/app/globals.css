@@ -76,6 +76,22 @@
 
   /* Overshoot easing for tap affordances */
   --ease-spring-gentle: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─── Auth "dawn" backdrop ──────────────────────────────── */
+  /* The signed-out shell (login, forgot/reset password, enrol, parent
+     signup, not-found) used to hardcode
+     `from-[#001824] via-[#003344] to-[#0A5E7E]` in nine separate files.
+     Tokenised so the sky is edited once. The three stops read as night →
+     brand teal → the lit edge of the horizon. */
+  --color-auth-sky-top: #001824;
+  --color-auth-sky-mid: #00374A;
+  --color-auth-sky-low: #0A5E7E;
+  /* Warm light pooling at the horizon — the only place accent is allowed to
+     bleed into a large area, because it reads as sunlight rather than UI.
+     Deliberately AMBER, not the accent yellow: yellow over a blue-teal sky
+     lands on a pale yellow-green, so the warm stop has to carry the gold. */
+  --color-auth-glow: rgba(214, 121, 18, 0.42);
+  --color-auth-glow-soft: rgba(254, 206, 0, 0.20);
 }
 
 /* ─── Base ──────────────────────────────────────────────── */
@@ -392,6 +408,20 @@ td, th {
   --color-sidebar: #0e0e16;
   --color-surface: #22222e;
   color-scheme: dark;
+
+  /* Brand family — one token serves both text-brand (needs light-on-dark
+     contrast) and bg-brand/text-white buttons (needs dark-under-white), so
+     the dark value is a deliberate midpoint: #1E9BC0 gives text-brand
+     5.8:1 on the page bg and 5.2:1 on cards (WCAG AA), while white button
+     labels sit at 3.2:1 (large-text/UI threshold). Don't lighten it further
+     without restyling every solid bg-brand button. */
+  --color-brand: #1E9BC0;
+  --color-brand-hover: #1B8AAD; /* darker hover keeps white button text ≥3.9:1 */
+  --color-brand-light: #64BFDB; /* brighten-on-hover text, 8.9:1 on bg */
+  /* --color-brand-dark deliberately NOT overridden: it's the sidebar's
+     permanent dark surface (from-brand-dark gradient, white text in both
+     themes) and the text colour on yellow bg-accent buttons — both need it
+     to stay deep. */
 
   /* Parent Portal v2 — dark overrides */
   --color-cream-deep: #1e1e28;

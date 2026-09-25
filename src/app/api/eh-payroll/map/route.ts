@@ -24,6 +24,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { getEmployee, EhPayrollError, isConfigured } from "@/lib/eh-payroll";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const bodySchema = z.object({
   userId: z.string().min(1),
@@ -120,5 +121,5 @@ export const POST = withApiAuth(
       ehName,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

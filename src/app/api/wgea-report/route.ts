@@ -17,6 +17,7 @@ import {
   rowsToCsv,
   summariseRows,
 } from "@/lib/wgea-report";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const GET = withApiAuth(
   async (req) => {
@@ -51,5 +52,5 @@ export const GET = withApiAuth(
       filters: { serviceId, anonymise, includeInactive },
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

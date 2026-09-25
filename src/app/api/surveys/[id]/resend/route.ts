@@ -24,8 +24,10 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUsers } from "@/lib/notify-user";
 import { isInAudience, type AudienceUser } from "@/lib/survey-audience";
 import { getWeekStart } from "@/lib/utils";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const POST = withApiAuth(
   async (_req, session, context) => {
@@ -130,36 +132,35 @@ export const POST = withApiAuth(
         })();
     const weekOf = getWeekStart();
 
-    await prisma.$transaction([
+    await prisma.$transaction(async (tx) => {
       // Always create a fresh notification — this is a nudge, users
-      // should see a new bell badge. Not using skipDuplicates.
-      prisma.userNotification.createMany({
-        data: outstanding.map((u) => ({
-          userId: u.id,
+      // should see a new bell badge.
+      await notifyUsers(
+        tx,
+        outstanding.map((u) => u.id),
+        {
           type: NOTIFICATION_TYPES.SURVEY_ASSIGNED,
           title: "Reminder: your survey is still waiting",
           body: `${survey.title} — please complete it when you get a moment.`,
           link: "/surveys",
-        })),
-      }),
+        },
+      );
       // Todos only for users who don't already have an open one.
-      ...(needsTodo.length > 0
-        ? [
-            prisma.todo.createMany({
-              data: needsTodo.map((u) => ({
-                title: `Complete survey: ${survey.title}`,
-                description:
-                  "You've been reminded about a survey. Please complete it on the My Surveys page.",
-                assigneeId: u.id,
-                createdById: session!.user.id,
-                dueDate,
-                weekOf,
-                surveyId: id,
-              })),
-            }),
-          ]
-        : []),
-    ]);
+      if (needsTodo.length > 0) {
+        await tx.todo.createMany({
+          data: needsTodo.map((u) => ({
+            title: `Complete survey: ${survey.title}`,
+            description:
+              "You've been reminded about a survey. Please complete it on the My Surveys page.",
+            assigneeId: u.id,
+            createdById: session!.user.id,
+            dueDate,
+            weekOf,
+            surveyId: id,
+          })),
+        });
+      }
+    });
 
     await prisma.activityLog.create({
       data: {
@@ -186,5 +187,5 @@ export const POST = withApiAuth(
       newTodos: needsTodo.length,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

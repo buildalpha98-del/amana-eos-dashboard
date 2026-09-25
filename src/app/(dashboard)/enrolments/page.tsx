@@ -12,16 +12,27 @@ import {
   UserPlus,
   Users,
   AlertTriangle,
+  Clock,
+  Loader2,
 } from "lucide-react";
-import { useEnrolments, type EnrolmentSubmission } from "@/hooks/useEnrolments";
+import {
+  useEnrolments,
+  fetchAllEnrolments,
+  ENROLMENTS_PAGE_SIZE,
+  type EnrolmentSubmission,
+} from "@/hooks/useEnrolments";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useEnrolmentApplications } from "@/hooks/useEnrolmentApplications";
 import { EnrolmentDetailPanel } from "@/components/enrolments/EnrolmentDetailPanel";
 import { SiblingEnrolmentInbox } from "@/components/enrolments/SiblingEnrolmentInbox";
 import { BackfillServiceDialog } from "@/components/enrolments/BackfillServiceDialog";
+import { BackfillBookingGridDialog } from "@/components/enrolments/BackfillBookingGridDialog";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/Button";
+import { toast } from "@/hooks/useToast";
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
@@ -45,36 +56,73 @@ export default function EnrolmentsPage() {
   const [view, setView] = useState<"submissions" | "sibling">("submissions");
   const [activeTab, setActiveTab] = useState("all");
   const [showBackfill, setShowBackfill] = useState(false);
+  const [showGridBackfill, setShowGridBackfill] = useState(false);
   const [search, setSearch] = useState("");
+  const [exporting, setExporting] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { data, isLoading } = useEnrolments(activeTab);
+  // Search hits the server now, so it waits for a pause in typing.
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const {
+    data,
+    isLoading,
+    isFetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useEnrolments(activeTab, debouncedSearch);
   const { data: siblingData } = useEnrolmentApplications("pending");
 
-  const submissions = data?.submissions || [];
-  const filtered = search
-    ? submissions.filter((s) => {
-        const pp = s.primaryParent;
-        const q = search.toLowerCase();
-        const parentMatch = `${pp.firstName} ${pp.surname}`.toLowerCase().includes(q) || pp.email?.toLowerCase().includes(q);
-        const childMatch = s.children.some((c) =>
-          `${c.firstName} ${c.surname}`.toLowerCase().includes(q)
-        );
-        return parentMatch || childMatch;
-      })
-    : submissions;
+  const pages = data?.pages ?? [];
+  /*
+   * Every page loaded so far. The server has already applied the status tab
+   * and the search, so there is nothing left to filter here — and filtering
+   * here is exactly what used to hide every submission past the first 100.
+   *
+   * Deduped because paging is offset-based: a submission arriving between two
+   * "Load more" clicks shifts the window, and the same row can land in both
+   * pages. Rendering it twice is a duplicate React key, not just a repeat.
+   */
+  const submissions = Array.from(
+    new Map(
+      pages.flatMap((p) => p.submissions).map((s) => [s.id, s]),
+    ).values(),
+  );
+  const total = pages[0]?.total ?? 0;
+  const counts = pages[0]?.counts ?? {};
+  const unplaced = pages[0]?.unplaced ?? 0;
+  const searchPending = search.trim() !== debouncedSearch.trim();
 
-  const counts = {
-    all: data?.total || 0,
-    submitted: submissions.filter((s) => s.status === "submitted").length,
-    under_review: submissions.filter((s) => s.status === "under_review").length,
-    processed: submissions.filter((s) => s.status === "processed").length,
-    needs_info: submissions.filter((s) => s.status === "needs_info").length,
-    archived: submissions.filter((s) => s.status === "archived").length,
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      // Walks every page rather than writing out the rows on screen — a
+      // truncated CSV is worse than none when it is being reconciled to OWNA.
+      const rows = await fetchAllEnrolments(activeTab, debouncedSearch);
+      exportToCsv(
+        `amana-enrolments-${new Date().toISOString().slice(0, 10)}`,
+        rows,
+        [
+          { header: "ID", accessor: (s) => s.id },
+          { header: "Parent First Name", accessor: (s) => s.primaryParent.firstName },
+          { header: "Parent Surname", accessor: (s) => s.primaryParent.surname },
+          { header: "Email", accessor: (s) => s.primaryParent.email ?? "" },
+          { header: "Mobile", accessor: (s) => s.primaryParent.mobile ?? "" },
+          { header: "Children", accessor: (s) => s.children.map((c) => `${c.firstName} ${c.surname}`).join("; ") },
+          { header: "Status", accessor: (s) => s.status },
+          { header: "Referral Source", accessor: (s) => s.referralSource ?? "" },
+          { header: "Submitted", accessor: (s) => new Date(s.createdAt).toLocaleDateString("en-AU") },
+        ],
+      );
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description:
+          err instanceof Error ? err.message : "Couldn't build the export.",
+      });
+    } finally {
+      setExporting(false);
+    }
   };
-
-  // Children with no service are on no roll and no invoice, so a backlog
-  // needs to announce itself rather than wait to be searched for.
-  const unplaced = submissions.filter((s) => !s.serviceId).length;
 
   return (
     <div
@@ -89,27 +137,16 @@ export default function EnrolmentsPage() {
           // 2026-07-12 (nav fold): Children left the sidebar — browsing
           // enrolled children is the other half of this lifecycle.
           { label: "Children", icon: Users, onClick: () => router.push("/children") },
+          // A waitlist entry is a ParentEnquiry at stage "waitlisted" — an
+          // enrolment worked to that stage is owned by /waitlist next, but
+          // there was no route into it from here.
+          { label: "Waitlist", icon: Clock, onClick: () => router.push("/waitlist") },
         ]}
       >
         <ExportButton
-          onClick={() =>
-            exportToCsv(
-              `amana-enrolments-${new Date().toISOString().slice(0, 10)}`,
-              filtered,
-              [
-                { header: "ID", accessor: (s) => s.id },
-                { header: "Parent First Name", accessor: (s) => s.primaryParent.firstName },
-                { header: "Parent Surname", accessor: (s) => s.primaryParent.surname },
-                { header: "Email", accessor: (s) => s.primaryParent.email ?? "" },
-                { header: "Mobile", accessor: (s) => s.primaryParent.mobile ?? "" },
-                { header: "Children", accessor: (s) => s.children.map((c) => `${c.firstName} ${c.surname}`).join("; ") },
-                { header: "Status", accessor: (s) => s.status },
-                { header: "Referral Source", accessor: (s) => s.referralSource ?? "" },
-                { header: "Submitted", accessor: (s) => new Date(s.createdAt).toLocaleDateString("en-AU") },
-              ],
-            )
-          }
-          disabled={filtered.length === 0}
+          onClick={handleExport}
+          label={exporting ? "Exporting…" : "Export"}
+          disabled={exporting || total === 0}
         />
       </PageHeader>
 
@@ -151,10 +188,10 @@ export default function EnrolmentsPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Total", count: counts.all, color: "text-brand" },
-          { label: "Pending Review", count: counts.submitted, color: "text-blue-600" },
-          { label: "In Review", count: counts.under_review, color: "text-amber-600" },
-          { label: "Confirmed", count: counts.processed, color: "text-green-600" },
+          { label: "Total", count: counts.all ?? 0, color: "text-brand" },
+          { label: "Pending Review", count: counts.submitted ?? 0, color: "text-blue-600" },
+          { label: "In Review", count: counts.under_review ?? 0, color: "text-amber-600" },
+          { label: "Confirmed", count: counts.processed ?? 0, color: "text-green-600" },
         ].map((stat) => (
           <div key={stat.label} className="bg-background border border-border rounded-xl p-4">
             <p className="text-xs text-foreground/50">{stat.label}</p>
@@ -180,7 +217,25 @@ export default function EnrolmentsPage() {
         </div>
       )}
 
+      {/*
+        Sits under the stats rather than behind a banner: unlike unplaced
+        enrolments there's no cheap count to gate it on, and the scan
+        itself reports "nothing to do" when the backlog is cleared.
+      */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowGridBackfill(true)}
+          className="text-xs font-medium text-foreground/50 hover:text-foreground transition-colors"
+        >
+          Recover booking preferences
+        </button>
+      </div>
+
       <BackfillServiceDialog open={showBackfill} onOpenChange={setShowBackfill} />
+      <BackfillBookingGridDialog
+        open={showGridBackfill}
+        onOpenChange={setShowGridBackfill}
+      />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -196,9 +251,9 @@ export default function EnrolmentsPage() {
               }`}
             >
               {tab.label}
-              {counts[tab.key as keyof typeof counts] > 0 && (
+              {(counts[tab.key] ?? 0) > 0 && (
                 <span className="ml-1.5 text-foreground/30">
-                  {counts[tab.key as keyof typeof counts]}
+                  {counts[tab.key]}
                 </span>
               )}
             </button>
@@ -210,10 +265,13 @@ export default function EnrolmentsPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name or email..."
+            placeholder="Search every enrolment..."
             aria-label="Search enrolments"
-            className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-brand/30"
+            className="w-full pl-9 pr-9 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-brand/30"
           />
+          {(searchPending || (isFetching && !isFetchingNextPage)) && (
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-foreground/30" />
+          )}
         </div>
       </div>
 
@@ -224,17 +282,18 @@ export default function EnrolmentsPage() {
             <Skeleton key={i} className="h-16 w-full" />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : submissions.length === 0 ? (
         <div className="bg-background border border-border rounded-xl p-12 text-center">
           <ClipboardList className="h-12 w-12 text-foreground/20 mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-foreground mb-1">No Enrolments</h3>
           <p className="text-sm text-foreground/50">
-            {search
-              ? "No enrolments match your search."
+            {debouncedSearch.trim()
+              ? `Nothing matches "${debouncedSearch.trim()}" — this searches every submission, not just the ones on screen.`
               : "Enrolment submissions will appear here when parents complete the form."}
           </p>
         </div>
       ) : (
+        <>
         <div className="bg-background border border-border rounded-xl overflow-hidden">
           {/* Desktop header */}
           <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-2.5 bg-surface/50 text-xs font-medium text-foreground/50 border-b border-border">
@@ -245,10 +304,35 @@ export default function EnrolmentsPage() {
             <div className="col-span-2 text-right">Actions</div>
           </div>
 
-          {filtered.map((s) => (
+          {submissions.map((s) => (
             <EnrolmentRow key={s.id} submission={s} onClick={() => setSelectedId(s.id)} />
           ))}
         </div>
+
+        {/*
+          Says what is on screen and what is not. The old list showed the
+          newest 100 with nothing to indicate there was more, so "it doesn't
+          show older enrolments" was indistinguishable from "they are gone".
+        */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-xs text-foreground/50">
+            Showing {submissions.length} of {total}
+            {debouncedSearch.trim() ? " matching" : ""}
+            {total === 1 ? " enrolment" : " enrolments"}
+          </p>
+          {hasNextPage && (
+            <Button
+              variant="outline"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+            >
+              {isFetchingNextPage
+                ? "Loading…"
+                : `Load ${Math.max(1, Math.min(ENROLMENTS_PAGE_SIZE, total - submissions.length))} more`}
+            </Button>
+          )}
+        </div>
+        </>
       )}
 
       {/* Detail panel */}

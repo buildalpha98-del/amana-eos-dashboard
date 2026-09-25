@@ -30,6 +30,8 @@ import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { computeEligibility } from "@/lib/casual-conversion";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUser } from "@/lib/notify-user";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const DEDUP_WINDOW_DAYS = 60;
 
@@ -51,7 +53,7 @@ export const GET = withApiHandler(async (req) => {
     // can see the eligibility status on the staff profile but don't
     // own the conversion decision.
     const recipients = await prisma.user.findMany({
-      where: { active: true, role: { in: ["owner", "head_office", "admin"] } },
+      where: { active: true, role: { in: [...ADMIN_ROLES] } },
       select: { id: true, name: true, email: true },
     });
     if (recipients.length === 0) {
@@ -114,14 +116,11 @@ export const GET = withApiHandler(async (req) => {
         }
 
         try {
-          await prisma.userNotification.create({
-            data: {
-              userId: recipient.id,
-              type: NOTIFICATION_TYPES.CASUAL_CONVERSION_ELIGIBLE,
-              title: "Casual conversion eligible",
-              body: `${subject.name} has crossed the ${eligibility.thresholdMonths}-month casual tenure threshold (${eligibility.tenureMonths.toFixed(1)}mo). Consider offering Fair Work s66B conversion.`,
-              link: subjectLink,
-            },
+          await notifyUser(prisma, recipient.id, {
+            type: NOTIFICATION_TYPES.CASUAL_CONVERSION_ELIGIBLE,
+            title: "Casual conversion eligible",
+            body: `${subject.name} has crossed the ${eligibility.thresholdMonths}-month casual tenure threshold (${eligibility.tenureMonths.toFixed(1)}mo). Consider offering Fair Work s66B conversion.`,
+            link: subjectLink,
           });
           notificationsCreated += 1;
         } catch (err) {

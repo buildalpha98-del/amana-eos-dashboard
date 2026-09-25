@@ -46,7 +46,7 @@ export function useEnrolmentDraft() {
   // the latest values rather than a stale closure.
   const pendingRef = useRef<{ data: DraftData; currentStep: number } | null>(null);
 
-  const flush = useCallback(async () => {
+  const flush = useCallback(async (opts?: { throwOnError?: boolean }) => {
     const payload = pendingRef.current;
     if (!payload) return;
     pendingRef.current = null;
@@ -57,11 +57,22 @@ export function useEnrolmentDraft() {
         body: payload,
       });
       setSaveState("saved");
-    } catch {
-      // Deliberately non-destructive: the parent keeps typing, we show
-      // "Not saved" and retry on their next change. Throwing here would
-      // surface a toast over a form they're mid-way through.
+    } catch (err) {
+      // Deliberately non-destructive by default: the parent keeps typing,
+      // we show "Not saved" and retry on their next change. Throwing here
+      // would surface a toast over a form they're mid-way through.
+      //
+      // Put the payload BACK so it isn't lost. This used to clear it
+      // unconditionally above, which meant a flush that failed right as
+      // the parent hit Submit on the last step (a quick consent tap on a
+      // flaky mobile connection, no further edit to re-arm the debounce)
+      // silently dropped that last change forever — the server then
+      // re-validated an INCOMPLETE draft and rejected the submission with
+      // a confusing "please finish the X step" error for a step that
+      // looked done on screen.
+      pendingRef.current = payload;
       setSaveState("error");
+      if (opts?.throwOnError) throw err;
     }
   }, []);
 

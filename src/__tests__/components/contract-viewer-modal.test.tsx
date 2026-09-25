@@ -7,7 +7,8 @@
  *   - Renders inline (portaled into the document, NOT a target="_blank" link)
  *   - Template-based contracts: fetches /api/contracts/[id]/render and shows
  *     the response in an iframe srcDoc
- *   - Blank-form contracts: shows the documentUrl PDF in an iframe src
+ *   - Blank-form contracts: shows the PDF in an iframe src, via the
+ *     access-checked /api/contracts/[id]/document proxy
  *   - Acknowledge button reachable from inside the modal; clicking it POSTs
  *     to /api/contracts/[id]/acknowledge
  *   - After successful acknowledge, the footer flips to "Acknowledged just now"
@@ -61,7 +62,7 @@ const baseTemplateContract: ContractViewerContract = {
   startDate: "2026-02-01",
   endDate: null,
   isTemplateBased: true,
-  documentUrl: "https://blob.example.com/ct-1.pdf",
+  hasDocument: true,
   acknowledged: false,
   acknowledgedAt: null,
   canAcknowledge: true,
@@ -73,7 +74,7 @@ const baseBlankFormContract: ContractViewerContract = {
   startDate: "2026-01-01",
   endDate: null,
   isTemplateBased: false,
-  documentUrl: "https://blob.example.com/ct-2.pdf",
+  hasDocument: true,
   acknowledged: false,
   acknowledgedAt: null,
   canAcknowledge: true,
@@ -135,14 +136,16 @@ describe("ContractViewerModal", () => {
     });
   });
 
-  it("for blank-form contracts, embeds the documentUrl PDF directly (no /render fetch)", async () => {
+  it("for blank-form contracts, embeds the PDF via the document proxy (no /render fetch)", async () => {
     const fetchSpy = vi.fn();
     global.fetch = fetchSpy;
 
     render(wrap(<ContractViewerModal contract={baseBlankFormContract} onClose={() => {}} />));
 
     const iframe = await screen.findByTestId("contract-viewer-iframe");
-    expect(iframe.getAttribute("src")).toBe("https://blob.example.com/ct-2.pdf");
+    // The proxy re-checks ownership on every fetch. A raw blob URL in the
+    // markup would be a permanent, shareable bypass of that check.
+    expect(iframe.getAttribute("src")).toBe("/api/contracts/ct-2/document");
     expect(fetchSpy).not.toHaveBeenCalledWith(expect.stringContaining("/render"));
   });
 
@@ -282,7 +285,7 @@ describe("ContractViewerModal", () => {
     });
     expect(screen.getByRole("link", { name: /open pdf instead/i })).toHaveAttribute(
       "href",
-      baseTemplateContract.documentUrl!,
+      "/api/contracts/ct-1/document",
     );
   });
 });

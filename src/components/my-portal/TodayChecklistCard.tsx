@@ -54,8 +54,13 @@ export function TodayChecklistCard({ serviceId }: { serviceId: string }) {
 
   const { data: checklists = [], isLoading } = useQuery<Checklist[]>({
     queryKey: ["today-checklists", serviceId, date],
+    // The route returns { checklists: [...] }, not a bare array — unwrapping
+    // here is what keeps checklists.map from crashing the whole /my-day
+    // error boundary (it did, for every educator, since the page shipped).
     queryFn: () =>
-      fetchApi<Checklist[]>(`/api/services/${serviceId}/checklists?date=${date}`),
+      fetchApi<{ checklists: Checklist[] }>(
+        `/api/services/${serviceId}/checklists?date=${date}`,
+      ).then((r) => r.checklists ?? []),
     retry: 2,
     staleTime: 60_000,
   });
@@ -104,10 +109,19 @@ export function TodayChecklistCard({ serviceId }: { serviceId: string }) {
                 </span>
               </div>
               <ul className="space-y-0.5">
-                {cl.items.map((item) => (
+                {cl.items.map((item) => {
+                  // Only the row being saved is disabled — one slow save
+                  // shouldn't lock the rest of the checklist.
+                  const isSaving =
+                    toggle.isPending &&
+                    toggle.variables?.checklistId === cl.id &&
+                    toggle.variables?.itemId === item.id;
+                  return (
                   <li key={item.id}>
                     <button
                       type="button"
+                      role="checkbox"
+                      aria-checked={item.checked}
                       onClick={() =>
                         toggle.mutate({
                           checklistId: cl.id,
@@ -115,11 +129,10 @@ export function TodayChecklistCard({ serviceId }: { serviceId: string }) {
                           checked: !item.checked,
                         })
                       }
-                      disabled={toggle.isPending}
+                      disabled={isSaving}
                       className="flex w-full min-h-[44px] items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-surface/50 disabled:opacity-60"
                     >
-                      {toggle.isPending &&
-                      toggle.variables?.itemId === item.id ? (
+                      {isSaving ? (
                         <Loader2 className="h-5 w-5 flex-shrink-0 animate-spin text-muted" />
                       ) : item.checked ? (
                         <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-emerald-500" />
@@ -136,7 +149,8 @@ export function TodayChecklistCard({ serviceId }: { serviceId: string }) {
                       </span>
                     </button>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             </div>
           );

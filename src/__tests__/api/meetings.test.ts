@@ -133,6 +133,40 @@ describe("POST /api/meetings (create) — role enforcement", () => {
     expect(call.data.status).toBe("in_progress");
   });
 
+  // 2026-09-24: Quarterly Pulse meeting type — every existing caller
+  // that omits `type` must keep creating l10 meetings unchanged.
+  it("defaults type to l10 when omitted", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    const req = createRequest("POST", "/api/meetings", {
+      body: { title: "L10", date: "2026-04-22" },
+    });
+    await CREATE(req);
+
+    const call = prismaMock.meeting.create.mock.calls[0][0];
+    expect(call.data.type).toBe("l10");
+  });
+
+  it("creates a quarterly_pulse meeting when type is passed", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    const req = createRequest("POST", "/api/meetings", {
+      body: { title: "Quarterly Pulse", date: "2026-04-22", type: "quarterly_pulse" },
+    });
+    const res = await CREATE(req);
+
+    expect(res.status).toBe(201);
+    const call = prismaMock.meeting.create.mock.calls[0][0];
+    expect(call.data.type).toBe("quarterly_pulse");
+  });
+
+  it("returns 400 for an unknown meeting type", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    const req = createRequest("POST", "/api/meetings", {
+      body: { title: "L10", date: "2026-04-22", type: "monthly_sync" },
+    });
+    const res = await CREATE(req);
+    expect(res.status).toBe(400);
+  });
+
   it("creates attendee rows when attendeeIds provided", async () => {
     mockSession({ id: "u1", name: "Owner", role: "owner" });
     const req = createRequest("POST", "/api/meetings", {
@@ -287,6 +321,8 @@ describe("PATCH /api/meetings/[id]", () => {
 
   it("writes cascade messages when completing with cascadeMessages text", async () => {
     mockSession({ id: "u1", name: "Owner", role: "owner" });
+    prismaMock.user.findMany.mockResolvedValue([{ id: "u2" }]);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 });
     prismaMock.meeting.findUnique.mockResolvedValue({
       id: "m-1", status: "in_progress", completedAt: null,
       outcomes: null, rating: null, serviceIds: [],
@@ -317,6 +353,14 @@ describe("PATCH /api/meetings/[id]", () => {
     expect(call.data).toHaveLength(2);
     expect(call.data[0].message).toBe("Next week we ship");
     expect(call.data[1].message).toBe("Also fix bug");
+
+    // 2026-08-31: ONE cascade_published notification batch per publish,
+    // to every active user except the completer.
+    const notif = prismaMock.userNotification.createMany.mock.calls[0][0] as {
+      data: Array<{ userId: string; type: string }>;
+    };
+    expect(notif.data.map((n) => n.userId)).toEqual(["u2"]);
+    expect(notif.data[0].type).toBe("cascade_published");
   });
 
   it("computes average rating from attendee ratings on completion", async () => {

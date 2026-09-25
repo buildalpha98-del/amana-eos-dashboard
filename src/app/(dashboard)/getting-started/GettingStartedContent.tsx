@@ -48,6 +48,7 @@ import {
   PlayCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/useToast";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { TeamOnboardingTracker } from "@/components/getting-started/TeamOnboardingTracker";
 import { WelcomeTour, TOUR_STORAGE_KEY } from "@/components/onboarding/WelcomeTour";
@@ -182,7 +183,7 @@ export function GettingStartedContent() {
     setCollapsed((prev) => ({ ...prev, [cat]: !prev[cat] }));
 
   // ── Fetch progress ──────────────────────────────────────────
-  const { data, isLoading } = useQuery<{
+  const { data, isLoading, isError: progressError } = useQuery<{
     progress: Record<string, boolean>;
   }>({
     queryKey: ["getting-started"],
@@ -191,6 +192,8 @@ export function GettingStartedContent() {
       if (!res.ok) throw new Error("Failed to load progress");
       return res.json();
     },
+    staleTime: 30_000,
+    retry: 2,
   });
 
   // ── Fetch role video URLs ─────────────────────────────────
@@ -203,6 +206,8 @@ export function GettingStartedContent() {
       if (!res.ok) throw new Error("Failed to load videos");
       return res.json();
     },
+    staleTime: 60_000,
+    retry: 2,
   });
 
   const roleVideoUrl = videoData?.roleVideos?.[role as RoleKey] ?? "";
@@ -236,10 +241,14 @@ export function GettingStartedContent() {
       });
       return { prev };
     },
-    onError: (_err, _vars, context) => {
+    onError: (err: Error, _vars, context) => {
       if (context?.prev) {
         queryClient.setQueryData(["getting-started"], context.prev);
       }
+      toast({
+        variant: "destructive",
+        description: err.message || "Something went wrong",
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["getting-started"] });
@@ -337,10 +346,16 @@ export function GettingStartedContent() {
                 All done — you&apos;re officially set up!
               </p>
             )}
+            {progressError && (
+              <p className="flex items-center gap-1.5 text-xs text-amber-600 mt-2 font-medium">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                Couldn&apos;t load your progress — ticks may be out of date.
+              </p>
+            )}
           </div>
 
-          {/* Video walkthrough */}
-          {roleVideoUrl ? (
+          {/* Video walkthrough — renders nothing when no video is configured */}
+          {roleVideoUrl && (
             <div className="bg-card rounded-xl border border-border p-5 mb-6">
               <div className="flex items-center gap-2 mb-3">
                 <PlayCircle className="w-5 h-5 text-brand" />
@@ -350,16 +365,12 @@ export function GettingStartedContent() {
               <div className="aspect-video rounded-lg overflow-hidden bg-surface">
                 <iframe
                   src={roleVideoUrl}
+                  title="Role walkthrough video"
                   className="w-full h-full"
                   allowFullScreen
                   allow="autoplay; fullscreen"
                 />
               </div>
-            </div>
-          ) : (
-            <div className="bg-surface/50 rounded-xl border border-dashed border-border p-4 mb-6 flex items-center gap-3">
-              <PlayCircle className="w-5 h-5 text-muted/50" />
-              <p className="text-xs text-muted">Video walkthrough coming soon — check back after rollout!</p>
             </div>
           )}
 
@@ -529,12 +540,15 @@ export function GettingStartedContent() {
                     <BookOpen className="w-3.5 h-3.5" />
                     Knowledge Base
                   </Link>
+                  {/* 2026-09-03: was /tickets, which staff can't access
+                      (middleware bounces to /dashboard). /help is in every
+                      role's allowlist. */}
                   <Link
-                    href="/tickets"
+                    href="/help"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted bg-surface rounded-lg hover:bg-border transition-colors"
                   >
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    Report an Issue
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    Get Help
                   </Link>
                 </div>
               </div>

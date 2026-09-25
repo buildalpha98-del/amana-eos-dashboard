@@ -27,6 +27,7 @@ import {
   writeOrgSettings,
 } from "@/lib/org-settings";
 import { getEmailBranding } from "@/lib/email-branding";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const GET = withApiAuth(async () => {
   const config = await getOrgSettings();
@@ -69,5 +70,7 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json({ config: next });
   },
-  { roles: ["owner", "admin"], rateLimit: { max: 20, windowMs: 60_000 } },
+  // head_office added 2026-09-05 (Jayden): State Managers own the
+  // cert-requirements matrix and the rest of Organisation settings.
+  { roles: [...ADMIN_ROLES], rateLimit: { max: 20, windowMs: 60_000 } },
 );

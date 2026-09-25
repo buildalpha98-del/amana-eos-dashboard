@@ -10,9 +10,14 @@
  * Render strategy:
  *   - Template-issued contracts (templateId set): fetch resolved HTML from
  *     /api/contracts/[id]/render and embed via iframe srcDoc.
- *   - Blank-form contracts (no templateId, only a documentUrl PDF): embed
- *     the PDF via iframe src. iOS Safari handles in-iframe PDFs poorly so
- *     we always offer "Open in new tab" as a fallback in the footer.
+ *   - Blank-form contracts (no templateId, only a stored PDF): embed the
+ *     PDF via iframe src. iOS Safari handles in-iframe PDFs poorly so we
+ *     always offer "Open in new tab" and "Download" in the footer.
+ *
+ * Every path to the PDF goes through /api/contracts/[id]/document, which
+ * re-checks ownership and then redirects to blob storage. The raw blob URL
+ * is deliberately never given to the client: a URL in the markup is a
+ * permanent, shareable bypass of every check on this page.
  *
  * Portaled to document.body so position:fixed escapes the dashboard <main>'s
  * `animate-slide-up` containing block (the bug that caused the original
@@ -22,7 +27,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, AlertTriangle, CheckCircle2, ClipboardCheck, ExternalLink, Loader2, FileText } from "lucide-react";
+import { X, AlertTriangle, CheckCircle2, ClipboardCheck, Download, ExternalLink, Loader2, FileText } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { SignaturePad } from "@/components/contracts/SignaturePad";
 
@@ -33,8 +38,9 @@ export interface ContractViewerContract {
   endDate: string | null;
   /** True when the contract has a stored template + values — render via /render. */
   isTemplateBased: boolean;
-  /** Baked PDF blob URL. Required for blank-form contracts, optional otherwise (fallback "Open externally" link). */
-  documentUrl: string | null;
+  /** Whether a baked PDF exists. Required for blank-form contracts; for
+   *  template-based ones it just enables the PDF fallback affordances. */
+  hasDocument: boolean;
   /** Has the staff member acknowledged this contract? */
   acknowledged: boolean;
   /** ISO timestamp. Surfaced under the Acknowledged badge when present. */
@@ -82,6 +88,7 @@ export function ContractViewerModal({ contract, onClose }: Props) {
   useEffect(() => {
     if (!contract.isTemplateBased) return;
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch effect: reset loading/error flags for the new request
     setLoading(true);
     setHtmlError(null);
     fetch(`/api/contracts/${contract.id}/render`)
@@ -157,6 +164,10 @@ export function ContractViewerModal({ contract, onClose }: Props) {
   // for the my-portal refetch.
   const justAcknowledged = acknowledgeMut.isSuccess;
   const isAcknowledged = contract.acknowledged || justAcknowledged;
+
+  // Access-checked proxy, not the blob URL. `?download=1` flips the
+  // redirect target to force Content-Disposition: attachment.
+  const documentHref = `/api/contracts/${contract.id}/document`;
 
   // The /render endpoint returns A4-styled HTML (margin: 2cm) suitable for
   // the PDF path. Inside a modal that's ~1260px wide on desktop / 375px on
@@ -255,9 +266,9 @@ export function ContractViewerModal({ contract, onClose }: Props) {
             <div className="h-full flex flex-col items-center justify-center text-center p-6 gap-3">
               <AlertTriangle className="w-8 h-8 text-amber-500" />
               <p className="text-sm text-foreground max-w-md">{htmlError}</p>
-              {contract.documentUrl && (
+              {contract.hasDocument && (
                 <a
-                  href={contract.documentUrl}
+                  href={documentHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm text-brand hover:underline"
@@ -278,16 +289,16 @@ export function ContractViewerModal({ contract, onClose }: Props) {
             />
           )}
 
-          {!loading && !contract.isTemplateBased && contract.documentUrl && (
+          {!loading && !contract.isTemplateBased && contract.hasDocument && (
             <iframe
               title="Contract PDF"
-              src={contract.documentUrl}
+              src={documentHref}
               className="w-full h-full bg-card border-0"
               data-testid="contract-viewer-iframe"
             />
           )}
 
-          {!loading && !contract.isTemplateBased && !contract.documentUrl && (
+          {!loading && !contract.isTemplateBased && !contract.hasDocument && (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 gap-2 text-muted">
               <AlertTriangle className="w-8 h-8 text-muted/60" />
               <p className="text-sm">No document is attached to this contract.</p>
@@ -359,15 +370,23 @@ export function ContractViewerModal({ contract, onClose }: Props) {
               </span>
             ) : null}
 
-            {contract.documentUrl && (
-              <a
-                href={contract.documentUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-muted hover:text-foreground"
-              >
-                Open in new tab <ExternalLink className="w-3 h-3" />
-              </a>
+            {contract.hasDocument && (
+              <>
+                <a
+                  href={documentHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-muted hover:text-foreground"
+                >
+                  Open in new tab <ExternalLink className="w-3 h-3" />
+                </a>
+                <a
+                  href={`${documentHref}?download=1`}
+                  className="inline-flex items-center gap-1 text-muted hover:text-foreground"
+                >
+                  Download <Download className="w-3 h-3" />
+                </a>
+              </>
             )}
           </div>
 

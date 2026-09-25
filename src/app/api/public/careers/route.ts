@@ -53,8 +53,15 @@ export const GET = withApiHandler(async () => {
     qualification: v.qualificationRequired
       ? QUALIFICATION_LABELS[v.qualificationRequired] ?? v.qualificationRequired
       : null,
-    centre: v.service?.name ?? "Amana OSHC",
-    location: [v.service?.suburb, v.service?.state].filter(Boolean).join(", ") || null,
+    // 2026-09-15: a regional casual ad has no single centre. Fall back to the
+    // catchment so the listing still tells a job seeker where the work is —
+    // "Eastern Melbourne" beats a bare "Amana OSHC".
+    centre: v.service?.name ?? (v.region ? `${v.region} — multiple centres` : "Amana OSHC"),
+    location:
+      [v.service?.suburb, v.service?.state].filter(Boolean).join(", ") ||
+      v.region ||
+      null,
+    region: v.region ?? null,
     // The AI-drafted job ad lives in `notes`; expose it as the public description.
     description: v.notes?.trim() || null,
     postedAt: (v.postedAt ?? v.createdAt).toISOString(),

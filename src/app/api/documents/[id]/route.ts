@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { indexDocument } from "@/lib/document-indexer";
 
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 // Roles that may delete any document regardless of who uploaded it.
 // Everyone else may only delete their own uploads. This matches the
@@ -60,7 +61,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   }
 
   return NextResponse.json(document);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 export const DELETE = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;

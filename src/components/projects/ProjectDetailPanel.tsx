@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useProject, useUpdateProject, useDeleteProject } from "@/hooks/useProjects";
+import { useRocks } from "@/hooks/useRocks";
+import { getCurrentQuarter } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
@@ -41,6 +43,7 @@ export function ProjectDetailPanel({
   useEscapeClose(onClose);
   const { data: project, isLoading } = useProject(projectId);
   const updateProject = useUpdateProject();
+  const { data: rocks } = useRocks(getCurrentQuarter());
   const deleteProject = useDeleteProject();
   const queryClient = useQueryClient();
   const [showDelete, setShowDelete] = useState(false);
@@ -200,6 +203,51 @@ export function ProjectDetailPanel({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* All-done nudge (2026-08-31): human declares done, we just ask. */}
+          {project.todos.length > 0 &&
+            progress === 100 &&
+            project.status !== "complete" && (
+              <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
+                <p className="text-sm text-emerald-800 dark:text-emerald-300">
+                  All tasks are done — mark this project complete?
+                </p>
+                <Button
+                  size="xs"
+                  onClick={() => updateProject.mutate({ id: projectId, status: "complete" })}
+                  loading={updateProject.isPending}
+                >
+                  Mark complete
+                </Button>
+              </div>
+            )}
+
+          {/* Linked Rock (2026-08-31) */}
+          <div>
+            <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
+              Linked Rock
+            </label>
+            <select
+              value={project.rockId ?? ""}
+              onChange={(e) =>
+                updateProject.mutate({ id: projectId, rockId: e.target.value || null })
+              }
+              aria-label="Linked rock"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+            >
+              <option value="">None</option>
+              {(rocks ?? []).map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.title}
+                </option>
+              ))}
+              {project.rockId &&
+                !(rocks ?? []).some((r) => r.id === project.rockId) &&
+                project.rock && (
+                  <option value={project.rockId}>{project.rock.title}</option>
+                )}
+            </select>
           </div>
 
           {/* Meta */}

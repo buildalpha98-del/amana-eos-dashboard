@@ -369,7 +369,7 @@ function IncidentCard({
             </DialogTitle>
             <p className="text-sm text-[color:var(--color-muted)] mb-4">
               The {formatLabel(incident.incidentType).toLowerCase()} entry from{" "}
-              {date.toLocaleDateString()} will be removed. This can't be undone.
+              {date.toLocaleDateString()} will be removed. This can&apos;t be undone.
             </p>
             <div className="flex justify-end gap-2">
               <button

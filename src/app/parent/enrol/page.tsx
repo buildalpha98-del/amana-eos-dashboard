@@ -13,7 +13,7 @@
  * button and the server can't disagree about what "finished" means.
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -80,6 +80,7 @@ export default function ParentEnrolPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const patch = (p: Partial<EnrolDraft>) => {
+    setNudged(false);
     setEdits((prev) => {
       const base = prev ?? (initialData as EnrolDraft);
       const next = { ...base, ...p };
@@ -108,34 +109,102 @@ export default function ParentEnrolPage() {
   const canSubmit =
     draftSubmittable(form) && paymentEntered(payment) && !submitting;
 
+  /*
+   * Why Next is never disabled.
+   *
+   * It used to be `disabled={!canAdvance}`, with the reason rendered at the
+   * BOTTOM of the step. On desktop that reads fine — the nav sits under the
+   * message. On a phone the nav is sticky, so Next is pinned in the viewport
+   * while the explanation is hundreds of pixels below the fold: measured on a
+   * 390x844 screen, Next at y=783 and "Please enter your CRN" at y=1575.
+   *
+   * A parent taps a greyed-out button, nothing happens, and there is nothing
+   * on screen telling them why. They reported it as "the Next button doesn't
+   * work", which is exactly what it looks like. Now the tap always does
+   * something: it takes them to what's missing.
+   */
+  const blockerRef = useRef<HTMLDivElement | null>(null);
+  const [nudged, setNudged] = useState(false);
+
+  const showBlocker = () => {
+    setNudged(true);
+    /*
+     * A completeness rule with no matching message would put us straight back
+     * to a button that does nothing, so the fallback is a toast rather than
+     * silence. `stepBlocker` covers every branch today; this keeps that from
+     * being load-bearing the next time a rule is added.
+     */
+    if (!blockerRef.current) {
+      toast({
+        description:
+          "Something on this step still needs filling in. Please check the fields above.",
+      });
+      return;
+    }
+    // The message names the field, so putting it mid-screen is enough to act
+    // on. `block: "center"` rather than "start" keeps the fields it refers to
+    // in view above it instead of scrolling them off the top.
+    blockerRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   const goTo = (next: number) => {
     setStepOverride(next);
+    setNudged(false);
     save(form as Record<string, unknown>, next);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  /** Forward: go if the step is done, otherwise say what's missing. */
+  const handleNext = () => {
+    if (!canAdvance) {
+      showBlocker();
+      return;
+    }
+    goTo(step + 1);
+  };
+
   const submit = async () => {
+    // Same contract as Next: a tap always produces an answer, never silence.
+    if (!canSubmit) {
+      if (!submitting) showBlocker();
+      return;
+    }
     setSubmitting(true);
     try {
       // Make sure the last keystroke is on the server before we ask it to
       // validate what's there — the debounce would otherwise still be in
-      // flight and the submit would fail on stale data.
-      await flush();
-      await mutateApi("/api/parent/enrolment-draft/submit", {
-        method: "POST",
-        body: { payment },
-      });
+      // flight and the submit would fail on stale data. A single retry
+      // covers the flaky-mobile-connection case (the exact moment a
+      // parent taps a final consent then immediately hits Submit); if it
+      // still fails, surface something actionable instead of letting the
+      // server reject an incomplete draft with a confusing step error.
+      try {
+        await flush({ throwOnError: true });
+      } catch {
+        await new Promise((r) => setTimeout(r, 1000));
+        try {
+          await flush({ throwOnError: true });
+        } catch {
+          throw new Error(
+            "We couldn't save your last change — check your connection and press Submit again.",
+          );
+        }
+      }
+      const result = await mutateApi<{ submissionId: string; serviceId: string | null }>(
+        "/api/parent/enrolment-draft/submit",
+        { method: "POST", body: { payment } },
+      );
       // The gate in ParentShell reads this; without invalidating, they'd be
       // bounced straight back into the form they just submitted.
       await queryClient.invalidateQueries({ queryKey: ["parent", "state"] });
-      toast({
-        description:
-          "Enrolment submitted. We'll be in touch within one business day.",
-      });
-      // The portal home, not /parent/children — at this point the child
-      // records are still pending review, so a children page would be the
-      // emptiest possible landing for someone who just finished the form.
-      router.replace("/parent");
+      // A dedicated thank-you page, not the portal home — at this point the
+      // child records are still pending review, so a children/home page
+      // would be the emptiest possible landing for someone who just
+      // finished the form. serviceId (may be null — unmatched school)
+      // lets it show a centre-specific message instead of a generic one.
+      const params = new URLSearchParams({ submissionId: result.submissionId });
+      if (result.serviceId) params.set("serviceId", result.serviceId);
+      router.replace(`/parent/enrol/thank-you?${params.toString()}`);
     } catch (err) {
       toast({
         variant: "destructive",
@@ -254,11 +323,22 @@ export default function ParentEnrolPage() {
         )}
       </div>
 
-      {/* A disabled Next explains nothing on a phone — `title` needs a
-          hover that touch devices don't have. Say what's missing, on
-          every step. */}
+      {/* What's missing. Tapping Next scrolls here and rings it, so the
+          message is never something the parent has to go looking for. */}
       {blocker && (
-        <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3">
+        <div
+          ref={blockerRef}
+          id="enrol-blocker"
+          // assertive: it is the direct answer to a tap the parent just made.
+          role="alert"
+          aria-live="assertive"
+          className={
+            "mt-4 flex items-start gap-2 rounded-lg border bg-amber-50 dark:bg-amber-950/40 p-3 transition-shadow " +
+            (nudged
+              ? "border-amber-500 ring-2 ring-amber-400/60"
+              : "border-amber-300 dark:border-amber-800")
+          }
+        >
           <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
           <p className="text-xs text-amber-800 dark:text-amber-200">{blocker}</p>
         </div>
@@ -290,9 +370,14 @@ export default function ParentEnrolPage() {
         {step < LAST_STEP ? (
           <button
             type="button"
-            onClick={() => goTo(step + 1)}
-            disabled={!canAdvance}
-            className="inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-5 py-3 min-h-11 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={handleNext}
+            // Deliberately NOT disabled — see handleNext. Dimmed to show the
+            // step isn't finished, but always tappable so it can explain.
+            aria-describedby={blocker ? "enrol-blocker" : undefined}
+            className={
+              "inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-5 py-3 min-h-11 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 " +
+              (canAdvance ? "" : "opacity-60")
+            }
           >
             Next <ChevronRight className="w-4 h-4" />
           </button>
@@ -300,8 +385,14 @@ export default function ParentEnrolPage() {
           <button
             type="button"
             onClick={submit}
-            disabled={!canSubmit}
-            className="inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-5 py-3 min-h-11 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
+            // Only genuinely disabled while the request is in flight; an
+            // incomplete draft gets an explanation, not a dead button.
+            disabled={submitting}
+            aria-describedby={blocker ? "enrol-blocker" : undefined}
+            className={
+              "inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-5 py-3 min-h-11 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:cursor-not-allowed " +
+              (canSubmit || submitting ? "" : "opacity-60")
+            }
           >
             {submitting ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</>

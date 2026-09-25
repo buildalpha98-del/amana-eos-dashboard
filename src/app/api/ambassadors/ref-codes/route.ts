@@ -10,6 +10,7 @@ import {
   signupUrlForCode,
 } from "@/lib/ambassadors/ref-codes";
 import { buildScanUrl } from "@/lib/activation-qr";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 /**
  * GET   /api/ambassadors/ref-codes — list codes (role-scoped):
@@ -127,7 +128,7 @@ export const POST = withApiAuth(
     });
     return NextResponse.json(result);
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 const patchSchema = z.object({
@@ -157,5 +158,5 @@ export const PATCH = withApiAuth(
     });
     return NextResponse.json({ ok: true });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

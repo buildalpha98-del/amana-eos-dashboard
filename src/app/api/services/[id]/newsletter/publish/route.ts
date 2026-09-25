@@ -3,9 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { z } from "zod";
+import { isAdminRole } from "@/lib/role-permissions";
 
 const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
-const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
 
 const publishSchema = z.object({
   title: z.string().trim().min(1).max(200),
@@ -23,7 +23,7 @@ export const POST = withApiAuth(
     ) {
       throw ApiError.forbidden("You do not have access to this service");
     }
-    if (!ADMIN_ROLES.has(session.user.role) && session.user.role !== "member") {
+    if (!isAdminRole(session.user.role) && session.user.role !== "member") {
       throw ApiError.forbidden(
         "Only coordinators and admins can publish newsletters",
       );

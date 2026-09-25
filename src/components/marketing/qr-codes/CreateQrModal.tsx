@@ -38,19 +38,39 @@ export function CreateQrModal({
   const [serviceId, setServiceId] = useState(initialServiceId ?? "");
   const [services, setServices] = useState<ServiceLite[]>([]);
 
+  // Reset the form during render whenever the modal (re)opens or its seed
+  // props change — same trigger semantics as the previous effect.
+  const [prevInputs, setPrevInputs] = useState<{
+    open: boolean;
+    initialName?: string;
+    initialDestination?: string;
+    initialServiceId?: string;
+  } | null>(null);
+  if (
+    prevInputs === null ||
+    prevInputs.open !== open ||
+    prevInputs.initialName !== initialName ||
+    prevInputs.initialDestination !== initialDestination ||
+    prevInputs.initialServiceId !== initialServiceId
+  ) {
+    setPrevInputs({ open, initialName, initialDestination, initialServiceId });
+    if (open) {
+      setName(initialName ?? "");
+      setDescription("");
+      setDestinationUrl(initialDestination ?? "");
+      setServiceId(initialServiceId ?? "");
+    }
+  }
+
   useEffect(() => {
     if (!open) return;
-    setName(initialName ?? "");
-    setDescription("");
-    setDestinationUrl(initialDestination ?? "");
-    setServiceId(initialServiceId ?? "");
     fetchApi<ServiceLite[] | { services: ServiceLite[] }>("/api/services?status=active")
       .then((res) => {
         const list = Array.isArray(res) ? res : res?.services ?? [];
         setServices(list);
       })
       .catch(() => setServices([]));
-  }, [open, initialName, initialDestination, initialServiceId]);
+  }, [open]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();

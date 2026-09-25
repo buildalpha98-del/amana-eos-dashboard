@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const postSchema = z.object({
   serviceId: z.string().min(1),
   days: z.array(z.object({
@@ -111,4 +112,4 @@ export const POST = withApiAuth(async (req, session) => {
   );
 
   return NextResponse.json({ created: results.length, days: results });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

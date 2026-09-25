@@ -5,11 +5,14 @@ import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import {
   useCascadeMessages,
+  useCascadeMessage,
   usePublishCascade,
   useAcknowledgeCascade,
   useDeleteCascade,
+  useRemindCascade,
 } from "@/hooks/useCommunication";
 import { useTeam } from "@/hooks/useTeam";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
@@ -24,6 +27,23 @@ import {
   MessageSquare,
   ArrowDownCircle,
 } from "lucide-react";
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+interface CascadeMeetingOption {
+  id: string;
+  title: string;
+  date: string;
+}
+
+interface CascadeMessage {
+  id: string;
+  message: string;
+  publishedAt: string;
+  meeting?: { title?: string; date?: string } | null;
+  acknowledgments?: Array<{ user?: { id: string; name: string } }>;
+  _count?: { acknowledgments?: number };
+}
 
 // ─── Publish Modal ──────────────────────────────────────────────────────────
 
@@ -40,7 +60,9 @@ function PublishCascadeModal({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const { data: meetings, isLoading: meetingsLoading } = useQuery<any[]>({
+  const { data: meetings, isLoading: meetingsLoading } = useQuery<
+    CascadeMeetingOption[]
+  >({
     queryKey: ["meetings-for-cascade"],
     queryFn: async () => {
       const res = await fetch("/api/meetings");
@@ -66,7 +88,7 @@ function PublishCascadeModal({
     }
 
     publishCascade.mutate(
-      { meetingId, message: message.trim() } as any,
+      { meetingId, message: message.trim() },
       {
         onSuccess: () => {
           setMeetingId("");
@@ -79,7 +101,7 @@ function PublishCascadeModal({
     );
   };
 
-  const formatMeetingOption = (meeting: any) => {
+  const formatMeetingOption = (meeting: CascadeMeetingOption) => {
     const date = new Date(meeting.date).toLocaleDateString("en-AU", {
       day: "numeric",
       month: "short",
@@ -132,7 +154,7 @@ function PublishCascadeModal({
                 className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Select a meeting...</option>
-                {meetings?.map((m: any) => (
+                {meetings?.map((m) => (
                   <option key={m.id} value={m.id}>
                     {formatMeetingOption(m)}
                   </option>
@@ -219,11 +241,15 @@ function CascadeCard({
   msg,
   teamCount,
   isAdmin,
+  team,
 }: {
-  msg: any;
+  msg: CascadeMessage;
   teamCount: number;
   isAdmin: boolean;
+  team: Array<{ id: string; name: string }> | undefined;
 }) {
+  const [showAcks, setShowAcks] = useState(false);
+  const remind = useRemindCascade();
   const acknowledgeCascade = useAcknowledgeCascade();
   const deleteCascade = useDeleteCascade();
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -295,10 +321,20 @@ function CascadeCard({
             {/* Acknowledgment count */}
             <div className="flex items-center gap-1.5 text-xs text-muted">
               <Users className="w-3.5 h-3.5" />
-              <span>
-                {ackCount} of {teamCount} team member{teamCount !== 1 ? "s" : ""}{" "}
-                acknowledged
-              </span>
+              {isAdmin ? (
+                <button
+                  onClick={() => setShowAcks((v) => !v)}
+                  className="hover:text-foreground underline-offset-2 hover:underline"
+                >
+                  {ackCount} of {teamCount} team member{teamCount !== 1 ? "s" : ""}{" "}
+                  acknowledged
+                </button>
+              ) : (
+                <span>
+                  {ackCount} of {teamCount} team member{teamCount !== 1 ? "s" : ""}{" "}
+                  acknowledged
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -346,6 +382,16 @@ function CascadeCard({
               )}
             </div>
           </div>
+
+          {/* Who's acknowledged (admin, 2026-08-31) */}
+          {isAdmin && showAcks && (
+            <AckBreakdown
+              msg={msg}
+              team={team}
+              onRemind={() => remind.mutate(msg.id)}
+              reminding={remind.isPending}
+            />
+          )}
         </div>
 
         {/* Published at label */}
@@ -353,6 +399,57 @@ function CascadeCard({
           Published {formatPublishedDate(msg.publishedAt)}
         </p>
       </div>
+    </div>
+  );
+}
+
+/** Admin-only expandable: who's acked, who hasn't, remind the rest. */
+function AckBreakdown({
+  msg,
+  team,
+  onRemind,
+  reminding,
+}: {
+  msg: { id: string };
+  team: Array<{ id: string; name: string }> | undefined;
+  onRemind: () => void;
+  reminding: boolean;
+}) {
+  // The [id] GET returns every ack with the user's name — data the board
+  // fetched but never rendered until now.
+  const { data: detail } = useCascadeMessage(msg.id);
+  const acks: Array<{ user?: { id: string; name: string } }> =
+    detail?.acknowledgments ?? [];
+  const ackedIds = new Set(acks.map((a) => a.user?.id).filter(Boolean));
+  const pending = (team ?? []).filter((t) => !ackedIds.has(t.id));
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border/50 text-xs space-y-2">
+      {acks.length > 0 && (
+        <p className="text-muted">
+          <span className="font-medium text-emerald-700 dark:text-emerald-400">
+            Acknowledged:
+          </span>{" "}
+          {acks.map((a) => a.user?.name).filter(Boolean).join(", ")}
+        </p>
+      )}
+      {pending.length > 0 ? (
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-muted flex-1">
+            <span className="font-medium text-amber-700 dark:text-amber-400">
+              Waiting on:
+            </span>{" "}
+            {pending.map((t) => t.name).join(", ")}
+          </p>
+          <Button variant="ghost" size="xs" onClick={onRemind} loading={reminding}>
+            Remind them
+          </Button>
+        </div>
+      ) : (
+        <p className="text-emerald-700 dark:text-emerald-400">
+          Everyone has acknowledged 🎉
+        </p>
+      )}
     </div>
   );
 }
@@ -365,8 +462,11 @@ export function CascadeBoardTab() {
   const { data: team } = useTeam();
   const [showPublishModal, setShowPublishModal] = useState(false);
 
-  const userRole = (session?.user as any)?.role;
-  const isAdmin = userRole === "owner" || userRole === "admin";
+  const userRole = session?.user?.role;
+  // 2026-08-31: head_office added — the API always allowed it; the
+  // client gate had drifted narrower.
+  const isAdmin =
+    userRole === "owner" || userRole === "head_office" || userRole === "admin";
   const teamCount = team?.length ?? 0;
 
   return (
@@ -445,12 +545,13 @@ export function CascadeBoardTab() {
       {/* Timeline feed */}
       {!isLoading && !isError && messages && messages.length > 0 && (
         <div className="border-l-2 border-accent ml-1.5 pl-0">
-          {messages.map((msg: any) => (
+          {messages.map((msg: CascadeMessage) => (
             <CascadeCard
               key={msg.id}
               msg={msg}
               teamCount={teamCount}
               isAdmin={isAdmin}
+              team={team}
             />
           ))}
         </div>

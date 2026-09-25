@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 import { decryptField, encryptField } from "@/lib/field-encryption";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 /**
  * POST /api/enrolments/[id]/payment
@@ -57,7 +58,7 @@ export const POST = withApiAuth(
       ...parsed,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 /**

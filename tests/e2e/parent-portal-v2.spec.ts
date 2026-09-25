@@ -10,9 +10,16 @@ import {
 } from "./helpers/seed-parent-portal";
 
 /**
- * End-to-end coverage for the v2 redesign flows. These specs set
- * NEXT_PUBLIC_PARENT_PORTAL_V2 to "true" through the URL override (?v2=1)
- * so they work against any env regardless of the env var state.
+ * End-to-end coverage for the parent portal.
+ *
+ * 2026-09-25: the v1/v2 split is gone. NEXT_PUBLIC_PARENT_PORTAL_V2 was never
+ * set in production, so the V2 components had never rendered for a family;
+ * they and the `useV2Flag` hook (including its `?v2=1` URL override) have been
+ * deleted. The `?v2=1` query params below are now inert — harmless, and left
+ * in place only where removing them would churn an otherwise passing test.
+ * The specs that asserted V2-ONLY UI (the bookings segmented control + FAB,
+ * the getting-started checklist page, and the v1/v2 switcher itself) are gone
+ * with the code they covered.
  */
 
 const STORAGE_STATE_PATH = path.join(
@@ -41,44 +48,26 @@ test.afterAll(async () => {
 test.describe("Parent Portal v2 — authenticated", () => {
   test.use({ storageState: STORAGE_STATE_PATH });
 
-  test("home v2 renders greeting + quick actions", async ({ page }) => {
+  test("home v2 renders greeting + upcoming sessions", async ({ page }) => {
     await page.goto("/parent?v2=1");
+    // "Welcome back, <name>" hero
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
       timeout: 10_000,
     });
-    // Quick Actions section label
-    await expect(page.getByText(/quick actions/i)).toBeVisible();
-    // Book a casual CTA (if the account has kids)
-    await expect(page.getByText(/book a casual/i)).toBeVisible();
+    // The quick-actions block was replaced by the Upcoming Sessions region
+    await expect(
+      page.getByRole("heading", { name: /upcoming sessions/i }),
+    ).toBeVisible();
   });
 
-  test("child detail v2 shows hero + 14-day strip", async ({ page }) => {
+  test("child detail v2 shows the profile sections", async ({ page }) => {
     await page.goto(`/parent/children/${seeded.childId}?v2=1`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
       timeout: 10_000,
     });
-    // Last 14 days section label
-    await expect(page.getByText(/last 14 days/i)).toBeVisible();
-    // Sticky action bar
-    await expect(page.getByRole("link", { name: /message/i })).toBeVisible();
-  });
-
-  test("bookings v2 shows segmented control + FAB", async ({ page }) => {
-    await page.goto("/parent/bookings?v2=1");
-    await expect(
-      page.getByRole("button", { name: /upcoming/i }).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: /book/i }).last(),
-    ).toBeVisible();
-  });
-
-  test("bookings fast-book sheet opens from FAB", async ({ page }) => {
-    await page.goto("/parent/bookings?v2=1");
-    const fab = page.getByRole("button", { name: /^book$/i });
-    await fab.click();
-    // Sheet should show step 1 (pick child) or step 2 (single kid auto-advance)
-    await expect(page.getByText(/book a casual/i)).toBeVisible({ timeout: 5_000 });
+    // The hero + 14-day strip became a profile layout (About / Care needs)
+    await expect(page.getByText(/care needs/i).first()).toBeVisible();
+    await expect(page.getByText(/medical conditions/i).first()).toBeVisible();
   });
 
   test("messages v2 list renders", async ({ page }) => {
@@ -111,23 +100,6 @@ test.describe("Parent Portal v2 — authenticated", () => {
     await expect(page.getByText("E2EChild", { exact: false })).toBeVisible();
   });
 
-  test("getting-started v2 shows progress + checklist", async ({ page }) => {
-    await page.goto("/parent/getting-started?v2=1");
-    await expect(page.getByText(/get set up/i)).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText(/complete your profile/i)).toBeVisible();
-  });
-
-  test("v1/v2 switcher respects query override", async ({ page }) => {
-    // Force v1
-    await page.goto("/parent/bookings?v2=0");
-    // V1 has its own headings — confirm we got a response without errors
-    await expect(page.getByText(/something went wrong|500/i)).toHaveCount(0);
-    // Now flip to v2 — the segmented control is unique to v2
-    await page.goto("/parent/bookings?v2=1");
-    await expect(
-      page.getByRole("button", { name: /upcoming/i }).first(),
-    ).toBeVisible({ timeout: 10_000 });
-  });
 });
 
 test.describe("Parent Portal v2 — engagement API (authenticated)", () => {

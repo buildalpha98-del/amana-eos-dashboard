@@ -31,6 +31,11 @@ export function DirectoryContent() {
   const showRole = isAdmin || viewerRole === "member";
   const showEmail = isAdmin;
   const showRoleFilter = isAdmin;
+  // /staff/[id] denies "staff" and "marketing" viewers access to anyone but
+  // themselves (canAccessProfile) — don't render dead links for them. Their
+  // own card stays linked via viewerId.
+  const canOpenProfiles = isAdmin || viewerRole === "member";
+  const viewerId = session?.user?.id;
 
   const [filters, setFilters] = useState<DirectoryFiltersValue>({
     q: "",
@@ -102,6 +107,8 @@ export function DirectoryContent() {
           }))}
           showRole={showRole}
           showEmail={showEmail}
+          canOpenProfiles={canOpenProfiles}
+          viewerId={viewerId}
         />
       )}
     </div>

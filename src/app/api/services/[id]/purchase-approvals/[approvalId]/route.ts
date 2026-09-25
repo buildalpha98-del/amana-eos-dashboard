@@ -16,14 +16,15 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { notifyUser } from "@/lib/notify-user";
 import { logger } from "@/lib/logger";
+import { isAdminRole } from "@/lib/role-permissions";
 
 const patchSchema = z.object({
   status: z.enum(["approved", "rejected", "cancelled"]),
   decisionNote: z.string().max(2000).optional().nullable(),
 });
 
-const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
 
 interface RouteContext {
   params: Promise<{ id: string; approvalId: string }>;
@@ -35,7 +36,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   ).params;
   const userId = session!.user.id;
   const role = session!.user.role;
-  const isAdmin = ADMIN_ROLES.has(role);
+  const isAdmin = isAdminRole(role);
 
   const existing = await prisma.purchaseApproval.findUnique({
     where: { id: approvalId },
@@ -109,17 +110,14 @@ export const PATCH = withApiAuth(async (req, session, context) => {
       nextStatus === "approved"
         ? `Your purchase of "${existing.product}" from ${existing.vendor} ($${dollars}) was approved. Please go ahead and purchase using your own funds, then submit an expense claim from My Portal → My Expenses.${decisionNote ? `\n\nNote: ${decisionNote}` : ""}`
         : `Your purchase request for "${existing.product}" from ${existing.vendor} ($${dollars}) was not approved.${decisionNote ? `\n\nReason: ${decisionNote}` : ""}`;
-    await prisma.userNotification.create({
-      data: {
-        userId: existing.requestedById,
-        type:
-          nextStatus === "approved"
-            ? "purchase_approval_approved"
-            : "purchase_approval_rejected",
-        title,
-        body,
-        link: `/services/${serviceId}?tab=finance&sub=approvals`,
-      },
+    await notifyUser(prisma, existing.requestedById, {
+      type:
+        nextStatus === "approved"
+          ? "purchase_approval_approved"
+          : "purchase_approval_rejected",
+      title,
+      body,
+      link: `/services/${serviceId}?tab=finance&sub=approvals`,
     });
   }
 

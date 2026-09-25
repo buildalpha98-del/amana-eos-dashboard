@@ -17,6 +17,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { computeEligibility } from "@/lib/casual-conversion";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const createSchema = z.object({
   userId: z.string().min(1),
@@ -57,7 +58,7 @@ export const GET = withApiAuth(
       eligibility,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const POST = withApiAuth(
@@ -130,5 +131,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json(created, { status: 201 });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

@@ -10,6 +10,7 @@ import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { applyNotificationMute } from "@/lib/notification-mute";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
@@ -138,7 +139,7 @@ const { id } = await context!.params!;
   }
 
   return NextResponse.json(updated);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // DELETE /api/users/:id — hard delete a user (owner only)
 export const DELETE = withApiAuth(async (req, session, context) => {

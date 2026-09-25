@@ -30,6 +30,7 @@ import { ApiError } from "@/lib/api-error";
 import { getCentreScope } from "@/lib/centre-scope";
 import { buildListWhere } from "@/lib/employees/build-list-where";
 import { formatEmployeeRow } from "@/lib/employees/format-employee-row";
+import { isAdminRole } from "@/lib/role-permissions";
 
 const querySchema = z.object({
   q: z.string().optional(),
@@ -65,8 +66,16 @@ export const GET = withApiAuth(async (req, session) => {
   // formatEmployeeRow below) — explicitly bypass getCentreScope's
   // single-service restriction for this role on this route only. Other
   // routes that use getCentreScope retain marketing's service scoping.
+  //
+  // 2026-09-15: head_office (State Manager) joins it. State Managers are
+  // leadership — per Jayden they see EVERY staff member, in every state,
+  // not just their own patch. Their limit is on WHAT they can see about a
+  // person (pay, leave balances — see canViewStaffPay in
+  // src/lib/staff-pay-visibility.ts), never on WHICH people. Deliberately
+  // scoped to this route: getCentreScope still bounds their operational
+  // data (children, incidents, bookings) to their state + attachments.
   const scopedServiceIds: string[] | null =
-    role === "marketing"
+    role === "marketing" || role === "head_office"
       ? null
       : (await getCentreScope(session)).serviceIds;
 
@@ -109,7 +118,7 @@ export const GET = withApiAuth(async (req, session) => {
   // pendingCount drives the admin-only "Resend all pending (N)" button
   // in the page header. Only compute it for admin-tier viewers so we
   // don't pay for a per-page count on every member/staff load.
-  const isAdminTier = ["owner", "head_office", "admin"].includes(role);
+  const isAdminTier = isAdminRole(role);
   const pendingWhere = isAdminTier
     ? {
         active: true,

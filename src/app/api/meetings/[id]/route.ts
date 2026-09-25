@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { getCurrentQuarter } from "@/lib/utils";
+import { notifyCascadePublished } from "@/lib/cascade-notify";
 
 const updateMeetingSchema = z.object({
   // 2026-08-31: "start" flips a scheduled meeting to in_progress via a
@@ -120,13 +121,13 @@ const { id } = await context!.params!;
       await prisma.meetingAttendee.upsert({
         where: { meetingId_userId: { meetingId: id, userId: au.userId } },
         update: {
-          ...(au.status !== undefined ? { status: au.status as any } : {}),
+          ...(au.status !== undefined ? { status: au.status } : {}),
           ...(au.rating !== undefined ? { rating: au.rating } : {}),
         },
         create: {
           meetingId: id,
           userId: au.userId,
-          status: (au.status || "present") as any,
+          status: au.status || "present",
           rating: au.rating,
         },
       });
@@ -243,6 +244,12 @@ const { id } = await context!.params!;
           meetingId: id,
           message: line.replace(/^[-•*]\s*/, ""), // Strip bullet markers
         })),
+      });
+      // One notification per publish batch, not per line.
+      await notifyCascadePublished(prisma, {
+        meetingTitle: meeting.title,
+        count: lines.length,
+        excludeUserId: session!.user.id,
       });
     }
   }

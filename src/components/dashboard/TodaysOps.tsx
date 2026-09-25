@@ -33,6 +33,37 @@ const statusBg = {
   red: "bg-red-50 dark:bg-red-950/40",
 };
 
+function SortHeader({
+  label,
+  field,
+  className = "",
+  sortKey,
+  sortAsc,
+  onSort,
+}: {
+  label: string;
+  field: SortKey;
+  className?: string;
+  sortKey: SortKey;
+  sortAsc: boolean;
+  onSort: (key: SortKey) => void;
+}) {
+  return (
+    <button
+      onClick={() => onSort(field)}
+      className={`flex items-center gap-0.5 text-2xs font-semibold text-muted uppercase tracking-wider hover:text-foreground transition-colors ${className}`}
+    >
+      {label}
+      {sortKey === field &&
+        (sortAsc ? (
+          <ChevronUp className="w-3 h-3" />
+        ) : (
+          <ChevronDown className="w-3 h-3" />
+        ))}
+    </button>
+  );
+}
+
 export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortAsc, setSortAsc] = useState(true);
@@ -72,29 +103,6 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
     }
     return sortAsc ? cmp : -cmp;
   });
-
-  const SortHeader = ({
-    label,
-    field,
-    className = "",
-  }: {
-    label: string;
-    field: SortKey;
-    className?: string;
-  }) => (
-    <button
-      onClick={() => handleSort(field)}
-      className={`flex items-center gap-0.5 text-2xs font-semibold text-muted uppercase tracking-wider hover:text-foreground transition-colors ${className}`}
-    >
-      {label}
-      {sortKey === field &&
-        (sortAsc ? (
-          <ChevronUp className="w-3 h-3" />
-        ) : (
-          <ChevronDown className="w-3 h-3" />
-        ))}
-    </button>
-  );
 
   // Summary counts
   const redCount = centres.filter((c) => c.opsStatus === "red").length;
@@ -138,13 +146,22 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
           <thead>
             <tr className="bg-surface/30">
               <th className="text-left px-4 py-2">
-                <SortHeader label="Centre" field="name" />
+                <SortHeader
+                  label="Centre"
+                  field="name"
+                  sortKey={sortKey}
+                  sortAsc={sortAsc}
+                  onSort={handleSort}
+                />
               </th>
               <th className="text-center px-2 py-2">
                 <SortHeader
                   label="BSC"
                   field="bscAttended"
                   className="justify-center"
+                  sortKey={sortKey}
+                  sortAsc={sortAsc}
+                  onSort={handleSort}
                 />
               </th>
               <th className="text-center px-2 py-2">
@@ -152,6 +169,9 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
                   label="ASC"
                   field="ascAttended"
                   className="justify-center"
+                  sortKey={sortKey}
+                  sortAsc={sortAsc}
+                  onSort={handleSort}
                 />
               </th>
               <th className="text-center px-2 py-2">
@@ -159,6 +179,9 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
                   label="Educators"
                   field="educatorsRostered"
                   className="justify-center"
+                  sortKey={sortKey}
+                  sortAsc={sortAsc}
+                  onSort={handleSort}
                 />
               </th>
               <th className="text-center px-2 py-2">
@@ -166,6 +189,9 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
                   label="Ratio"
                   field="ratioOk"
                   className="justify-center"
+                  sortKey={sortKey}
+                  sortAsc={sortAsc}
+                  onSort={handleSort}
                 />
               </th>
               <th className="text-center px-2 py-2">
@@ -173,6 +199,9 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
                   label="Incidents"
                   field="incidentsToday"
                   className="justify-center"
+                  sortKey={sortKey}
+                  sortAsc={sortAsc}
+                  onSort={handleSort}
                 />
               </th>
               <th className="w-8" />

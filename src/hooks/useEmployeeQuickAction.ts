@@ -1,8 +1,8 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
-import { mutateApi } from "@/lib/fetch-api";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 
 export type QuickActionType =
   | "reset_password"
@@ -17,6 +17,26 @@ interface QuickActionResponse {
   newRole?: string;
   newActive?: boolean;
   newHrWarningsMuted?: boolean;
+}
+
+/**
+ * Whether a SeparationRecord exists for this employee. Fetched lazily
+ * (pass `enabled` only while a deactivate confirm is open) so the /team
+ * list never pays N requests up front. Admin-tier only — the endpoint
+ * 403s below that, which is fine because the deactivate action that
+ * needs this is admin-only too.
+ */
+export function useEmployeeHasSeparation(employeeId: string, enabled: boolean) {
+  return useQuery<{ hasSeparation: boolean }>({
+    queryKey: ["employee-has-separation", employeeId],
+    queryFn: () =>
+      fetchApi<{ hasSeparation: boolean }>(
+        `/api/employees/${employeeId}/quick-action`,
+      ),
+    enabled,
+    retry: 2,
+    staleTime: 30_000,
+  });
 }
 
 export function useEmployeeQuickAction(employeeId: string) {

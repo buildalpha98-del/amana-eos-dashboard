@@ -5,6 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const bodySchema = z.object({
   serviceId: z.string().min(1, "serviceId is required"),
   from: z.string().min(1, "from date is required"),
@@ -108,4 +109,4 @@ export const POST = withApiAuth(async (req, session) => {
   });
 
   return NextResponse.json({ email, socialPosts });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

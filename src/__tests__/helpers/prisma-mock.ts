@@ -94,6 +94,11 @@ function createPrismaMock() {
                     }
                   } else if (method === "findMany") fn.mockResolvedValue([]);
                   else if (method === "count") fn.mockResolvedValue(0);
+                  // groupBy is a collection read like findMany: a route that
+                  // aggregates (e.g. the enrolments status tab counts) would
+                  // otherwise die on `undefined.map` inside plumbing rather
+                  // than failing on what the test meant to assert.
+                  else if (method === "groupBy") fn.mockResolvedValue([]);
                   methodCache[method] = fn;
                 }
                 return methodCache[method];

@@ -45,10 +45,12 @@ import {
   Activity,
   CalendarCheck,
   Receipt,
+  Wallet,
   Mail,
   Network,
   Brain,
   Palette,
+  Bell,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
@@ -138,9 +140,25 @@ export const navItems: NavItem[] = [
   // "me" then "the work" rather than one undifferentiated list.
   { href: "/my-portal", label: "My Portal", icon: UserCircle, section: "My Portal", tooltip: "Your personal HR hub — profile, leave, training & more" , core: true },
   { href: "/my-day", label: "My Day", icon: Sun, section: "My Portal", tooltip: "Clock, roll call, and today's checklists in one place" , core: true },
+  // 2026-09-04 staff portal v2 (3.2): the in-app notification inbox.
+  // Every role receives UserNotifications, so no `roles` allowlist and
+  // core for everyone.
+  { href: "/notifications", label: "Notifications", icon: Bell, section: "My Portal", tooltip: "Everything sent to you — assignments, approvals and reminders", core: true },
   { href: "/my-training", label: "My Training", icon: GraduationCap, section: "My Portal", tooltip: "Your induction and ongoing training courses", core: true },
   { href: "/surveys", label: "My Surveys", icon: ClipboardList, section: "My Portal", tooltip: "Surveys sent to you — feedback, check-ins, culture", core: true },
   { href: "/roster/me", label: "My Roster", icon: CalendarDays, section: "My Portal", tooltip: "Your published shifts and swap requests", core: true },
+  // 2026-09-04 staff portal v2: dedicated self-service destinations. Nav
+  // visibility is staff-tier only (office roles reach them by URL — they
+  // are employees too, but their sidebar shouldn't grow for it).
+  { href: "/my-pay", label: "My Pay", icon: Wallet, section: "My Portal", tooltip: "Your payslips and pay history", roles: ["staff", "member", "marketing"], core: ["staff", "member", "marketing"] },
+  { href: "/my-leave", label: "My Leave", icon: CalendarDays, section: "My Portal", tooltip: "Leave balances and requests", roles: ["staff", "member", "marketing"], core: ["staff", "member", "marketing"] },
+  { href: "/my-expenses", label: "My Expenses", icon: Receipt, section: "My Portal", tooltip: "Claim reimbursements and track their status", roles: ["staff", "member", "marketing"], core: ["staff", "member", "marketing"] },
+  // 2026-09-14: staff had no addressable route to their own contract —
+  // it was a card buried on /my-portal, and only rendered for `active`
+  // status. Core for every staff-tier role so it surfaces in the sidebar
+  // and therefore in the mobile More drawer (the tab bar itself is full
+  // at four).
+  { href: "/my-contract", label: "My Contract", icon: FileSignature, section: "My Portal", tooltip: "Read, sign and download your employment contract", core: true },
   { href: "/getting-started", label: "Getting Started", icon: Rocket, section: "My Portal", tooltip: "Your onboarding checklist — get up to speed quickly" , core: true },
   // Same route as Operations → Compliance, deliberately filed under "me"
   // for centre roles: to an Educator, compliance means their own WWCC and
@@ -207,15 +225,24 @@ export const navItems: NavItem[] = [
   // head_office/admin since 2026-04-30). Deprecated in favour of the
   // leadership card + per-service Compliance → Incidents tabs. The page
   // itself stays reachable by URL.
-  { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator" },
-  { href: "/knowledge", label: "Knowledge Base", icon: BookOpen, section: "Operations", tooltip: "Ask questions about your policies, procedures and documents" },
+  // 2026-09-17: core for coordinators. Holiday Quest is a vacation-care
+  // PLANNER, and the coordinator is the person who runs vacation care at their
+  // centre — it was classed as a marketing surface and kept from them. The
+  // Knowledge Base was reachable but buried in the "+N more" overflow, which
+  // for a day-to-day reference is the same as missing.
+  { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator", core: ["member"] },
+  { href: "/knowledge", label: "Knowledge Base", icon: BookOpen, section: "Operations", tooltip: "Ask questions about your policies, procedures and documents", core: ["member"] },
 
   // ── Growth — pipeline, parents & outreach ─────────────────
   { href: "/contact-centre", label: "Contact Centre", icon: Inbox, section: "Growth", tooltip: "Enquiries, support tickets, and VAPI call logs in one place", roles: ALL_NON_MARKETING , core: true },
   { href: "/enrolments", label: "Enrolments", icon: ClipboardList, section: "Growth", tooltip: "Review and process parent enrolment submissions", roles: ALL_NON_MARKETING , core: true },
   // 2026-07-30: staff view of parent ACCOUNTS (the login side), as opposed
   // to /enrolments which lists submitted forms. Sits beside it in Growth.
-  { href: "/waitlist", label: "Waitlist", icon: Users, section: "Growth", tooltip: "Families waiting for a place, in order", roles: ALL_NON_MARKETING, core: true },
+  // 2026-09-25: narrowed from ALL_NON_MARKETING to mirror the API. Both
+  // `/api/waitlist` and `/api/waitlist/offer-spot` allow owner/head_office/
+  // admin/member only, so offering the item to `staff` and `eos` put a link in
+  // their sidebar that 403s on load. (owner bypasses this list in filterNavItems.)
+  { href: "/waitlist", label: "Waitlist", icon: Users, section: "Growth", tooltip: "Families waiting for a place, in order", roles: ["head_office", "admin", "member"], core: true },
   { href: "/families", label: "Families", icon: Users, section: "Growth", tooltip: "Parent accounts, enrolment progress and children", roles: ALL_NON_MARKETING },
   // Unfolded 2026-07-31: staff need to find a child by name when a parent
   // calls or emails without saying which service they attend. Searching
@@ -242,17 +269,24 @@ export const navItems: NavItem[] = [
 
   // ── People — HR & workforce ───────────────────────────────
   { href: "/team", label: "Team", icon: Users, section: "People", roles: ALL_NON_MARKETING , core: true },
-  { href: "/recruitment", label: "Recruitment", icon: Briefcase, section: "People", tooltip: "Track vacancies, candidates & staff referrals", roles: ALL_NON_MARKETING },
+  // 2026-09-16: renamed from Recruitment and pinned for leadership. /hiring is
+  // now the single home for job ads, the candidate pool and referrals;
+  // /recruitment redirects to it.
+  { href: "/hiring", label: "Hiring", icon: Briefcase, section: "People", tooltip: "Job ads, candidate pool & staff referrals", roles: ALL_NON_MARKETING, core: ["head_office", "admin", "eos"] },
   // 2026-08-06: leadership only. Staff Lifecycle is the ADMIN surface for
   // induction and the LMS — an Educator or Director of Service does their
   // own onboarding and training in My Training, and having both meant two
   // doors to the same subject with different contents behind them.
-  { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "People", tooltip: "Onboarding, LMS & offboarding", roles: ["head_office", "admin", "eos"] },
+  { href: "/onboarding", label: "Onboarding", icon: GraduationCap, section: "People", tooltip: "Onboarding packs, training, induction, 90-day ramp & offboarding", roles: ["head_office", "admin", "eos"], core: ["head_office", "admin", "eos"] },
   { href: "/contracts", label: "Contracts", icon: FileSignature, section: "People", tooltip: "Employment contracts & award rates", feature: "contracts.view", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Staff Lifecycle
   { href: "/position-descriptions", label: "Position Descriptions", icon: FileText, section: "People", tooltip: "Per-role job description library" , hidden: true }, // folded 2026-07-12 — linked from Recruitment
   // 2026-07-05 (nav consolidation phase 1): /diversity-dashboard +
   // /wgea-report collapsed into the /workforce-reports hub (tabs).
   { href: "/workforce-reports", label: "Workforce Reports", icon: BarChart3, section: "People", tooltip: "Diversity & inclusion stats and WGEA workforce-composition reporting", roles: ["owner", "head_office", "admin"] },
+  // 2026-09-04 (staff-portal-v2 Chunk 5): all-centres roster command centre.
+  // Members are auto-scoped to their own centre server-side (getCentreScope
+  // in GET /api/services); educators keep using /roster/me instead.
+  { href: "/roster", label: "Roster", icon: CalendarDays, section: "People", tooltip: "Weekly shifts across every centre — open slots, ratios & publishing", roles: ["owner", "head_office", "admin", "member"], core: true },
   { href: "/timesheets", label: "Timesheets", icon: ClipboardList, section: "People", tooltip: "Import OWNA rosters, approve & export to Xero", roles: ALL_NON_MARKETING , core: true },
   // 2026-06-29: `/leave` retired from the sidebar. Every new leave
   // request now goes through My Portal → EH so managers get the

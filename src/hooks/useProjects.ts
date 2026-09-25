@@ -28,9 +28,8 @@ export interface ProjectSummary {
     id: string;
     name: string;
   } | null;
-  _count: {
-    todos: number;
-  };
+  /** Quarterly Rock this project executes (2026-08-31). */
+  rock: { id: string; title: string } | null;
   progress: {
     total: number;
     completed: number;
@@ -43,6 +42,8 @@ export interface ProjectDetail {
   name: string;
   description: string | null;
   status: string;
+  rockId?: string | null;
+  rock?: { id: string; title: string } | null;
   startDate: string | null;
   targetDate: string | null;
   completedAt: string | null;
@@ -108,6 +109,7 @@ export function useCreateProject() {
       description?: string;
       serviceId?: string | null;
       templateId?: string | null;
+      rockId?: string | null;
       ownerId: string;
       startDate?: string | null;
       targetDate?: string | null;
@@ -138,6 +140,7 @@ export function useUpdateProject() {
       status?: string;
       ownerId?: string;
       serviceId?: string | null;
+      rockId?: string | null;
       startDate?: string | null;
       targetDate?: string | null;
     }) => {

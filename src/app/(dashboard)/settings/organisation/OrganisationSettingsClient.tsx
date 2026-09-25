@@ -25,7 +25,9 @@ import { toast } from "@/hooks/useToast";
 import {
   ORG_SETTINGS_DEFAULTS,
   ROLE_LABEL_DEFAULTS,
+  REQUIRED_CERT_TYPE_VALUES,
   type OrgSettingsConfig,
+  type RequiredCertType,
   type RoleLabels,
 } from "@/lib/org-settings-shared";
 import {
@@ -59,6 +61,8 @@ const ROLE_HINTS: Record<keyof RoleLabels, string> = {
 
 interface Props {
   initialConfig: OrgSettingsConfig;
+  /** Admin-tier users eligible to own onboarding. */
+  adminUsers: Array<{ id: string; name: string | null; email: string }>;
 }
 
 type PillarKey = keyof OrgSettingsConfig["healthScore"]["pillarWeights"];
@@ -71,7 +75,7 @@ const PILLAR_LABELS: Record<PillarKey, string> = {
   teamCulture: "Team & Culture",
 };
 
-export function OrganisationSettingsClient({ initialConfig }: Props) {
+export function OrganisationSettingsClient({ initialConfig, adminUsers }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState<OrgSettingsConfig>(initialConfig);
   const [saving, setSaving] = useState(false);
@@ -94,6 +98,10 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
     Number.isInteger(config.email.marketingWeeklyCap) &&
     config.email.marketingWeeklyCap >= 1 &&
     config.email.marketingWeeklyCap <= 20;
+  const offTrackWeeksValid =
+    Number.isInteger(config.eos.measurableOffTrackWeeks) &&
+    config.eos.measurableOffTrackWeeks >= 2 &&
+    config.eos.measurableOffTrackWeeks <= 6;
   const labelsValid = ROLE_KEYS.every(
     (k) => config.roleLabels[k].trim().length > 0,
   );
@@ -114,6 +122,7 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
     ratioValid &&
     emailValid &&
     capValid &&
+    offTrackWeeksValid &&
     labelsValid &&
     onboardingValid &&
     welcomePackValid;
@@ -544,7 +553,102 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
         </Field>
       </Section>
 
+      {/* EOS automation */}
+      <Section
+        title="EOS automation"
+        description="Knobs for the scorecard watchdog and other EOS automations."
+        onReset={() => resetSection("eos")}
+      >
+        <Field
+          label="Weeks off-track before a measurable auto-raises an Issue"
+          valid={offTrackWeeksValid}
+          error="Must be a whole number between 2 and 6"
+          hint="Every Sunday night the watchdog checks each weekly measurable's latest entries; this many consecutive off-track weeks drops it into IDS automatically"
+        >
+          <input
+            type="number"
+            min={2}
+            max={6}
+            step={1}
+            value={config.eos.measurableOffTrackWeeks}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                eos: {
+                  ...c.eos,
+                  measurableOffTrackWeeks: Number(e.target.value),
+                },
+              }))
+            }
+            className="w-24 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+          />
+        </Field>
+      </Section>
+
+      {/* Service alert emails */}
+      <Section
+        title="Service alert emails"
+        description="Automated centre-operations alerts sent by the daily/weekly crons. Staff emails (certificate expiry, compliance, training, leave, timesheets, contracts) are unaffected by this switch."
+        onReset={() => resetSection("notifications")}
+      >
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={config.notifications.serviceAlertsPaused}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                notifications: {
+                  ...c.notifications,
+                  serviceAlertsPaused: e.target.checked,
+                },
+              }))
+            }
+            className="mt-0.5 h-4 w-4 rounded border-border accent-brand"
+          />
+          <span>
+            <span className="block text-sm font-medium text-foreground">
+              Pause service alert emails
+            </span>
+            <span className="block text-xs text-muted mt-0.5">
+              While paused, the crons still run and log a skipped row but send nothing: low occupancy, ratio-risk forecast, shift gaps, staffing variance, checklist audit, unactioned bookings, unsigned-in children, weekly incident digest. Untick when the services portal goes live.
+            </span>
+          </span>
+        </label>
+      </Section>
+
       {/* Ratios */}
+      {/* Onboarding owner */}
+      <Section
+        title="Onboarding owner"
+        description="Who gets the to-do when a new staff member is added to the onboarding list. They're assigned the Employment Hero setup and the employment contract. Other admins still get the heads-up email."
+        onReset={() => resetSection("onboarding")}
+      >
+        <Field
+          label="Assign new-starter onboarding to"
+          valid
+          hint="Leave unassigned and no to-do is created — the admin heads-up emails stay the only signal."
+        >
+          <select
+            value={config.onboarding.ownerUserId ?? ""}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                onboarding: { ...c.onboarding, ownerUserId: e.target.value || null },
+              }))
+            }
+            className="w-full sm:w-96 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+          >
+            <option value="">No one — don&apos;t create a to-do</option>
+            {adminUsers.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name ?? u.email} ({u.email})
+              </option>
+            ))}
+          </select>
+        </Field>
+      </Section>
+
       <Section
         title="Default educator ratio"
         description="Fallback educator-to-child ratio used when a Service hasn't set its own per-session override. The federal OSHC default is 1:15."
@@ -756,7 +860,123 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
           </div>
         </div>
       </Section>
+
+      {/* Certificate requirements by role */}
+      <RequiredCertsSection config={config} setConfig={setConfig} />
     </div>
+  );
+}
+
+/**
+ * RequiredCertsSection — role × certificate-type checkbox matrix editing
+ * `config.compliance.requiredCertsByRole` (Staff Portal v2 Phase 9).
+ *
+ * Drives the staff /compliance "Required for your role" split, the
+ * /my-portal compliance glance tile, and the staff-profile snapshot counts
+ * (all via getRequiredCertTypes in src/lib/cert-requirements.ts). Saved via
+ * the same full-replace PATCH as every other section — this page is
+ * already gated to the settings-owner tier server-side (page.tsx redirect
+ * + the PATCH route's `roles` option).
+ */
+const CERT_TYPE_LABELS: Record<RequiredCertType, string> = {
+  wwcc: "WWCC",
+  first_aid: "First Aid",
+  anaphylaxis: "Anaphylaxis",
+  asthma: "Asthma",
+  cpr: "CPR",
+  police_check: "Police Check",
+  annual_review: "Annual Review",
+  child_protection: "Child Protection",
+  geccko: "GECCKO",
+  food_safety: "Food Safety",
+  food_handler: "Food Handler",
+  mandatory_reporter_training: "Mandatory Reporter Training",
+  child_safe_code_of_conduct: "Child Safe Code of Conduct",
+};
+
+function RequiredCertsSection({
+  config,
+  setConfig,
+}: {
+  config: OrgSettingsConfig;
+  setConfig: React.Dispatch<React.SetStateAction<OrgSettingsConfig>>;
+}) {
+  const byRole = config.compliance.requiredCertsByRole;
+
+  function toggle(role: keyof RoleLabels, type: RequiredCertType) {
+    setConfig((c) => {
+      const current = c.compliance.requiredCertsByRole[role];
+      const next = current.includes(type)
+        ? current.filter((t) => t !== type)
+        : // Keep canonical enum order so the stored list is stable across
+          // edits (nicer diffs in the activity log, deterministic UI order).
+          REQUIRED_CERT_TYPE_VALUES.filter(
+            (t) => current.includes(t) || t === type,
+          );
+      return {
+        ...c,
+        compliance: {
+          requiredCertsByRole: {
+            ...c.compliance.requiredCertsByRole,
+            [role]: next,
+          },
+        },
+      };
+    });
+  }
+
+  return (
+    <Section
+      title="Certificate requirements by role"
+      description="Which compliance certificates each role must hold. Drives the 'Required for your role' section on staff Compliance, the My Portal compliance tile, and the staff-profile snapshot counts. Roles with no ticks fall back to showing all certificate types without a required split."
+      onReset={() =>
+        setConfig((c) => ({
+          ...c,
+          compliance: ORG_SETTINGS_DEFAULTS.compliance,
+        }))
+      }
+    >
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr>
+              <th className="text-left font-medium text-muted py-2 pr-4">
+                Certificate
+              </th>
+              {ROLE_KEYS.map((role) => (
+                <th
+                  key={role}
+                  className="text-center font-medium text-muted py-2 px-2 whitespace-nowrap"
+                  title={ROLE_HINTS[role]}
+                >
+                  {config.roleLabels[role]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {REQUIRED_CERT_TYPE_VALUES.map((type) => (
+              <tr key={type} className="border-t border-border">
+                <td className="py-2 pr-4 text-foreground whitespace-nowrap">
+                  {CERT_TYPE_LABELS[type]}
+                </td>
+                {ROLE_KEYS.map((role) => (
+                  <td key={role} className="text-center py-2 px-2">
+                    <input
+                      type="checkbox"
+                      checked={byRole[role].includes(type)}
+                      onChange={() => toggle(role, type)}
+                      aria-label={`${CERT_TYPE_LABELS[type]} required for ${config.roleLabels[role]}`}
+                      className="h-4 w-4 rounded border-border accent-brand"
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Section>
   );
 }
 

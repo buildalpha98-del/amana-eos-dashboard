@@ -5,6 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const postSchema = z.object({
   items: z.array(z.object({
     section: z.string().optional(),
@@ -96,4 +97,4 @@ const { id } = await context!.params!;
     templateId: id,
     mode,
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

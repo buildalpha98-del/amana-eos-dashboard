@@ -64,7 +64,10 @@ export interface EmployeesListResponse {
   pendingCount: number;
 }
 
-function buildUrl(p: EmployeesListParams): string {
+/** Build the `/api/employees` URL for a params object. Exported so the
+ *  CSV export in `EmployeeListView` can re-fetch the full filtered set
+ *  with the exact same query-string semantics as the list query. */
+export function buildEmployeesListUrl(p: EmployeesListParams): string {
   const sp = new URLSearchParams();
   if (p.q) sp.set("q", p.q);
   if (p.status) sp.set("status", p.status);
@@ -90,7 +93,7 @@ export function useEmployeesList(params: EmployeesListParams) {
       params.page ?? 1,
       params.pageSize ?? 50,
     ],
-    queryFn: () => fetchApi<EmployeesListResponse>(buildUrl(params)),
+    queryFn: () => fetchApi<EmployeesListResponse>(buildEmployeesListUrl(params)),
     retry: 2,
     staleTime: 30_000,
   });

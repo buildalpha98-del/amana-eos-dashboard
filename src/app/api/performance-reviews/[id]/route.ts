@@ -21,6 +21,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { isAdminRole } from "@/lib/role-permissions";
 
 const STATUSES = [
   "scheduled",
@@ -85,7 +86,6 @@ const patchSchema = z.object({
   goals: z.array(goalInputSchema).max(20).optional(),
 });
 
-const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -117,7 +117,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
 
   const role = session!.user.role;
   const callerId = session!.user.id;
-  const isAdmin = ADMIN_ROLES.has(role);
+  const isAdmin = isAdminRole(role);
   const isSubject = r.userId === callerId;
 
   if (!isAdmin && !isSubject) throw ApiError.forbidden();
@@ -131,7 +131,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   const role = session!.user.role;
   const callerId = session!.user.id;
-  const isAdmin = ADMIN_ROLES.has(role);
+  const isAdmin = isAdminRole(role);
   const isSubject = existing.userId === callerId;
 
   if (!isAdmin && !isSubject) throw ApiError.forbidden();

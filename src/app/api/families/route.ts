@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { getParentEnrolmentState } from "@/lib/parent-enrolment-state";
 import { findEnrolmentsForEmails } from "@/lib/parent-account";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 /** How many families one request returns. Reported when it's hit. */
 const ACCOUNT_PAGE_SIZE = 200;
@@ -222,5 +223,5 @@ export const GET = withApiAuth(
       truncated: accounts.length === ACCOUNT_PAGE_SIZE,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

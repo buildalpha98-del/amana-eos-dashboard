@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { useRoleLabel } from "@/contexts/RoleLabelsContext";
 import { useEffect, useMemo } from "react";
 import { useSidebar } from "@/components/layout/SidebarContext";
 import {
@@ -12,6 +13,7 @@ import {
   ChevronRight,
   ChevronDown,
   Star,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navItems, filterNavItems, partitionNavSection } from "@/lib/nav-config";
@@ -31,6 +33,12 @@ interface SidebarProps {
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  // The user card shows the org's role LABEL ("State Manager"), not the raw
+  // enum. 2026-09-15: it used to print `session.user.role` under a CSS
+  // `capitalize`, so a State Manager's own sidebar read "Head_office" and a
+  // Coordinator's read "Member" — neither is a name anyone uses, and it made
+  // "what role is this account actually on?" impossible to answer by looking.
+  const roleLabel = useRoleLabel(session?.user?.role);
   const { collapsed, toggleCollapsed, collapsedSections, toggleSection, favourites, toggleFavourite, expandedSections, toggleExpandedSection } = useSidebar();
   const { data: bookingRequestCount } = useBookingRequestCount();
   const { data: unreadMessageCount } = useUnreadMessageCount();
@@ -46,7 +54,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const inductionLocked = isInductionLocked(
     session?.user?.inductionStatus,
     session?.user?.inductionGraceUntil,
-    { role: session?.user?.role }
+    {
+      role: session?.user?.role,
+      essentialsPublished: session?.user?.essentialsPublished,
+    }
   );
 
   // Group filtered nav items by section.
@@ -60,13 +71,14 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   // first-seen section wins.
   // Badge-carrying items must never be invisible — a live count overrides
   // both the curated-core overflow AND the stage-1 `hidden` fold.
+  const pendingPoliciesCountValue = pendingPoliciesCount?.count;
   const forceShowHrefs = useMemo(() => {
     const hrefs: string[] = [];
     if (bookingRequestCount != null && bookingRequestCount > 0) hrefs.push("/bookings");
     if (unreadMessageCount != null && unreadMessageCount > 0) hrefs.push("/messaging");
-    if (pendingPoliciesCount?.count != null && pendingPoliciesCount.count > 0) hrefs.push("/policies");
+    if (pendingPoliciesCountValue != null && pendingPoliciesCountValue > 0) hrefs.push("/policies");
     return hrefs;
-  }, [bookingRequestCount, unreadMessageCount, pendingPoliciesCount?.count]);
+  }, [bookingRequestCount, unreadMessageCount, pendingPoliciesCountValue]);
 
   const groupedItems = useMemo(() => {
     const filtered = filterNavItems(
@@ -138,7 +150,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                 Amana OSHC
               </h1>
               <p className="text-2xs text-white/50 uppercase tracking-wider">
-                EOS Dashboard
+                Management Dashboard
               </p>
             </div>
           )}
@@ -386,6 +398,36 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           })}
         </nav>
 
+        {/*
+          Anonymous reporting channel. `/safe-report` had ZERO inbound links
+          anywhere in the app (2026-09-25 audit) — a speak-up channel whose
+          whole premise is being findable without going through your line
+          manager was reachable only by typing the URL, so it depended entirely
+          on out-of-band distribution.
+
+          Deliberately a plain anchor, not a nav item: it sits outside the
+          role-filtered nav so every role sees it, and `target="_blank"` keeps
+          the reporter's current page out of the browser-history trail sitting
+          behind them. The page itself sends `credentials: "omit"` so no
+          session cookie rides along even while signed in.
+        */}
+        <div className={cn("px-3 pb-1", collapsed && "px-1.5")}>
+          <a
+            href="/safe-report"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Raise a concern anonymously"
+            className={cn(
+              "flex items-center gap-2 rounded-lg py-2 text-2xs text-white/40 transition-colors hover:bg-white/10 hover:text-white/80",
+              collapsed ? "justify-center px-0" : "px-2",
+            )}
+          >
+            <ShieldCheck className="h-4 w-4 flex-shrink-0" aria-hidden />
+            {!collapsed && <span>Raise a concern anonymously</span>}
+            {collapsed && <span className="sr-only">Raise a concern anonymously</span>}
+          </a>
+        </div>
+
         {/* Theme + Nav Layout toggles */}
         <div className={cn("px-3 pb-1 space-y-1.5", collapsed && "px-1.5")}>
           <ThemeToggle className="w-full justify-center text-white/50 hover:text-white hover:bg-white/10" />
@@ -409,9 +451,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                   <p className="text-sm font-medium truncate">
                     {session.user.name}
                   </p>
-                  <p className="text-2xs text-white/40 capitalize">
-                    {session.user.role}
-                  </p>
+                  <p className="text-2xs text-white/40">{roleLabel}</p>
                 </div>
               )}
               <button

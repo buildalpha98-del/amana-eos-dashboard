@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 // GET /api/communication/pulse/summary — Aggregated pulse data for leadership view
 export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
@@ -66,4 +67,4 @@ export const GET = withApiAuth(async (req, session) => {
       submittedAt: p.submittedAt,
     })),
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

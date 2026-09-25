@@ -11,6 +11,22 @@ import { isEosRole } from "@/lib/role-enum";
 export const ADMIN_ROLES = ["owner", "admin", "head_office"] as const;
 
 /**
+ * The admin tier *as the page layer sees it*, i.e. including `eos`.
+ *
+ * `rolePageAccess.eos` is `allPages.filter(p => !ADMIN_EXCLUDED.has(p))` — the
+ * broad "EOS Member" tier is deliberately given admin-level PAGE access. API
+ * routes, however, were written against the three-role `ADMIN_ROLES` literal,
+ * so an EOS Member could open a page the sidebar offered them and then get a
+ * 403 from the API behind it.
+ *
+ * Use this where a route backs a page that `eos` can genuinely reach. Do NOT
+ * blanket-swap `ADMIN_ROLES` for it: plenty of admin routes (payroll writes,
+ * permission changes, seeding) should stay closed to `eos`, and widening them
+ * is a policy decision, not a refactor.
+ */
+export const ADMIN_ROLES_WITH_EOS = [...ADMIN_ROLES, "eos"] as const;
+
+/**
  * Check whether a role string is an admin role (owner, head_office, or admin).
  * Safe narrowing — accepts any string and returns whether it matches ADMIN_ROLES.
  */
@@ -72,6 +88,11 @@ export const allPages = [
   "/getting-started",
   "/my-portal",
   "/my-day",
+  "/notifications",
+  "/my-pay",
+  "/my-contract",
+  "/my-leave",
+  "/my-expenses",
   "/my-training",
   "/surveys",
   "/learn/[enrollmentId]",
@@ -139,19 +160,25 @@ export const allPages = [
   "/contact-centre",
   "/messaging",
   "/enrolments",
+  // 2026-09-25: `/waitlist` shipped 2026-07-30 with a `core: true` sidebar
+  // entry but was never registered here, so `canAccessPage` returned false for
+  // every role (owner included, since `owner: allPages`) and `filterNavItems`
+  // dropped the item for everyone. The page was reachable only by typing the
+  // URL. Same class as the `/contact-centre` / `/messaging` misses above.
+  "/waitlist",
   "/ambassadors",
   "/families",
   "/children",
   "/children/[id]",
   "/conversions",
   // Operations extras
-  "/roll-call",
   "/bookings",
   "/billing",
   "/reports",
   "/knowledge",
   // HR
   "/recruitment",
+  "/hiring",
   // 2026-07-05 (nav consolidation phase 1): consolidated D&I + WGEA hub.
   // Owner/head_office/admin only (inherited via allPages — deliberately
   // NOT added to the marketing/member/staff/EOS allowlists).
@@ -168,9 +195,19 @@ export const allPages = [
   // so the redirect can fire.
   "/handbook",
   "/tools/the-amana-way",
-    "/tools/handbook",
-    "/tools/amana-way-one-pager",
-    "/tools/employee-handbook",
+  "/tools/handbook",
+  "/tools/amana-way-one-pager",
+  "/tools/employee-handbook",
+  // 2026-09-25: same reason as the block above, three stubs that were missed.
+  // `/staff` → /team, `/wgea-report` + `/diversity-dashboard` →
+  // /workforce-reports. Unregistered, middleware bounced every role (owner
+  // included) to /dashboard BEFORE the page could run its own `redirect()`, so
+  // the bookmark-preservation these files exist for never worked. Note
+  // `/staff/[id]` does not cover the bare `/staff`: `pathMatches` compiles it
+  // to `^/staff/[^/]+(?:/.*)?$`, which requires a trailing segment.
+  "/staff",
+  "/wgea-report",
+  "/diversity-dashboard",
   // Admin
   "/leadership",
   "/automations",
@@ -188,6 +225,13 @@ export const allPages = [
   "/marketing/email/compose",
   // Staff profile (People module)
   "/staff/[id]",
+  // Roster command centre — all-centres weekly shifts grid (People module,
+  // staff-portal-v2 Chunk 5). NOTE: pathMatches() prefix-matches plain
+  // paths, so granting "/roster" to a role also grants "/roster/me" and
+  // "/roster/swaps" — harmless today (both are self-scoped and already
+  // granted to every staff-bearing role), but keep it in mind before
+  // nesting anything sensitive under /roster/.
+  "/roster",
   // Roster self-view (People module)
   "/roster/me",
   // Roster — shift swap inbox
@@ -226,6 +270,11 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/getting-started",
     "/my-portal",
     "/my-day",
+    "/notifications",
+    "/my-pay",
+    "/my-contract",
+    "/my-leave",
+    "/my-expenses",
     "/my-training",
     "/surveys",
     "/learn/[enrollmentId]",
@@ -289,11 +338,20 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
   // service-leader scope going forward.
   member: [
     "/position-descriptions", // 2026-07-12: was missing from role access entirely
+    // 2026-09-25: `/api/waitlist` and `/api/waitlist/offer-spot` both grant
+    // `member`, so a Director of Service is meant to work their own centre's
+    // waitlist. Granting the page to match the API it calls.
+    "/waitlist",
     // ── Personal hub ────────────────────────────────────────────
     "/dashboard",
     "/getting-started",
     "/my-portal",
     "/my-day",
+    "/notifications",
+    "/my-pay",
+    "/my-contract",
+    "/my-leave",
+    "/my-expenses",
     "/my-training",
     "/surveys",
     "/learn/[enrollmentId]",
@@ -322,12 +380,20 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     // pathMatches(); same for the Roll Call / Bookings / Children /
     // Billing tabs nested inside service detail.
     "/activity-library",
+    // 2026-09-17: the coordinator RUNS vacation care at their centre — the
+    // 2026-04-29 note below classed Holiday Quest as "a marketing planner",
+    // which is backwards. Children stays out on purpose: the list lives inside
+    // /services/[id]?tab=children, which they reach by drilling in.
+    "/holiday-quest",
     "/onboarding",
     "/compliance",
     "/policies",
     "/incidents",
     "/staff/[id]",
     "/children/[id]",
+    // 2026-09-04: roster command centre — a Director of Service sees only
+    // their own centre's section (getCentreScope on GET /api/services).
+    "/roster",
     "/roster/me",
     "/roster/swaps",
     "/leave",
@@ -352,7 +418,8 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     //   /communication, /messaging, /contact-centre, /enquiries,
     //   /conversions, /enrolments, /children, /roll-call, /bookings,
     //   /billing, /reports, /timesheets, /contracts,
-    //   /compliance/templates, /holiday-quest
+    //   /compliance/templates
+    // (/holiday-quest was on this list until 2026-09-17 — see above.)
     // - Children list / Roll Call / Bookings / Billing live inside
     //   /services/[id]?tab=...; member reaches them by drilling in.
     // - Cross-service surfaces (Reports, Timesheets, Contracts,
@@ -367,6 +434,11 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/getting-started",
     "/my-portal",
     "/my-day",
+    "/notifications",
+    "/my-pay",
+    "/my-contract",
+    "/my-leave",
+    "/my-expenses",
     "/my-training",
     "/surveys",
     "/learn/[enrollmentId]",
@@ -423,6 +495,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/dashboard",
     "/getting-started",
     "/my-portal",
+    "/notifications",
     "/surveys",
     "/profile",
     "/assistant",
@@ -449,6 +522,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/dashboard",
     "/getting-started",
     "/my-portal",
+    "/notifications",
     "/surveys",
     "/profile",
     "/assistant",
@@ -988,6 +1062,7 @@ export const permissionsTable: PermissionRow[] = [
   { section: "Pages", label: "Settings", owner: true, head_office: true, admin: true, marketing: false, member: false, staff: false },
   { section: "Pages", label: "My Portal", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: true },
   { section: "Pages", label: "Timesheets", owner: true, head_office: true, admin: true, marketing: false, member: false, staff: false },
+  { section: "Pages", label: "Roster command centre", owner: true, head_office: true, admin: true, marketing: false, member: true, staff: false },
   { section: "Pages", label: "Leave Management", owner: true, head_office: true, admin: true, marketing: false, member: false, staff: false },
   { section: "Pages", label: "Contracts", owner: true, head_office: true, admin: true, marketing: false, member: false, staff: false },
   { section: "Pages", label: "Profile", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: true },

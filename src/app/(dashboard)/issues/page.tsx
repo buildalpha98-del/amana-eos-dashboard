@@ -153,17 +153,18 @@ export default function IssuesPage() {
     return issues.filter((i) => i.status === "open" || i.status === "in_discussion");
   }, [issues]);
 
+  const [now] = useState(() => Date.now());
   const issueListForAi = useMemo(() => {
     if (!openIssues.length) return "";
     return openIssues
       .map((i, idx) => {
         const age = Math.floor(
-          (Date.now() - new Date(i.identifiedAt).getTime()) / (1000 * 60 * 60 * 24)
+          (now - new Date(i.identifiedAt).getTime()) / (1000 * 60 * 60 * 24)
         );
         return `${idx + 1}. "${i.title}" — Priority: ${i.priority}, Status: ${i.status}, Centre: ${i.service?.name ?? "Company-wide"}, Owner: ${i.owner?.name ?? "Unassigned"}, Age: ${age} days${i.description ? `, Details: ${i.description.slice(0, 200)}` : ""}`;
       })
       .join("\n");
-  }, [openIssues]);
+  }, [openIssues, now]);
 
   const hasActiveFilters = priorityFilter || ownerFilter;
 

@@ -25,6 +25,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { getParentEnrolmentState } from "@/lib/parent-enrolment-state";
 import { anchorDayValid, isBillingFrequency } from "@/lib/family-billing";
 import { normaliseEmail } from "@/lib/parent-account";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -199,7 +200,7 @@ export const GET = withApiAuth(
       ),
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 const patchSchema = z.object({
@@ -393,7 +394,7 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json({ ok: true, ...updated });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const DELETE = withApiAuth(

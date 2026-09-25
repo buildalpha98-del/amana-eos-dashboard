@@ -10,6 +10,7 @@ import {
 } from "@/lib/health-score";
 import { withApiAuth } from "@/lib/server-auth";
 import { getOrgSettings } from "@/lib/org-settings";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const GET = withApiAuth(async (req, session) => {
 const stateScope = getStateScope(session);
@@ -202,4 +203,4 @@ const orgSettings = await getOrgSettings();
   performance.sort((a, b) => b.score - a.score);
 
   return NextResponse.json(performance);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

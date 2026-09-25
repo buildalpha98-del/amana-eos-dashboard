@@ -4,6 +4,7 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 // 2026-06-05: vcAttendance kept for backward compatibility with older
 // callers; new clients send vcRecurring + vcCasual just like BSC/ASC.
 // The route prefers the split values when supplied and falls back to
@@ -151,4 +152,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(record);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

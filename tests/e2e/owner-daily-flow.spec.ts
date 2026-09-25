@@ -41,22 +41,26 @@ test.describe("Owner daily flow", () => {
     await page.goto("/rocks");
     await page.waitForLoadState("networkidle");
 
-    // Page heading
-    await expect(page.getByText("Rocks")).toBeVisible({ timeout: 15_000 });
+    // Page heading — "Rocks" appears in the sidebar, kanban column labels
+    // and rock cards too, so target the heading role, not bare text.
+    await expect(
+      page.getByRole("heading", { name: "Rocks" }).first(),
+    ).toBeVisible({ timeout: 15_000 });
     await expect(
       page.getByText("Track your quarterly 90-day goals"),
     ).toBeVisible();
 
-    // View toggle buttons (kanban and list)
-    await expect(page.getByRole("button", { name: "Kanban view" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "List view" })).toBeVisible();
+    // View toggle buttons (kanban and list) — rendered twice (mobile +
+    // desktop layouts), so .first() to avoid a strict-mode violation.
+    await expect(page.getByRole("button", { name: "Kanban view" }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "List view" }).first()).toBeVisible();
 
     // Can switch to list view
-    await page.getByRole("button", { name: "List view" }).click();
+    await page.getByRole("button", { name: "List view" }).first().click();
     await page.waitForLoadState("networkidle");
 
     // Can switch back to kanban view
-    await page.getByRole("button", { name: "Kanban view" }).click();
+    await page.getByRole("button", { name: "Kanban view" }).first().click();
     await page.waitForLoadState("networkidle");
 
     // No error states
@@ -72,15 +76,27 @@ test.describe("Owner daily flow", () => {
     // Main content loads
     await expect(page.locator("main")).toBeVisible();
 
-    // Should show scorecard-related UI — either measurables or empty state
-    const hasMeasurables = await page.getByText("Owner").isVisible().catch(() => false);
-    const hasEmptyState = await page.getByText("No measurables").isVisible().catch(() => false);
+    // Should show the scorecard CONTENT area — the measurables grid table or
+    // the explicit empty state. (Matching /measurable/i was vacuous: the
+    // static PageHeader description contains "measurables", so it stayed
+    // green even when the data area errored.)
+    const hasGrid = await page
+      .locator("main table")
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const hasEmptyState = await page
+      .getByText("No Measurables Yet")
+      .first()
+      .isVisible()
+      .catch(() => false);
 
     // One of these should be true — page loaded with content or empty state
-    expect(hasMeasurables || hasEmptyState).toBeTruthy();
+    expect(hasGrid || hasEmptyState).toBeTruthy();
 
-    // No error states
+    // No error states — neither the global boundary nor the scorecard's own
     await expect(page.getByText("Something went wrong")).not.toBeVisible();
+    await expect(page.getByText("Failed to load scorecard")).not.toBeVisible();
   });
 
   test("todos page renders with filter and week selector", async ({

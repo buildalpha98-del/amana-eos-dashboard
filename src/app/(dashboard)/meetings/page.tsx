@@ -5,8 +5,11 @@ import {
   useMeetings,
   useCreateMeeting,
 } from "@/hooks/useMeetings";
+import { useCreateMeetingSeries } from "@/hooks/useMeetingSeries";
 import type { MeetingData } from "@/hooks/useMeetings";
+import type { MeetingType } from "@prisma/client";
 import { formatDateAU } from "@/lib/utils";
+import { wallClockIn } from "@/lib/meeting-series";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { MeetingListView } from "@/components/meetings/MeetingListView";
 import { ActiveMeetingView } from "@/components/meetings/ActiveMeetingView";
@@ -22,6 +25,7 @@ export default function MeetingsPage() {
 
   const { data: meetings, isLoading, error, refetch } = useMeetings({ limit: 100 });
   const createMeeting = useCreateMeeting();
+  const createSeries = useCreateMeetingSeries();
 
   const activeMeeting = meetings?.find((m) => m.id === activeMeetingId);
 
@@ -35,15 +39,49 @@ export default function MeetingsPage() {
     isLeadership: boolean,
     scorecardId: string | null,
     scheduledFor: string | null,
+    repeatWeekly: boolean,
+    meetingType: MeetingType,
   ) => {
     const now = new Date();
     // 2026-07-28: title reflects the meeting type so the list is scannable.
     // Scheduled meetings are titled by their scheduled date, not today.
     const titleDate = scheduledFor ? new Date(scheduledFor) : now;
-    const title = isLeadership
-      ? `Leadership L10 — ${formatDateAU(titleDate)}`
-      : `L10 Meeting — ${formatDateAU(titleDate)}`;
+    const title =
+      meetingType === "quarterly_pulse"
+        ? `Quarterly Pulse — ${formatDateAU(titleDate)}`
+        : isLeadership
+          ? `Leadership L10 — ${formatDateAU(titleDate)}`
+          : `L10 Meeting — ${formatDateAU(titleDate)}`;
     try {
+      // Repeat-weekly: create the series first (from the picked LOCAL
+      // wall-clock time — the series is timezone-anchored so DST never
+      // shifts it), then this week's meeting stamped with its id. If the
+      // meeting create fails, the orphan series is harmless — the daily
+      // cron simply materialises next week's occurrence.
+      let seriesId: string | undefined;
+      if (repeatWeekly && scheduledFor) {
+        // Derive the wall clock in SYDNEY, not the browser's zone — a
+        // series created from Perth/on the road must still recur at the
+        // time the meeting was scheduled for.
+        const local = wallClockIn(new Date(scheduledFor), "Australia/Sydney");
+        const series = await createSeries.mutateAsync({
+          name:
+            meetingType === "quarterly_pulse"
+              ? "Quarterly Pulse"
+              : isLeadership
+                ? "Leadership L10"
+                : "L10 Meeting",
+          dayOfWeek: local.dayOfWeek,
+          minuteOfDay: local.hour * 60 + local.minute,
+          timezone: "Australia/Sydney",
+          isLeadership,
+          serviceIds,
+          scorecardId,
+          attendeeUserIds: attendeeIds,
+        });
+        seriesId = series.id;
+      }
+
       const newMeeting = await createMeeting.mutateAsync({
         title,
         date: now.toISOString(),
@@ -51,7 +89,9 @@ export default function MeetingsPage() {
         attendeeIds: attendeeIds.length > 0 ? attendeeIds : undefined,
         isLeadership,
         scorecardId,
+        type: meetingType,
         ...(scheduledFor ? { scheduledFor } : {}),
+        ...(seriesId ? { seriesId } : {}),
       });
       setShowStartDialog(false);
       // Scheduled meetings stay on the list (nothing to run yet);
@@ -89,14 +129,17 @@ export default function MeetingsPage() {
   }
 
   if (activeMeeting) {
-    // Previous completed meeting of the same kind (leadership flag +
-    // overlapping service scope; both empty counts as overlap) — feeds
-    // the To-Do Review "from last meeting" carry-over badge.
+    // Previous completed meeting of the same kind (run sheet type +
+    // leadership flag + overlapping service scope; both empty counts as
+    // overlap) — feeds the To-Do Review "from last meeting" carry-over
+    // badge. Matching on type too keeps a Quarterly Pulse from treating
+    // an L10 as its "last meeting" and vice versa.
     const lastMeeting = (meetings ?? [])
       .filter(
         (m) =>
           m.status === "completed" &&
           m.id !== activeMeeting.id &&
+          m.type === activeMeeting.type &&
           m.isLeadership === activeMeeting.isLeadership &&
           (activeMeeting.serviceIds.length === 0
             ? m.serviceIds.length === 0

@@ -3,8 +3,9 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { UserPlus, MessageSquare, Phone, Trophy, Mail } from "lucide-react";
+import { UserPlus, MessageSquare, Phone, Trophy, Mail, LifeBuoy, ArrowRight } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { isAdminRole } from "@/lib/role-permissions";
 
@@ -71,12 +72,15 @@ function ContactCentreContent() {
     }
   }, [activeTab, searchParams, router]);
 
-  // Sync tab from URL changes (e.g. back/forward navigation)
-  useEffect(() => {
+  // Sync tab from URL changes (e.g. back/forward navigation) —
+  // adjust-state-during-render pattern, see react.dev "You Might Not Need an Effect"
+  const [prevTabParam, setPrevTabParam] = useState(tabParam);
+  if (tabParam !== prevTabParam) {
+    setPrevTabParam(tabParam);
     if (tabParam && TABS.some((t) => t.key === tabParam) && tabParam !== activeTab) {
       setActiveTab(tabParam as TabKey);
     }
-  }, [tabParam]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   return (
     <div
@@ -111,6 +115,23 @@ function ContactCentreContent() {
           })}
         </div>
       </div>
+
+      {/* Help Centre tickets (source: "portal", tag "help-centre") land in
+          this queue, but nothing here points back at the admin surface
+          that authors the content those tickets are about — admin-tier
+          only, matching /help-centre's own role gate. */}
+      {activeTab === "tickets" && isAdmin && (
+        <Link
+          href="/help-centre"
+          className="mb-4 flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm text-foreground hover:bg-surface/70 transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <LifeBuoy className="w-4 h-4 text-brand" />
+            Parent Help Centre tickets land here — manage articles &amp; categories in the Help Centre admin
+          </span>
+          <ArrowRight className="w-4 h-4 text-muted shrink-0" />
+        </Link>
+      )}
 
       {/* Tab Content */}
       {activeTab === "enquiries" && <EnquiriesContent />}

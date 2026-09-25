@@ -5,6 +5,7 @@ import { buildDashboardContext } from "@/lib/ai-context";
 import { ASSISTANT_TOOLS, executeToolCall } from "@/lib/ai-tools";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { logger } from "@/lib/logger";
 import type Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
@@ -17,6 +18,14 @@ const bodySchema = z.object({
 });
 
 const MAX_TOOL_ROUNDS = 5;
+
+// A tool-round conversation regularly runs 40s+ (two model calls plus a
+// knowledge-base search). The project's default function limit is 60s, so
+// without this override Vercel killed the function mid-stream — the client
+// got no error event and no [DONE], just a spinner that ended on an empty
+// bubble ("Amana AI not responding"). 300s matches the other AI routes
+// (ai-knowledge/reindex, recordings/regenerate).
+export const maxDuration = 300;
 
 /**
  * POST /api/assistant/chat — Streaming AI chat assistant with tool use
@@ -173,7 +182,11 @@ export const POST = withApiAuth(async (req, session) => {
         while (rounds < MAX_TOOL_ROUNDS) {
           rounds++;
 
-          const response = await ai.messages.create({
+          // Stream each round: with the previous non-streaming
+          // messages.create, nothing reached the client until the whole
+          // round finished (20-40s of bare typing dots that users read as
+          // "not responding"). Text deltas now land as they're generated.
+          const stream = ai.messages.stream({
             // 2026-06-17: previous ids (claude-sonnet-4-20250514 and
             // claude-sonnet-4-5-20250514) are both deprecated upstream.
             // The current Sonnet 4.6 alias accepts a stable short id.
@@ -183,22 +196,18 @@ export const POST = withApiAuth(async (req, session) => {
             messages: apiMessages,
             tools: allowedTools,
           });
+          stream.on("text", (textDelta) => {
+            if (!textDelta) return;
+            const data = JSON.stringify({ text: textDelta });
+            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          });
+          const response = await stream.finalMessage();
 
-          // Check if we need to handle tool use
+          // Check if we need to handle tool use (text already streamed
+          // above as deltas)
           const toolUseBlocks = response.content.filter(
             (b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use",
           );
-          const textBlocks = response.content.filter(
-            (b): b is Anthropic.Messages.TextBlock => b.type === "text",
-          );
-
-          // Stream any text blocks
-          for (const block of textBlocks) {
-            if (block.text) {
-              const data = JSON.stringify({ text: block.text });
-              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-            }
-          }
 
           // If no tool use or stop_reason is end_turn, we're done
           if (toolUseBlocks.length === 0 || response.stop_reason === "end_turn") {
@@ -233,6 +242,9 @@ export const POST = withApiAuth(async (req, session) => {
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       } catch (err) {
+        // Log server-side too — this catch used to be SSE-only, so a
+        // failing model call left no trace in the runtime logs.
+        logger.error("Assistant chat stream failed", { error: err });
         const errMsg = err instanceof Error ? err.message : "Stream error";
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ error: errMsg })}\n\n`),

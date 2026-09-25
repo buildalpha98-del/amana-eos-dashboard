@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useLeads } from "@/hooks/useCRM";
 import type { LeadSummary, LeadFilters } from "@/hooks/useCRM";
 import { CrmKanban } from "@/components/crm/CrmKanban";
@@ -27,6 +28,7 @@ import {
   Handshake,
   Loader2,
   Repeat,
+  Mail,
 } from "lucide-react";
 import { ConversionsContent } from "@/components/crm/ConversionsContent";
 import { ExportButton } from "@/components/ui/ExportButton";
@@ -64,6 +66,7 @@ interface UserOption {
 }
 
 export default function CrmPage() {
+  const router = useRouter();
   // "conversions" joined the view toggle in the 2026-07-05 nav
   // consolidation — /conversions redirects to /crm?view=conversions.
   // window.location (not useSearchParams) so no Suspense boundary is
@@ -130,6 +133,11 @@ export default function CrmPage() {
         description="Sales pipeline & lead management"
         primaryAction={{ label: "New Lead", icon: Plus, onClick: () => setShowCreate(true) }}
         secondaryActions={[
+          {
+            label: "Templates",
+            icon: Mail,
+            onClick: () => router.push("/crm/templates"),
+          },
           {
             label: "Export CSV",
             icon: Download,
@@ -503,6 +511,8 @@ interface SchoolHealthEntry {
 }
 
 function SchoolHealthSection() {
+  // Captured once on mount so render stays pure (day-level granularity)
+  const [now] = useState(() => Date.now());
   const { data, isLoading } = useQuery<{ schools: SchoolHealthEntry[] }>({
     queryKey: ["school-health"],
     queryFn: async () => {
@@ -553,7 +563,7 @@ function SchoolHealthSection() {
           <tbody className="divide-y divide-border/50">
             {schools.map((s) => {
               const daysSinceVisit = s.lastPrincipalVisit
-                ? Math.floor((Date.now() - new Date(s.lastPrincipalVisit).getTime()) / (1000 * 60 * 60 * 24))
+                ? Math.floor((now - new Date(s.lastPrincipalVisit).getTime()) / (1000 * 60 * 60 * 24))
                 : null;
               return (
                 <tr key={s.serviceId} className="hover:bg-surface">

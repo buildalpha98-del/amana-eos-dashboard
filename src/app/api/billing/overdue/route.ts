@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const postSchema = z.object({
   serviceId: z.string().min(1, "serviceId is required"),
   parentName: z.string().min(1, "parentName is required"),
@@ -188,4 +189,4 @@ try {
       { status: 500 },
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

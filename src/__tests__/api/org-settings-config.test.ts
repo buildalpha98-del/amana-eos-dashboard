@@ -103,3 +103,110 @@ describe("GET /api/org-settings/config — branding slice for the composer seed"
     });
   });
 });
+
+describe("GET /api/org-settings/config — compliance.requiredCertsByRole slice (Phase 9)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    _clearOrgSettingsCache();
+    _clearEmailBrandingCache();
+    setupActiveUserMock();
+    // Deliberately a NON-admin session: staff surfaces (/compliance,
+    // /my-portal) resolve required cert types from THIS slice because the
+    // row-level /api/org-settings GET is role-gated away from them.
+    mockSession({ id: "user-1", name: "Marketer", role: "marketing" });
+  });
+
+  it("exposes the default matrix when the stored config has no compliance block", async () => {
+    prismaMock.orgSettings.findUnique.mockImplementation(
+      async (args: { select?: Record<string, boolean> } | undefined) => {
+        if (args?.select?.config) return { config: {} } as never;
+        return { name: "Bright Futures OSHC", primaryColor: "#112233" } as never;
+      },
+    );
+    const res = await getConfig(
+      createRequest("GET", "/api/org-settings/config"),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.config.compliance.requiredCertsByRole.staff).toEqual([
+      "wwcc",
+      "first_aid",
+      "cpr",
+      "anaphylaxis",
+      "child_protection",
+    ]);
+    expect(json.config.compliance.requiredCertsByRole.owner).toEqual([]);
+  });
+
+  it("exposes a customised stored matrix", async () => {
+    prismaMock.orgSettings.findUnique.mockImplementation(
+      async (args: { select?: Record<string, boolean> } | undefined) => {
+        if (args?.select?.config) {
+          return {
+            config: {
+              compliance: {
+                requiredCertsByRole: { staff: ["wwcc", "asthma"], member: [] },
+              },
+            },
+          } as never;
+        }
+        return { name: "Bright Futures OSHC", primaryColor: "#112233" } as never;
+      },
+    );
+    const res = await getConfig(
+      createRequest("GET", "/api/org-settings/config"),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.config.compliance.requiredCertsByRole.staff).toEqual([
+      "wwcc",
+      "asthma",
+    ]);
+    // Explicitly empty stays empty (empty ≠ missing).
+    expect(json.config.compliance.requiredCertsByRole.member).toEqual([]);
+  });
+});
+
+// ── PATCH role gate (2026-09-05: head_office added per Jayden) ─────
+import { PATCH as patchConfig } from "@/app/api/org-settings/config/route";
+import { ORG_SETTINGS_DEFAULTS } from "@/lib/org-settings-shared";
+
+describe("PATCH /api/org-settings/config — role gate", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    _clearOrgSettingsCache();
+    _clearEmailBrandingCache();
+    prismaMock.user.findUnique.mockResolvedValue({
+      active: true,
+      id: "user-1",
+      role: "head_office",
+    } as never);
+    prismaMock.orgSettings.upsert.mockResolvedValue({} as never);
+    prismaMock.orgSettings.findUnique.mockResolvedValue({ config: {} } as never);
+    prismaMock.activityLog.create.mockResolvedValue({} as never);
+  });
+
+  it("allows head_office to save org settings", async () => {
+    mockSession({ id: "user-1", name: "State Manager", role: "head_office" });
+    const res = await patchConfig(
+      createRequest("PATCH", "/api/org-settings/config", {
+        body: { config: ORG_SETTINGS_DEFAULTS },
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(prismaMock.orgSettings.upsert).toHaveBeenCalled();
+  });
+
+  it("still rejects marketing with 403", async () => {
+    mockSession({ id: "user-1", name: "Marketer", role: "marketing" });
+    const res = await patchConfig(
+      createRequest("PATCH", "/api/org-settings/config", {
+        body: { config: ORG_SETTINGS_DEFAULTS },
+      }),
+    );
+    expect(res.status).toBe(403);
+    expect(prismaMock.orgSettings.upsert).not.toHaveBeenCalled();
+  });
+});

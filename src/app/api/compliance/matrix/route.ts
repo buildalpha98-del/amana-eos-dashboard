@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { getCertStatus, type CertStatus } from "@/lib/cert-status";
 import { COMPLIANCE_MATRIX_TYPES as REQUIRED_CERT_TYPES } from "@/lib/required-cert-types";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const GET = withApiAuth(async (req, session) => {
 const { searchParams } = new URL(req.url);
@@ -149,4 +150,4 @@ const { searchParams } = new URL(req.url);
       nonCompliant,
     },
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

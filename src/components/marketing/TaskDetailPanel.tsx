@@ -60,25 +60,27 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
       });
   }, []);
 
-  // Sync local state when data loads
-  useEffect(() => {
-    if (task) {
-      setTitle(task.title);
-      setDescription(task.description ?? "");
-      setStatus(task.status);
-      setPriority(task.priority);
-      setDueDate(
-        task.dueDate
-          ? new Date(task.dueDate).toISOString().split("T")[0]
-          : ""
-      );
-      setAssigneeId(task.assigneeId ?? "");
-      setCampaignId(task.campaignId ?? "");
-      setSubtasks(
-        Array.isArray(task.subtasks) ? task.subtasks : []
-      );
-    }
-  }, [task]);
+  // Sync local state when data loads (render-time sync guarded by the
+  // last-synced task object, per React's "adjusting state when props
+  // change" pattern)
+  const [syncedTask, setSyncedTask] = useState<typeof task>(undefined);
+  if (task && task !== syncedTask) {
+    setSyncedTask(task);
+    setTitle(task.title);
+    setDescription(task.description ?? "");
+    setStatus(task.status);
+    setPriority(task.priority);
+    setDueDate(
+      task.dueDate
+        ? new Date(task.dueDate).toISOString().split("T")[0]
+        : ""
+    );
+    setAssigneeId(task.assigneeId ?? "");
+    setCampaignId(task.campaignId ?? "");
+    setSubtasks(
+      Array.isArray(task.subtasks) ? task.subtasks : []
+    );
+  }
 
   function autoSave(field: string, value: string | null) {
     updateTask.mutate({ id: taskId, [field]: value });

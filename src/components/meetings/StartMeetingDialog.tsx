@@ -8,7 +8,9 @@ import {
   Building2,
   X,
   Users,
+  CalendarClock,
 } from "lucide-react";
+import type { MeetingType } from "@prisma/client";
 import { useServices } from "@/hooks/useServices";
 import { useScorecardsList } from "@/hooks/useScorecards";
 import { cn } from "@/lib/utils";
@@ -25,6 +27,8 @@ export function StartMeetingDialog({
     isLeadership: boolean,
     scorecardId: string | null,
     scheduledFor: string | null,
+    repeatWeekly: boolean,
+    meetingType: MeetingType,
   ) => void;
   onCancel: () => void;
   isPending: boolean;
@@ -40,6 +44,10 @@ export function StartMeetingDialog({
   // keeps the original centre-scoped flow.
   const [step, setStep] = useState<"type" | "services" | "attendees">("type");
   const [isLeadership, setIsLeadership] = useState(false);
+  // 2026-09-24: Quarterly Pulse is a third meeting type alongside L10.
+  // It follows the same org-wide, no-service-step flow as Leadership.
+  const [meetingType, setMeetingType] = useState<MeetingType>("l10");
+  const isQuarterlyPulse = meetingType === "quarterly_pulse";
   // 2026-07-28: which Scorecard the meeting reviews. null = the legacy
   // single scorecard, which is also the fallback for older meetings.
   const [scorecardId, setScorecardId] = useState<string | null>(null);
@@ -48,12 +56,15 @@ export function StartMeetingDialog({
   // as `scheduled` (dated scheduledFor) instead of starting immediately.
   const [scheduleLater, setScheduleLater] = useState(false);
   const [scheduledFor, setScheduledFor] = useState("");
+  // 2026-08-31: creates a MeetingSeries so this meeting repeats weekly.
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
 
+  const scopesToLeadership = isLeadership || isQuarterlyPulse;
   const { data: allUsers } = useQuery<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>({
-    queryKey: ["users-list-full", isLeadership ? "leadership" : "eos_assignees"],
+    queryKey: ["users-list-full", scopesToLeadership ? "leadership" : "eos_assignees"],
     queryFn: () =>
       fetchApi<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>(
-        isLeadership
+        scopesToLeadership
           ? "/api/users?scope=leadership"
           : "/api/users?scope=eos_assignees",
       ),
@@ -127,14 +138,14 @@ export function StartMeetingDialog({
           <div className="px-6 py-4 border-b border-border/50 flex items-center justify-between">
             <div>
               <h3 className="text-base font-semibold text-foreground">
-                Start L10 Meeting
+                {isQuarterlyPulse ? "Start Quarterly Pulse" : "Start L10 Meeting"}
               </h3>
               <p className="text-xs text-muted mt-0.5">
                 {step === "type"
                   ? "What kind of meeting is this?"
                   : step === "services"
                     ? "Select which services to include in this meeting"
-                    : isLeadership
+                    : isLeadership || isQuarterlyPulse
                       ? "Select the leadership team members present"
                       : "Select attendees for this meeting"}
               </p>
@@ -151,6 +162,7 @@ export function StartMeetingDialog({
             <div className="p-6 space-y-3">
               <button
                 onClick={() => {
+                  setMeetingType("l10");
                   setIsLeadership(true);
                   setSelectedServiceIds([]);
                   setSelectedUserIds([]);
@@ -171,6 +183,7 @@ export function StartMeetingDialog({
               </button>
               <button
                 onClick={() => {
+                  setMeetingType("l10");
                   setIsLeadership(false);
                   setSelectedUserIds([]);
                   setStep("services");
@@ -188,6 +201,27 @@ export function StartMeetingDialog({
                   available as attendees.
                 </p>
               </button>
+              <button
+                onClick={() => {
+                  setMeetingType("quarterly_pulse");
+                  setIsLeadership(false);
+                  setSelectedServiceIds([]);
+                  setSelectedUserIds([]);
+                  setStep("attendees");
+                }}
+                className="w-full text-left rounded-lg border border-border p-4 hover:border-brand hover:bg-brand/5 transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <CalendarClock className="w-4 h-4 text-brand" />
+                  <span className="text-sm font-semibold text-foreground">
+                    Quarterly Pulse
+                  </span>
+                </div>
+                <p className="text-xs text-muted">
+                  The quarterly EOS session — review the quarter, the V/TO,
+                  and set next quarter&apos;s Rocks. Organisation-wide.
+                </p>
+              </button>
             </div>
           ) : step === "services" ? (
             <>
@@ -195,7 +229,7 @@ export function StartMeetingDialog({
                 {/* Quick Actions */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => onStart([], [], false, null, null)}
+                    onClick={() => onStart([], [], false, null, null, false, "l10")}
                     className="text-xs px-3 py-1.5 border border-brand text-brand rounded-lg hover:bg-brand/5 transition-colors font-medium"
                   >
                     Company-Wide Meeting
@@ -291,10 +325,10 @@ export function StartMeetingDialog({
               <div className="p-6 space-y-4">
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setStep(isLeadership ? "type" : "services")}
+                    onClick={() => setStep(isLeadership || isQuarterlyPulse ? "type" : "services")}
                     className="text-xs px-3 py-1.5 text-muted hover:text-foreground transition-colors"
                   >
-                    {isLeadership ? "← Back" : "← Back to Services"}
+                    {isLeadership || isQuarterlyPulse ? "← Back" : "← Back to Services"}
                   </button>
                   <button
                     onClick={() => {
@@ -421,6 +455,20 @@ export function StartMeetingDialog({
                       className="flex-1 px-2 py-1.5 text-xs border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                     />
                   )}
+                  {/* Quarterly Pulse doesn't repeat weekly — recurrence
+                      would materialise as an l10 meeting anyway, since
+                      MeetingSeries has no type field of its own. */}
+                  {scheduleLater && !isQuarterlyPulse && (
+                    <label className="flex items-center gap-2 text-xs text-muted cursor-pointer whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={repeatWeekly}
+                        onChange={(e) => setRepeatWeekly(e.target.checked)}
+                        className="rounded border-border"
+                      />
+                      Repeat weekly
+                    </label>
+                  )}
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted">
@@ -445,6 +493,8 @@ export function StartMeetingDialog({
                           scheduleLater && scheduledFor
                             ? new Date(scheduledFor).toISOString()
                             : null,
+                          scheduleLater && repeatWeekly,
+                          meetingType,
                         )
                       }
                       disabled={isPending || (scheduleLater && !scheduledFor)}

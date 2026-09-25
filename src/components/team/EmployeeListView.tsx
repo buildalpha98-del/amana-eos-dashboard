@@ -21,8 +21,16 @@ import { BulkInviteModal } from "@/components/settings/BulkInviteModal";
 import { AddStaffModal } from "@/components/team/AddStaffModal";
 import { useBulkResendInvite } from "@/hooks/useEmployeeResendInvite";
 import { exportToCsv } from "@/lib/csv-export";
+import { fetchApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 import { isAdminRole } from "@/lib/role-permissions";
-import { useEmployeesList, type EmployeesListParams } from "@/hooks/useEmployeesList";
+import {
+  useEmployeesList,
+  buildEmployeesListUrl,
+  type EmployeesListParams,
+  type EmployeeListItem,
+  type EmployeesListResponse,
+} from "@/hooks/useEmployeesList";
 import { EmployeeRow } from "./EmployeeRow";
 import { EmployeeFilters, type EmployeeFiltersValue } from "./EmployeeFilters";
 import { EmployeeListPagination } from "./EmployeeListPagination";
@@ -102,6 +110,7 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
 
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const isAdmin = isAdminRole(viewerRole);
 
@@ -117,11 +126,49 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
     filters.roles.length > 0 ||
     filters.tags.length > 0;
 
-  function handleExportCsv() {
-    if (!data) return;
+  // Export ALL employees matching the current filters — not just the
+  // visible 50-row page. Pages through /api/employees (pageSize is
+  // server-capped at 200) until the full set is collected.
+  async function handleExportCsv() {
+    if (!data || exporting) return;
+    setExporting(true);
+    try {
+      const baseParams: EmployeesListParams = {
+        q: filters.q || undefined,
+        status: filters.status ?? undefined,
+        serviceIds: filters.serviceIds.length ? filters.serviceIds : undefined,
+        roles: filters.roles.length ? filters.roles : undefined,
+        tags: filters.tags.length ? filters.tags : undefined,
+        sort: filters.sort,
+        pageSize: 200,
+      };
+      const all: EmployeeListItem[] = [];
+      let page = 1;
+      let totalPages = 1;
+      do {
+        const res = await fetchApi<EmployeesListResponse>(
+          buildEmployeesListUrl({ ...baseParams, page }),
+        );
+        all.push(...res.employees);
+        totalPages = res.totalPages;
+        page += 1;
+      } while (page <= totalPages && page <= 50); // safety cap: 10,000 rows
+      exportEmployeesCsv(all);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description:
+          (err as Error).message || "Failed to export employees to CSV",
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  function exportEmployeesCsv(employees: EmployeeListItem[]) {
     exportToCsv(
       `amana-team-${new Date().toISOString().slice(0, 10)}`,
-      data.employees,
+      employees,
       [
         { header: "Name", accessor: (e) => e.name },
         { header: "Email", accessor: (e) => e.email ?? "" },
@@ -188,9 +235,10 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
             hidden: !isAdmin || pendingCount === 0,
           },
           {
-            label: "Export CSV",
+            label: exporting ? "Exporting…" : "Export CSV",
             icon: Download,
             onClick: handleExportCsv,
+            loading: exporting,
             hidden: !isAdmin || !data || data.employees.length === 0,
           },
         ]}

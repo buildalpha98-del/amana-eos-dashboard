@@ -5,6 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 // ─── GET /api/xero/mappings ─────────────────────────────────────────────────
 
 export const GET = withApiAuth(async (req, session) => {
@@ -24,9 +25,16 @@ export const GET = withApiAuth(async (req, session) => {
       }),
     ]);
 
+    // Mirror the POST contract: centreMappings in the same shape the save accepts
     return NextResponse.json({
       trackingCategoryId: connection?.trackingCategoryId ?? null,
       services,
+      centreMappings: services
+        .filter((s) => s.xeroTrackingOptionId)
+        .map((s) => ({
+          serviceId: s.id,
+          xeroTrackingOptionId: s.xeroTrackingOptionId,
+        })),
       accountMappings,
     });
   } catch (err) {
@@ -36,7 +44,7 @@ export const GET = withApiAuth(async (req, session) => {
       { status: 500 }
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // ─── POST /api/xero/mappings ────────────────────────────────────────────────
 

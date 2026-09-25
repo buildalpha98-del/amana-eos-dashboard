@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
@@ -31,11 +32,11 @@ const { searchParams } = new URL(req.url);
   const targetUserId =
     session!.user.role === "staff" ? session!.user.id : userId;
 
-  const where: Record<string, unknown> = {};
+  const where: Prisma.StaffOffboardingWhereInput = {};
   if (targetUserId) where.userId = targetUserId;
 
   const assignments = await prisma.staffOffboarding.findMany({
-    where: where as any,
+    where,
     include: {
       user: { select: { id: true, name: true, email: true, avatar: true } },
       pack: {

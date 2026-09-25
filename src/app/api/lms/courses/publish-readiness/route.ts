@@ -24,6 +24,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { assessTrackDrafts, publishCourses } from "@/lib/course-publish";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const TRACKS = ["essential", "monthly", "library"] as const;
 type Track = (typeof TRACKS)[number];
@@ -92,7 +93,7 @@ export const GET = withApiAuth(
       },
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const POST = withApiAuth(
@@ -138,5 +139,5 @@ export const POST = withApiAuth(
    * see this panel and get a 403, while admin could publish freely from
    * the other screen and never see it.
    */
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

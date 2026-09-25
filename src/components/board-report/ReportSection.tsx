@@ -27,10 +27,13 @@ export function ReportSection({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [localValue, setLocalValue] = useState(narrative ?? "");
 
-  // Sync from parent when narrative changes (e.g. switching reports)
-  useEffect(() => {
+  // Sync from parent when narrative changes (e.g. switching reports) —
+  // adjust-during-render pattern.
+  const [prevNarrative, setPrevNarrative] = useState(narrative);
+  if (narrative !== prevNarrative) {
+    setPrevNarrative(narrative);
     setLocalValue(narrative ?? "");
-  }, [narrative]);
+  }
 
   // Auto-resize textarea to fit content
   useEffect(() => {

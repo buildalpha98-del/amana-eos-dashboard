@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { acquireCronLock } from "@/lib/cron-guard";
+import { skipIfServiceAlertsPaused } from "@/lib/service-alerts-pause";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { computeRatio } from "@/lib/roster-ratio";
 import { siteUrl } from "@/lib/site-url";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const BRAND_COLOR = "#004E64";
 const ACCENT_COLOR = "#FECE00";
@@ -43,6 +45,11 @@ export const GET = withApiHandler(async (req) => {
   if (!guard.acquired) {
     return NextResponse.json({ message: guard.reason, skipped: true });
   }
+
+  // 2026-09-14: service-ops alert emails are paused until the services
+  // portal is in use (Settings → Organisation → Service alert emails).
+  const paused = await skipIfServiceAlertsPaused(guard);
+  if (paused) return paused;
 
   try {
     const now = new Date();
@@ -258,7 +265,7 @@ export const GET = withApiHandler(async (req) => {
     // ── 8. Send admin summary ───────────────────────────────
     const admins = await prisma.user.findMany({
       where: {
-        role: { in: ["owner", "admin", "head_office"] },
+        role: { in: [...ADMIN_ROLES] },
         active: true,
       },
       select: { name: true, email: true },

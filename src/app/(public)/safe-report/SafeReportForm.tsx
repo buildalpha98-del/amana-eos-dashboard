@@ -134,13 +134,13 @@ export function SafeReportForm({ services }: SafeReportFormProps) {
               {result.id}
             </p>
             <p className="text-xs text-muted mt-3">
-              Save this id if you'd like to reference it later (for example, if
+              Save this id if you&apos;d like to reference it later (for example, if
               you choose to identify yourself in a follow-up conversation). The
               director cannot match it back to you without your help.
             </p>
           </div>
           <p className="mt-6 text-xs text-muted">
-            For immediate concerns about a child's safety, please also contact
+            For immediate concerns about a child&apos;s safety, please also contact
             authorities directly: NSW Child Protection Helpline 132 111.
           </p>
         </div>

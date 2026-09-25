@@ -173,7 +173,7 @@ export function useMessageAttachments(
         if (accepted.length > 0) {
           queueMicrotask(async () => {
             for (const att of accepted) {
-              // eslint-disable-next-line no-await-in-loop
+               
               await uploadOne(att);
             }
           });

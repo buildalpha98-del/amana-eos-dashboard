@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { indexDocument } from "@/lib/document-indexer";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const bodySchema = z.object({
   documentId: z.string().min(1, "documentId is required"),
@@ -42,5 +43,5 @@ export const POST = withApiAuth(
       chunksCreated,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

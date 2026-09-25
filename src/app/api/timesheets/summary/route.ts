@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 // GET /api/timesheets/summary — aggregate hours by staff member
 export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
@@ -94,4 +95,4 @@ export const GET = withApiAuth(async (req, session) => {
   }));
 
   return NextResponse.json(summary);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

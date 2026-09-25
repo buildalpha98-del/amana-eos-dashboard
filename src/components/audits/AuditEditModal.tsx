@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
@@ -52,7 +52,22 @@ export function AuditEditModal({ open, onClose, year, month, editing }: Props) {
   const [scheduledMonth, setScheduledMonth] = useState(month ?? 1);
   const [scheduledYear, setScheduledYear] = useState(year);
 
-  useEffect(() => {
+  // Re-hydrate the form during render whenever the inputs that used to drive
+  // the reset effect change (same reference-based trigger semantics).
+  const [prevInputs, setPrevInputs] = useState<{
+    editing?: AuditInstanceSummary | null;
+    month?: number;
+    year: number;
+    open: boolean;
+  } | null>(null);
+  if (
+    prevInputs === null ||
+    prevInputs.editing !== editing ||
+    prevInputs.month !== month ||
+    prevInputs.year !== year ||
+    prevInputs.open !== open
+  ) {
+    setPrevInputs({ editing, month, year, open });
     if (editing) {
       setTemplateId(editing.template.id);
       setServiceId(editing.service.id);
@@ -64,7 +79,7 @@ export function AuditEditModal({ open, onClose, year, month, editing }: Props) {
       setScheduledMonth(month ?? 1);
       setScheduledYear(year);
     }
-  }, [editing, month, year, open]);
+  }
 
   if (!open) return null;
 

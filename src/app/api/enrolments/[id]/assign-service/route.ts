@@ -27,6 +27,7 @@ import { logAmbassadorEnrolmentForChild } from "@/lib/ambassadors/log-enrolment"
 import { generateBookings } from "@/lib/booking-generator";
 import { isPlacementReason } from "@/lib/placement-reason";
 import { stampRequiredRoomIds } from "@/lib/room-resolver";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -172,5 +173,5 @@ export const POST = withApiAuth(
       secondaryContactId: result.contacts.secondary?.id ?? null,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

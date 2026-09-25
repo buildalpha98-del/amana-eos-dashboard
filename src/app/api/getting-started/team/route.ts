@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { parseJsonField, gettingStartedProgressSchema } from "@/lib/schemas/json-fields";
 import type { Role } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 // Checklist item counts per role — must match the CHECKLISTS in GettingStartedContent.tsx
 const CHECKLIST_COUNTS: Record<string, number> = {
@@ -20,7 +21,7 @@ function getTotalForRole(role: string): number {
 
 // GET /api/getting-started/team — team onboarding progress (admin+ only)
 export const GET = withApiAuth(async (req, session) => {
-  const allowedRoles: Role[] = ["owner", "admin", "head_office"];
+  const allowedRoles: Role[] = [...ADMIN_ROLES];
 const users = await prisma.user.findMany({
     where: { active: true },
     select: {

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 // GET /api/org-settings — fetch org settings (singleton)
 export const GET = withApiAuth(async (req, session) => {
   let settings = await prisma.orgSettings.findUnique({
@@ -16,7 +17,7 @@ export const GET = withApiAuth(async (req, session) => {
   }
 
   return NextResponse.json(settings);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 const updateSchema = z.object({
   name: z.string().min(1).max(100).optional(),

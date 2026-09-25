@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 // GET /api/getting-started/videos — return role video URLs from OrgSettings
 export const GET = withApiAuth(async (req, session) => {
   const settings = await prisma.orgSettings.findUnique({
@@ -65,4 +66,4 @@ export const PUT = withApiAuth(async (req, session) => {
   return NextResponse.json({
     roleVideos: (settings.roleVideos as Record<string, string>) ?? {},
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

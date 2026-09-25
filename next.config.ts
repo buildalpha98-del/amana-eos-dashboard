@@ -1,7 +1,12 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
-const securityHeaders = [
+// Meta Pixel host allowances. Appended to the CSP ONLY for the routes that
+// actually render <MetaPixel /> (/enrol, /parent/signup) via the extra
+// headers() entries below — the authenticated dashboard keeps the stricter
+// policy, so an XSS on a staff page never gets a pre-approved facebook
+// script host or exfiltration endpoint.
+const securityHeaders = (opts: { metaPixel?: boolean } = {}) => [
   // Prevent clickjacking from OTHER origins. SAMEORIGIN (was DENY)
   // lets the dashboard iframe its own PDF proxies — the staff payslip
   // viewer, contract viewer, and any future in-app PDF rendering all
@@ -20,25 +25,31 @@ const securityHeaders = [
   { key: "X-XSS-Protection", value: "1; mode=block" },
   // Only allow HTTPS after first visit
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
-  // Restrict permissions/features
+  // Restrict permissions/features. microphone=(self) is REQUIRED for the
+  // L10 meeting recorder (useMeetingRecorder → getUserMedia): microphone=()
+  // disables the mic for the whole document, so Chrome rejected every
+  // Record attempt with NotAllowedError no matter what site/macOS
+  // permission the user granted (2026-09-01 "still failing, I tried it all").
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=()",
+    value: "camera=(), microphone=(self), geolocation=(), payment=()",
   },
   // Content Security Policy
   {
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://*.vercel-scripts.com https://*.sentry.io",
+      // connect.facebook.net: Meta Pixel loader (fbevents.js) — pixel routes only
+      `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://*.vercel-scripts.com https://*.sentry.io${opts.metaPixel ? " https://connect.facebook.net" : ""}`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.vercel-storage.com",
+      // www.facebook.com: Meta Pixel event beacons (/tr) — pixel routes only
+      `img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.vercel-storage.com${opts.metaPixel ? " https://www.facebook.com" : ""}`,
       // 2026-06-15: added vercel.com + blob.vercel-storage.com so the
       // @vercel/blob client can call its token-mint endpoint and upload
       // file bytes directly to Blob storage. AI Knowledge bulk-upload
       // was hanging at 0% because CSP blocked the connect.
-      "connect-src 'self' https://vercel.com https://*.public.blob.vercel-storage.com https://*.blob.vercel-storage.com https://*.vercel-storage.com https://*.vercel-analytics.com https://*.sentry.io https://*.upstash.io wss://ws-us3-e.pusher.com",
+      `connect-src 'self' https://vercel.com https://*.public.blob.vercel-storage.com https://*.blob.vercel-storage.com https://*.vercel-storage.com https://*.vercel-analytics.com https://*.sentry.io https://*.upstash.io wss://ws-us3-e.pusher.com${opts.metaPixel ? " https://www.facebook.com" : ""}`,
       // frame-ancestors 'self' (was 'none'): pairs with the
       // X-Frame-Options change above. Allows /my-portal and /contracts
       // to iframe /api/my-portal/payslips/.../download and similar
@@ -52,6 +63,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Pin the workspace root: Turbopack otherwise infers it from lockfiles in
+  // parent directories, which mis-resolved module lookups (a stray
+  // ~/package-lock.json once dragged the root to the home dir).
+  turbopack: {
+    root: __dirname,
+  },
   serverExternalPackages: ["jsdom", "mammoth", "@sparticuz/chromium", "puppeteer-core"],
   // @sparticuz/chromium loads its brotli-compressed binaries from disk at
   // runtime (paths are constructed dynamically), so Next.js's file tracer
@@ -73,7 +90,20 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/(.*)",
-        headers: securityHeaders,
+        headers: securityHeaders(),
+      },
+      // Meta Pixel routes: same headers with the facebook hosts appended.
+      // Next applies matching entries in order and the LAST value for a
+      // header key wins, so these override the catch-all's CSP for exactly
+      // the pages that render <MetaPixel /> (see
+      // src/components/analytics/MetaPixel.tsx).
+      {
+        source: "/enrol/:path*",
+        headers: securityHeaders({ metaPixel: true }),
+      },
+      {
+        source: "/parent/signup",
+        headers: securityHeaders({ metaPixel: true }),
       },
     ];
   },

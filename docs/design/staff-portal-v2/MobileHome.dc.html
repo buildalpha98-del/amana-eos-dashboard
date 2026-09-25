@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif; color: #1a1a2e; }
+    a { color: #004E64; text-decoration: none; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #FAF8F5; display: flex; flex-direction: column; overflow: hidden;">
+
+  <!-- Greeting -->
+  <div style="padding: 24px 20px 0; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <div style="font-family: 'Bricolage Grotesque', ui-sans-serif, sans-serif; font-weight: 700; font-size: 22px;">Good morning, Sara</div>
+      <div style="font-size: 12px; color: #6b6b78; margin-top: 2px;">Friday 4 Sept · Beaumont Hills</div>
+    </div>
+    <div style="position: relative;">
+      <div style="width: 40px; height: 40px; border-radius: 999px; background: #004E64; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">SA</div>
+      <div style="position: absolute; top: -2px; right: -2px; width: 14px; height: 14px; border-radius: 999px; background: #DC2626; color: #ffffff; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid #FAF8F5;">3</div>
+    </div>
+  </div>
+
+  <!-- Shift hero: the ONE thing that matters right now -->
+  <div style="margin: 16px 20px 0; background: #002E3D; border-radius: 20px; padding: 20px; color: #ffffff;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-size: 12px; color: rgba(255,255,255,0.65);">Today's shift</div>
+        <div style="font-family: 'Bricolage Grotesque', ui-sans-serif, sans-serif; font-weight: 700; font-size: 22px; margin-top: 2px;">2:30 – 6:00 pm</div>
+        <div style="font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 2px;">After School Care · starts in 3 hrs</div>
+      </div>
+      <div style="background: #FECE00; color: #002E3D; border-radius: 12px; padding: 14px 18px; font-size: 14px; font-weight: 700; min-height: 44px; display: flex; align-items: center;">Clock in</div>
+    </div>
+  </div>
+
+  <!-- Money + leave glance tiles -->
+  <div style="margin: 12px 20px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+    <div style="background: #ffffff; border: 1px solid #e8e4df; border-radius: 14px; padding: 14px 16px;">
+      <div style="font-size: 11px; font-weight: 600; color: #6b6b78;">Last pay</div>
+      <div style="font-family: 'Bricolage Grotesque', ui-sans-serif, sans-serif; font-weight: 700; font-size: 20px; margin-top: 2px;">$1,284.60</div>
+      <div style="font-size: 11px; color: #6b6b78;">paid 28 Aug</div>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #e8e4df; border-radius: 14px; padding: 14px 16px;">
+      <div style="font-size: 11px; font-weight: 600; color: #6b6b78;">Annual leave</div>
+      <div style="font-family: 'Bricolage Grotesque', ui-sans-serif, sans-serif; font-weight: 700; font-size: 20px; margin-top: 2px;">64.4 hrs</div>
+      <div style="font-size: 11px; color: #6b6b78;">≈ 8.4 days</div>
+    </div>
+  </div>
+
+  <!-- Quick actions -->
+  <div style="margin: 14px 20px 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+      <div style="width: 52px; height: 52px; border-radius: 16px; background: #E6F3F7; display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#004E64" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg></div>
+      <div style="font-size: 11px; font-weight: 600;">Apply leave</div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+      <div style="width: 52px; height: 52px; border-radius: 16px; background: #E6F3F7; display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#004E64" stroke-width="2" stroke-linecap="round"><rect x="4" y="7" width="16" height="13" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M9 7l1.2-2h3.6L15 7"/></svg></div>
+      <div style="font-size: 11px; font-weight: 600;">Claim expense</div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+      <div style="width: 52px; height: 52px; border-radius: 16px; background: #E6F3F7; display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#004E64" stroke-width="2" stroke-linecap="round"><path d="M8 7h12M8 12h12M8 17h12"/><circle cx="4" cy="7" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="17" r="1"/></svg></div>
+      <div style="font-size: 11px; font-weight: 600;">Roll call</div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+      <div style="width: 52px; height: 52px; border-radius: 16px; background: #E6F3F7; display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#004E64" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div>
+      <div style="font-size: 11px; font-weight: 600;">Incident</div>
+    </div>
+  </div>
+
+  <!-- Needs your attention -->
+  <div style="margin: 18px 20px 0; flex: 1; min-height: 0;">
+    <div style="font-size: 14px; font-weight: 700; margin-bottom: 10px;">Needs your attention</div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="background: #ffffff; border: 1px solid #e8e4df; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; min-height: 44px;">
+        <span style="background: #FFE9D6; color: #8B4513; font-size: 10px; font-weight: 700; border-radius: 999px; padding: 3px 9px; flex-shrink: 0;">Policy</span>
+        <div style="font-size: 13px; flex: 1;">Acknowledge <strong>Sun Protection Policy</strong></div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+      <div style="background: #ffffff; border: 1px solid #e8e4df; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; min-height: 44px;">
+        <span style="background: #E6F3F7; color: #004E64; font-size: 10px; font-weight: 700; border-radius: 999px; padding: 3px 9px; flex-shrink: 0;">Swap</span>
+        <div style="font-size: 13px; flex: 1;">Jordan's swap for <strong>Tue 9 Sept</strong></div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+      <div style="background: #ffffff; border: 1px solid #e8e4df; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; min-height: 44px;">
+        <span style="background: #FFE4E4; color: #8B2525; font-size: 10px; font-weight: 700; border-radius: 999px; padding: 3px 9px; flex-shrink: 0;">Cert</span>
+        <div style="font-size: 13px; flex: 1;">First Aid expires in <strong>21 days</strong> — renew</div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom tab bar -->
+  <div style="border-top: 1px solid #e8e4df; background: #ffffff; display: flex; justify-content: space-around; padding: 10px 8px 26px;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: #004E64; font-weight: 700;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#004E64" stroke-width="2.2" stroke-linecap="round"><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"/></svg>Home</div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: #6b6b78;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>My Day</div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: #6b6b78;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>Pay</div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: #6b6b78;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>Leave</div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: #6b6b78;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg>Me</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

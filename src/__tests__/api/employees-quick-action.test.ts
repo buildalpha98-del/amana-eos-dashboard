@@ -42,7 +42,7 @@ vi.mock("@/lib/onboarding-seed", () => ({
   seedOnboardingPackage: vi.fn(),
 }));
 
-import { POST } from "@/app/api/employees/[id]/quick-action/route";
+import { GET, POST } from "@/app/api/employees/[id]/quick-action/route";
 import { seedOnboardingPackage } from "@/lib/onboarding-seed";
 
 const mockedSeed = vi.mocked(seedOnboardingPackage);
@@ -97,6 +97,68 @@ beforeEach(() => {
   prismaMock.passwordResetToken.updateMany.mockResolvedValue({ count: 0 } as never);
   prismaMock.passwordResetToken.create.mockResolvedValue({} as never);
   prismaMock.user.update.mockResolvedValue({} as never);
+});
+
+describe("GET /api/employees/[id]/quick-action (hasSeparation)", () => {
+  it("returns 401 when not authenticated", async () => {
+    mockNoSession();
+    const res = await GET(
+      createRequest("GET", "/api/employees/u-target/quick-action"),
+      ctx("u-target") as never,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 for non-admin viewers", async () => {
+    mockSession({ id: "m-1", name: "Member", role: "member" });
+    setupFindUnique("m-1", makeTarget());
+    const res = await GET(
+      createRequest("GET", "/api/employees/u-target/quick-action"),
+      ctx("u-target") as never,
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("returns 404 when target user does not exist", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    setupFindUnique("admin-1", null);
+    const res = await GET(
+      createRequest("GET", "/api/employees/missing/quick-action"),
+      ctx("missing") as never,
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("returns hasSeparation: true when a SeparationRecord exists", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    setupFindUnique("admin-1", makeTarget());
+    prismaMock.separationRecord.findUnique.mockResolvedValue({
+      id: "sep-1",
+    } as never);
+    const res = await GET(
+      createRequest("GET", "/api/employees/u-target/quick-action"),
+      ctx("u-target") as never,
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({ hasSeparation: true });
+    expect(prismaMock.separationRecord.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: "u-target" } }),
+    );
+  });
+
+  it("returns hasSeparation: false when no SeparationRecord exists", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    setupFindUnique("admin-1", makeTarget());
+    prismaMock.separationRecord.findUnique.mockResolvedValue(null as never);
+    const res = await GET(
+      createRequest("GET", "/api/employees/u-target/quick-action"),
+      ctx("u-target") as never,
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({ hasSeparation: false });
+  });
 });
 
 describe("POST /api/employees/[id]/quick-action", () => {

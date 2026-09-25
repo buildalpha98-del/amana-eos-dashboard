@@ -65,9 +65,17 @@ export function PageHeader({
         {/* Left: Title block */}
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-heading font-semibold text-foreground tracking-tight">
+            {/*
+              2026-09-26: was an <h2>. PageHeader renders the page's title, so
+              the ~57 pages that adopt it had no <h1> at all — a screen reader
+              landed on a document whose top-level heading was missing, and the
+              heading outline started at level 2 for no reason. No page that
+              uses PageHeader renders its own h1, so this introduces no
+              duplicate. Verified by a guard test.
+            */}
+            <h1 className="text-xl font-heading font-semibold text-foreground tracking-tight">
               {title}
-            </h2>
+            </h1>
             {badge && (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/20 text-brand border border-accent/30 shrink-0">
                 {badge}

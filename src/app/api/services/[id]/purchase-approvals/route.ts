@@ -27,6 +27,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
+import { notifyUsers } from "@/lib/notify-user";
 import { logger } from "@/lib/logger";
 
 const createSchema = z.object({
@@ -39,7 +40,6 @@ const createSchema = z.object({
   reason: z.string().max(2000).optional().nullable(),
 });
 
-const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -49,7 +49,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
   const { id: serviceId } = await (context as unknown as RouteContext).params;
   const role = session!.user.role;
   const userId = session!.user.id;
-  const isAdmin = ADMIN_ROLES.has(role);
+  const isAdmin = isAdminRole(role);
 
   // Confirm service exists + grab the manager so we know who has
   // service-wide visibility.
@@ -92,7 +92,7 @@ export const POST = withApiAuth(async (req, session, context) => {
   const { id: serviceId } = await (context as unknown as RouteContext).params;
   const userId = session!.user.id;
   const role = session!.user.role;
-  const isAdmin = ADMIN_ROLES.has(role);
+  const isAdmin = isAdminRole(role);
 
   const service = await prisma.service.findUnique({
     where: { id: serviceId },
@@ -175,14 +175,11 @@ export const POST = withApiAuth(async (req, session, context) => {
   recipientIds.delete(userId);
 
   if (recipientIds.size > 0) {
-    await prisma.userNotification.createMany({
-      data: Array.from(recipientIds).map((id) => ({
-        userId: id,
-        type: "purchase_approval_requested",
-        title: `New purchase approval — ${service.name}`,
-        body: `${created.requestedBy.name} wants to buy ${product} from ${vendor} for $${costDollars.toFixed(2)}.`,
-        link: `/services/${serviceId}?tab=finance&sub=approvals`,
-      })),
+    await notifyUsers(prisma, Array.from(recipientIds), {
+      type: "purchase_approval_requested",
+      title: `New purchase approval — ${service.name}`,
+      body: `${created.requestedBy.name} wants to buy ${product} from ${vendor} for $${costDollars.toFixed(2)}.`,
+      link: `/services/${serviceId}?tab=finance&sub=approvals`,
     });
   }
 

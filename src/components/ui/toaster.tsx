@@ -1,6 +1,7 @@
 "use client";
 
 import * as ToastPrimitive from "@radix-ui/react-toast";
+import Link from "next/link";
 import { useToast } from "@/hooks/useToast";
 import { X } from "lucide-react";
 
@@ -32,6 +33,15 @@ export function Toaster() {
             <ToastPrimitive.Description className="text-sm opacity-90 mt-0.5">
               {t.description}
             </ToastPrimitive.Description>
+            {t.href ? (
+              <Link
+                href={t.href}
+                onClick={() => dismiss(t.id)}
+                className="mt-1 inline-block text-sm font-medium text-brand underline hover:no-underline"
+              >
+                {t.hrefLabel ?? "View"}
+              </Link>
+            ) : null}
           </div>
           <ToastPrimitive.Close
             className="shrink-0 rounded-md p-1 opacity-50 hover:opacity-100 transition-opacity"

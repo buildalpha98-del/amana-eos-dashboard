@@ -192,10 +192,10 @@ async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function xeroApiRequest(
+export async function xeroApiRequest<T = unknown>(
   path: string,
   options?: RequestInit & { retries?: number }
-): Promise<any> {
+): Promise<T> {
   const token = await getValidAccessToken();
   const conn = await prisma.xeroConnection.findUnique({
     where: { id: "singleton" },

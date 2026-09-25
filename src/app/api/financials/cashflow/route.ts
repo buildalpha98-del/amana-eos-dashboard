@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const createCashFlowSchema = z.object({
   periodMonth: z.string().min(1),
   openingBalance: z.number().optional().default(0),
@@ -40,7 +41,7 @@ export const GET = withApiAuth(async (req, session) => {
     logger.error("CashFlow GET", { err });
     return NextResponse.json({ error: "Failed to fetch cash flow data" }, { status: 500 });
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 /**
  * POST /api/financials/cashflow

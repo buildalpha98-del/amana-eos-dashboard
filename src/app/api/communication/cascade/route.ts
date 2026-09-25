@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { notifyCascadePublished } from "@/lib/cascade-notify";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const createCascadeSchema = z.object({
   meetingId: z.string().min(1, "Meeting ID is required"),
   message: z.string().min(1, "Message is required"),
@@ -63,5 +65,12 @@ const body = await parseJsonBody(req);
     },
   });
 
+  // Tell people the board has something for them (swallow-on-error).
+  await notifyCascadePublished(prisma, {
+    meetingTitle: cascade.meeting?.title ?? "the leadership meeting",
+    count: 1,
+    excludeUserId: session!.user.id,
+  });
+
   return NextResponse.json(cascade, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

@@ -48,7 +48,7 @@ export const POST = withApiAuth(
       where: { slug: "knowledge/answer" },
     });
 
-    const model = template?.model ?? "claude-sonnet-4-5-20250514";
+    const model = template?.model ?? "claude-sonnet-5";
     const maxTokens = template?.maxTokens ?? 1024;
 
     // Build the prompt

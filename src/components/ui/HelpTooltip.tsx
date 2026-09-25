@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useSyncExternalStore,
+} from "react";
 import { HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,37 +27,43 @@ function isDismissed(id: string): boolean {
   }
 }
 
+const dismissListeners = new Set<() => void>();
+
+function subscribeDismiss(cb: () => void) {
+  dismissListeners.add(cb);
+  return () => {
+    dismissListeners.delete(cb);
+  };
+}
+
 function dismiss(id: string) {
   try {
     localStorage.setItem(`help-tooltip-dismissed:${id}`, "1");
   } catch {
     // localStorage unavailable
   }
+  dismissListeners.forEach((cb) => cb());
 }
 
 export function HelpTooltip({ content, id, className }: HelpTooltipProps) {
   const [visible, setVisible] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
   const [flipped, setFlipped] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  // Check localStorage on mount
-  useEffect(() => {
-    if (id && isDismissed(id)) {
-      setDismissed(true);
-    }
-  }, [id]);
+  // localStorage-backed dismissal (server snapshot is always false, so the
+  // hydration pass matches SSR and the client value applies right after)
+  const dismissed = useSyncExternalStore(
+    subscribeDismiss,
+    () => (id ? isDismissed(id) : false),
+    () => false,
+  );
 
   // Auto-flip if tooltip would overflow top of viewport
   useEffect(() => {
     if (visible && tooltipRef.current) {
       const rect = tooltipRef.current.getBoundingClientRect();
-      if (rect.top < 8) {
-        setFlipped(true);
-      } else {
-        setFlipped(false);
-      }
+      setFlipped(rect.top < 8);
     }
   }, [visible]);
 
@@ -81,7 +93,6 @@ export function HelpTooltip({ content, id, className }: HelpTooltipProps) {
   const handleGotIt = () => {
     if (id) {
       dismiss(id);
-      setDismissed(true);
     }
     setVisible(false);
   };

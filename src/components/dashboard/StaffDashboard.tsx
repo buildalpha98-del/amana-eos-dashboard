@@ -592,7 +592,7 @@ export function StaffDashboard() {
             <p className="text-2xs text-muted">Upload certificates</p>
           </div>
         </Link>
-        <Link href="/leave" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
+        <Link href="/my-leave" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
           <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center group-hover:bg-brand/20 transition-colors">
             <Calendar className="w-4.5 h-4.5 text-brand" />
           </div>

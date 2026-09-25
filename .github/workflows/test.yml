@@ -13,14 +13,46 @@ on:
   # confirm a fix. Declaring it here makes the existing condition reachable.
   workflow_dispatch:
 
+# Push/PR runs dedupe per ref — a newer push supersedes the running one. But
+# dispatch and schedule runs get a unique group (run_id): they exist to produce
+# a verdict (manual E2E validation, the nightly), and letting a routine merge
+# cancel them is how a type-broken main went unnoticed across 4 merges on
+# 2026-09-03 — every main run (including the would-be nightly signal) was
+# cancelled before its E2E build step could fail.
 concurrency:
-  group: tests-${{ github.ref }}
+  group: tests-${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && github.run_id || github.ref }}
   cancel-in-progress: true
 
 env:
   NODE_VERSION: "20"
 
 jobs:
+  # ── Lint (every push) ──────────────────────────────────────
+  # Errors fail the build; warnings (unused-vars, design-token rails,
+  # exhaustive-deps) are visible in the log but non-blocking. The repo was
+  # brought to zero lint errors on 2026-09-03 — this job keeps it there.
+  # Scoped to src + tests (via `npm run lint`) so CI and local runs lint the
+  # same set: a bare `eslint .` on a developer machine also sweeps generated
+  # dirs a clean CI checkout never has (.claude/worktrees/ checkouts,
+  # coverage/, playwright artifacts) and drowns real findings in tens of
+  # thousands of phantom errors.
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: ESLint (src + tests)
+        run: npm run lint
+
   # ── Unit Tests (every push) ────────────────────────────────
   unit:
     name: Unit Tests

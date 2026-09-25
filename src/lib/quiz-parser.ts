@@ -70,7 +70,7 @@ export function parseQuizQuestion(chunk: string): QuizQuestion {
   const question = lines[0];
   const options: QuizOption[] = [];
   let explanation: string | undefined;
-  let legacyAnswerLines: string[] = [];
+  const legacyAnswerLines: string[] = [];
   let inExplanation = false;
 
   for (const line of lines.slice(1)) {

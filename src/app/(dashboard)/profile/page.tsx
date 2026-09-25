@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
@@ -25,6 +25,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { EmergencyContactsSection } from "@/components/profile/EmergencyContactsSection";
 import { MyCertificatesSection } from "@/components/profile/MyCertificatesSection";
+import { MyAvailabilitySection } from "@/components/profile/MyAvailabilitySection";
 
 /* ------------------------------------------------------------------ */
 /* Profile Page                                                        */
@@ -48,6 +49,8 @@ export default function ProfilePage() {
       return res.json();
     },
     enabled: !!userId,
+    retry: 2,
+    staleTime: 30_000,
   });
 
   const isAdmin = session?.user?.role === "owner" || session?.user?.role === "admin";
@@ -145,10 +148,12 @@ export default function ProfilePage() {
   const [bankBSB, setBankBSB] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
 
-  // Populate form when profile loads
-  useEffect(() => {
-    if (profile) {
-      setPhone(profile.phone ?? "");
+  // Populate form when profile loads —
+  // adjust-state-during-render pattern, see react.dev "You Might Not Need an Effect"
+  const [prevProfile, setPrevProfile] = useState<typeof profile>(undefined);
+  if (profile && profile !== prevProfile) {
+    setPrevProfile(profile);
+    setPhone(profile.phone ?? "");
       setAddressStreet(profile.addressStreet ?? "");
       setAddressSuburb(profile.addressSuburb ?? "");
       setAddressState(profile.addressState ?? "");
@@ -160,8 +165,7 @@ export default function ProfilePage() {
       setBankAccountName(profile.bankAccountName ?? "");
       setBankBSB(profile.bankBSB ?? "");
       setBankAccountNumber(profile.bankAccountNumber ?? "");
-    }
-  }, [profile]);
+  }
 
   const updateMutation = useMutation({
     mutationFn: async (data: Record<string, string>) => {
@@ -315,6 +319,7 @@ export default function ProfilePage() {
         <div className="flex items-center gap-3">
           <Link
             href="/my-portal"
+            aria-label="Back to My Portal"
             className="p-2 rounded-lg hover:bg-surface transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-muted" />
@@ -457,6 +462,10 @@ export default function ProfilePage() {
         />
       )}
 
+      {/* My Availability — recurring weekly availability the roster grid
+          surfaces as an "Unavailable" hint (staff-portal-v2 Task 10.2). */}
+      <MyAvailabilitySection />
+
       {/* Address */}
       <div className="bg-card rounded-xl border border-border p-6">
         <h3 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
@@ -576,6 +585,8 @@ export default function ProfilePage() {
               onChange={(e) => setBankBSB(e.target.value)}
               placeholder="e.g. 062-000"
               maxLength={7}
+              inputMode="numeric"
+              pattern="\d{3}-?\d{3}"
               className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </FieldRow>
@@ -585,6 +596,8 @@ export default function ProfilePage() {
               value={bankAccountNumber}
               onChange={(e) => setBankAccountNumber(e.target.value)}
               placeholder="e.g. 12345678"
+              inputMode="numeric"
+              pattern="\d{5,10}"
               className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </FieldRow>

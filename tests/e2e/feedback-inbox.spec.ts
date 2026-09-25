@@ -26,7 +26,7 @@ test.describe("Feedback inbox flow", () => {
     await page.getByRole("button", { name: /submit feedback/i }).click();
 
     // Confirm toast
-    await expect(page.getByText(/feedback submitted/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/feedback submitted/i).first()).toBeVisible({ timeout: 10_000 });
 
     // 2. Navigate to inbox
     await page.goto("/admin/feedback");

@@ -5,6 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { recalcEnrollmentStatus } from "@/lib/lms-progress";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const enrollSchema = z.object({
   courseId: z.string().min(1),
   userIds: z.array(z.string().min(1)).min(1),
@@ -268,4 +269,4 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

@@ -29,7 +29,7 @@ export const POST = withApiAuth(
     if (!candidate) {
       throw ApiError.notFound("Candidate not found");
     }
-    if (candidate.vacancy.deleted) {
+    if (candidate.vacancy?.deleted) {
       throw ApiError.notFound("Candidate's vacancy has been deleted");
     }
     if (!candidate.resumeText || candidate.resumeText.trim().length === 0) {
@@ -41,9 +41,12 @@ export const POST = withApiAuth(
       candidateEmail: candidate.email,
       candidatePhone: candidate.phone,
       resumeText: candidate.resumeText,
-      vacancyRole: candidate.vacancy.role,
-      employmentType: candidate.vacancy.employmentType,
-      qualificationRequired: candidate.vacancy.qualificationRequired,
+      // 2026-09-15: pool candidates have no vacancy. Screen them against the
+      // role the pool actually exists to fill — a casual educator working
+      // across centres — rather than refusing to screen at all.
+      vacancyRole: candidate.vacancy?.role ?? "educator",
+      employmentType: candidate.vacancy?.employmentType ?? "casual",
+      qualificationRequired: candidate.vacancy?.qualificationRequired ?? null,
     });
 
     let result;

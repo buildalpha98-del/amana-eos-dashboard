@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import {
@@ -17,10 +17,13 @@ import {
 import { useUpdateMeeting, usePrepareMeeting } from "@/hooks/useMeetings";
 import { useScorecard, useCreateEntry } from "@/hooks/useScorecard";
 import { useScorecardDetail } from "@/hooks/useScorecards";
-import { useRocks, useUpdateRock } from "@/hooks/useRocks";
+import { useRocks, useUpdateRock, useCreateRock, useDeleteRock } from "@/hooks/useRocks";
+import type { RockData } from "@/hooks/useRocks";
 import { useTodos, useUpdateTodo, useCreateTodo } from "@/hooks/useTodos";
 import { isLeadershipMeetingRole } from "@/lib/role-enum";
 import { useIssues, useUpdateIssue, useCreateIssue } from "@/hooks/useIssues";
+import { useVTO } from "@/hooks/useVTO";
+import type { IssuePriority } from "@prisma/client";
 import type { MeetingData } from "@/hooks/useMeetings";
 import { useServices } from "@/hooks/useServices";
 import {
@@ -28,12 +31,13 @@ import {
   formatDateAU,
   getWeekStart,
   getCurrentQuarter,
+  shiftQuarter,
 } from "@/lib/utils";
 import { fetchApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { L10_SECTIONS } from "./sections";
+import { getMeetingSections } from "./sections";
 import { useTimer } from "./useTimer";
 import { SegueSection } from "./SegueSection";
 import { ScorecardSection } from "./ScorecardSection";
@@ -42,12 +46,20 @@ import { HeadlinesSection } from "./HeadlinesSection";
 import { TodoReviewSection } from "./TodoReviewSection";
 import { IDSSection } from "./IDSSection";
 import { ConcludeSection } from "./ConcludeSection";
+import { QuarterReviewSection } from "./QuarterReviewSection";
+import { VtoReviewSection } from "./VtoReviewSection";
+import { SetRocksSection } from "./SetRocksSection";
+import { BreakSection } from "./BreakSection";
 import { MeetingOutcomesPanel } from "./MeetingOutcomesPanel";
 import { AiAgendaPanel } from "./AiAgendaPanel";
 import { MeetingAiReviewPanel } from "./MeetingAiReviewPanel";
-import { useMeetingRecorder } from "@/hooks/useMeetingRecorder";
-import { useCreateRecording } from "@/hooks/useMeetingRecordings";
-import { uploadFileSmart } from "@/lib/upload-client";
+import { useElapsedSeconds, useMeetingRecorder } from "./MeetingRecorderProvider";
+import { formatElapsed } from "@/lib/recording-capture";
+import { RecordingRecoveryBanner } from "./RecordingRecoveryBanner";
+
+const ISSUE_PRIORITIES = ["critical", "high", "medium", "low"] as const;
+const isIssuePriority = (v: string): v is IssuePriority =>
+  (ISSUE_PRIORITIES as readonly string[]).includes(v);
 
 export function ActiveMeetingView({
   meeting,
@@ -76,8 +88,16 @@ export function ActiveMeetingView({
     }
     return ratings;
   });
+  // Quarterly Pulse Conclude — no schema field for either, so both stay
+  // client-side; the date only ever becomes a reminder to-do (see
+  // handleScheduleNextMeetingReminder), never a stored meeting field.
+  const [nextMeetingDate, setNextMeetingDate] = useState("");
+  const [nextMeetingReminderCreated, setNextMeetingReminderCreated] = useState(false);
+  const [expectationsMet, setExpectationsMet] = useState<boolean | null>(null);
 
-  const section = L10_SECTIONS[currentSection];
+  const isQuarterlyPulse = meeting.type === "quarterly_pulse";
+  const sections = useMemo(() => getMeetingSections(meeting.type), [meeting.type]);
+  const section = sections[currentSection];
   const timer = useTimer(section.duration);
 
   const updateMeeting = useUpdateMeeting();
@@ -88,6 +108,8 @@ export function ActiveMeetingView({
   const createIssue = useCreateIssue();
   const createTodo = useCreateTodo();
   const createEntry = useCreateEntry();
+  const createRock = useCreateRock();
+  const deleteRock = useDeleteRock();
 
   // ── Recording (Phase 2, 2026-08-31) ─────────────────────────────
   // Mirrors the server's meeting-role gate; the API enforces it too.
@@ -99,25 +121,13 @@ export function ActiveMeetingView({
     "marketing",
     "eos_implementer",
   ].includes(sessionData?.user?.role ?? "");
-  const createRecording = useCreateRecording(meeting.id);
-  const recorder = useMeetingRecorder({
-    onRecorded: async (file, durationSeconds) => {
-      try {
-        const result = await uploadFileSmart(file, { context: "recording" });
-        createRecording.mutate({
-          url: result.fileUrl,
-          source: "live_mic",
-          durationSeconds,
-        });
-      } catch (err) {
-        toast({
-          variant: "destructive",
-          description:
-            err instanceof Error ? err.message : "Recording upload failed",
-        });
-      }
-    },
-  });
+  const recorder = useMeetingRecorder();
+  // The elapsed tick is owned by this consumer (the context only carries
+  // `startedAt`); `stop` is stable, so callbacks depend on it, not the context.
+  const recorderElapsedSeconds = useElapsedSeconds(recorder.startedAt);
+  const { stop: stopRecording } = recorder;
+  const isRecordingThisMeeting =
+    recorder.status === "recording" && recorder.meetingId === meeting.id;
 
   // Data hooks
   // 2026-07-28: a meeting can target a specific Scorecard. Meetings created
@@ -128,7 +138,15 @@ export function ActiveMeetingView({
   const { data: selectedScorecard } = useScorecardDetail(meeting.scorecardId);
   const { data: legacyScorecard } = useScorecard();
   const scorecard = meeting.scorecardId ? selectedScorecard : legacyScorecard;
-  const { data: allRocks } = useRocks(getCurrentQuarter());
+  const currentQuarter = getCurrentQuarter();
+  const { data: allRocks } = useRocks(currentQuarter);
+  // Quarterly Pulse only — the FY-quarter helpers, never hand-rolled maths
+  // (see CLAUDE.md's quarter-string gotchas).
+  const nextQuarter = useMemo(() => shiftQuarter(currentQuarter, 1), [currentQuarter]);
+  const { data: nextQuarterRocksRaw } = useRocks(nextQuarter, undefined, {
+    enabled: isQuarterlyPulse,
+  });
+  const { data: vto } = useVTO();
   // 2026-06-05: To-Do Review now shows ALL open todos for the people
   // attending this meeting — not just last week's todos. Daniel
   // pointed out that filtering to "weekOf=last week" missed older
@@ -138,7 +156,9 @@ export function ActiveMeetingView({
   // We fetch every todo here and filter to attendee userIds +
   // not-yet-completed status in the `todos` memo below.
   const { data: allTodos } = useTodos();
-  const { data: allIDSIssuesRaw } = useIssues({ status: "open,in_discussion", category: "short_term" });
+  // Quarterly Pulse's IDS works the long_term backlog; L10's works short_term.
+  const idsCategory = isQuarterlyPulse ? "long_term" : "short_term";
+  const { data: allIDSIssuesRaw } = useIssues({ status: "open,in_discussion", category: idsCategory });
   const { data: services } = useServices("active");
   const { data: users } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["users-list"],
@@ -159,6 +179,20 @@ export function ActiveMeetingView({
       (r) => r.serviceId && meetingServiceIds.includes(r.serviceId)
     );
   }, [allRocks, hasServiceScope, meetingServiceIds]);
+
+  // Quarterly Pulse — next quarter's Rocks worksheet, same service scoping.
+  const nextQuarterRocks = useMemo(() => {
+    if (!nextQuarterRocksRaw) return undefined;
+    if (!hasServiceScope) return nextQuarterRocksRaw;
+    return nextQuarterRocksRaw.filter(
+      (r) => r.serviceId && meetingServiceIds.includes(r.serviceId)
+    );
+  }, [nextQuarterRocksRaw, hasServiceScope, meetingServiceIds]);
+
+  const offTrackRocks = useMemo(
+    () => (rocks ?? []).filter((r) => r.status === "off_track"),
+    [rocks],
+  );
 
   // Filter scorecard: only show measurables for scoped services
   const filteredScorecard = useMemo(() => {
@@ -281,16 +315,16 @@ export function ActiveMeetingView({
     (index: number) => {
       saveProgress();
       setCurrentSection(index);
-      timer.reset(L10_SECTIONS[index].duration);
+      timer.reset(sections[index].duration);
     },
-    [saveProgress, timer]
+    [saveProgress, timer, sections]
   );
 
   const goNext = useCallback(() => {
-    if (currentSection < L10_SECTIONS.length - 1) {
+    if (currentSection < sections.length - 1) {
       goToSection(currentSection + 1);
     }
-  }, [currentSection, goToSection]);
+  }, [currentSection, goToSection, sections]);
 
   const goPrev = useCallback(() => {
     if (currentSection > 0) {
@@ -318,12 +352,16 @@ export function ActiveMeetingView({
         ...(attendeeUpdates.length > 0 ? { attendeeUpdates } : {}),
       },
       {
+        onSuccess: () => {
+          // Completing the meeting ends the recording — never the other way round.
+          if (isRecordingThisMeeting) void stopRecording();
+        },
         onError: (err: Error) => {
           toast({ variant: "destructive", description: err.message || "Failed to end meeting" });
         },
       }
     );
-  }, [meeting.id, currentSection, segueNotes, headlines, concludeNotes, cascadeMessages, rating, attendeeRatings, updateMeeting]);
+  }, [meeting.id, currentSection, segueNotes, headlines, concludeNotes, cascadeMessages, rating, attendeeRatings, updateMeeting, isRecordingThisMeeting, stopRecording]);
 
   const handleTodoToggle = useCallback(
     (id: string, done: boolean) => {
@@ -387,7 +425,7 @@ export function ActiveMeetingView({
     (title: string, priority?: string) => {
       createIssue.mutate({
         title,
-        priority: (priority || "medium") as any,
+        priority: priority && isIssuePriority(priority) ? priority : "medium",
         serviceId: meetingServiceIds.length === 1 ? meetingServiceIds[0] : undefined,
         category: "short_term",
       });
@@ -460,7 +498,8 @@ export function ActiveMeetingView({
 
   const handleUpdatePriority = useCallback(
     (id: string, priority: string) => {
-      updateIssue.mutate({ id, priority: priority as any });
+      if (!isIssuePriority(priority)) return;
+      updateIssue.mutate({ id, priority });
     },
     [updateIssue]
   );
@@ -489,16 +528,80 @@ export function ActiveMeetingView({
     []
   );
 
+  // ── Quarterly Pulse — Set Next Quarter's Rocks (step 5) ─────────────
+  const handleRockMarkDone = useCallback(
+    (rock: RockData) => {
+      updateRock.mutate({ id: rock.id, status: "complete" });
+    },
+    [updateRock],
+  );
+
+  const handleRockCarryOver = useCallback(
+    (rock: RockData) => {
+      createRock.mutate({
+        title: rock.title,
+        description: rock.description ?? undefined,
+        ownerId: rock.ownerId,
+        quarter: nextQuarter,
+        rockType: rock.rockType,
+        serviceId: rock.serviceId ?? undefined,
+      });
+    },
+    [createRock, nextQuarter],
+  );
+
+  // Distinct from handleSendRockToIDS: this issue lands in the long_term
+  // backlog (Quarterly Pulse's IDS category), not short_term.
+  const handleRockMoveToIssue = useCallback(
+    (rock: RockData) => {
+      createIssue.mutate({
+        title: `Rock off-track: ${rock.title}`,
+        priority: "high",
+        rockId: rock.id,
+        serviceId: rock.serviceId ?? undefined,
+        category: "long_term",
+      });
+    },
+    [createIssue],
+  );
+
+  const handleRockDrop = useCallback(
+    (rock: RockData) => {
+      deleteRock.mutate(rock.id);
+    },
+    [deleteRock],
+  );
+
+  const handleCreateNextQuarterRock = useCallback(
+    (data: { title: string; ownerId: string; rockType: "company" | "personal" }) => {
+      createRock.mutate({
+        title: data.title,
+        ownerId: data.ownerId,
+        quarter: nextQuarter,
+        rockType: data.rockType,
+        serviceId: meetingServiceIds.length === 1 ? meetingServiceIds[0] : undefined,
+      });
+    },
+    [createRock, nextQuarter, meetingServiceIds],
+  );
+
+  // ── Quarterly Pulse — Conclude (step 7) ──────────────────────────────
+  // No schema field for "next Quarterly Pulse date" — it only ever
+  // becomes a reminder to-do, assigned to whoever created this meeting.
+  const handleScheduleNextMeetingReminder = useCallback(() => {
+    if (!nextMeetingDate) return;
+    createTodo.mutate({
+      title: `Schedule next Quarterly Pulse — ${nextMeetingDate}`,
+      assigneeId: meeting.createdById,
+      dueDate: nextMeetingDate,
+      weekOf: getWeekStart().toISOString(),
+      meetingId: meeting.id,
+    });
+    setNextMeetingReminderCreated(true);
+  }, [createTodo, nextMeetingDate, meeting.createdById, meeting.id]);
+
   const isCompleted = meeting.status === "completed";
   const SectionIcon = section.icon;
-
-  // Surface mic-permission / unsupported-browser errors as toasts.
-  const recorderError = recorder.error;
-  useEffect(() => {
-    if (recorderError) {
-      toast({ variant: "destructive", description: recorderError });
-    }
-  }, [recorderError]);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -540,11 +643,11 @@ export function ActiveMeetingView({
         {/* Recording controls — the on-screen indicator is the consent
             surface; the runner also announces recording verbally. */}
         {!isCompleted && canRecord && (
-          recorder.isRecording ? (
+          isRecordingThisMeeting ? (
             <Button
               variant="destructive"
               size="sm"
-              onClick={recorder.stop}
+              onClick={() => void recorder.stop()}
               iconLeft={
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
@@ -553,20 +656,19 @@ export function ActiveMeetingView({
               }
               iconRight={<Square className="w-3.5 h-3.5" />}
             >
-              REC {String(Math.floor(recorder.elapsedSeconds / 60)).padStart(2, "0")}:
-              {String(recorder.elapsedSeconds % 60).padStart(2, "0")}
+              REC {formatElapsed(recorderElapsedSeconds)}
             </Button>
-          ) : (
+          ) : recorder.status === "idle" ? (
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => recorder.start()}
+              onClick={() => void recorder.start(meeting.id)}
               title="Record this meeting — audio is transcribed then deleted; the AI review lands on the meeting afterwards"
               iconLeft={<Mic className="w-4 h-4" />}
             >
               Record
             </Button>
-          )
+          ) : null
         )}
         {isCompleted ? (
           <span className="text-xs px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-medium">
@@ -575,10 +677,10 @@ export function ActiveMeetingView({
         ) : (
           <button
             onClick={() => setShowEndConfirm(true)}
-            disabled={currentSection !== 6}
+            disabled={currentSection !== sections.length - 1}
             className={cn(
               "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-              currentSection === 6
+              currentSection === sections.length - 1
                 ? "bg-brand text-white hover:bg-brand-hover shadow-sm"
                 : "bg-surface text-muted cursor-not-allowed"
             )}
@@ -592,7 +694,7 @@ export function ActiveMeetingView({
       {/* Progress Bar */}
       <div className="mb-6">
         <div className="flex items-center gap-1">
-          {L10_SECTIONS.map((s, idx) => {
+          {sections.map((s, idx) => {
             const Icon = s.icon;
             const isActive = idx === currentSection;
             const isPast = idx < currentSection;
@@ -703,20 +805,22 @@ export function ActiveMeetingView({
 
           {/* Section Content */}
           <div className="p-6">
-            {currentSection === 0 && (
+            {section.key === "segue" && (
               <>
-                <AiAgendaPanel
-                  part="summary"
-                  draft={meeting.aiAgendaDraft}
-                  onGenerate={
-                    isCompleted ? undefined : () => prepareMeeting.mutate(meeting.id)
-                  }
-                  generating={prepareMeeting.isPending}
-                />
+                {!isQuarterlyPulse && (
+                  <AiAgendaPanel
+                    part="summary"
+                    draft={meeting.aiAgendaDraft}
+                    onGenerate={
+                      isCompleted ? undefined : () => prepareMeeting.mutate(meeting.id)
+                    }
+                    generating={prepareMeeting.isPending}
+                  />
+                )}
                 <SegueSection notes={segueNotes} onUpdate={setSegueNotes} />
               </>
             )}
-            {currentSection === 1 && (
+            {section.key === "scorecard" && (
               <>
                 <AiAgendaPanel part="scorecard" draft={meeting.aiAgendaDraft} />
                 <ScorecardSection
@@ -727,7 +831,7 @@ export function ActiveMeetingView({
                 />
               </>
             )}
-            {currentSection === 2 && (
+            {section.key === "rocks" && (
               <>
                 <AiAgendaPanel part="rocks" draft={meeting.aiAgendaDraft} />
                 <RockReviewSection
@@ -744,10 +848,10 @@ export function ActiveMeetingView({
                 />
               </>
             )}
-            {currentSection === 3 && (
+            {section.key === "headlines" && (
               <HeadlinesSection headlines={headlines} onUpdate={setHeadlines} />
             )}
-            {currentSection === 4 && (
+            {section.key === "todos" && (
               <TodoReviewSection
                 todos={todos}
                 onToggle={handleTodoToggle}
@@ -760,9 +864,11 @@ export function ActiveMeetingView({
                 lastMeetingId={lastMeetingId}
               />
             )}
-            {currentSection === 5 && (
+            {section.key === "ids" && (
               <>
-                <AiAgendaPanel part="ids" draft={meeting.aiAgendaDraft} />
+                {!isQuarterlyPulse && (
+                  <AiAgendaPanel part="ids" draft={meeting.aiAgendaDraft} />
+                )}
                 <IDSSection
                   issues={allIDSIssues}
                   onUpdateStatus={handleIssueStatus}
@@ -770,12 +876,12 @@ export function ActiveMeetingView({
                   onCreateTodo={handleCreateTodoFromIssue}
                   onUpdatePriority={handleUpdatePriority}
                   onUpdateDescription={handleUpdateDescription}
-                  onDropToLongTerm={handleDropToLongTerm}
+                  onDropToLongTerm={isQuarterlyPulse ? undefined : handleDropToLongTerm}
                   users={users}
                 />
               </>
             )}
-            {currentSection === 6 && (
+            {section.key === "conclude" && (
               <ConcludeSection
                 notes={concludeNotes}
                 onUpdate={setConcludeNotes}
@@ -786,6 +892,63 @@ export function ActiveMeetingView({
                 attendees={meeting.attendees}
                 attendeeRatings={attendeeRatings}
                 onAttendeeRate={isCompleted ? undefined : handleAttendeeRate}
+                {...(isQuarterlyPulse
+                  ? {
+                      notesLabel: "What would make it a 10?",
+                      notesPlaceholder:
+                        "What would need to be true for this Quarterly Pulse to be a 10/10 next time...",
+                      showCascade: false,
+                      nextMeeting: {
+                        date: nextMeetingDate,
+                        onDateChange: setNextMeetingDate,
+                        onScheduleReminder: handleScheduleNextMeetingReminder,
+                        reminderScheduled: nextMeetingReminderCreated,
+                        expectationsMet,
+                        onExpectationsMetChange: setExpectationsMet,
+                      },
+                    }
+                  : {})}
+              />
+            )}
+            {section.key === "quarter_review" && (
+              <QuarterReviewSection
+                scorecard={filteredScorecard}
+                rocks={rocks}
+                onDropToIDS={isCompleted ? undefined : handleDropToIDS}
+                onEntrySubmit={isCompleted ? undefined : handleScorecardEntry}
+                onSendToIDS={isCompleted ? undefined : handleSendRockToIDS}
+                sendingRockIdToIDS={
+                  createIssue.isPending &&
+                  (createIssue.variables as { rockId?: string } | undefined)?.rockId
+                    ? ((createIssue.variables as { rockId?: string }).rockId ?? null)
+                    : null
+                }
+                isCompleted={isCompleted}
+              />
+            )}
+            {section.key === "vto" && (
+              <VtoReviewSection
+                vto={vto}
+                users={users}
+                onCreateTodo={isCompleted ? undefined : handleQuickAddTodo}
+                isCompleted={isCompleted}
+              />
+            )}
+            {section.key === "break" && <BreakSection />}
+            {section.key === "set_rocks" && (
+              <SetRocksSection
+                offTrackRocks={offTrackRocks}
+                nextQuarterRocks={nextQuarterRocks}
+                users={users}
+                attendees={meeting.attendees}
+                nextQuarter={nextQuarter}
+                onMarkDone={isCompleted ? undefined : handleRockMarkDone}
+                onCarryOver={isCompleted ? undefined : handleRockCarryOver}
+                onMoveToIssue={isCompleted ? undefined : handleRockMoveToIssue}
+                onDrop={isCompleted ? undefined : handleRockDrop}
+                onCreateRock={isCompleted ? undefined : handleCreateNextQuarterRock}
+                creatingRock={createRock.isPending}
+                isCompleted={isCompleted}
               />
             )}
           </div>
@@ -807,9 +970,9 @@ export function ActiveMeetingView({
                 Previous
               </button>
               <span className="text-xs text-muted">
-                {currentSection + 1} / {L10_SECTIONS.length}
+                {currentSection + 1} / {sections.length}
               </span>
-              {currentSection < L10_SECTIONS.length - 1 ? (
+              {currentSection < sections.length - 1 ? (
                 <button
                   onClick={goNext}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg text-brand hover:bg-brand/10 transition-colors"
@@ -840,7 +1003,7 @@ export function ActiveMeetingView({
               </h3>
             </div>
             <div className="divide-y divide-border/30">
-              {L10_SECTIONS.map((s, idx) => {
+              {sections.map((s, idx) => {
                 const Icon = s.icon;
                 const isActive = idx === currentSection;
                 const isPast = idx < currentSection;
@@ -904,7 +1067,7 @@ export function ActiveMeetingView({
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted">Total</span>
                 <span className="text-xs font-semibold text-foreground/80">
-                  {L10_SECTIONS.reduce((sum, s) => sum + s.duration, 0)} min
+                  {sections.reduce((sum, s) => sum + s.duration, 0)} min
                 </span>
               </div>
             </div>
@@ -1025,6 +1188,8 @@ export function ActiveMeetingView({
               </div>
             </div>
           )}
+
+          <RecordingRecoveryBanner meetingId={meeting.id} canManage={canRecord} />
 
           {/* AI meeting review — recordings, transcripts, proposed action
               items (Phase 2, 2026-08-31) */}

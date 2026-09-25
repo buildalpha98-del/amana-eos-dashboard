@@ -5,6 +5,7 @@ import { getStateScope } from "@/lib/service-scope";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const createTicketSchema = z.object({
   contactId: z.string().min(1, "Contact is required"),
   subject: z.string().min(1, "Subject is required"),
@@ -54,7 +55,7 @@ const stateScope = getStateScope(session);
   });
 
   return NextResponse.json(tickets);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // POST /api/tickets — create a manual ticket
 export const POST = withApiAuth(async (req, session) => {
@@ -97,4 +98,4 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json(ticket, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

@@ -6,6 +6,7 @@ import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUser } from "@/lib/notify-user";
 import { resolveNudgeRecipients } from "@/lib/notification-recipients";
 
 /**
@@ -141,14 +142,11 @@ export const GET = withApiHandler(async (req) => {
             // Nothing to send to — still create the in-app notif so the
             // bell surfaces it, but skip the email + dedup insert.
             try {
-              await prisma.userNotification.create({
-                data: {
-                  userId: cert.user.id,
-                  type: notifType,
-                  title,
-                  body,
-                  link: `/staff/${cert.user.id}?tab=compliance`,
-                },
+              await notifyUser(prisma, cert.user.id, {
+                type: notifType,
+                title,
+                body,
+                link: `/staff/${cert.user.id}?tab=compliance`,
               });
               notificationsCreated++;
             } catch {}
@@ -184,14 +182,11 @@ export const GET = withApiHandler(async (req) => {
 
       // In-app notification for the bell.
       try {
-        await prisma.userNotification.create({
-          data: {
-            userId: cert.user.id,
-            type: notifType,
-            title,
-            body,
-            link: `/staff/${cert.user.id}?tab=compliance`,
-          },
+        await notifyUser(prisma, cert.user.id, {
+          type: notifType,
+          title,
+          body,
+          link: `/staff/${cert.user.id}?tab=compliance`,
         });
         notificationsCreated++;
       } catch (err) {
@@ -318,14 +313,11 @@ export const GET = withApiHandler(async (req) => {
         }
 
         try {
-          await prisma.userNotification.create({
-            data: {
-              userId: u.id,
-              type: notifType,
-              title,
-              body,
-              link: `/staff/${u.id}`,
-            },
+          await notifyUser(prisma, u.id, {
+            type: notifType,
+            title,
+            body,
+            link: `/staff/${u.id}`,
           });
           visaNotificationsCreated++;
         } catch (err) {

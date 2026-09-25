@@ -8,7 +8,10 @@ import { withApiAuth } from "@/lib/server-auth";
 
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { uploadFile } from "@/lib/storage";
+import { notifyUsers } from "@/lib/notify-user";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { refreshInductionAfterBlockerChange } from "@/lib/induction";
 // Reject expiry dates that fall before today — uploading an already-expired
 // cert is a UX trap (the row would immediately read "expired"). Today itself
 // is accepted because a cert valid for the rest of the day is still valid.
@@ -246,7 +249,7 @@ export const POST = withApiAuth(async (req, session) => {
       const admins = await prisma.user.findMany({
         where: {
           active: true,
-          role: { in: ["owner", "head_office", "admin"] },
+          role: { in: [...ADMIN_ROLES] },
         },
         select: { id: true },
       });
@@ -258,14 +261,11 @@ export const POST = withApiAuth(async (req, session) => {
       const recipientIds = new Set(admins.map((a) => a.id));
       recipientIds.delete(session!.user.id);
       if (recipientIds.size > 0) {
-        await prisma.userNotification.createMany({
-          data: Array.from(recipientIds).map((id) => ({
-            userId: id,
-            type: "compliance_cert_uploaded",
-            title: `${uploaderName} uploaded ${certLabel}`,
-            body: `New ${cert.type} cert attached to ${uploaderName}'s record. Review when ready.`,
-            link,
-          })),
+        await notifyUsers(prisma, Array.from(recipientIds), {
+          type: "compliance_cert_uploaded",
+          title: `${uploaderName} uploaded ${certLabel}`,
+          body: `New ${cert.type} cert attached to ${uploaderName}'s record. Review when ready.`,
+          link,
         });
       }
     } catch (err) {
@@ -277,6 +277,11 @@ export const POST = withApiAuth(async (req, session) => {
       });
     }
   }
+
+  // A WWCC upload is one of the four induction blockers. Without this the
+  // user clears the blocker and stays locked — nothing else re-evaluates it.
+  // No-ops for a service-level certificate, which has no userId.
+  await refreshInductionAfterBlockerChange(cert.userId);
 
   return NextResponse.json(cert, { status: 201 });
 });

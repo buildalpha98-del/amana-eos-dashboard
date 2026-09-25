@@ -23,11 +23,13 @@ function composeAddress(u: {
   return parts.length > 0 ? parts.join(", ") : null;
 }
 
+import { canViewStaffPay } from "@/lib/staff-pay-visibility";
 import { StaffProfilePills } from "./StaffProfilePills";
 import { StaffProfileStatsPanel } from "./StaffProfileStatsPanel";
 import { EmploymentRecordsSection } from "./sections/EmploymentRecordsSection";
 import { PayCompensationSection } from "./sections/PayCompensationSection";
 import { DocumentsSection } from "./sections/DocumentsSection";
+import { RampSection } from "./sections/RampSection";
 import { PerformanceSection } from "./sections/PerformanceSection";
 import { HealthWHSSection } from "./sections/HealthWHSSection";
 import type { StaffProfileData } from "./types";
@@ -53,6 +55,9 @@ export interface StaffProfileLayoutProps {
   /** Next employee in the same filtered list. Null when current user
    *  is the last row or not in the filtered list. */
   nextHref: string | null;
+  /** 2026-09-14: the person has a 90-day ramp — renders the Ramp section
+   *  (and its pill). Loaded server-side so the pill never flashes. */
+  hasRamp?: boolean;
 }
 
 export function StaffProfileLayout({
@@ -67,9 +72,14 @@ export function StaffProfileLayout({
   backHref,
   prevHref,
   nextHref,
+  hasRamp = false,
 }: StaffProfileLayoutProps) {
-  // Pay data is admin-or-self only.
-  const canViewPay = isAdmin || isSelf;
+  // Pay data is admin-or-self only — and since 2026-09-15 State Managers are
+  // deliberately excluded even though they are admin-tier (see
+  // canViewStaffPay). When nobody may see it the whole section is omitted,
+  // pill included: four sub-tabs of "Pay information is admin-only" is worse
+  // than no section at all.
+  const canViewPay = canViewStaffPay(viewerRole, isSelf);
   // Admin-only role editor — hide on own profile to prevent one-click
   // self-demotion / self-elevation from the staff page.
   const canEditAccount = isAdmin && !isSelf;
@@ -107,7 +117,12 @@ export function StaffProfileLayout({
           />
 
           <div className="mt-6">
-            <StaffProfilePills />
+            <StaffProfilePills
+              hiddenKeys={[
+                ...(hasRamp ? [] : (["ramp"] as const)),
+                ...(canViewPay ? [] : (["pay"] as const)),
+              ]}
+            />
           </div>
 
           <div className="mt-6">
@@ -119,18 +134,26 @@ export function StaffProfileLayout({
               viewerIsOwner={viewerIsOwner}
               canManageSeparation={isAdmin}
             />
-            <PayCompensationSection
-              data={data}
-              isSelf={isSelf}
-              canViewPay={canViewPay}
-              canManagePayroll={isAdmin}
-            />
+            {canViewPay && (
+              <PayCompensationSection
+                data={data}
+                isSelf={isSelf}
+                canViewPay={canViewPay}
+                canManagePayroll={isAdmin && canViewPay}
+              />
+            )}
             <DocumentsSection
               data={data}
               isSelf={isSelf}
               isAdmin={isAdmin}
               canManageCompliance={canManageCompliance}
             />
+            {hasRamp && (
+              <RampSection
+                targetUserId={data.targetUser.id}
+                targetUserName={data.targetUser.name}
+              />
+            )}
             <PerformanceSection
               targetUserId={data.targetUser.id}
               targetUserName={data.targetUser.name}

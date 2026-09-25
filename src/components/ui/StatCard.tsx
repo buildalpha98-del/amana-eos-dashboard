@@ -66,10 +66,14 @@ export function StatCard({
     lg: "w-11 h-11",
   };
 
-  // Gradient accent bar for top of card
-  const accentStyle = {
-    background: `linear-gradient(to right, ${iconColor}99, transparent)`,
-  };
+  /*
+   * 2026-09-26: the `linear-gradient(to right, <colour>99, transparent)`
+   * hairline that used to sit across the top of every tile is gone. It
+   * encoded nothing — the same bar appeared on 108 tiles regardless of what
+   * they measured — and a decorative gradient rule on every card is the
+   * clearest visual tell of a generated dashboard. The icon chip already
+   * carries the colour.
+   */
 
   if (size === "sm") {
     // Left-aligned layout for small cards (MetricCard pattern)
@@ -77,15 +81,12 @@ export function StatCard({
       <div
         className={cn(
           "bg-card rounded-xl border border-border shadow-[var(--shadow-warm)]",
-          "hover:shadow-[var(--shadow-warm-md)] hover:-translate-y-0.5 transition-all duration-300",
+          "transition-shadow duration-300",
           "overflow-hidden relative",
           sizeClasses[size],
           "flex items-center gap-3"
         )}
       >
-        {/* Top accent line */}
-        <div className="absolute top-0 left-0 right-0 h-[2px]" style={accentStyle} />
-
         {Icon && (
           <div
             className={cn(
@@ -114,14 +115,11 @@ export function StatCard({
     <div
       className={cn(
         "bg-card rounded-xl border border-border shadow-[var(--shadow-warm)]",
-        "hover:shadow-[var(--shadow-warm-md)] hover:-translate-y-0.5 transition-all duration-300",
+        "transition-shadow duration-300",
         "overflow-hidden relative",
         sizeClasses[size]
       )}
     >
-      {/* Top accent line */}
-      <div className="absolute top-0 left-0 right-0 h-[2px]" style={accentStyle} />
-
       <div className="flex items-start justify-between">
         <div className="min-w-0">
           <p className="text-xs sm:text-sm font-medium text-muted truncate">{title}</p>

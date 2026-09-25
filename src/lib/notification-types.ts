@@ -59,6 +59,25 @@ export const NOTIFICATION_TYPES = {
   // each school term. ONE digest per active marketing user per run (never
   // per-request notifyRequestSubmitted — 20 services x 4 requests = spam).
   TERM_PACK_CREATED: "term_pack_created",
+  // 2026-09-08: Team tab Onboarding sub-tab — a state manager/admin/owner
+  // flags a new hire; every admin-tier user gets notified to pick it up.
+  NEW_STARTER_REQUEST_SUBMITTED: "new_starter_request_submitted",
+  // 2026-09-08: My Portal Pay discrepancy report — any staff member flags
+  // a pay/hours mismatch; admin-tier gets notified, reporter gets notified
+  // once it's resolved/dismissed.
+  PAY_DISCREPANCY_SUBMITTED: "pay_discrepancy_submitted",
+  PAY_DISCREPANCY_RESOLVED: "pay_discrepancy_resolved",
+  // 2026-09-14: 90-day ramp — a starter's weekly check-in flagged low mood
+  // or "I need help" (→ service manager + State Managers); a 30/60/90
+  // manager checkpoint is due; the ramp closed (→ the starter).
+  RAMP_CHECKIN_FLAGGED: "ramp_checkin_flagged",
+  RAMP_CHECKPOINT_DUE: "ramp_checkpoint_due",
+  RAMP_COMPLETED: "ramp_completed",
+  // 2026-08-31 (execution layer): meetings/scorecard/cascade fan-outs.
+  MEETING_REVIEW_READY: "meeting_review_ready",
+  SCORECARD_WATCHDOG: "scorecard_watchdog",
+  CASCADE_PUBLISHED: "cascade_published",
+  CASCADE_REMINDER: "cascade_reminder",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];

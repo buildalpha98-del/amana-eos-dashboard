@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const postSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
@@ -111,7 +112,7 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json(template, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 /**
  * DELETE /api/audits/templates — wipe every audit template (owner only).

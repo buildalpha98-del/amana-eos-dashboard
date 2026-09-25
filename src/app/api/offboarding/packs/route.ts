@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const createPackSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
@@ -28,7 +30,7 @@ export const GET = withApiAuth(async (req, session) => {
 const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
 
-  const where: Record<string, unknown> = { deleted: false };
+  const where: Prisma.OffboardingPackWhereInput = { deleted: false };
   if (serviceId) where.serviceId = serviceId;
 
   // Staff only see packs for their service + default packs
@@ -42,7 +44,7 @@ const { searchParams } = new URL(req.url);
   }
 
   const packs = await prisma.offboardingPack.findMany({
-    where: where as any,
+    where,
     include: {
       service: { select: { id: true, name: true, code: true } },
       _count: { select: { tasks: true, assignments: true } },
@@ -97,4 +99,4 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json(pack, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

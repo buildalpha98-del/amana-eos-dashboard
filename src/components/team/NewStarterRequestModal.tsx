@@ -1,0 +1,302 @@
+"use client";
+
+/**
+ * NewStarterRequestModal — the Team tab's Onboarding sub-tab intake form.
+ * A state manager/admin/owner fills this out for a known new hire.
+ * Submitting immediately creates the real account, assigns their
+ * onboarding pack, and emails them a dashboard invite + first-shift
+ * checklist — see POST /api/onboarding-requests. Every admin-tier user
+ * also gets notified to handle Employment Hero + the contract.
+ */
+
+import { useState } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
+import { Button } from "@/components/ui/Button";
+import { toast } from "@/hooks/useToast";
+import { useCreateOnboardingRequest, type NewStarterRequestInput } from "@/hooks/useOnboardingRequests";
+import { AWARD_LEVEL_LABELS } from "@/components/contracts/constants";
+import type { EmploymentType, AwardLevel, QualificationType } from "@prisma/client";
+
+interface ServiceOption {
+  id: string;
+  name: string;
+}
+
+const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
+  casual: "Casual",
+  part_time: "Part-Time",
+  permanent: "Permanent",
+  fixed_term: "Fixed Term",
+};
+
+// Only the qualification levels relevant to a new-starter intake — the
+// full QualificationType enum also carries first_aid/wwcc/other which
+// don't belong on this form.
+const QUALIFICATION_OPTIONS: Array<{ value: QualificationType | ""; label: string }> = [
+  { value: "", label: "None yet" },
+  { value: "cert_iii", label: "Certificate III" },
+  { value: "diploma", label: "Diploma" },
+  { value: "bachelor", label: "Bachelor's degree" },
+];
+
+const REQUIRED_MARK = <span className="text-red-500">*</span>;
+
+const AWARD_LEVEL_OPTIONS: AwardLevel[] = [
+  "cs1",
+  "cs2",
+  "cs3",
+  "cs4",
+  "es1",
+  "es2",
+  "es3",
+  "es4",
+  "coordinator",
+  "director",
+  "custom",
+];
+
+export function NewStarterRequestModal({
+  open,
+  onClose,
+  services,
+}: {
+  open: boolean;
+  onClose: () => void;
+  services: ServiceOption[];
+}) {
+  const create = useCreateOnboardingRequest();
+  const [form, setForm] = useState({
+    fullName: "",
+    dateOfBirth: "",
+    address: "",
+    mobile: "",
+    email: "",
+    targetPosition: "",
+    employmentType: "casual" as EmploymentType,
+    qualification: "" as QualificationType | "",
+    // 2026-09-14: no longer defaults to the first centre. It pre-filled
+    // services[0], so submitting without touching the field silently
+    // assigned the new starter to whichever centre happened to sort first.
+    serviceId: "",
+    expectedStartDate: "",
+    notes: "",
+  });
+
+  function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.fullName.trim()) {
+      toast({ variant: "destructive", description: "Enter their full name." });
+      return;
+    }
+    if (!form.dateOfBirth) {
+      toast({ variant: "destructive", description: "Enter their date of birth." });
+      return;
+    }
+    if (!form.expectedStartDate) {
+      toast({ variant: "destructive", description: "Enter their expected start date." });
+      return;
+    }
+    if (!form.mobile.trim()) {
+      toast({ variant: "destructive", description: "Enter their mobile number." });
+      return;
+    }
+    if (!form.email.trim()) {
+      toast({ variant: "destructive", description: "Enter their email address — their invite goes here." });
+      return;
+    }
+    if (!form.targetPosition.trim()) {
+      toast({ variant: "destructive", description: "Enter the position they're joining as." });
+      return;
+    }
+    if (!form.address.trim()) {
+      toast({ variant: "destructive", description: "Enter their address." });
+      return;
+    }
+    if (!form.serviceId) {
+      toast({ variant: "destructive", description: "Select which centre they're joining." });
+      return;
+    }
+
+    const input: NewStarterRequestInput = {
+      fullName: form.fullName.trim(),
+      dateOfBirth: form.dateOfBirth,
+      address: form.address.trim(),
+      mobile: form.mobile.trim(),
+      email: form.email.trim(),
+      targetPosition: form.targetPosition.trim(),
+      employmentType: form.employmentType,
+      qualification: form.qualification || null,
+      serviceId: form.serviceId,
+      expectedStartDate: form.expectedStartDate,
+      notes: form.notes.trim() || undefined,
+    };
+
+    await create.mutateAsync(input);
+    onClose();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogTitle>Onboard a new starter</DialogTitle>
+        <p className="text-sm text-muted -mt-2 mb-2">
+          Submitting creates their account and emails them straight away.
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs text-muted block mb-1">Full name {REQUIRED_MARK}</label>
+            <input
+              autoFocus
+              required
+              type="text"
+              value={form.fullName}
+              onChange={(e) => set("fullName", e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
+              placeholder="Full name"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted block mb-1">Date of birth {REQUIRED_MARK}</label>
+              <input
+                required
+                type="date"
+                value={form.dateOfBirth}
+                onChange={(e) => set("dateOfBirth", e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted block mb-1">Expected start date {REQUIRED_MARK}</label>
+              <input
+                required
+                type="date"
+                value={form.expectedStartDate}
+                onChange={(e) => set("expectedStartDate", e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-muted block mb-1">Address</label>
+            <input
+              type="text"
+              value={form.address}
+              onChange={(e) => set("address", e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
+              placeholder="Street address, suburb, state, postcode"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted block mb-1">Mobile number {REQUIRED_MARK}</label>
+              <input
+                required
+                type="tel"
+                value={form.mobile}
+                onChange={(e) => set("mobile", e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
+                placeholder="04XX XXX XXX"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted block mb-1">Email {REQUIRED_MARK}</label>
+              <input
+                required
+                type="email"
+                value={form.email}
+                onChange={(e) => set("email", e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
+                placeholder="Their personal or preferred email — their invite goes here"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted block mb-1">Position {REQUIRED_MARK}</label>
+              <input
+                required
+                type="text"
+                value={form.targetPosition}
+                onChange={(e) => set("targetPosition", e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
+                placeholder="e.g. Educator, Service Coordinator"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted block mb-1">Centre {REQUIRED_MARK}</label>
+              <select
+                required
+                value={form.serviceId}
+                onChange={(e) => set("serviceId", e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
+              >
+                <option value="" disabled>
+                  {services.length === 0 ? "No centres available" : "Select centre…"}
+                </option>
+                {services.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted block mb-1">Employment type</label>
+              <select
+                value={form.employmentType}
+                onChange={(e) => set("employmentType", e.target.value as EmploymentType)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
+              >
+                {(Object.keys(EMPLOYMENT_TYPE_LABELS) as EmploymentType[]).map((v) => (
+                  <option key={v} value={v}>{EMPLOYMENT_TYPE_LABELS[v]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted block mb-1">Qualification</label>
+              <select
+                value={form.qualification}
+                onChange={(e) => set("qualification", e.target.value as QualificationType | "")}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
+              >
+                {QUALIFICATION_OPTIONS.map((o) => (
+                  <option key={o.value || "none"} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-muted block mb-1">Notes (optional)</label>
+            <textarea
+              value={form.notes}
+              onChange={(e) => set("notes", e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
+              placeholder="Anything else admin should know"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} disabled={create.isPending}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={create.isPending}>
+              Create account &amp; send invite
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

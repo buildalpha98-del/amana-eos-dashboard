@@ -47,6 +47,19 @@ const AUDIENCE_OPTIONS = [
   { value: "custom", label: "Custom" },
 ];
 
+interface AnnouncementItem {
+  id: string;
+  title: string;
+  body: string;
+  audience: string;
+  priority: string;
+  pinned?: boolean;
+  publishedAt?: string | null;
+  createdAt: string;
+  author?: { id: string; name?: string | null; avatar?: string | null } | null;
+  _count?: { readReceipts?: number };
+}
+
 const PRIORITY_OPTIONS = [
   { value: "normal", label: "Normal" },
   { value: "important", label: "Important" },
@@ -96,7 +109,8 @@ export function AnnouncementsTab() {
   const markRead = useMarkAnnouncementRead();
 
   const [showModal, setShowModal] = useState(false);
-  const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null);
+  const [editingAnnouncement, setEditingAnnouncement] =
+    useState<AnnouncementItem | null>(null);
   const [markedReadIds, setMarkedReadIds] = useState<Set<string>>(new Set());
 
   // Form state
@@ -109,8 +123,8 @@ export function AnnouncementsTab() {
   const [formTone, setFormTone] = useState("warm");
   const [formError, setFormError] = useState("");
 
-  const userRole = (session?.user as any)?.role;
-  const userId = (session?.user as any)?.id;
+  const userRole = session?.user?.role;
+  const userId = session?.user?.id;
   const isPrivileged = userRole === "owner" || userRole === "admin";
 
   const resetForm = () => {
@@ -130,7 +144,7 @@ export function AnnouncementsTab() {
     setShowModal(true);
   };
 
-  const openEdit = (announcement: any) => {
+  const openEdit = (announcement: AnnouncementItem) => {
     setEditingAnnouncement(announcement);
     setFormTitle(announcement.title);
     setFormBody(announcement.body);
@@ -159,7 +173,13 @@ export function AnnouncementsTab() {
       return;
     }
 
-    const payload: any = {
+    const payload: {
+      title: string;
+      body: string;
+      audience: string;
+      priority: string;
+      publishedAt?: string;
+    } = {
       title: formTitle.trim(),
       body: formBody.trim(),
       audience: formAudience,
@@ -175,14 +195,14 @@ export function AnnouncementsTab() {
         { id: editingAnnouncement.id, ...payload },
         {
           onSuccess: () => handleClose(),
-          onError: (err: any) =>
+          onError: (err: Error) =>
             setFormError(err?.message || "Failed to update announcement."),
         }
       );
     } else {
       createAnnouncement.mutate(payload, {
         onSuccess: () => handleClose(),
-        onError: (err: any) =>
+        onError: (err: Error) =>
           setFormError(err?.message || "Failed to create announcement."),
       });
     }
@@ -205,8 +225,8 @@ export function AnnouncementsTab() {
     createAnnouncement.isPending || updateAnnouncement.isPending;
 
   // Sort: pinned first, then by date descending
-  const sorted = announcements
-    ? [...announcements].sort((a: any, b: any) => {
+  const sorted: AnnouncementItem[] = announcements
+    ? [...announcements].sort((a: AnnouncementItem, b: AnnouncementItem) => {
         if (a.pinned && !b.pinned) return -1;
         if (!a.pinned && b.pinned) return 1;
         return (
@@ -258,7 +278,7 @@ export function AnnouncementsTab() {
         </div>
       ) : (
         <div className="space-y-3">
-          {sorted.map((announcement: any) => {
+          {sorted.map((announcement) => {
             const priority = getPriorityConfig(announcement.priority);
             const PriorityIcon = priority.icon;
             const isOwner = announcement.author?.id === userId;

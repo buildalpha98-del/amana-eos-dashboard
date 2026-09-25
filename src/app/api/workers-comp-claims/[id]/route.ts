@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const STATUSES = [
   "lodged",
@@ -67,7 +68,7 @@ export const GET = withApiAuth(
     if (!claim || claim.deleted) throw ApiError.notFound("Claim not found");
     return NextResponse.json(claim);
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const PATCH = withApiAuth(
@@ -160,5 +161,5 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json(updated);
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

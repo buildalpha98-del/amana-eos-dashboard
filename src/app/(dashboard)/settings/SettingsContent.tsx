@@ -311,7 +311,7 @@ function InviteUserModal({
                 onChange={(e) => setState(e.target.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
-                <option value="">All states (all regions)</option>
+                <option value="">Not set</option>
                 {AUSTRALIAN_STATES.map((s) => (
                   <option key={s.value} value={s.value}>
                     {s.label} ({s.value})
@@ -319,7 +319,9 @@ function InviteUserModal({
                 ))}
               </select>
               <p className="mt-1 text-xs text-muted">
-                Leave as &ldquo;All states&rdquo; for org-wide access across every region. Pick a specific state to scope them to just that region.
+                {role === "head_office"
+                  ? "State Managers see every centre in this state, plus any centre they're individually assigned. Leave it unset and they see only their individually assigned centres."
+                  : "Recorded for reporting. Admins see every centre regardless of state."}
               </p>
             </div>
           )}
@@ -1045,14 +1047,15 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
     },
   });
 
-  // Sync local state when data loads
-  useEffect(() => {
-    if (orgSettings) {
-      setOrgName(orgSettings.name);
-      setPrimaryColor(orgSettings.primaryColor);
-      setAccentColor(orgSettings.accentColor);
-    }
-  }, [orgSettings]);
+  // Sync local state when data loads (adjusted during render, keyed on the
+  // fetched object reference — same trigger as the previous effect)
+  const [loadedSettings, setLoadedSettings] = useState<OrgSettingsData | null>(null);
+  if (orgSettings && orgSettings !== loadedSettings) {
+    setLoadedSettings(orgSettings);
+    setOrgName(orgSettings.name);
+    setPrimaryColor(orgSettings.primaryColor);
+    setAccentColor(orgSettings.accentColor);
+  }
 
   const updateOrg = useMutation({
     mutationFn: async (data: { name?: string; primaryColor?: string; accentColor?: string }) => {
@@ -1322,16 +1325,29 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
     mappingStep === 2
   );
 
-  // Initialize centre mappings from current state when modal opens
+  // Initialize centre mappings from current state when modal opens.
+  // The API speaks the save contract (serviceId/xeroTrackingOptionId,
+  // xeroAccountCode/localCategory); transform into local UI state, the
+  // inverse of handleSaveMappings.
   useEffect(() => {
     if (currentMappings?.centreMappings) {
-      setCentreMappings(currentMappings.centreMappings);
+      setCentreMappings(
+        currentMappings.centreMappings.map((m) => ({
+          xeroOptionId: m.xeroTrackingOptionId,
+          serviceId: m.serviceId,
+        }))
+      );
     }
     if (currentMappings?.trackingCategoryId) {
       setSelectedCategoryId(currentMappings.trackingCategoryId);
     }
     if (currentMappings?.accountMappings) {
-      setAccountMappings(currentMappings.accountMappings);
+      setAccountMappings(
+        currentMappings.accountMappings.map((m) => ({
+          xeroAccountId: m.xeroAccountCode,
+          category: m.localCategory,
+        }))
+      );
     }
   }, [currentMappings]);
 
@@ -1947,16 +1963,17 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
 
 function PermissionsPanel() {
   const roleLabels = useRoleLabels();
-  // Group rows by section
-  const sections: { name: string; rows: PermissionRow[] }[] = [];
-  let currentSection = "";
+  // Group rows by section NAME, not by run-length: permissionsTable appends
+  // late additions out of section order (a second run of "Pages"/"Actions"
+  // rows after the "Admin" block), and run-length grouping rendered
+  // duplicate section headers for them.
+  const sectionMap = new Map<string, PermissionRow[]>();
   for (const row of permissionsTable) {
-    if (row.section !== currentSection) {
-      currentSection = row.section;
-      sections.push({ name: currentSection, rows: [] });
-    }
-    sections[sections.length - 1].rows.push(row);
+    const rows = sectionMap.get(row.section);
+    if (rows) rows.push(row);
+    else sectionMap.set(row.section, [row]);
   }
+  const sections = Array.from(sectionMap, ([name, rows]) => ({ name, rows }));
 
   return (
     <div className="bg-card rounded-xl border border-border p-6">
@@ -2000,7 +2017,7 @@ function PermissionsPanel() {
           </thead>
           <tbody>
             {sections.map((section) => (
-              <Fragment key={`section-${section.name}`}>
+              <Fragment key={section.name}>
                 <tr>
                   <td
                     colSpan={8}

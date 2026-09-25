@@ -4,8 +4,9 @@ import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { bulkUserMembershipsSchema } from "@/lib/schemas/service-staff";
 import type { Role } from "@prisma/client";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
-const ADMIN_TIER = new Set<Role>(["owner", "head_office", "admin"]);
+const ADMIN_TIER = new Set<Role>(ADMIN_ROLES);
 
 function toIsoDate(d: Date | null | undefined): string | null {
   if (!d) return null;
@@ -149,5 +150,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json({ created, skipped });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

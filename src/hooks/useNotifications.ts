@@ -1,5 +1,10 @@
 "use client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 
@@ -22,6 +27,8 @@ export interface UserNotificationItem {
 
 export interface NotificationsResponse {
   notifications: UserNotificationItem[];
+  /** Cursor for the next page, or null when there are no more rows. */
+  nextCursor?: string | null;
 }
 
 export interface UnreadCountResponse {
@@ -37,6 +44,36 @@ export function useNotifications(options?: { unread?: boolean; enabled?: boolean
       fetchApi<NotificationsResponse>(
         unread ? "/api/notifications?unread=true" : "/api/notifications",
       ),
+    retry: 2,
+    staleTime: 30_000,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+/**
+ * Cursor-paginated notifications for the full-page inbox. Each page carries
+ * `nextCursor` (null on the last page); "Load more" calls `fetchNextPage`.
+ */
+export function useInfiniteNotifications(options?: {
+  unread?: boolean;
+  limit?: number;
+  enabled?: boolean;
+}) {
+  const unread = options?.unread ?? false;
+  const limit = options?.limit ?? 20;
+  return useInfiniteQuery<NotificationsResponse>({
+    queryKey: ["notifications", "infinite", unread, limit],
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams();
+      if (unread) params.set("unread", "true");
+      params.set("limit", String(limit));
+      if (typeof pageParam === "string") params.set("cursor", pageParam);
+      return fetchApi<NotificationsResponse>(
+        `/api/notifications?${params.toString()}`,
+      );
+    },
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? null,
     retry: 2,
     staleTime: 30_000,
     enabled: options?.enabled ?? true,

@@ -33,6 +33,9 @@ function AutosaveLabel({
   state: string;
   lastSavedAt: Date | null;
 }) {
+  // Snapshot "now" once per mount so render stays pure — post-mount saves
+  // read as "just now", which is accurate at the moment they land
+  const [now] = useState(() => Date.now());
   if (state === "saving") {
     return (
       <span className="text-xs text-muted animate-pulse">Saving…</span>
@@ -45,7 +48,7 @@ function AutosaveLabel({
     return <span className="text-xs text-amber-600">Unsaved</span>;
   }
   if (state === "saved" && lastSavedAt) {
-    const secs = Math.round((Date.now() - lastSavedAt.getTime()) / 1000);
+    const secs = Math.round((now - lastSavedAt.getTime()) / 1000);
     const label = secs < 5 ? "just now" : `${secs}s ago`;
     return <span className="text-xs text-green-600">Saved {label}</span>;
   }

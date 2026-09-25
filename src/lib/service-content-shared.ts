@@ -71,6 +71,25 @@ export const serviceContentSchema = z.object({
    * stays in the library, so updating it there updates it everywhere.
    */
   policyDocumentIds: z.array(z.string().min(1)).max(50),
+
+  /**
+   * 2026-09-08: shown on the parent-facing "thank you" page right after
+   * they submit their enrolment form — "what happens next at THIS
+   * centre" (e.g. a specific start date, uniform pickup, orientation
+   * day). Falls back to a generic message when unset so a service that
+   * hasn't customised it still shows something reassuring rather than
+   * a blank section.
+   */
+  enrolmentThankYou: z.string().max(2_000),
+
+  /**
+   * 2026-09-24: this centre's SharePoint folder. Shown as an "Open
+   * SharePoint" button in the service detail page header — visible on
+   * every tab, not just Content, since it's a quick-access jump-off
+   * point staff want reachable no matter what they're looking at.
+   * Empty means the button is hidden rather than a dead link.
+   */
+  sharepointUrl: z.string().max(2_048),
 });
 
 export type ServiceContent = z.infer<typeof serviceContentSchema>;
@@ -89,6 +108,8 @@ export const SERVICE_CONTENT_DEFAULTS: ServiceContent = {
   serviceMapUrl: "",
   serviceMapName: "",
   policyDocumentIds: [],
+  enrolmentThankYou: "",
+  sharepointUrl: "",
 };
 
 /**
@@ -141,5 +162,7 @@ export function mergeServiceContent(
     serviceMapUrl: str("serviceMapUrl"),
     serviceMapName: str("serviceMapName"),
     policyDocumentIds,
+    enrolmentThankYou: str("enrolmentThankYou"),
+    sharepointUrl: str("sharepointUrl"),
   };
 }

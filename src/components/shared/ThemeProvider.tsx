@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useSyncExternalStore,
+} from "react";
 
 type Theme = "light" | "dark" | "system";
 
@@ -18,43 +25,45 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const useTheme = () => useContext(ThemeContext);
 
+// System dark-mode preference as an external store (SSR snapshot: light)
+const DARK_QUERY = "(prefers-color-scheme: dark)";
+
+function subscribeToSystemTheme(callback: () => void) {
+  const mq = window.matchMedia(DARK_QUERY);
+  mq.addEventListener("change", callback);
+  return () => mq.removeEventListener("change", callback);
+}
+
+function getSystemDarkSnapshot() {
+  return window.matchMedia(DARK_QUERY).matches;
+}
+
+function getSystemDarkServerSnapshot() {
+  return false;
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("light");
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
+  const systemDark = useSyncExternalStore(
+    subscribeToSystemTheme,
+    getSystemDarkSnapshot,
+    getSystemDarkServerSnapshot
+  );
 
   // On mount, read from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("theme") as Theme | null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- SSR-safe hydration read: initialising from localStorage in the useState initializer would mismatch the server-rendered markup
     if (stored) setThemeState(stored);
   }, []);
 
-  // Resolve and apply the theme
+  // Resolve the theme during render, apply the class as a side effect
+  const resolvedTheme: "light" | "dark" =
+    theme === "system" ? (systemDark ? "dark" : "light") : theme;
+
   useEffect(() => {
-    const root = document.documentElement;
-    let resolved: "light" | "dark" = "light";
-
-    if (theme === "system") {
-      resolved = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    } else {
-      resolved = theme;
-    }
-
-    setResolvedTheme(resolved);
-    root.classList.toggle("dark", resolved === "dark");
-  }, [theme]);
-
-  // Listen for system preference changes
-  useEffect(() => {
-    if (theme !== "system") return;
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = (e: MediaQueryListEvent) => {
-      const resolved = e.matches ? "dark" : "light";
-      setResolvedTheme(resolved);
-      document.documentElement.classList.toggle("dark", resolved === "dark");
-    };
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, [theme]);
+    document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
+  }, [resolvedTheme]);
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t);

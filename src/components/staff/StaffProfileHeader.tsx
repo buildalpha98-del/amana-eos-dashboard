@@ -30,7 +30,11 @@ import {
 import { StaffAvatar } from "@/components/staff/StaffAvatar";
 import { StaffTagEditor } from "@/components/staff/StaffTagEditor";
 import { ROLE_DISPLAY_NAMES, isAdminRole } from "@/lib/role-permissions";
-import { useEmployeeQuickAction, type QuickActionType } from "@/hooks/useEmployeeQuickAction";
+import {
+  useEmployeeHasSeparation,
+  useEmployeeQuickAction,
+  type QuickActionType,
+} from "@/hooks/useEmployeeQuickAction";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/utils";
 import type { Role } from "@prisma/client";
@@ -120,6 +124,28 @@ export function StaffProfileHeader({
     pendingConfirm === "toggle_admin" || pendingConfirm === "toggle_active"
       ? CONFIRM_COPY[pendingConfirm](user)
       : null;
+
+  // Deactivate↔separation link: while the deactivate confirm is open,
+  // check whether a SeparationRecord exists so the admin is nudged to
+  // record one for the Fair Work file before switching the account off.
+  const isDeactivating = pendingConfirm === "toggle_active" && user.active;
+  const hasSeparationQuery = useEmployeeHasSeparation(
+    user.id,
+    isDeactivating && isAdmin,
+  );
+  const deactivateWarning =
+    isDeactivating && hasSeparationQuery.data?.hasSeparation === false ? (
+      <span>
+        No separation record exists — record one for the Fair Work file.{" "}
+        <Link
+          href={`/staff/${user.id}?edit=separation#section-employment`}
+          className="font-medium underline hover:no-underline"
+          onClick={() => setPendingConfirm(null)}
+        >
+          Add separation record
+        </Link>
+      </span>
+    ) : null;
 
   return (
     <div data-testid="staff-profile-header">
@@ -316,6 +342,7 @@ export function StaffProfileHeader({
           onOpenChange={(o) => !o && setPendingConfirm(null)}
           title={confirmCopy.title}
           description={confirmCopy.description}
+          warning={deactivateWarning}
           confirmLabel={confirmCopy.confirmLabel}
           variant={confirmCopy.variant}
           onConfirm={runConfirm}

@@ -174,3 +174,81 @@ describe("computeSnapshotStats — passthrough counts", () => {
     expect(out.openTodos).toBe(7);
   });
 });
+
+// ─── Phase 9 (Staff Portal v2): required-only, per-type mode ────────────────
+
+describe("computeSnapshotStats — requiredCertTypes mode", () => {
+  it("legacy mode reports requiredCertTotal null and no missing bucket", () => {
+    const out = computeSnapshotStats(makeInput(), ASOF);
+    expect(out.requiredCertTotal).toBeNull();
+    expect(out.certCounts.missing).toBeUndefined();
+  });
+
+  it("an empty required list keeps legacy per-document counting", () => {
+    const out = computeSnapshotStats(
+      makeInput({
+        certificates: [
+          { type: "asthma", expiryDate: daysFrom(ASOF, 60) },
+          { type: "asthma", expiryDate: daysFrom(ASOF, 100) },
+        ],
+        requiredCertTypes: [],
+      }),
+      ASOF,
+    );
+    expect(out.requiredCertTotal).toBeNull();
+    expect(out.certCounts).toEqual({ valid: 2, expiring: 0, expired: 0 });
+  });
+
+  it("counts per TYPE (best cert wins) and flags absent types as missing", () => {
+    const out = computeSnapshotStats(
+      makeInput({
+        certificates: [
+          // wwcc: expired renewal superseded by a valid one → valid
+          { type: "wwcc", expiryDate: daysFrom(ASOF, -10) },
+          { type: "wwcc", expiryDate: daysFrom(ASOF, 200) },
+          // first_aid: only an expiring cert → expiring
+          { type: "first_aid", expiryDate: daysFrom(ASOF, 14) },
+          // cpr: only an expired cert → expired
+          { type: "cpr", expiryDate: daysFrom(ASOF, -5) },
+          // asthma on file but NOT required → ignored entirely
+          { type: "asthma", expiryDate: daysFrom(ASOF, 60) },
+          // anaphylaxis + child_protection absent → missing ×2
+        ],
+        requiredCertTypes: [
+          "wwcc",
+          "first_aid",
+          "cpr",
+          "anaphylaxis",
+          "child_protection",
+        ],
+      }),
+      ASOF,
+    );
+    expect(out.requiredCertTotal).toBe(5);
+    expect(out.certCounts).toEqual({
+      valid: 1,
+      expiring: 1,
+      expired: 1,
+      missing: 2,
+    });
+  });
+
+  it("a required type held via a 'no expiry' cert counts VALID (matches /compliance + /my-portal)", () => {
+    // The staff upload flow explicitly supports "no expiry" documents;
+    // a required type covered by one must not read as missing.
+    const out = computeSnapshotStats(
+      makeInput({
+        certificates: [{ type: "wwcc", expiryDate: null }],
+        requiredCertTypes: ["wwcc"],
+      }),
+      ASOF,
+    );
+    expect(out.certCounts).toEqual({
+      valid: 1,
+      expiring: 0,
+      expired: 0,
+      missing: 0,
+    });
+    expect(out.requiredCertTotal).toBe(1);
+  });
+});

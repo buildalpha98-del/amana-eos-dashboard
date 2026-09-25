@@ -38,6 +38,56 @@ describe("isInductionLocked", () => {
   });
 });
 
+describe("the gate is inert without a published curriculum", () => {
+  /**
+   * 2026-09-19. The rollout promise is that the gate "stays inert until
+   * courses are published", and `getInductionReadiness` honoured it — it
+   * counts published essentials only, so an empty curriculum yields no course
+   * blocker. Locked-mode never did: it read STATUS alone, so a backfill run
+   * before any course was published shut real coordinators out of their own
+   * centre, with nothing on /my-training they could finish to get out.
+   *
+   * A gate with nothing behind it is not a gate.
+   */
+  it("does not lock anyone when no essential course is published", () => {
+    expect(
+      isInductionLocked("new_starter", null, { now, essentialsPublished: false }),
+    ).toBe(false);
+    expect(
+      isInductionLocked("in_training", past, { now, essentialsPublished: false }),
+    ).toBe(false);
+  });
+
+  it("locks as before once a course IS published", () => {
+    expect(
+      isInductionLocked("new_starter", null, { now, essentialsPublished: true }),
+    ).toBe(true);
+    expect(
+      isInductionLocked("in_training", past, { now, essentialsPublished: true }),
+    ).toBe(true);
+  });
+
+  it("keeps the old behaviour when the flag is absent", () => {
+    // An older token, or a call site that hasn't plumbed it through: stay
+    // conservative rather than unlocking an org that DOES have a curriculum.
+    // It self-corrects on the next token refresh.
+    expect(isInductionLocked("new_starter", null, { now })).toBe(true);
+    expect(
+      isInductionLocked("new_starter", null, { now, essentialsPublished: undefined }),
+    ).toBe(true);
+  });
+
+  it("still exempts admin-tier roles regardless of the curriculum", () => {
+    expect(
+      isInductionLocked("new_starter", null, {
+        now,
+        role: "owner",
+        essentialsPublished: true,
+      }),
+    ).toBe(false);
+  });
+});
+
 describe("isInductionAllowedPath", () => {
   it("allows the induction surfaces", () => {
     expect(isInductionAllowedPath("/my-training")).toBe(true);

@@ -4,6 +4,7 @@ import { parseAuditDocumentHybrid } from "@/lib/audit-parser";
 import { matchTemplates } from "@/lib/audit-matcher";
 import { withApiAuth } from "@/lib/server-auth";
 import { validateFileContent } from "@/lib/file-validation";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB per file
 
@@ -72,4 +73,4 @@ export const POST = withApiAuth(async (req, session) => {
   );
 
   return NextResponse.json({ results });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

@@ -9,6 +9,8 @@ export interface FinancialService {
   code: string;
   state: string;
   status: string;
+  /** Not currently selected by /api/financials — present only if the API adds it. */
+  capacity?: number;
 }
 
 export interface FinancialPeriodData {

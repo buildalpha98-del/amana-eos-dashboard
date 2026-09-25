@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getResend, sendEmail } from "@/lib/email";
 import { notifyLowOccupancy } from "@/lib/teams-notify";
 import { acquireCronLock } from "@/lib/cron-guard";
+import { skipIfServiceAlertsPaused } from "@/lib/service-alerts-pause";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { siteUrl } from "@/lib/site-url";
@@ -33,6 +34,11 @@ export const GET = withApiHandler(async (req) => {
   if (!guard.acquired) {
     return NextResponse.json({ message: guard.reason, skipped: true });
   }
+
+  // 2026-09-14: service-ops alert emails are paused until the services
+  // portal is in use (Settings → Organisation → Service alert emails).
+  const paused = await skipIfServiceAlertsPaused(guard);
+  if (paused) return paused;
 
   try {
     const now = new Date();

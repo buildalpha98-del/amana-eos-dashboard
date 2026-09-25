@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 // GET /api/leave/balances — get leave balances
@@ -14,11 +15,11 @@ const { searchParams } = new URL(req.url);
     targetUserId = userId || "";
   }
 
-  const where: Record<string, unknown> = {};
+  const where: Prisma.LeaveBalanceWhereInput = {};
   if (targetUserId) where.userId = targetUserId;
 
   const balances = await prisma.leaveBalance.findMany({
-    where: where as any,
+    where,
     include: {
       user: { select: { id: true, name: true, email: true } },
     },

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { LeadSummary } from "@/hooks/useCRM";
 
 const sourceColors: Record<string, string> = {
@@ -16,8 +17,9 @@ export function LeadCard({
   onClick: () => void;
   isDragging?: boolean;
 }) {
+  const [now] = useState(() => Date.now());
   const daysInStage = Math.floor(
-    (Date.now() - new Date(lead.stageChangedAt).getTime()) / (1000 * 60 * 60 * 24)
+    (now - new Date(lead.stageChangedAt).getTime()) / (1000 * 60 * 60 * 24)
   );
 
   return (

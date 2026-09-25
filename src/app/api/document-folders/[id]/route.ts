@@ -4,6 +4,7 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const updateFolderSchema = z.object({
   name: z.string().min(1).optional(),
 });
@@ -26,7 +27,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(folder);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 export const DELETE = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
@@ -53,4 +54,4 @@ export const DELETE = withApiAuth(async (req, session, context) => {
   await prisma.documentFolder.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

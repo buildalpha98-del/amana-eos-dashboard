@@ -89,7 +89,9 @@ const LEADER_ROLES = ["member", "admin", "head_office", "owner"];
 // Storage key
 // ---------------------------------------------------------------------------
 
-export const TOUR_STORAGE_KEY = "amana-tour-completed";
+// Re-exported from the pure module so the E2E helpers share the same
+// constant without importing a React component into the Playwright runner.
+export { TOUR_STORAGE_KEY } from "@/lib/tour-storage";
 
 // ---------------------------------------------------------------------------
 // WelcomeTour component

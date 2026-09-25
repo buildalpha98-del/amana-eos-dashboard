@@ -1,30 +1,31 @@
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/role-permissions";
+import { canViewStaffPay } from "@/lib/staff-pay-visibility";
 import { requirePageSession } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
-import { notFound } from "next/navigation";
 import type { StaffProfileData } from "@/components/staff/types";
 import { StaffProfileLayout } from "@/components/staff/StaffProfileLayout";
 import { getCertStatus } from "@/lib/cert-status";
 import { computeSnapshotStats } from "@/lib/staff/snapshot-stats";
+import { getOrgSettings } from "@/lib/org-settings";
+import { getRequiredCertTypes } from "@/lib/cert-requirements";
 import { buildListWhere } from "@/lib/employees/build-list-where";
 import { getCentreScope } from "@/lib/centre-scope";
+import { canAccessStaffProfile } from "@/lib/staff-access";
 
+/**
+ * Re-export of the shared rule in @/lib/staff-access.
+ *
+ * The logic used to live here, which meant /api/staff-documents/[id] had its
+ * own near-copy that had drifted (it let any same-service role through, not
+ * just the Director). One definition now, imported by both.
+ */
 export async function canAccessProfile(
   viewerId: string,
   viewerRole: string | null,
   target: { id: string; serviceId: string | null },
 ): Promise<boolean> {
-  if (viewerId === target.id) return true;
-  if (isAdminRole(viewerRole)) return true;
-  if (viewerRole === "member") {
-    const viewer = await prisma.user.findUnique({
-      where: { id: viewerId },
-      select: { serviceId: true },
-    });
-    return !!viewer?.serviceId && viewer.serviceId === target.serviceId;
-  }
-  return false;
+  return canAccessStaffProfile(viewerId, viewerRole, target);
 }
 
 interface PageProps {
@@ -89,7 +90,36 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     where: { id },
     include: { service: true },
   });
-  if (!targetUser) notFound();
+  // 2026-09-15: a bare notFound() here is a dead end for an EMAILED deep
+  // link. The 90-day ramp alerts point State Managers at
+  // /staff/<id>#section-ramp, and when that staff record has since been
+  // deleted the recipient got the generic "Page not found" — which reads as
+  // "the dashboard is broken", not "this person is gone". StaffRamp cascades
+  // on user delete, so no NEW alert can point at a missing record; it is
+  // always an older email outliving its subject. Say so, and offer the way
+  // back.
+  if (!targetUser) {
+    return (
+      <div className="p-6">
+        <div className="max-w-md mx-auto text-center">
+          <h1 className="text-lg font-semibold text-foreground">
+            This staff record no longer exists
+          </h1>
+          <p className="text-sm text-muted mt-2">
+            It has been deleted since this link was created. If you followed a
+            link from an email, that email is likely older than the change.
+          </p>
+          <a
+            href="/team"
+            className="inline-block mt-4 text-sm text-brand hover:underline"
+          >
+            Back to Team
+          </a>
+        </div>
+      </div>
+    );
+  }
+  const ramp = await prisma.staffRamp.findUnique({ where: { userId: id }, select: { id: true } });
 
   const viewerRole = session.user.role ?? null;
   const allowed = await canAccessProfile(session.user.id, viewerRole, {
@@ -188,7 +218,7 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
   // Fetch all profile data in parallel
   const [
     emergencyContacts,
-    latestContract,
+    contracts,
     balances,
     recentLeaveRequests,
     timesheetEntries,
@@ -198,12 +228,20 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     activeRocks,
     openTodos,
     nextShift,
+    policyAckRows,
+    publishedPolicies,
+    inductionEnrollmentRows,
+    practicalSignedCount,
+    practicalItemCount,
+    formSubmissionRows,
   ] = await Promise.all([
     prisma.emergencyContact.findMany({
       where: { userId: id },
       orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
     }),
-    prisma.employmentContract.findFirst({
+    // Task 10.3: ALL contracts, newest first — Pay & compensation renders
+    // the full salary history; consumers wanting "the latest" take [0].
+    prisma.employmentContract.findMany({
       where: { userId: id },
       orderBy: { startDate: "desc" },
     }),
@@ -266,6 +304,68 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
         status: true,
       },
     }).catch(() => null),
+    // Policy acknowledgements — every version this user has ever
+    // acknowledged, newest first (history, not just current versions).
+    prisma.policyDocumentAcknowledgement.findMany({
+      where: { userId: id },
+      orderBy: { acknowledgedAt: "desc" },
+      select: {
+        id: true,
+        versionId: true,
+        acknowledgedAt: true,
+        version: {
+          select: {
+            versionNumber: true,
+            document: { select: { title: true } },
+          },
+        },
+      },
+    }),
+    // Live policies (non-archived with a current version) — used below
+    // to compute which CURRENT versions the user has NOT acknowledged.
+    prisma.policyDocument.findMany({
+      where: { isArchived: false, currentVersionId: { not: null } },
+      orderBy: { title: "asc" },
+      select: {
+        id: true,
+        title: true,
+        currentVersionId: true,
+        currentVersion: { select: { versionNumber: true } },
+      },
+    }),
+    // Induction (essential-track) LMS enrollments. Published courses
+    // only — mirrors getInductionReadiness, which is the gate's truth.
+    prisma.lMSEnrollment.findMany({
+      where: {
+        userId: id,
+        course: { track: "essential", status: "published", deleted: false },
+      },
+      orderBy: { course: { sortOrder: "asc" } },
+      select: {
+        id: true,
+        status: true,
+        score: true,
+        completedAt: true,
+        course: { select: { title: true } },
+      },
+    }),
+    // Week-1 practical sign-off progress. Two cheap counts instead of
+    // the 4-query getInductionReadiness — the overall induction state
+    // is already on targetUser.inductionStatus.
+    prisma.practicalSignoff.count({ where: { userId: id } }).catch(() => 0),
+    prisma.practicalChecklistItem.count({ where: { active: true } }).catch(() => 0),
+    // Form (staff survey) submissions. Anonymous responses carry a
+    // NULL respondentId so they can never surface here by design.
+    prisma.surveyResponse.findMany({
+      where: { respondentId: id, survey: { deleted: false } },
+      orderBy: { submittedAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        submittedAt: true,
+        survey: { select: { title: true, status: true } },
+      },
+    }),
   ]);
 
   // Aggregate timesheets by weekEnding (last 5 weeks)
@@ -292,23 +392,77 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     .sort((a, b) => b.weekEnding.getTime() - a.weekEnding.getTime())
     .slice(0, 5);
 
+  // 2026-09-15: pay and leave data is withheld from viewers who may not see
+  // it — State Managers included (see canViewStaffPay). The layout hides the
+  // Pay & compensation section, but the balances must not travel to the
+  // browser at all: they are the one pay signal nothing else on the page
+  // surfaces. Contracts deliberately still load — the Documents section
+  // renders them, and tenure is derived from the earliest start date.
+  const viewerCanViewPay = canViewStaffPay(viewerRole, isSelf);
+  const visibleBalances = viewerCanViewPay ? balances : [];
+  const visibleLeaveRequests = viewerCanViewPay ? recentLeaveRequests : [];
+
   // Derived stats
-  const annualLeave = balances.find((b) => b.leaveType === "annual");
+  const annualLeave = visibleBalances.find((b) => b.leaveType === "annual");
   const annualLeaveRemaining = annualLeave ? annualLeave.balance : null;
   const certStatuses = certificates.map((c) => getCertStatus(c.expiryDate));
   const validCertCount = certStatuses.filter((s) => s.status === "valid").length;
   const expiringCertCount = certStatuses.filter((s) => s.status === "expiring").length;
 
+  // Policies: flatten acks and compute which CURRENT versions are still
+  // unacknowledged. An ack of an older version does NOT satisfy the
+  // current one — same rule as getInductionReadiness.
+  const ackedVersionIds = new Set(policyAckRows.map((a) => a.versionId));
+  const policyAcks = policyAckRows.map((a) => ({
+    id: a.id,
+    documentTitle: a.version.document.title,
+    versionNumber: a.version.versionNumber,
+    acknowledgedAt: a.acknowledgedAt,
+  }));
+  const unackedPolicies = publishedPolicies
+    .filter(
+      (p) => p.currentVersionId !== null && !ackedVersionIds.has(p.currentVersionId),
+    )
+    .map((p) => ({
+      documentId: p.id,
+      title: p.title,
+      versionNumber: p.currentVersion?.versionNumber ?? null,
+    }));
+  const inductionEnrollments = inductionEnrollmentRows.map((e) => ({
+    id: e.id,
+    courseTitle: e.course.title,
+    status: e.status,
+    score: e.score,
+    completedAt: e.completedAt,
+  }));
+  const formSubmissions = formSubmissionRows.map((r) => ({
+    id: r.id,
+    title: r.survey.title,
+    submittedAt: r.submittedAt,
+    surveyStatus: r.survey.status,
+  }));
+
+  const latestContract = contracts[0] ?? null;
+
   const data: StaffProfileData = {
     targetUser,
     emergencyContacts,
     latestContract,
-    balances,
-    recentLeaveRequests,
+    contracts,
+    balances: visibleBalances,
+    recentLeaveRequests: visibleLeaveRequests,
     timesheetWeeks,
     qualifications,
     certificates,
     documents,
+    policyAcks,
+    unackedPolicies,
+    inductionEnrollments,
+    practicalSignoff: {
+      signedCount: Number(practicalSignedCount) || 0,
+      totalItems: Number(practicalItemCount) || 0,
+    },
+    formSubmissions,
     nextShift,
     stats: {
       activeRocks: Number(activeRocks) || 0,
@@ -321,13 +475,13 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
 
   // Compute the long-scroll layout's snapshot panel content. The
   // helper is pure — same input always yields the same output, no DB
-  // calls. Parent passes `latestContract.startDate` as the earliest
-  // contract start because the data load only fetches the most-recent
-  // active contract; if that's older than User.createdAt, tenure
-  // back-dates to it.
+  // calls. Since Task 10.3 the load fetches ALL contracts (desc), so
+  // the TRUE earliest start (last row) feeds tenure; if that's older
+  // than User.createdAt, tenure back-dates to it.
   const snapshotStats = computeSnapshotStats({
     user: { createdAt: targetUser.createdAt },
-    earliestContractStart: latestContract?.startDate ?? null,
+    earliestContractStart:
+      contracts[contracts.length - 1]?.startDate ?? null,
     nextShift: nextShift
       ? {
           date: new Date(nextShift.date),
@@ -339,7 +493,17 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
             : null,
         }
       : null,
-    certificates: certificates.map((c) => ({ expiryDate: c.expiryDate })),
+    certificates: certificates.map((c) => ({
+      type: c.type,
+      expiryDate: c.expiryDate,
+    })),
+    // Phase 9: count required-only for the TARGET user's role (org-settings
+    // matrix via the 60s-cached server reader). Roles with no configured
+    // requirements keep the legacy every-document counts.
+    requiredCertTypes: getRequiredCertTypes(
+      targetUser.role,
+      await getOrgSettings(),
+    ),
     activeRocks: Number(activeRocks) || 0,
     openTodos: Number(openTodos) || 0,
   });
@@ -357,6 +521,7 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
       backHref={backHref}
       prevHref={prevHref}
       nextHref={nextHref}
+      hasRamp={!!ramp}
     />
   );
 }

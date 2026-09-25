@@ -35,6 +35,15 @@ export interface ParentDetails {
   workPhone: string;
   crn: string;
   soleCustody: boolean | null;
+  /**
+   * Secondary parent only: they live at the primary carer's address.
+   *
+   * A flag rather than a copy of the address. The form used to offer a "Same
+   * as primary parent" button that duplicated the four fields at click time,
+   * so correcting the primary's address later left the second parent at the
+   * old one with nothing to say they had ever matched.
+   */
+  livesWithPrimary: boolean;
 }
 
 export interface MedicalInfo {
@@ -188,6 +197,7 @@ export const EMPTY_PARENT: ParentDetails = {
   workPhone: "",
   crn: "",
   soleCustody: null,
+  livesWithPrimary: false,
 };
 
 export const EMPTY_MEDICAL: MedicalInfo = {
@@ -375,6 +385,23 @@ export const CONDITIONAL_DOCUMENT_TYPES = {
   medical_action_plan: "Medical Action Plan",
 } as const;
 
+/**
+ * Has the family started entering a second parent?
+ *
+ * Shared with the form so the red asterisks and `validateStep` cannot drift
+ * apart — an asterisk on a field nothing enforces is worse than no asterisk,
+ * because it reads as "we checked this".
+ */
+export function secondaryParentStarted(sp: ParentDetails): boolean {
+  return Boolean(
+    sp.firstName.trim() ||
+      sp.surname.trim() ||
+      sp.email.trim() ||
+      sp.mobile.trim() ||
+      sp.dob,
+  );
+}
+
 /** Returns error messages for a step, or empty array if valid */
 export function validateStep(step: number, data: EnrolmentFormData): string[] {
   const errors: string[] = [];
@@ -423,17 +450,31 @@ export function validateStep(step: number, data: EnrolmentFormData): string[] {
       // If court orders exist, secondary parent is optional but validate if partially filled
       {
         const sp = data.secondaryParent;
-        const hasSecondary = sp.firstName || sp.surname || sp.email || sp.mobile;
+        /*
+         * The second parent's DOB is checked alongside their name and mobile,
+         * not merely marked with an asterisk.
+         *
+         * The section's `required` prop only draws the red star, and the
+         * wizard has no <form> element — nothing submits, so the native
+         * `required` attribute never fires. The only real gate is this
+         * function, and it didn't ask for the DOB. Families sailed past it and
+         * the enrolment pack arrived with the field blank, which is the single
+         * most common reason a pack goes back to the family before it can be
+         * re-keyed into OWNA.
+         */
+        const requireSecondary = (why: string) => {
+          if (!sp.firstName.trim()) errors.push(`Secondary parent first name is required${why}`);
+          if (!sp.surname.trim()) errors.push(`Secondary parent surname is required${why}`);
+          if (!sp.mobile.trim()) errors.push(`Secondary parent mobile is required${why}`);
+          if (!sp.dob) errors.push(`Secondary parent date of birth is required${why}`);
+        };
+
         if (data.courtOrders === false) {
           // No court orders — secondary parent is mandatory
-          if (!sp.firstName.trim()) errors.push("Secondary parent first name is required");
-          if (!sp.surname.trim()) errors.push("Secondary parent surname is required");
-          if (!sp.mobile.trim()) errors.push("Secondary parent mobile is required");
-        } else if (hasSecondary) {
+          requireSecondary("");
+        } else if (secondaryParentStarted(sp)) {
           // Court orders exist but user partially filled secondary — validate consistency
-          if (!sp.firstName.trim()) errors.push("Secondary parent first name is required");
-          if (!sp.surname.trim()) errors.push("Secondary parent surname is required");
-          if (!sp.mobile.trim()) errors.push("Secondary parent mobile is required");
+          requireSecondary("");
         }
       }
       // 2026-06-26: if the family has a court order, the form already

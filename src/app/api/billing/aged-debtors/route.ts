@@ -24,6 +24,7 @@ import {
   toCents,
   type AgedBucketKey,
 } from "@/lib/money";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 /**
  * Statuses that represent a real, chaseable debt.
@@ -195,5 +196,5 @@ export const GET = withApiAuth(
       families,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

@@ -3,6 +3,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUser, notifyUsers } from "@/lib/notify-user";
 
 // ---------------------------------------------------------------------------
 // POST /api/shift-swaps/[id]/accept
@@ -41,14 +42,11 @@ export const POST = withApiAuth(async (_req, session, context) => {
       where: { id },
       data: { status: "accepted", acceptedAt: new Date() },
     });
-    await tx.userNotification.create({
-      data: {
-        userId: swap.proposerId,
-        type: NOTIFICATION_TYPES.SHIFT_SWAP_ACCEPTED,
-        title: "Your shift swap was accepted",
-        body: `${session.user.name ?? "Target"} accepted — awaiting admin approval`,
-        link: `/roster/me?swap=${id}`,
-      },
+    await notifyUser(tx, swap.proposerId, {
+      type: NOTIFICATION_TYPES.SHIFT_SWAP_ACCEPTED,
+      title: "Your shift swap was accepted",
+      body: `${session.user.name ?? "Target"} accepted — awaiting admin approval`,
+      link: `/roster/me?swap=${id}`,
     });
     const admins = await tx.user.findMany({
       where: {
@@ -63,15 +61,16 @@ export const POST = withApiAuth(async (_req, session, context) => {
       select: { id: true },
     });
     if (admins.length > 0) {
-      await tx.userNotification.createMany({
-        data: admins.map((a: { id: string }) => ({
-          userId: a.id,
+      await notifyUsers(
+        tx,
+        admins.map((a: { id: string }) => a.id),
+        {
           type: NOTIFICATION_TYPES.SHIFT_SWAP_ACCEPTED,
           title: "Shift swap needs approval",
           body: `${swap.shift.date.toISOString().split("T")[0]} ${swap.shift.shiftStart}`,
           link: `/roster/swaps?id=${id}`,
-        })),
-      });
+        },
+      );
     }
     return s;
   });

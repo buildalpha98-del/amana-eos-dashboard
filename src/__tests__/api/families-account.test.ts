@@ -62,15 +62,17 @@ vi.mock("@/lib/api-error", () => {
   };
 });
 
-vi.mock("@/lib/api-handler", () => ({
-  handleApiError: vi.fn((_req: unknown, err: unknown) => {
-    const { NextResponse } = require("next/server");
-    return NextResponse.json(
-      { error: (err as any)?.message || "Internal error" },
-      { status: (err as any)?.statusCode || 500 },
-    );
-  }),
-}));
+vi.mock("@/lib/api-handler", async () => {
+  const { NextResponse } = await import("next/server");
+  return {
+    handleApiError: vi.fn((_req: unknown, err: unknown) => {
+      return NextResponse.json(
+        { error: (err as any)?.message || "Internal error" },
+        { status: (err as any)?.statusCode || 500 },
+      );
+    }),
+  };
+});
 
 const upsertContacts = vi.fn(async () => ({ primary: null, secondary: null }));
 vi.mock("@/lib/enrolment-parent-contacts", () => ({

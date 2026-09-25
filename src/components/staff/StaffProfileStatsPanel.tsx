@@ -9,6 +9,8 @@
  * 2026-05-04: introduced (spec PR #77).
  */
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   CalendarClock,
   Clock,
@@ -26,6 +28,16 @@ export interface StaffProfileStatsPanelProps {
 }
 
 export function StaffProfileStatsPanel({ stats }: StaffProfileStatsPanelProps) {
+  // This panel only ever renders on /staff/[id] (StaffProfileLayout), but
+  // it isn't handed the target user's id as a prop — pull it from the
+  // route instead of threading a new prop through the profile shell.
+  const pathname = usePathname();
+  const targetUserId = pathname?.match(/^\/staff\/([^/]+)/)?.[1];
+  const nextShiftHref =
+    stats.nextShiftLabel !== null && targetUserId
+      ? `/roster/me?userId=${encodeURIComponent(targetUserId)}`
+      : undefined;
+
   return (
     <aside
       className="rounded-xl border border-border bg-card p-5 space-y-5"
@@ -49,6 +61,7 @@ export function StaffProfileStatsPanel({ stats }: StaffProfileStatsPanelProps) {
         label="Next shift"
         value={stats.nextShiftLabel ?? "No upcoming shift"}
         muted={stats.nextShiftLabel === null}
+        href={nextShiftHref}
       />
 
       <div className="grid grid-cols-2 gap-3">
@@ -70,6 +83,14 @@ export function StaffProfileStatsPanel({ stats }: StaffProfileStatsPanelProps) {
         <p className="text-xs font-semibold uppercase tracking-wider text-muted">
           Compliance
         </p>
+        {stats.requiredCertTotal !== null && (
+          <p className="text-xs text-muted">
+            <strong className="text-foreground">
+              {stats.certCounts.valid} of {stats.requiredCertTotal}
+            </strong>{" "}
+            required for this role
+          </p>
+        )}
         <CertLine
           icon={<ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />}
           count={stats.certCounts.valid}
@@ -96,6 +117,18 @@ export function StaffProfileStatsPanel({ stats }: StaffProfileStatsPanelProps) {
               : "text-foreground/60"
           }
         />
+        {stats.certCounts.missing !== undefined && (
+          <CertLine
+            icon={<ShieldX className="h-3.5 w-3.5 text-muted" />}
+            count={stats.certCounts.missing}
+            label="missing"
+            tone={
+              stats.certCounts.missing > 0
+                ? "text-red-700 font-semibold"
+                : "text-foreground/60"
+            }
+          />
+        )}
       </div>
     </aside>
   );
@@ -109,9 +142,16 @@ interface StatBlockProps {
   value: string;
   muted?: boolean;
   compact?: boolean;
+  /** When set, the value renders as a link instead of plain text. */
+  href?: string;
 }
 
-function StatBlock({ icon, label, value, muted, compact }: StatBlockProps) {
+function StatBlock({ icon, label, value, muted, compact, href }: StatBlockProps) {
+  const valueClassName = cn(
+    compact ? "text-2xl font-bold" : "text-sm font-medium",
+    muted ? "text-muted/70 italic" : "text-foreground",
+  );
+
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-0.5">
@@ -120,14 +160,16 @@ function StatBlock({ icon, label, value, muted, compact }: StatBlockProps) {
           {label}
         </p>
       </div>
-      <p
-        className={cn(
-          compact ? "text-2xl font-bold" : "text-sm font-medium",
-          muted ? "text-muted/70 italic" : "text-foreground",
-        )}
-      >
-        {value}
-      </p>
+      {href ? (
+        <Link
+          href={href}
+          className={cn(valueClassName, "hover:underline underline-offset-2")}
+        >
+          {value}
+        </Link>
+      ) : (
+        <p className={valueClassName}>{value}</p>
+      )}
     </div>
   );
 }

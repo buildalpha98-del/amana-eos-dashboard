@@ -1,25 +1,39 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
-import { isAdminRole } from "@/lib/role-permissions";
+import { canViewStaffDocument } from "@/lib/staff-access";
+import { logger } from "@/lib/logger";
+import { streamStoredFile } from "@/lib/blob-proxy";
 
 /**
  * GET /api/staff-documents/[id]
  *
- * Access-checked redirect to a Document's blob URL. Used by the staff profile
+ * Access-checked stream of a Document out of blob storage. *
+ * 2026-09-15: streams the bytes back over our own origin instead of
+ * redirecting to blob storage — a cross-origin redirect is unrenderable in
+ * the in-app file viewer, because the app's CSP sets no frame-src and so
+ * falls back to `default-src 'self'`. See src/lib/blob-proxy.ts.
+ *
+ * Used by the staff profile
  * page's Documents tab so HR docs / personal docs aren't exposed via direct
  * blob URLs in the markup.
  *
- * Access matrix (viewer ↔ document):
+ * Access is delegated to `canViewStaffDocument` in @/lib/staff-access so this
+ * route, the /staff/[id] profile guard and the /api/documents library all
+ * answer "who may see this person's HR file?" the same way:
+ *
  *   - Document uploader OR assignee is the viewer: allowed
  *   - Viewer is an admin (owner / admin / head_office): allowed
- *   - Viewer is in the same service as the document's assignee
- *     (so a service coordinator can review their own staff's docs): allowed
+ *   - Viewer is the Director of Service (`member`) at the assignee's centre
  *   - Anyone else: 403
  *
+ * 2026-09-14: the same-service branch used to accept ANY role, so an
+ * Educator could pull up a colleague's contract or WWCC just by being
+ * rostered at the same centre. It is now the Director role only.
+ *
  * Returns 404 if the document doesn't exist, is soft-deleted, or has no
- * fileUrl. Optional `?download=1` rewrites the redirect target so the browser
+ * fileUrl. Optional `?download=1` answers Content-Disposition: attachment so the browser
  * forces a download (Content-Disposition: attachment) instead of inline view —
  * useful for non-PDF MIME types that browsers can't preview.
  */
@@ -43,38 +57,23 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
 
   const viewerId = session!.user.id;
   const viewerRole = session!.user.role ?? "";
-  const isOwn = doc.uploadedById === viewerId || doc.assignedToId === viewerId;
-  const isAdmin = isAdminRole(viewerRole);
 
-  let canAccess = isOwn || isAdmin;
+  const canAccess = await canViewStaffDocument(viewerId, viewerRole, {
+    uploadedById: doc.uploadedById,
+    assignedToId: doc.assignedToId,
+  });
 
-  // Coordinator-in-same-service check: only run when needed (saves a query
-  // on the common admin / own-doc paths) and only when the doc has an
-  // assignee whose service we can compare against.
-  if (!canAccess && doc.assignedToId) {
-    const [viewer, assignee] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: viewerId },
-        select: { serviceId: true },
-      }),
-      prisma.user.findUnique({
-        where: { id: doc.assignedToId },
-        select: { serviceId: true },
-      }),
-    ]);
-    canAccess =
-      !!viewer?.serviceId &&
-      !!assignee?.serviceId &&
-      viewer.serviceId === assignee.serviceId;
+  if (!canAccess) {
+    logger.warn("Staff document access denied", {
+      viewerId,
+      viewerRole,
+      documentId: doc.id,
+    });
+    throw ApiError.forbidden();
   }
 
-  if (!canAccess) throw ApiError.forbidden();
-
-  // Vercel Blob URLs accept ?download=<filename> to force attachment delivery.
-  // For other storage layers this is a no-op (the query param is ignored).
-  const target = wantsDownload
-    ? `${doc.fileUrl}${doc.fileUrl.includes("?") ? "&" : "?"}download=${encodeURIComponent(doc.fileName)}`
-    : doc.fileUrl;
-
-  return NextResponse.redirect(target);
+  return streamStoredFile(doc.fileUrl, {
+    fileName: doc.fileName,
+    download: wantsDownload,
+  });
 });

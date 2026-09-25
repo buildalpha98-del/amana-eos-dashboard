@@ -15,6 +15,10 @@ export function ConcludeSection({
   attendees,
   attendeeRatings,
   onAttendeeRate,
+  notesLabel = "Recap Notes",
+  notesPlaceholder = "Summary of action items, decisions made, and key takeaways...",
+  showCascade = true,
+  nextMeeting,
 }: {
   notes: string;
   onUpdate: (val: string) => void;
@@ -25,6 +29,24 @@ export function ConcludeSection({
   attendees?: MeetingAttendee[];
   attendeeRatings?: Record<string, number>;
   onAttendeeRate?: (userId: string, rating: number) => void;
+  /** Quarterly Pulse relabels the free-text notes field to "what would
+   *  make it a 10". */
+  notesLabel?: string;
+  notesPlaceholder?: string;
+  /** L10-only — Quarterly Pulse's run sheet has no cascade-messages step. */
+  showCascade?: boolean;
+  /** Quarterly Pulse — "next Quarterly Pulse date" + expectations-met.
+   *  No dedicated schema field exists for either, so this stays a
+   *  lightweight capture: picking a date offers to create a reminder
+   *  to-do rather than scheduling anything itself. */
+  nextMeeting?: {
+    date: string;
+    onDateChange: (val: string) => void;
+    onScheduleReminder: () => void;
+    reminderScheduled: boolean;
+    expectationsMet: boolean | null;
+    onExpectationsMetChange: (val: boolean) => void;
+  };
 }) {
   const presentAttendees = attendees?.filter((a) => a.status === "present") || [];
   const hasAttendees = presentAttendees.length > 0;
@@ -52,31 +74,72 @@ export function ConcludeSection({
       {/* Notes */}
       <div>
         <label className="text-sm font-medium text-foreground/80 mb-1.5 block">
-          Recap Notes
+          {notesLabel}
         </label>
         <textarea
           value={notes}
           onChange={(e) => onUpdate(e.target.value)}
-          placeholder="Summary of action items, decisions made, and key takeaways..."
+          placeholder={notesPlaceholder}
           className="w-full min-h-32 p-3 border border-border rounded-lg text-sm resize-y focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         />
       </div>
 
       {/* Cascade Messages */}
-      <div>
-        <label className="text-sm font-medium text-foreground/80 mb-1.5 block">
-          Cascade Messages
-        </label>
-        <p className="text-xs text-muted mb-2">
-          Key messages to share with the broader team after this meeting.
-        </p>
-        <textarea
-          value={cascadeMessages}
-          onChange={(e) => onUpdateCascade(e.target.value)}
-          placeholder="Messages to cascade to the team...&#10;&#10;Example:&#10;- New enrolment policy starts next Monday&#10;- Holiday program bookings open this Friday&#10;- Staff training day confirmed for March 15"
-          className="w-full min-h-32 p-3 border border-border rounded-lg text-sm resize-y focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
-        />
-      </div>
+      {showCascade && (
+        <div>
+          <label className="text-sm font-medium text-foreground/80 mb-1.5 block">
+            Cascade Messages
+          </label>
+          <p className="text-xs text-muted mb-2">
+            Key messages to share with the broader team after this meeting.
+          </p>
+          <textarea
+            value={cascadeMessages}
+            onChange={(e) => onUpdateCascade(e.target.value)}
+            placeholder="Messages to cascade to the team...&#10;&#10;Example:&#10;- New enrolment policy starts next Monday&#10;- Holiday program bookings open this Friday&#10;- Staff training day confirmed for March 15"
+            className="w-full min-h-32 p-3 border border-border rounded-lg text-sm resize-y focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          />
+        </div>
+      )}
+
+      {/* Next Quarterly Pulse date + expectations met */}
+      {nextMeeting && (
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium text-foreground/80 mb-1.5 block">
+              Next Quarterly Pulse Date
+            </label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="date"
+                value={nextMeeting.date}
+                onChange={(e) => nextMeeting.onDateChange(e.target.value)}
+                aria-label="Next Quarterly Pulse date"
+                className="px-3 py-1.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={nextMeeting.onScheduleReminder}
+                disabled={!nextMeeting.date || nextMeeting.reminderScheduled}
+                className="text-xs px-3 py-1.5 rounded-lg border border-brand text-brand hover:bg-brand/5 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed w-fit"
+              >
+                {nextMeeting.reminderScheduled
+                  ? "Reminder to-do created"
+                  : "Create reminder to-do"}
+              </button>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-foreground/80 cursor-pointer w-fit">
+            <input
+              type="checkbox"
+              checked={nextMeeting.expectationsMet === true}
+              onChange={(e) => nextMeeting.onExpectationsMetChange(e.target.checked)}
+              className="rounded border-border"
+            />
+            Expectations for this Quarterly Pulse were met
+          </label>
+        </div>
+      )}
 
       {/* Rating — Per-attendee or single */}
       <div>

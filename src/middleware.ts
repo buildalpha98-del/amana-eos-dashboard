@@ -39,7 +39,10 @@ export default withAuth(
       isInductionLocked(
         token?.inductionStatus as string | undefined,
         token?.inductionGraceUntil as string | null | undefined,
-        { role: token?.role as string | undefined },
+        {
+          role: token?.role as string | undefined,
+          essentialsPublished: token?.essentialsPublished as boolean | undefined,
+        },
       )
     ) {
       if (!isInductionAllowedPath(pathname)) {
@@ -86,31 +89,39 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/my-portal/:path*",
-    "/my-day/:path*",
-    "/vision/:path*",
-    "/rocks/:path*",
-    "/todos/:path*",
-    "/issues/:path*",
-    "/scorecard/:path*",
-    "/meetings/:path*",
-    "/financials/:path*",
-    "/performance/:path*",
-    "/team/:path*",
-    "/settings/:path*",
-    "/tickets/:path*",
-    "/feedback/:path*",
-    "/marketing/:path*",
-    "/communication/:path*",
-    "/services/:path*",
-    "/projects/:path*",
-    "/documents/:path*",
-    "/compliance/:path*",
-    "/onboarding/:path*",
-    "/timesheets/:path*",
-    "/leave/:path*",
-    "/contracts/:path*",
+    /**
+     * PAGES — everything except the public surface.
+     *
+     * 2026-09-25: this used to be a hand-maintained list of ~54 page prefixes,
+     * and it had drifted. `/waitlist`, `/roster`, `/leadership`, `/billing`,
+     * `/notifications`, `/knowledge`, `/bookings`, `/families` and ~20 more
+     * dashboard routes were absent, and since `(dashboard)/layout.tsx` is a
+     * client component with no server session guard, those pages ran with NO
+     * auth requirement and NO `canAccessPage` role check. `/leadership` is
+     * admin-only in the nav and anyone could open it. (The backing APIs are
+     * gated, so this was an authorization gap rather than a data leak — but
+     * every new page added under an unlisted prefix inherited the hole.)
+     *
+     * Inverted to a deny-list so new pages are protected by default. Each
+     * exclusion is anchored to a segment boundary with `(?:/|$)` — a bare
+     * prefix would also swallow real pages, e.g. `enrol` matching
+     * `/enrolments` and `survey` matching `/surveys`. The `.*\..*` arm drops
+     * anything with a file extension (static assets, favicon.ico). The
+     * trailing `.+` leaves `/` itself alone, where `app/page.tsx` already does
+     * its own session-aware redirect.
+     *
+     * Public by design: the auth pages, the family portal, the public help
+     * centre, careers, privacy, the anonymous safe-report form, token landing
+     * pages (ramp/onboarding check-ins, surveys, enrolment), the enquiry form,
+     * the kiosk (bearer-token device auth) and `/a/[code]` QR redirects.
+     */
+    "/((?!(?:api|_next|a|login|forgot-password|reset-password|parent|support|careers|privacy|safe-report|ramp-checkin|onboarding-checkin|enquire|enrol|kiosk|survey)(?:/|$)|notifications/preferences(?:/|$)|.*\\..*).+)",
+
+    /**
+     * API — unchanged. The middleware body early-returns for `/api/`, so these
+     * only enforce the `authorized` callback (a session must exist). Route
+     * handlers still do their own role checks via `withApiAuth`.
+     */
     "/api/rocks/:path*",
     "/api/todos/:path*",
     "/api/issues/:path*",
@@ -136,7 +147,6 @@ export const config = {
     "/api/timesheets/:path*",
     "/api/timesheet-entries/:path*",
     "/api/contracts/:path*",
-    "/policies/:path*",
     "/api/policies/:path*",
     "/api/offboarding/:path*",
     "/api/my-portal/:path*",
@@ -155,44 +165,14 @@ export const config = {
     "/api/measurables/:path*",
     "/api/lms/:path*",
     "/api/onboarding/:path*",
-    "/crm/:path*",
     "/api/crm/:path*",
-    "/queue/:path*",
     "/api/queue/:path*",
     "/api/enrolments/:path*",
     "/api/waitlist/:path*",
-    "/enrolments/:path*",
     "/api/children/:path*",
-    "/children/:path*",
-    "/incidents/:path*",
     "/api/incidents/:path*",
     "/api/sequences/:path*",
-    "/getting-started/:path*",
-    "/profile/:path*",
-    "/conversions/:path*",
-    "/recruitment/:path*",
-    "/holiday-quest/:path*",
-    "/tools/:path*",
-    "/automations/:path*",
-    "/audit-log/:path*",
-    "/guides/:path*",
-    "/help/:path*",
-    "/handbook/:path*",
-    "/workforce-reports/:path*",
-    "/directory/:path*",
-    "/enquiries/:path*",
-    "/activity-library/:path*",
-    "/scenarios/:path*",
-    "/data-room/:path*",
-    "/reports/:path*",
-    "/assistant/:path*",
-    "/my-training/:path*",
-    "/surveys/:path*",
-    "/learn/:path*",
     "/api/induction/:path*",
-    // Parent help-centre ADMIN surface (the public portal at /support and
-    // /api/public/help-centre stays deliberately unmatched = public).
-    "/help-centre/:path*",
     "/api/help-centre/:path*",
   ],
 };

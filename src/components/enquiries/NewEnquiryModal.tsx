@@ -34,7 +34,7 @@ const DRIVERS = [
 
 export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
   useEscapeClose(onClose);
-  const [services, setServices] = useState<any[]>([]);
+  const [services, setServices] = useState<{ id: string; name: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const [children, setChildren] = useState<ChildEntry[]>([{ name: "", age: "" }]);
   const [form, setForm] = useState({
@@ -146,7 +146,7 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
               className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Select centre...</option>
-              {services.map((s: any) => (
+              {services.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
                 </option>

@@ -7,6 +7,7 @@ import { resolveServiceByCode } from "../../_lib/resolve-service";
 import { withApiHandler } from "@/lib/api-handler";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUser } from "@/lib/notify-user";
 
 const reportBodySchema = z.object({
   seat: z.string().min(1, "seat is required"),
@@ -84,14 +85,11 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   // the ingest.
   await Promise.allSettled(
     reports.map((report) =>
-      prisma.userNotification.create({
-        data: {
-          userId: report.assignedToId!,
-          type: NOTIFICATION_TYPES.QUEUE_ITEM_ASSIGNED,
-          title: "New report in your queue",
-          body: title,
-          link: "/queue",
-        },
+      notifyUser(prisma, report.assignedToId!, {
+        type: NOTIFICATION_TYPES.QUEUE_ITEM_ASSIGNED,
+        title: "New report in your queue",
+        body: title,
+        link: "/queue",
       }),
     ),
   );

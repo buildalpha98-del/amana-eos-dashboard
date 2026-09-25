@@ -14,6 +14,7 @@ import {
   isInductionLocked,
   recomputeInductionState,
   onModuleProgressed,
+  refreshInductionAfterBlockerChange,
 } from "@/lib/induction";
 import { ApiError } from "@/lib/api-error";
 
@@ -321,5 +322,53 @@ describe("isInductionLocked", () => {
   });
   it("undefined status is NOT locked", () => {
     expect(isInductionLocked(undefined, null, { now })).toBe(false);
+  });
+});
+
+describe("refreshInductionAfterBlockerChange", () => {
+  // 2026-09-17 lockout. Recompute ran ONLY from LMS module progress and course
+  // publishing, so a user could satisfy the WWCC, policy and profile blockers
+  // and nothing would notice. Where no essential course was published there
+  // was no module to progress either, so there was no exit from the gate at
+  // all — real coordinators were locked out of their own centre.
+  it("clears a backfilled user once the last non-course blocker is resolved", async () => {
+    seedReadyWorld();
+    prismaMock.user.findUnique.mockImplementation((args: never) => {
+      const a = args as unknown as { select?: Record<string, boolean> };
+      // recomputeInductionState reads status + grace; readiness reads profile.
+      if (a?.select?.inductionStatus && !a?.select?.avatar) {
+        return Promise.resolve({
+          inductionStatus: "in_training",
+          inductionGraceUntil: new Date("2026-08-01"),
+        }) as never;
+      }
+      return Promise.resolve({
+        avatar: "https://x/pic.png",
+        phone: "0400000000",
+        _count: { emergencyContacts: 1 },
+      }) as never;
+    });
+    prismaMock.user.update.mockResolvedValue({ id: "u1" } as never);
+
+    await refreshInductionAfterBlockerChange("u1");
+
+    const updateArg = prismaMock.user.update.mock.calls[0]?.[0];
+    expect(updateArg?.data).toMatchObject({ inductionStatus: "cleared" });
+  });
+
+  it("no-ops for a certificate with no owner", async () => {
+    // A compliance certificate can belong to a SERVICE — a fire-safety cert
+    // has no induction to recompute.
+    await refreshInductionAfterBlockerChange(null);
+    expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("never lets an induction failure break the save it hangs off", async () => {
+    // Someone uploading their WWCC must not see an error because a recompute
+    // fell over. The upload is the point; induction is a side effect.
+    prismaMock.user.findUnique.mockRejectedValue(new Error("db down") as never);
+    await expect(
+      refreshInductionAfterBlockerChange("u1"),
+    ).resolves.toBeUndefined();
   });
 });

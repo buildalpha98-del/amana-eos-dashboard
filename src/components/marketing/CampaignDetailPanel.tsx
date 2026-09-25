@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, Trash2, Send, Pencil, Plus, CheckSquare, Sparkles } from "lucide-react";
 import { STATUS_LABELS } from "@/lib/creative-request/constants";
@@ -88,34 +88,37 @@ export function CampaignDetailPanel({
     campaignId: campaignId,
   });
 
-  // Sync local state when data loads or changes
-  useEffect(() => {
-    if (campaign) {
-      setName(campaign.name);
-      setStatus(campaign.status);
-      setType(campaign.type);
-      setStartDate(
-        campaign.startDate
-          ? new Date(campaign.startDate).toISOString().split("T")[0]
-          : ""
-      );
-      setEndDate(
-        campaign.endDate
-          ? new Date(campaign.endDate).toISOString().split("T")[0]
-          : ""
-      );
-      setPlatforms(campaign.platforms);
-      setGoal(campaign.goal || "");
-      setNotes(campaign.notes || "");
-      setDesignLink(campaign.designLink || "");
-      setServiceIds(
-        campaign.services?.map((s) => s.service.id) ?? []
-      );
-      setBudget(campaign.budget != null ? String(campaign.budget) : "");
-      setLocation(campaign.location || "");
-      setDeliverables(campaign.deliverables || "");
-    }
-  }, [campaign]);
+  // Sync local state when data loads or changes (render-time sync guarded
+  // by the last-synced campaign object, per React's "adjusting state when
+  // props change" pattern)
+  const [syncedCampaign, setSyncedCampaign] =
+    useState<typeof campaign>(undefined);
+  if (campaign && campaign !== syncedCampaign) {
+    setSyncedCampaign(campaign);
+    setName(campaign.name);
+    setStatus(campaign.status);
+    setType(campaign.type);
+    setStartDate(
+      campaign.startDate
+        ? new Date(campaign.startDate).toISOString().split("T")[0]
+        : ""
+    );
+    setEndDate(
+      campaign.endDate
+        ? new Date(campaign.endDate).toISOString().split("T")[0]
+        : ""
+    );
+    setPlatforms(campaign.platforms);
+    setGoal(campaign.goal || "");
+    setNotes(campaign.notes || "");
+    setDesignLink(campaign.designLink || "");
+    setServiceIds(
+      campaign.services?.map((s) => s.service.id) ?? []
+    );
+    setBudget(campaign.budget != null ? String(campaign.budget) : "");
+    setLocation(campaign.location || "");
+    setDeliverables(campaign.deliverables || "");
+  }
 
   const handleUpdate = (
     field: string,
@@ -938,6 +941,8 @@ function CampaignProgressSummary({
   startDate: string | null;
   endDate: string | null;
 }) {
+  // Stable "now" so timeline progress stays pure during render
+  const [now] = useState(() => Date.now());
   const totalPosts = posts.length;
   const publishedPosts = posts.filter((p) => p.status === "published").length;
   const totalTasks = tasks.length;
@@ -950,7 +955,6 @@ function CampaignProgressSummary({
   if (startDate && endDate) {
     const start = new Date(startDate).getTime();
     const end = new Date(endDate).getTime();
-    const now = Date.now();
     if (now >= end) timelinePct = 100;
     else if (now <= start) timelinePct = 0;
     else timelinePct = Math.round(((now - start) / (end - start)) * 100);

@@ -79,13 +79,6 @@ const SEED_ENDPOINTS: SeedEndpoint[] = [
     icon: <Megaphone className="w-5 h-5" />,
   },
   {
-    key: "policies",
-    name: "OSHC Policies",
-    description: "20 NQS-aligned policies across 5 categories",
-    endpoint: "/api/policies/seed",
-    icon: <Shield className="w-5 h-5" />,
-  },
-  {
     key: "incidents",
     name: "Incident Protocols",
     description: "5 incident response protocol guides",

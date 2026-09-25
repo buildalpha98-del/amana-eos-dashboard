@@ -1,8 +1,17 @@
 /**
  * E2E: Staff portal flow
  *
- * My Portal → leave → todos → access controls
- * Tests staff-specific views with meaningful assertions.
+ * My Portal home hub → pay/leave/expense destinations → access controls.
+ *
+ * Staff Portal v2 (Phase 1) moved the EH payslip, leave and expense
+ * sections off /my-portal onto /my-pay, /my-leave and /my-expenses —
+ * the hub now carries glance tiles linking to them. Assertions use
+ * data-testids (not loose getByText regexes) per the CLAUDE.md E2E
+ * gotcha about substring/strict-mode traps.
+ *
+ * The EH-backed destinations render a friendly "unavailable" state when
+ * the payroll integration is off (as it is in CI) — tests accept either
+ * the data view or that state, and fail only on real error states.
  */
 
 import { test, expect } from "@playwright/test";
@@ -12,7 +21,7 @@ test.describe("Staff portal flow", () => {
     storageState: ".playwright/auth/staff.json",
   });
 
-  test("my portal renders with personal dashboard sections", async ({
+  test("my portal home hub renders hero, glance tiles, and quick actions", async ({
     page,
   }) => {
     await page.goto("/my-portal");
@@ -20,60 +29,114 @@ test.describe("Staff portal flow", () => {
 
     await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
 
-    // My Portal should show personal info or greeting
-    // It typically shows compliance, leave, qualifications sections
-    const hasComplianceSection = await page
-      .getByText(/compliance|qualifications|certificates/i)
-      .first()
-      .isVisible()
-      .catch(() => false);
+    // The four glance tiles link to the dedicated destinations.
+    await expect(page.getByTestId("glance-tiles")).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("glance-pay")).toHaveAttribute(
+      "href",
+      "/my-pay",
+    );
+    await expect(page.getByTestId("glance-leave")).toHaveAttribute(
+      "href",
+      "/my-leave",
+    );
+    await expect(page.getByTestId("glance-expenses")).toHaveAttribute(
+      "href",
+      "/my-expenses",
+    );
+    await expect(page.getByTestId("glance-compliance")).toHaveAttribute(
+      "href",
+      "/compliance",
+    );
 
-    const hasLeaveSection = await page
-      .getByText(/leave|balance|annual/i)
-      .first()
-      .isVisible()
-      .catch(() => false);
+    // Next-shift/clock hero slot and the quick-actions row.
+    await expect(page.getByTestId("next-shift-hero")).toBeVisible();
+    await expect(page.getByTestId("quick-actions")).toBeVisible();
+    await expect(
+      page.getByTestId("quick-actions").getByRole("link", {
+        name: "Apply leave",
+      }),
+    ).toHaveAttribute("href", "/my-leave");
 
-    const hasProfileSection = await page
-      .getByText(/profile|my details|personal/i)
-      .first()
-      .isVisible()
-      .catch(() => false);
-
-    // Should show at least one personal section
-    expect(hasComplianceSection || hasLeaveSection || hasProfileSection).toBeTruthy();
+    // Kept sections: profile summary still renders.
+    await expect(page.getByTestId("view-full-profile-link")).toBeVisible();
 
     // No error states
     await expect(page.getByText("Something went wrong")).not.toBeVisible();
   });
 
-  test("leave page renders with leave balances and request form", async ({
+  test("my-leave destination renders balances or the unavailable state", async ({
     page,
   }) => {
-    await page.goto("/leave");
+    await page.goto("/my-leave");
     await page.waitForLoadState("networkidle");
 
     await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("my-leave-page")).toBeVisible();
 
-    // Should show leave-related content
-    const hasLeaveTypes = await page
-      .getByText(/Annual Leave|Sick Leave|Personal Leave/i)
-      .first()
-      .isVisible()
-      .catch(() => false);
+    // Either live EH balances (+ requests list) or the single friendly
+    // not-linked/not-configured state — never both, never neither.
+    await expect(
+      page
+        .getByTestId("my-leave-balances")
+        .or(page.getByTestId("my-leave-unavailable"))
+        .first(),
+    ).toBeVisible({ timeout: 15_000 });
 
-    const hasRequestButton = await page
-      .getByRole("button", { name: /request leave|new request/i })
-      .isVisible()
-      .catch(() => false);
+    // No error states
+    await expect(page.getByText("Something went wrong")).not.toBeVisible();
+    await expect(
+      page.getByText("Unable to load leave balances"),
+    ).not.toBeVisible();
+  });
 
-    const hasLeaveContent = await page
-      .getByText(/leave|balance|request/i)
-      .first()
-      .isVisible()
-      .catch(() => false);
+  test("my-pay destination renders payslips or the unavailable state", async ({
+    page,
+  }) => {
+    await page.goto("/my-pay");
+    await page.waitForLoadState("networkidle");
 
-    expect(hasLeaveTypes || hasRequestButton || hasLeaveContent).toBeTruthy();
+    await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.getByRole("heading", { name: "Pay", exact: true }),
+    ).toBeVisible();
+
+    // Hero card with real data, or one of the friendly states (not
+    // configured / not linked / no payslips yet).
+    await expect(
+      page
+        .getByTestId("payslip-hero-card")
+        .or(
+          page.getByText(
+            /payroll integration isn't set up|isn't linked to a payroll record|no payslips yet/i,
+          ),
+        )
+        .first(),
+    ).toBeVisible({ timeout: 15_000 });
+
+    // No error states
+    await expect(page.getByText("Unable to load payslips")).not.toBeVisible();
+  });
+
+  test("my-expenses destination renders claims or the unavailable state", async ({
+    page,
+  }) => {
+    await page.goto("/my-expenses");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.getByRole("heading", { name: "Reimbursements", exact: true }),
+    ).toBeVisible();
+
+    // Snap-receipt hero with real data, or the friendly unavailable state.
+    await expect(
+      page
+        .getByTestId("expense-snap-hero")
+        .or(page.getByTestId("my-expenses-unavailable"))
+        .first(),
+    ).toBeVisible({ timeout: 15_000 });
 
     // No error states
     await expect(page.getByText("Something went wrong")).not.toBeVisible();

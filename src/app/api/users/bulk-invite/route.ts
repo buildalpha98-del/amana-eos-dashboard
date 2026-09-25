@@ -11,6 +11,7 @@ import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
 import { siteUrl } from "@/lib/site-url";
+import { isAdminRole } from "@/lib/role-permissions";
 const bulkUserSchema = z.object({
   email: z.string().email("Valid email is required").transform((e) => e.toLowerCase().trim()),
   name: z.string().min(1, "Name is required"),
@@ -32,7 +33,7 @@ export const POST = withApiAuth(async (req, session) => {
   const callerRole = session.user.role;
 
   // Guard: only owner/admin/head_office can bulk invite
-  if (!["owner", "admin", "head_office"].includes(callerRole)) {
+  if (!isAdminRole(callerRole)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

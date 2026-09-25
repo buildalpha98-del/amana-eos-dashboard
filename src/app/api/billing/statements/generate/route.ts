@@ -21,6 +21,7 @@ import { logger } from "@/lib/logger";
 import { sumDollars, fromCents } from "@/lib/money";
 import { requireFromMap, resolveRoomIds } from "@/lib/room-resolver";
 import { roomsForService } from "@/lib/room-names";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const bodySchema = z.object({
   contactId: z.string().min(1),
@@ -323,5 +324,5 @@ export const POST = withApiAuth(
       ],
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

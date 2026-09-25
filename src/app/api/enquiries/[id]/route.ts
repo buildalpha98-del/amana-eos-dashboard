@@ -10,6 +10,7 @@ import { sendEmail, FROM_EMAIL } from "@/lib/email";
 import { recordMarketingSends } from "@/lib/frequency-cap";
 import { waitlistConfirmationEmail } from "@/lib/email-templates";
 import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const childSchema = z.object({
   name: z.string(),
@@ -62,7 +63,7 @@ export const GET = withApiAuth(async (req, session, context) => {
       { status: 500 },
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // PATCH /api/enquiries/[id] — update enquiry
 export const PATCH = withApiAuth(async (req, session, context) => {
@@ -187,7 +188,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
       { status: 500 },
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // DELETE /api/enquiries/[id] — soft delete
 export const DELETE = withApiAuth(async (req, session, context) => {
@@ -207,4 +208,4 @@ export const DELETE = withApiAuth(async (req, session, context) => {
       { status: 500 },
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

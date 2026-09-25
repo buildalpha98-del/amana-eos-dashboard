@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import {
   useAccountabilityChart,
@@ -12,18 +13,22 @@ import { SeatEditModal } from "./SeatEditModal";
 import { Plus, Pencil, Trash2, User, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { canAccessPage, parseRole } from "@/lib/role-permissions";
 
 // ---------- Seat Card ----------
 
 function SeatCard({
   seat,
   canEdit,
+  canOpenProfile,
   onEdit,
   onAddChild,
   onDelete,
 }: {
   seat: SeatNode;
   canEdit: boolean;
+  canOpenProfile: boolean;
   onEdit: () => void;
   onAddChild: () => void;
   onDelete: () => void;
@@ -67,30 +72,51 @@ function SeatCard({
       <div className="px-3 py-2 border-b border-border/50">
         {seat.assignees.length > 0 ? (
           <div className="space-y-1">
-            {seat.assignees.map((a) => (
-              <div key={a.id} className="flex items-center gap-1.5">
-                {a.avatar ? (
-                  <img
-                    src={a.avatar}
-                    alt={a.name}
-                    className="w-5 h-5 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center">
-                    <span className="text-[8px] font-bold text-brand">
-                      {a.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .slice(0, 2)}
-                    </span>
-                  </div>
-                )}
-                <span className="text-xs font-medium text-foreground truncate" title={a.name}>
-                  {a.name}
-                </span>
-              </div>
-            ))}
+            {seat.assignees.map((a) => {
+              const content = (
+                <>
+                  {a.avatar ? (
+                    <img
+                      src={a.avatar}
+                      alt={a.name}
+                      className="w-5 h-5 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center">
+                      <span className="text-[8px] font-bold text-brand">
+                        {a.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .slice(0, 2)}
+                      </span>
+                    </div>
+                  )}
+                  <span className="text-xs font-medium text-foreground truncate" title={a.name}>
+                    {a.name}
+                  </span>
+                </>
+              );
+
+              // Only link when the seat actually has a person assigned AND
+              // the viewer's role can open /staff/[id] — eos_viewer /
+              // eos_implementer see the org chart but not staff profiles,
+              // so a bare link there would just 403.
+              return canOpenProfile ? (
+                <Link
+                  key={a.id}
+                  href={`/staff/${a.id}`}
+                  className="flex items-center gap-1.5 rounded hover:underline"
+                  title={`View ${a.name}'s profile`}
+                >
+                  {content}
+                </Link>
+              ) : (
+                <div key={a.id} className="flex items-center gap-1.5">
+                  {content}
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="flex items-center gap-1.5 text-muted">
@@ -122,6 +148,7 @@ function SeatCard({
 function TreeNode({
   seat,
   canEdit,
+  canOpenProfile,
   onEditSeat,
   onAddChild,
   onDeleteSeat,
@@ -129,6 +156,7 @@ function TreeNode({
 }: {
   seat: SeatNode;
   canEdit: boolean;
+  canOpenProfile: boolean;
   onEditSeat: (seat: SeatNode) => void;
   onAddChild: (parentId: string) => void;
   onDeleteSeat: (seat: SeatNode) => void;
@@ -144,6 +172,7 @@ function TreeNode({
         <SeatCard
           seat={seat}
           canEdit={canEdit}
+          canOpenProfile={canOpenProfile}
           onEdit={() => onEditSeat(seat)}
           onAddChild={() => onAddChild(seat.id)}
           onDelete={() => onDeleteSeat(seat)}
@@ -175,6 +204,7 @@ function TreeNode({
             <TreeNode
               seat={seat.children[0]}
               canEdit={canEdit}
+              canOpenProfile={canOpenProfile}
               onEditSeat={onEditSeat}
               onAddChild={onAddChild}
               onDeleteSeat={onDeleteSeat}
@@ -196,6 +226,7 @@ function TreeNode({
                     <TreeNode
                       seat={child}
                       canEdit={canEdit}
+                      canOpenProfile={canOpenProfile}
                       onEditSeat={onEditSeat}
                       onAddChild={onAddChild}
                       onDeleteSeat={onDeleteSeat}
@@ -214,12 +245,17 @@ function TreeNode({
 // ---------- Main OrgChartView ----------
 
 export function OrgChartView() {
-  const { data: tree, isLoading } = useAccountabilityChart();
+  const { data: tree, isLoading, error, refetch } = useAccountabilityChart();
   const createSeat = useCreateSeat();
   const deleteSeat = useDeleteSeat();
   const { data: session } = useSession();
 
+  const viewerRole = parseRole(session?.user?.role);
   const canEdit = session?.user?.role === "owner" || session?.user?.role === "admin";
+  // eos_viewer / eos_implementer can see the accountability chart but not
+  // /staff/[id] (see rolePageAccess in role-permissions.ts) — don't render
+  // a link that would just 403 for them.
+  const canOpenProfile = canAccessPage(viewerRole ?? undefined, "/staff/[id]");
 
   const [editingSeat, setEditingSeat] = useState<SeatNode | null>(null);
   const [creatingParentId, setCreatingParentId] = useState<string | null | "root">(null);
@@ -229,6 +265,21 @@ export function OrgChartView() {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="w-10 h-10 border-4 border-border border-t-brand rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // A failed fetch must never render the same "nothing set up" empty state
+  // as a genuinely empty chart — that ambiguity is exactly what let the
+  // 2026-08-25 induction lockout go undiagnosed for as long as it did.
+  if (error) {
+    return (
+      <div className="bg-card rounded-xl border border-border p-6">
+        <ErrorState
+          title="Couldn't load the accountability chart"
+          error={error as Error}
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }
@@ -276,6 +327,7 @@ export function OrgChartView() {
                 <TreeNode
                   seat={root}
                   canEdit={canEdit}
+                  canOpenProfile={canOpenProfile}
                   onEditSeat={setEditingSeat}
                   onAddChild={setCreatingParentId}
                   onDeleteSeat={setDeleteConfirm}

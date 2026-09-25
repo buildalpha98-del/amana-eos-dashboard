@@ -44,7 +44,10 @@ describe("sendSlackFeedback", () => {
     expect(body.text).toContain("bug");
     expect(body.text).toContain("Jayden");
     expect(body.text).toContain("It broke");
-    expect(body.text).toContain("/admin/feedback");
+    // 2026-09-25: was "/admin/feedback?id=<id>", but that route is a bare
+    // redirect that drops query params and nothing downstream reads an
+    // `id`, so the deep link silently landed on the unscoped inbox.
+    expect(body.text).toContain("/feedback?tab=internal");
   });
 
   it("truncates very long messages to 100 chars with ellipsis", async () => {

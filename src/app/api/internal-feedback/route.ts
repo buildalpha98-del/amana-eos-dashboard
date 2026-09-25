@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
 import { sendSlackFeedback } from "@/lib/slack-webhook";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const createFeedbackSchema = z.object({
   category: z.enum(["bug", "feature_request", "question", "general"]),
   message: z.string().min(1, "Message is required"),
@@ -46,7 +47,7 @@ export const GET = withApiAuth(async (req) => {
     total,
     totalPages: Math.max(1, Math.ceil(total / LIMIT)),
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // POST /api/internal-feedback — create feedback (any authenticated user)
 export const POST = withApiAuth(

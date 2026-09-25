@@ -19,6 +19,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const contactsRef: { value: unknown[] } = { value: [] };
 
+/**
+ * 2026-09-25: the page now reads `?search=` so a debtor row on
+ * /billing/aged-debtors can deep-link straight into that family's chase log.
+ * Without this mock the component throws "invariant expected app router to be
+ * mounted" before any assertion runs.
+ */
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+  usePathname: () => "/financials/family-balances",
+}));
+
 vi.mock("@/hooks/useFamilyBalanceContacts", () => ({
   useFamilyBalanceContacts: () => ({
     data: { contacts: contactsRef.value },

@@ -13,6 +13,9 @@ const createMeetingSchema = z.object({
   // 2026-07-28: Leadership (L10) meeting — restricts the To-Do Review to
   // attendees holding a leadership role.
   isLeadership: z.boolean().optional(),
+  // 2026-09-24: which run sheet this meeting follows. Omitted = l10, so
+  // every existing caller keeps creating l10 meetings unchanged.
+  type: z.enum(["l10", "quarterly_pulse"]).optional(),
   // 2026-07-28: which Scorecard to review. Omitted = legacy single scorecard.
   scorecardId: z.string().optional().nullable(),
   // 2026-08-31: schedule-for-later. When present the meeting is created
@@ -20,6 +23,8 @@ const createMeetingSchema = z.object({
   // carries the scheduled moment — no separate column). The morning
   // briefing cron auto-preps scheduled meetings dated today.
   scheduledFor: z.string().datetime().optional(),
+  // 2026-08-31: recurring series this occurrence belongs to.
+  seriesId: z.string().optional(),
 });
 
 // GET /api/meetings — list meetings ordered by date desc
@@ -74,6 +79,16 @@ const body = await parseJsonBody(req);
     );
   }
 
+  if (parsed.data.seriesId) {
+    const series = await prisma.meetingSeries.findUnique({
+      where: { id: parsed.data.seriesId },
+      select: { id: true },
+    });
+    if (!series) {
+      return NextResponse.json({ error: "Series not found" }, { status: 400 });
+    }
+  }
+
   const scheduledFor = parsed.data.scheduledFor
     ? new Date(parsed.data.scheduledFor)
     : null;
@@ -97,7 +112,9 @@ const body = await parseJsonBody(req);
       createdById: session!.user.id,
       serviceIds: parsed.data.serviceIds || [],
       isLeadership: parsed.data.isLeadership ?? false,
+      type: parsed.data.type ?? "l10",
       scorecardId: parsed.data.scorecardId ?? null,
+      seriesId: parsed.data.seriesId ?? null,
     },
     include: {
       createdBy: { select: { id: true, name: true, email: true, avatar: true } },

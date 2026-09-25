@@ -1,0 +1,21 @@
+{
+  "artboards": [
+    { "file": "MobileHome.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "Home — phone" },
+    { "file": "MobileMyDay.dc.html", "x": 490, "y": 0, "w": 390, "h": 844, "title": "My Day — phone" },
+    { "file": "MobilePay.dc.html", "x": 980, "y": 0, "w": 390, "h": 844, "title": "Pay — phone" },
+    { "file": "MobileLeave.dc.html", "x": 1470, "y": 0, "w": 390, "h": 844, "title": "Leave — phone" },
+    { "file": "MobileExpenses.dc.html", "x": 1960, "y": 0, "w": 390, "h": 844, "title": "Reimbursements — phone" },
+    { "file": "Main.dc.html", "x": 0, "y": 1030, "w": 1440, "h": 900, "title": "Staff hub — desktop" },
+    { "file": "Pay.dc.html", "x": 1560, "y": 1030, "w": 1440, "h": 900, "title": "Pay — desktop" },
+    { "file": "Leave.dc.html", "x": 0, "y": 2090, "w": 1440, "h": 900, "title": "Leave — desktop" },
+    { "file": "Expenses.dc.html", "x": 1560, "y": 2090, "w": 1440, "h": 900, "title": "Reimbursements — desktop" },
+    { "file": "StaffFile.dc.html", "x": 0, "y": 3150, "w": 1440, "h": 980, "title": "Staff file — HR view" }
+  ],
+  "annotations": [
+    { "id": "note-direction", "x": 0, "y": -190, "w": 520, "text": "Premium staff portal — the 10/10 target, phone-first.\nStaff live on their phones, so the mobile row leads: Home, My Day, Pay, Leave, Reimbursements share one 5-tab shell.\nAmana tokens throughout. All figures are sample data. Edit anything, then Save." },
+    { "id": "note-mobile", "x": 560, "y": -150, "w": 340, "text": "Every screen: one hero action at the top (clock in, roll call, view payslip, apply, snap receipt), 44px+ tap targets, glanceable numbers before detail." },
+    { "id": "note-desktop", "x": 0, "y": 950, "w": 380, "text": "Desktop versions of the same screens — same hierarchy, more breathing room." },
+    { "id": "note-staff-file", "x": 1560, "y": 3150, "w": 420, "text": "Staff file (HR side): real tabs replace the long scroll. Overview answers the three questions HR opens a file for — compliant? paid right? anything pending?" }
+  ],
+  "launch": { "view": "canvas" }
+}
