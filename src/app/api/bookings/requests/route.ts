@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
+import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import { getCentreScope, applyCentreFilter } from "@/lib/centre-scope";
 import type { Prisma } from "@prisma/client";
 
 /**
@@ -21,11 +23,20 @@ export const GET = withApiAuth(async (req: NextRequest, session) => {
     status: status as Prisma.EnumBookingStatusFilter,
   };
 
-  // If serviceId provided, filter to that service; otherwise scope by user's service if coordinator
+  // Centre scoping. The previous version trusted `serviceId` outright and
+  // only fell back to the caller's own centre for `member` — so any
+  // authenticated user could read another centre's booking requests by
+  // passing its id, and a `staff` caller with no param read every centre's.
+  // `getCentreScope` returns null for org-wide roles (owner / admin / EOS).
+  const { serviceIds } = await getCentreScope(session);
+
   if (serviceId) {
+    if (serviceIds !== null && !serviceIds.includes(serviceId)) {
+      throw ApiError.forbidden("You do not have access to this service");
+    }
     where.serviceId = serviceId;
-  } else if (session.user.role === "member" && session.user.serviceId) {
-    where.serviceId = session.user.serviceId;
+  } else {
+    applyCentreFilter(where, serviceIds);
   }
 
   const [bookings, total] = await Promise.all([

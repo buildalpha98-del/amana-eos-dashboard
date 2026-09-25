@@ -58,43 +58,6 @@ interface BookingRequestsResponse {
   totalPages: number;
 }
 
-// Legacy response shape (for service-scoped hook)
-interface LegacyBookingRequestsResponse {
-  items: BookingRequest[];
-  nextCursor?: string;
-}
-
-// ── Legacy service-scoped hook (backward compat) ───────────
-
-export function useBookingRequests(serviceId: string) {
-  return useQuery<LegacyBookingRequestsResponse>({
-    queryKey: ["booking-requests", serviceId],
-    queryFn: () => fetchApi<LegacyBookingRequestsResponse>(`/api/services/${serviceId}/booking-requests`),
-    enabled: !!serviceId,
-    staleTime: 30_000,
-    retry: 2,
-  });
-}
-
-export function useUpdateBookingStatus(serviceId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: { bookingId: string; status: "confirmed" | "cancelled" }) =>
-      mutateApi(`/api/services/${serviceId}/booking-requests`, {
-        method: "PATCH",
-        body: data,
-      }),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["booking-requests", serviceId] });
-      const action = variables.status === "confirmed" ? "approved" : "rejected";
-      toast({ description: `Booking ${action} successfully` });
-    },
-    onError: (err: Error) => {
-      toast({ variant: "destructive", description: err.message || "Failed to update booking" });
-    },
-  });
-}
-
 // ── Centralized booking requests hook (new inbox) ──────────
 
 export function useAllBookingRequests(filters?: {
