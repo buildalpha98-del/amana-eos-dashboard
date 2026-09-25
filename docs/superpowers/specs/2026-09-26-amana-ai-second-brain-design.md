@@ -1,7 +1,7 @@
 # Amana AI — Operations Second Brain — Design
 
 **Date:** 2026-09-26
-**Status:** Approved in brainstorming; awaiting spec review
+**Status:** Approved in brainstorming; spec review round 2
 **Audience order:** educators on the floor first, then coordinators
 **Destination:** C (agent platform with write actions). **Road:** B (retrieval rebuild + educator read tools), built so nothing is undone on the way to C.
 
@@ -15,7 +15,7 @@ For an educator on a phone mid-session it fails in four ways:
 
 1. **Content.** The QA1–QA7 policy and procedure library, the company-wide SOPs, OWNA/Employment Hero how-tos, centre-specific facts, and the regulator references are not in the knowledge base. The handbook seed still contains `[FILL IN YOUR SPECIFICS]`.
 2. **Recall.** Keyword search cannot bridge "a kid threw up" → *QA2 Illness Management Procedure*. The prompt compensates by instructing three synonym searches.
-3. **Safety of the store.** `searchChunks` joins every `DocumentChunk` with no scoping. The `Document` table holds 233 employment contracts that are unindexed only because nobody has run `POST /api/knowledge/reindex`. Centre-specific documents have no way to be scoped to that centre's staff. NSW-only documents reach VIC staff.
+3. **Safety of the store.** `searchChunks` joins every `DocumentChunk` with no scoping. The `Document` table holds 233 employment contracts that are unindexed only because nobody has run `POST /api/knowledge/reindex`. Centre-specific documents have no way to be scoped to that centre's staff. NSW-only documents reach VIC staff. A second, all-roles assistant (`POST /api/knowledge/ask`) reads the same unscoped store.
 4. **Leak + no live data for staff.** `buildDashboardContext()` (current-month revenue/profit by centre, CRM pipeline) is injected into the system prompt for **every role** (`src/app/api/assistant/chat/route.ts:83`). Meanwhile non-admin staff get zero live-data tools — the bot cannot tell an educator when their next shift is.
 
 ## 2. Decisions made in brainstorming
@@ -33,81 +33,131 @@ For an educator on a phone mid-session it fails in four ways:
 
 ### 3.1 Knowledge store — opt-in by adapter
 
-A new store replaces "index whatever is in `Document`". Nothing enters it except through a named adapter; there is no path from an arbitrary `Document` row into it. `POST /api/knowledge/reindex` is deleted.
+A new store replaces "index whatever is in `Document`". Nothing enters it except through a named adapter; there is no path from an arbitrary `Document` row into it.
 
 ```prisma
-enum KnowledgeSourceKind { sharepoint policy_upload help_article handbook lms_module centre_facts regulator }
+enum KnowledgeSourceKind { sharepoint policy_upload help_article handbook lms_module centre_facts regulator manual }
 enum KnowledgeCategory   { policy procedure sop guide reference centre }
 enum KnowledgeTier       { safety_critical general }
 enum KnowledgeStatus     { active superseded excluded }
 
 model KnowledgeSource {
-  id             String              @id @default(cuid())
-  title          String
-  normalizedTitle String             // lowercased, version/state suffix stripped — dedupe key
-  sourceKind     KnowledgeSourceKind
-  category       KnowledgeCategory
-  tier           KnowledgeTier       @default(general)
-  tierOverride   KnowledgeTier?      // admin override wins over the import heuristic
-  qualityArea    Int?                // 1–7, parsed from "QA<n>"
-  serviceId      String?             // null = org-wide
-  service        Service?            @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  state          String?             // "NSW" | "VIC" | null = all
-  version        Int?                // parsed "V13" / PolicyDocumentVersion.versionNumber
-  externalId     String              // SharePoint item id, PolicyDocumentVersion.id, article id, `service:<id>`, URL
-  externalUrl    String?             // citation target
-  contentHash    String
-  status         KnowledgeStatus     @default(active)
-  supersededById String?
-  indexedAt      DateTime?
-  indexError     String?
-  chunks         KnowledgeChunk[]
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  id              String              @id @default(cuid())
+  title           String
+  normalizedTitle String              // lowercased, "V<n>"/"NSW"/"VIC"/"OSHC" tokens and punctuation stripped
+  sourceKind      KnowledgeSourceKind
+  category        KnowledgeCategory
+  tier            KnowledgeTier       @default(general)
+  tierOverride    KnowledgeTier?      // admin override wins over the import heuristic
+  qualityArea     Int?                // 1–7, parsed from "QA<n>"
+  serviceId       String?             // null = org-wide
+  service         Service?            @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  state           String?             // canonical abbreviation ("NSW", "VIC") or null = all states
+  audienceRoles   String[]            @default([])  // help_article only; [] = every role
+  version         Int?                // parsed "V13" / PolicyDocumentVersion.versionNumber
+  externalId      String              // SharePoint item id | PolicyDocumentVersion.id | article id | `service:<id>` | URL | manual upload id
+  externalUrl     String?             // citation target
+  contentHash     String
+  status          KnowledgeStatus     @default(active)
+  supersededById  String?
+  indexedAt       DateTime?
+  indexError      String?
+  chunks          KnowledgeChunk[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
   @@unique([sourceKind, externalId])
   @@index([status, tier])
   @@index([serviceId])
-  @@index([normalizedTitle])
+  @@index([normalizedTitle, state, serviceId])
 }
 
 model KnowledgeChunk {
-  id           String                    @id @default(cuid())
+  id           String                       @id @default(cuid())
   sourceId     String
-  source       KnowledgeSource           @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  source       KnowledgeSource              @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   chunkIndex   Int
   heading      String?
-  content      String                    @db.Text
+  content      String                       @db.Text
   tokenCount   Int
   searchVector Unsupported("tsvector")?
   embedding    Unsupported("vector(1024)")?
-  createdAt    DateTime                  @default(now())
+  createdAt    DateTime                     @default(now())
 
   @@unique([sourceId, chunkIndex])
 }
+
+model KnowledgeSyncRun {
+  id          String    @id @default(cuid())
+  adapter     String    // "sharepoint" | "regulator" | "backfill"
+  startedById String?   // null for cron
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+  cursor      String?   // resumable position (see §5)
+  counts      Json      // { imported, unchanged, superseded, conflicts, unmapped, errors }
+  details     Json      // per-item report rows
+  error       String?
+
+  @@index([adapter, startedAt])
+}
+
+model AssistantTurn {
+  id         String   @id @default(cuid())
+  userId     String
+  serviceId  String?
+  mode       String   // "strict" | "refuse" | "general"
+  message    String   @db.Text
+  chunkIds   String[] // retrieved KnowledgeChunk ids (pre-retrieval + tool searches)
+  toolCalls  Json     // [{ name, args, durationMs, resultBytes, resultId? }]
+  inputTokens  Int
+  outputTokens Int
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
 ```
 
-Migration enables `CREATE EXTENSION IF NOT EXISTS vector`, a GIN index on `searchVector` (trigger-maintained, same pattern as `DocumentChunk`), and an HNSW index on `embedding` (cosine).
+`AssistantTurn` rows are pruned after 90 days by the existing `email-janitor`-style daily cron (`knowledge-janitor`). `AiUsage.userId` becomes nullable so cron/script embedding runs can log cost without a user (`section: "knowledge-index"`).
 
-**Why not extend `Document`/`DocumentChunk`:** `Document` is the HR file cabinet and will always hold contracts and certificates. Indexing must be opt-in by source kind, not opt-out by luck. The existing `Document.indexed`/`DocumentChunk` machinery is retired once the seeds are migrated (Section 6, slice 1).
+Migration (hand-written SQL in the Prisma migration): `CREATE EXTENSION IF NOT EXISTS vector`; GIN index on `searchVector`; HNSW index on `embedding` (`vector_cosine_ops`). **`searchVector` is set explicitly by the indexing pipeline** (`UPDATE … SET "searchVector" = to_tsvector('english', content)`) — the same approach `document-indexer.ts` uses today; there is no trigger.
 
-### 3.2 Adapters
+**Why not extend `Document`/`DocumentChunk`:** `Document` is the HR file cabinet and will always hold contracts and certificates. Indexing must be opt-in by source kind, not opt-out by luck.
 
-Each adapter is idempotent, keyed on `(sourceKind, externalId)`, and shares one `upsertKnowledgeSource(input)` → `chunk` → `embed` pipeline in `src/lib/knowledge/`.
+### 3.2 Retiring the old store (slice 1, explicit list)
+
+| Today | Fate |
+|---|---|
+| `POST /api/knowledge/reindex`, `POST /api/knowledge/index`, `GET /api/knowledge/status` | **Deleted** |
+| `POST /api/knowledge/ask` (second all-roles assistant, unscoped) | **Deleted** — the chat route is the only assistant |
+| `searchChunks` / `formatChunksForPrompt` / `indexDocument` / `indexTextContent` in `document-indexer.ts` | **Deleted**; `extractText`/`extractTextFromBuffer` stay (used by contracts + the new adapters) |
+| `indexDocument` callers in `api/documents/*` and `audits/[id]/document` | **Removed** — general documents are no longer indexed |
+| `/api/settings/ai-knowledge/upload`, `/register`, `/[id]`, `/seed` | **Kept, re-pointed**: they write `KnowledgeSource` with `sourceKind: manual` (upload/register) or `handbook` (seed) instead of `Document` + `indexTextContent` |
+| `/api/settings/ai-knowledge/reindex`, `/backfill`, `/dedupe` | **Replaced** by `/api/settings/ai-knowledge/sync` (runs an adapter → `KnowledgeSyncRun`) and `/[id]/reindex` |
+| `Document.indexed/indexedAt/indexError`, `DocumentChunk` | Left in place with **no writers** in slice 1; dropped in a later cleanup migration once prod is verified |
+| `ASSISTANT_TOOLS.search_knowledge_base` | Renamed `search_knowledge`, backed by `searchKnowledge()` |
+
+Guard test: no module under `src/lib/knowledge/` or `src/app/api/settings/ai-knowledge/` imports `prisma.document` / `prisma.documentChunk`.
+
+### 3.3 Adapters
+
+Each adapter is idempotent, keyed on `(sourceKind, externalId)`, and shares one pipeline in `src/lib/knowledge/index.ts`: `upsertKnowledgeSource(input)` → skip if `contentHash` unchanged → `chunk` (existing heading-aware splitter, 500-token chunks, 50 overlap) → `embed` → replace chunks in a transaction → `indexedAt`.
 
 | Adapter | Trigger | Notes |
 |---|---|---|
-| `sharepoint` | `scripts/import-sharepoint-knowledge.ts` + admin "Sync" button + weekly cron `knowledge-sharepoint-sync` | See §5 |
-| `policy_upload` | Hook in the `/policies` version-publish path | Extract PDF text; **wins** over a `sharepoint` source with the same `normalizedTitle` (that one → `superseded`) |
-| `help_article` | On `KnowledgeBaseArticle` save | `published` only; respects `audienceRoles` by mapping to a role filter at query time |
-| `handbook` | On `AmanaHandbookContent`/`AmanaWayContent` save + once at boot from defaults | Replaces `KNOWLEDGE_SEEDS` |
-| `lms_module` | On `LMSModule` save when course `status = published` | Reading modules only; quiz questions/answers are never indexed |
-| `centre_facts` | On `Service.knowledgeFacts` save | `serviceId` set; `category: centre` |
-| `regulator` | Curated list in `src/lib/knowledge/regulator-sources.ts` + monthly cron | NQS, National Regulations guide, MTOP v2.0, *Staying Healthy* exclusion table, Children's Services Award summary, ASCIA action-plan guidance, NSW/VIC regulator pages |
+| `sharepoint` | Slice 1: local export (§5.1). Slice 2b: Graph app-only sync (§5.2) | |
+| `policy_upload` | Hook in the `/policies` version-publish path (`POST /api/policies/[id]/versions` and initial create) | Extract PDF text via `extractTextFromBuffer`. Supersedes a `sharepoint` source with the same `(normalizedTitle, state: null, serviceId: null)`; state-specific SharePoint variants stay active because `PolicyDocument` has no state |
+| `help_article` | `POST /api/knowledge-base/seed` (the only write path — articles have no CRUD) + the `backfill` adapter at boot | `published` only; `audienceRoles` copied onto the source |
+| `handbook` | `PATCH /api/amana-handbook/content` and `/api/amana-way/content` + `backfill` from the hardcoded defaults | Replaces `KNOWLEDGE_SEEDS`; the seed route becomes a `backfill` trigger |
+| `lms_module` | `LMSModule` save when the parent course is `status: published` | Reading modules only; quiz questions/answers are never indexed |
+| `centre_facts` | `PATCH /api/services/[id]/content` (the existing `Service.content` route) | Renders selected `serviceContentSchema` fields to Markdown: `contacts`, `dailyRoutine`, `foodProvider`, `locationWithinSchool`, `meetingPoints`, `parentOnboarding`, plus a **new `staffNotes` field** (string, max 4000, coordinator-editable, labelled "Staff-only notes — gate/alarm, evacuation point, key contacts"). `serviceId` set; `category: centre`. Parent-facing fields (`about`, `tagline`, `heroImage`, `enrolmentThankYou`) are not indexed |
+| `regulator` | Curated list in `src/lib/knowledge/regulator-sources.ts` + monthly cron `knowledge-regulator-refresh` | NQS, National Regulations guide, MTOP v2.0, *Staying Healthy* exclusion table, Children's Services Award summary, ASCIA action-plan guidance, NSW/VIC regulator pages. Fetch + `extractTextFromBuffer`. Distinct from the existing `regulatory-monitor` cron (which AI-scans for *changes* and files a report); this adapter indexes the *reference text* |
+| `manual` | `/api/settings/ai-knowledge/upload` + `/register` (existing admin upload/paste UI) | Admin sets category/tier/service/state in the form |
+| `backfill` | `POST /api/settings/ai-knowledge/sync { adapter: "backfill" }` + once at first deploy | Sweeps `KnowledgeBaseArticle`, handbook defaults, published `LMSModule`s, every `Service.content`, and current `PolicyDocumentVersion`s |
 
-Chunking reuses the existing heading-aware splitter (500-token chunks, 50 overlap). Embedding: Voyage `voyage-3` (1024-dim) via `src/lib/embeddings.ts` — batches of 128, retry with backoff, cost logged to `AiUsage` with `section: "knowledge-index"`. Env: `VOYAGE_API_KEY`. `contentHash` unchanged → no re-chunk, no re-embed.
+Embedding: Voyage `voyage-3` (1024-dim) via `src/lib/embeddings.ts` — batches of 128, retry with backoff, cost logged to `AiUsage` (`userId: null`, `section: "knowledge-index"`). Env: `VOYAGE_API_KEY`. `contentHash` unchanged → no re-chunk, no re-embed.
 
-### 3.3 Retrieval
+### 3.4 Retrieval
 
 `searchKnowledge(query, scope, limit = 8)` in `src/lib/knowledge/search.ts`:
 
@@ -115,96 +165,102 @@ Chunking reuses the existing heading-aware splitter (500-token chunks, 50 overla
 2. Run two SQL queries in parallel over `KnowledgeChunk` ⋈ `KnowledgeSource`:
    - tsvector: `plainto_tsquery` first, `websearch_to_tsquery` fallback (existing behaviour).
    - pgvector: `embedding <=> $queryVec` cosine, top 20.
-3. Reciprocal-rank fusion (k = 60), top `limit`.
+3. Reciprocal-rank fusion (k = 60), top `limit`. Each result carries `fusedScore`, `tier`, `sourceId`, `externalUrl`.
 
-**Scope is a SQL `WHERE`, not a prompt instruction:**
+**Scope is a SQL `WHERE`, not a prompt instruction.** `scope = { role, serviceIds: string[] | null, state: string | null }` is built by `buildKnowledgeScope(session)`:
+
+- `serviceIds` = `getCentreScope(session)` (`src/lib/centre-scope.ts`): `null` for owner/admin/EOS roles (unscoped); head_office → every centre in `User.state` + memberships; member/staff → primary service + manager-of + memberships. **`serviceScopeFilter()` is not used** — it is deliberately primary-only.
+- `state` = canonical abbreviation via `stateMatchValues()` of `User.state` (head_office) or the primary `Service.state` (member/staff); `null` for owner/admin or when unset.
 
 ```sql
 s.status = 'active'
-AND (s."serviceId" IS NULL OR s."serviceId" = ANY($serviceIds))
-AND (s.state IS NULL OR s.state = $userState)
-AND (s."sourceKind" <> 'help_article' OR $role = ANY(s."audienceRoles") OR s."audienceRoles" = '{}')
+AND ($serviceIds IS NULL OR s."serviceId" IS NULL OR s."serviceId" = ANY($serviceIds))
+AND ($state IS NULL OR s.state IS NULL OR s.state = $state)
+AND (s."audienceRoles" = '{}' OR $role = ANY(s."audienceRoles"))
 ```
 
-`scope = { role, serviceIds, state }` is derived in the route from the session: `serviceIds` via `serviceScopeFilter(session)` (primary service + active `UserServiceMembership`s; owner/head_office/admin = all), `state` from the user's primary `Service.state`. The model cannot widen scope — it is not a tool parameter.
+The `$x IS NULL OR …` branches matter: `= ANY(NULL)` matches nothing. Import canonicalises `state` to the abbreviation so exact equality is safe. The model cannot widen scope — scope is not a tool parameter.
 
-### 3.4 Tiered answer policy
+### 3.5 Tiered answer policy
 
 **Tier lives on the source, set at import, overridable by admin.** Heuristic: `qualityArea = 2` (Children's Health & Safety), or title matches child protection / medication / incident / emergency / evacuation / lockdown / safe arrival / collection / missing child / anaphylaxis / asthma / epilepsy / diabetes → `safety_critical`. Everything else `general`. `tierOverride` wins.
 
-Per turn, the route decides the mode **before** the model answers:
+**Per turn, before the model runs**, the route pre-retrieves once on the user's latest message. Pre-retrieval does two jobs: it picks the mode, and its chunks are injected into the system prompt as context so the common case needs no tool round-trip. `search_knowledge` remains a tool for follow-up searches with different wording. Tools are **never** removed by mode — "when's my next shift" still calls `my_shifts` in any mode.
 
-1. Run retrieval for the user's message.
-2. `safetyHit = results.some(r => r.tier === "safety_critical")`.
-3. `safetyIntent = SAFETY_INTENT_REGEX.test(message)` — a small keyword classifier (medication, allergy, injur, bleed, missing, evacuat, lockdown, abuse, disclos, unconscious, seizure, choking, …), maintained in `src/lib/knowledge/safety-intent.ts` with tests.
-4. Mode:
-   - `safetyHit` → **strict**: system prompt says answer *only* from retrieved chunks; cite `[Title → Heading]` per step; end with the escalation line naming `Service.manager.name` and `Service.phone`.
-   - `!safetyHit && safetyIntent` → **refuse-and-escalate**: the model is told the library has no matching procedure and must respond only with the escalation line. No improvisation.
+1. `top = results[0]`; `safetyHit = top?.tier === "safety_critical" && top.fusedScore >= SAFETY_SCORE_FLOOR` (a threshold, tuned in the admin "test a question" view; a stray safety chunk at rank 7 does not flip the mode).
+2. `safetyIntent = SAFETY_INTENT_REGEX.test(message)` — keyword classifier (medication, allergy, injur, bleed, missing, evacuat, lockdown, abuse, disclos, unconscious, seizure, choking, …) in `src/lib/knowledge/safety-intent.ts`, with tests.
+3. Mode:
+   - `safetyHit` → **strict**: for procedural content, answer *only* from retrieved chunks; cite `[Title → Heading]` per step; end with the escalation line.
+   - `!safetyHit && safetyIntent` → **refuse-and-escalate**: the library has no matching procedure; respond only with the escalation line. No improvisation.
    - otherwise → **general**: cite Amana sources when present; may answer from general OSHC/NQF knowledge, prefixed *"General guidance, not Amana policy — confirm with your coordinator."*
 
-The mode and the retrieved chunk ids are logged per turn (`AssistantTurn` row: userId, serviceId, mode, chunkIds, toolCalls, tokens) so admins can audit why the bot said what it said.
+**Escalation line** = `Service.manager.name` + `Service.phone` for the user's primary service; if either is null, the `head_office` user for the user's state (`User.state`), else the org contact from org settings (`contact.phone`, existing). Resolved by `resolveEscalation(session)` and injected per turn.
 
-**Citations** carry `externalUrl` and are streamed as a final SSE `sources` event, rendered as tappable chips.
+Mode, chunk ids, tool calls and tokens are written to `AssistantTurn`.
 
-**Version honesty:** `superseded` and `excluded` are excluded in SQL; one title, one active source.
+**Citations** carry `externalUrl` and stream as a final SSE `sources` event (existing event shape, extended with `url` and `tier`), rendered as tappable chips.
 
-### 3.5 Tools — one scaffold
+**Version honesty:** `superseded` and `excluded` are excluded in SQL; one `(normalizedTitle, state, serviceId)`, one active source.
+
+### 3.6 Tools — one scaffold
 
 Three properties, no exceptions:
 
-1. **Scope from session, never from the model.** Tool input schemas contain only arguments the user could legitimately vary (date range, search term). `userId`, `serviceIds`, `role` are injected by the executor.
+1. **Scope from session, never from the model.** Tool input schemas contain only arguments the user could legitimately vary (date range, search term). `userId`, `serviceIds`, `role` are injected by the executor from `session` + `buildKnowledgeScope`.
 2. **Role-gated registry.** `getToolsForRole(role): ToolDef[]` in `src/lib/ai-tools/registry.ts` replaces the admin/non-admin fork. `buildDashboardContext()` is only injected for `owner`/`head_office`/`admin` — the leak fix.
-3. **Every call audited** on the `AssistantTurn` row (name, args, duration, result size; for writes, the committed record id).
+3. **Every call audited** on `AssistantTurn.toolCalls` (name, args, duration, result size; for writes, the committed record id).
 
 **Educator read tools (slice 3):**
 
 | Tool | Reads | Example |
 |---|---|---|
 | `my_shifts` | `RosterShift` where `userId`, next 14 days | "When am I on next?" |
-| `my_certificates` | `StaffCertificate` + `getRequiredCertTypes(role, orgSettings)` | "Is my CPR expiring?" |
+| `my_certificates` | `ComplianceCertificate` where `userId`, `supersededAt IS NULL`; `expiryDate: null` = never expires; required set from `getRequiredCertTypes(role, orgSettings)` | "Is my CPR expiring?" |
 | `my_leave` | Internal `LeaveRequest` + `getApprovedEhLeave()` cache | "Did my leave get approved?" |
 | `my_induction` | `getInductionReadiness(userId)` | "Why can't I clock in?" |
-| `my_centre` | `Service` (address, phone, manager, hours) + `centre_facts` source | "Who's my coordinator?" |
+| `my_centre` | `Service` (address, phone, manager) + the `centre_facts` source | "Who's my coordinator?" |
 | `my_training` | `LMSEnrollment` progress | "What courses do I still have to do?" |
 
-Existing admin tools are re-registered unchanged. `search_knowledge_base` becomes `search_knowledge` over the new store. `fetch_oshc_reference` stays (host allowlist unchanged).
+Existing admin tools are re-registered unchanged. `fetch_oshc_reference` stays (host allowlist unchanged); it overlaps the `regulator` adapter and is the fallback for pages not curated.
 
-**Coordinator read tools (slice 4, service-scoped via membership):** `service_bookings_today`, `service_roster_today`, `child_medical_plan` (by child name, within their service only), `service_open_incidents`.
+**Coordinator read tools (slice 4, scoped via `getCentreScope`):** `service_bookings_today`, `service_roster_today`, `child_medical_plan` (by child name, within scope only), `service_open_incidents`.
 
-### 3.6 Write contract (C)
+### 3.7 Write contract (C)
 
-Writes are two-phase. The model proposes; the human commits; the write goes through the existing validated route.
+Writes are two-phase. The model proposes; the human commits; the write goes through the same helper the form uses.
 
 ```prisma
 model PendingAction {
-  id         String   @id @default(cuid())
-  userId     String
-  serviceId  String
-  kind       String   // "reflection" | "hazard" | "leave" | "incident"
-  payload    Json     // already validated against the target schema
-  turnId     String   // AssistantTurn that proposed it
-  expiresAt  DateTime // now + 10 min
+  id          String    @id @default(cuid())
+  userId      String
+  serviceId   String?   // null for org-level actions (e.g. request_leave later)
+  kind        String    // "reflection" | "hazard" | "leave" | "incident"
+  payload     Json      // already validated against the target schema
+  turnId      String
+  expiresAt   DateTime  // now + 10 min
   committedAt DateTime?
-  resultId   String?  // id of the created record
-  createdAt  DateTime @default(now())
+  resultId    String?
+  createdAt   DateTime  @default(now())
 
   @@index([userId, expiresAt])
 }
 ```
 
-- **Propose:** model calls `propose_reflection({ title, content, type, qualityAreas, mood })`. Executor validates with `createReflectionSchema`, resolves `serviceId` from session (multi-membership → the tool returns `needs_service_choice` and the model asks), inserts `PendingAction`, and the route streams an SSE `action` event → confirmation card (*"Log this as a reflection for Minaret Doveton, tagged QA1 & QA5? [Save] [Edit] [Cancel]"*).
-- **Commit:** `POST /api/assistant/actions/[id]/confirm` — 404 if not the caller's, 410 if expired or already committed; re-validates payload; writes via the same code path as `POST /api/services/[id]/reflections`; stamps `committedAt`/`resultId`. **Edit** opens the normal reflection dialog pre-filled from the payload. **Cancel** deletes the row.
+- **Propose:** model calls `propose_reflection({ title, content, type, qualityAreas, mood })`. Executor validates with `createReflectionSchema`, sets `serviceId = session.user.serviceId` (the **primary** service — the same rule `POST /api/services/[id]/reflections` enforces via `ensureServiceAccess`; the tool never offers other centres in slice 4, and returns `no_primary_service` for users without one), inserts `PendingAction`, and the route streams an SSE `action` event → confirmation card (*"Log this as a reflection for Minaret Doveton, tagged QA1 & QA5? [Save] [Edit] [Cancel]"*).
+- **Commit:** `POST /api/assistant/actions/[id]/confirm` — 404 if not the caller's, 410 if expired or already committed; re-validates payload; calls `createStaffReflection(db, { authorId, serviceId, ...payload })` — a helper **extracted from the existing route handler** (including its `$transaction` and `clientMutationId` dedupe) so both the form and the bot share one write path; stamps `committedAt`/`resultId`. **Edit** opens the existing reflection dialog pre-filled from the payload. **Cancel** deletes the row.
 - The model never sees the commit endpoint; it cannot auto-confirm.
 
-First write tool: `log_reflection` → `StaffReflection`, which the QIP evidence engine already fans out to QA evidence. Later tools (`report_hazard`, `request_leave`, `log_incident`) add only a schema and a target route.
+First write tool: `log_reflection` → `StaffReflection` with `type: "daily"` and `qualityAreas` — the model the QIP evidence engine reads ("tags are the ledger", `docs/superpowers/specs/2026-07-07-daily-reflections-qip-engine-design.md`). A reflection filed here appears in the service's QIP evidence by its QA tags with no further step. (`EducatorReflection` is the cowork ingest model and is not involved.)
+
+Later tools (`report_hazard`, `request_leave`, `log_incident`) add only a schema, a target helper, and a card renderer.
 
 ## 4. Phone UI
 
-`FloatingChatWidget` gains: full-screen mode under `sm:`; a quick-prompt row on open (*"What do I do if a child is injured?"*, *"My next shift"*, *"Log a reflection"*); citation chips; the confirmation card; the escalation line rendered as `tel:` link. `MobileTabBar` "More" sheet gains "Ask Amana AI". Existing `useAssistant` hook handles the new `sources` and `action` SSE events.
+`FloatingChatWidget` gains: full-screen mode under `sm:`; a quick-prompt row on open (*"What do I do if a child is injured?"*, *"My next shift"*, *"Log a reflection"*); citation chips; the confirmation card; the escalation line rendered as a `tel:` link. `MobileTabBar` "More" sheet gains "Ask Amana AI". `useAssistant` handles the extended `sources` event and the new `action` event.
 
 ## 5. SharePoint import
 
-`scripts/import-sharepoint-knowledge.ts` (also callable from the admin console) walks:
+Trees, categories and scope:
 
 | Tree | Category | Scope |
 |---|---|---|
@@ -213,60 +269,79 @@ First write tool: `log_reflection` → `StaffReflection`, which the QIP evidence
 | `Shared Documents/SOPs/Jayden full SOP/**` | `sop` | org-wide |
 | `NSW Schools/<centre>/**`, `Melbourne Schools/<centre>/**` | `procedure` (or `centre`) | `serviceId` mapped from folder name |
 
-Skipped: `Shared Documents/SOPs/Amana OSHC AUDIT/**` (evidence, not guidance), `Amana HR Management Review Audit/**`, anything matching contract/payslip/TFN/candidate/resume, images, spreadsheets.
+Skipped: `Shared Documents/SOPs/Amana OSHC AUDIT/**` (evidence, not guidance), `Amana HR Management Review Audit/**`, filenames matching contract / payslip / TFN / candidate / resume / CV, images, spreadsheets.
 
-Per file: extract text (connector) → parse `QA<n>`, `V<n>`, `NSW|VIC` from the filename → map centre folder → `Service` by name (unmapped → **flagged, not guessed**; source created with `status: excluded`) → `upsertKnowledgeSource` keyed on SharePoint item id → dedupe by `normalizedTitle`: highest `version` is `active`, others `superseded` with `supersededById`.
+Per file: parse `QA<n>`, `V<n>`, `NSW|VIC` from the filename → canonicalise state → map centre folder → `Service` by name (unmapped → **flagged, not guessed**; source created `status: excluded`) → `upsertKnowledgeSource` keyed on SharePoint item id → dedupe within `(normalizedTitle, state, serviceId)`: highest `version` is `active`, others `superseded` with `supersededById`. Report rows: imported / unchanged / superseded / **conflicts** (same key, same version, different `contentHash`) / unmapped / errors → `KnowledgeSyncRun`.
 
-Import report (persisted as `KnowledgeSyncRun`: startedAt, counts, JSON details): imported / unchanged / superseded / **conflicts** (same `normalizedTitle`, same `version`, different `contentHash`) / unmapped centres / extraction errors. Surfaced in the admin console.
+### 5.1 Slice 1 — local export (no admin consent required)
+
+The repo has **no** SharePoint/Graph integration; `microsoft-calendar.ts` uses delegated per-user tokens that a script or cron cannot use. Slice 1 therefore imports from a **local export directory**:
+
+- `scripts/export-sharepoint-knowledge/` — run interactively once (this session, via the SharePoint connector, which returns extracted text): writes `knowledge-export/<tree>/<file>.md` with frontmatter `{ id, name, webUrl, path, lastModified }`. The export directory is git-ignored; a six-file fixture copy lives in `src/__tests__/fixtures/knowledge-export/`.
+- `scripts/import-sharepoint-knowledge.ts --from ./knowledge-export` — reads the directory, applies §5 rules, runs the pipeline against the target DB (`DATABASE_URL`; prod requires `PROD_DATABASE_URL` exported explicitly per the repo rule), writes a `KnowledgeSyncRun`.
+
+This makes slice 1 independently shippable.
+
+### 5.2 Slice 2b — Graph app-only sync (gated on tenant admin consent)
+
+- Azure app registration with **application** permission `Sites.Read.All` + admin consent (same blocker as the Outlook connector's `Mail.Send`; raise with the tenant admin at slice 1 kick-off).
+- Env: `MS_GRAPH_TENANT_ID`, `MS_GRAPH_CLIENT_ID`, `MS_GRAPH_CLIENT_SECRET`, `SHAREPOINT_SITE_ID`, `SHAREPOINT_DRIVE_IDS` (comma-separated; the four trees span two drives).
+- `src/lib/knowledge/sharepoint-graph.ts`: client-credentials token, drive delta walk, download `.docx`/`.pdf` → `extractTextFromBuffer`.
+- Resumable: `KnowledgeSyncRun.cursor` stores the delta link + last item id; each invocation processes **≤ 25 files** then re-enqueues itself (`POST /api/settings/ai-knowledge/sync` with `runId`) until the walk completes — Vercel's 300 s `maxDuration` is never the bound.
+- Admin "Sync from SharePoint" button + weekly cron `knowledge-sharepoint-sync` both call this.
 
 ## 6. Admin console
 
 `/settings/ai-knowledge` becomes the knowledge console:
 
 - Source table: title, kind, category, tier (with override), QA, service, state, version, status, indexedAt. Filters. Row actions: override tier, exclude/restore, re-index.
-- "Sync from SharePoint" (owner/head_office/admin) → runs the import, shows the report.
-- Conflict list with SharePoint links so Daniel fixes the source of truth.
-- **Test a question**: enter a query, pick a role + service to impersonate scope, see retrieved chunks with fusion rank and tier, and the mode the route would choose — *before* the answer.
-- Centre fact sheet editor lives on the service settings tab (coordinator-editable) with a seeded template: address, gate/alarm, school contact, session times, evacuation point, food provider, key people.
+- "Sync" (owner/head_office/admin): pick adapter (`backfill`, `regulator`, and — after 2b — `sharepoint`); shows the `KnowledgeSyncRun` report; conflict list with SharePoint links so Daniel fixes the source of truth.
+- **Test a question**: enter a query, pick a role + service to impersonate scope, see retrieved chunks with fusion score and tier, and the mode the route would choose — *before* the answer. This is where `SAFETY_SCORE_FLOOR` gets tuned.
+- Manual upload/paste (existing UI) re-pointed at `manual`.
+- Centre fact sheet: the `staffNotes` field on the service settings tab (coordinator-editable) with placeholder guidance — gate/alarm, school contact, session times, evacuation point, key people. The other indexed fields already exist on that tab.
 
 ## 7. Delivery slices
 
 | Slice | Contents | Outcome |
 |---|---|---|
-| **1 — Content + safety** | Schema + migration (pgvector, `KnowledgeSource`/`Chunk`, `AssistantTurn`); adapters `handbook`, `help_article`, `policy_upload`, `centre_facts`, `regulator`; SharePoint import script + first run; delete `knowledge/reindex`; role-gate `buildDashboardContext()`; migrate the three seeds; search still tsvector-only | Bot is more useful and no longer dangerous |
-| **2 — Retrieval** | `embeddings.ts`, hybrid search + RRF, scope SQL, tier heuristic + `tierOverride`, strict/general/refuse modes, `safety-intent.ts`, citations as chips, admin console incl. "test a question" | Recall + safety policy |
+| **1 — Content + safety** | Schema + migration (pgvector, `KnowledgeSource`/`Chunk`/`SyncRun`/`AssistantTurn`, `AiUsage.userId` nullable, `Service.content.staffNotes`); pipeline (chunk + embed + tsvector); adapters `handbook`, `help_article`, `policy_upload`, `centre_facts`, `regulator`, `manual`, `backfill`; SharePoint local export + import (§5.1) run against prod; retire the old store per §3.2; role-gate `buildDashboardContext()`; `search_knowledge` over the new store (tsvector + vector, no mode logic yet) | Bot is more useful and no longer dangerous |
+| **2 — Retrieval policy** | Hybrid RRF ranking, `buildKnowledgeScope`, tier heuristic + override, strict/refuse/general modes, `safety-intent.ts`, `resolveEscalation`, citations as chips, `AssistantTurn` logging, admin console incl. "test a question" | Recall + safety policy |
+| **2b — Graph sync** (parallel, gated on admin consent) | §5.2 | SharePoint stays current without a laptop |
 | **3 — Educator tools** | Tool registry, six `my_*` tools, phone UI (full-screen, quick prompts, `tel:` escalation), `MobileTabBar` entry | "Any question" for educators |
-| **4 — Coordinators (C begins)** | Service-scoped reads; `PendingAction` + propose/confirm + `log_reflection`; confirmation card | First write action |
-| 5+ | `report_hazard`, `request_leave`, `log_incident`; per-user memory; proactive nudges | The second brain |
+| **4 — Coordinators (C begins)** | Service-scoped reads; `PendingAction` + propose/confirm + `createStaffReflection` extraction + `log_reflection`; confirmation card | First write action |
+| 5+ | `report_hazard`, `request_leave` (`serviceId` null), `log_incident`; per-user memory; proactive nudges | The second brain |
 
-Each slice ships as its own PR, build + tests green, behind no flag (slice 1 is strictly additive; slice 2 replaces search only once embeddings exist for all active chunks).
+Each slice ships as its own PR, build + tests green. Slice 1 is strictly additive except for the §3.2 deletions.
 
 ## 8. Testing
 
 Unit (`src/__tests__/lib/knowledge/`):
-- Scope SQL: a `serviceId`-scoped chunk never returns for a user outside that service; a `state: NSW` chunk never returns for a VIC user; `superseded`/`excluded` never return; owner sees all.
-- Fusion: tsvector-only fallback when embedding throws; RRF ordering.
-- Tier + mode: safety hit → strict; safety intent with no hit → refuse; otherwise general. `tierOverride` beats heuristic.
-- Import deduper: V2 vs V3 → V3 active; same version different hash → conflict; unmapped centre → excluded + flagged; unchanged hash → no re-embed.
+- Scope: `buildKnowledgeScope` uses `getCentreScope`, not `serviceScopeFilter`; a `serviceId`-scoped chunk never returns for a user outside that service; a `state: NSW` chunk never returns for a VIC user; `null` scope returns everything; `null` state returns state-specific docs; `superseded`/`excluded` never return; `audienceRoles` filter.
+- Fusion: tsvector-only fallback when embedding throws; RRF ordering; `fusedScore` present.
+- Tier + mode: top-1 safety above floor → strict; safety below floor → not strict; safety intent with no hit → refuse; otherwise general; `tierOverride` beats heuristic; tools list unchanged across modes.
+- Escalation fallback chain (manager → head_office by state → org contact).
+- Import deduper: V2 vs V3 → V3 active; same key + version, different hash → conflict; NSW V3 vs VIC V2 → **both active**; unmapped centre → excluded + flagged; unchanged hash → no re-embed; skip rules (audit folder, contract filenames).
+- `policy_upload` supersedes only the state-null SharePoint source.
 - Tool registry per role; `buildDashboardContext` absent for staff.
-- Propose/confirm: cross-user confirm → 404; expired → 410; double-commit → 410; commit writes through `createReflectionSchema`; model output cannot set `serviceId`.
+- Propose/confirm: cross-user confirm → 404; expired → 410; double-commit → 410; commit goes through `createStaffReflection` with `serviceId` from session; model output cannot set `serviceId`.
 
-Route tests (`src/__tests__/api/`): `assistant/chat` mode selection and SSE events; `assistant/actions/[id]/confirm`; `settings/ai-knowledge/*`.
+Route tests (`src/__tests__/api/`): `assistant/chat` mode selection and SSE events; `assistant/actions/[id]/confirm`; `settings/ai-knowledge/*` (sync, reindex, upload re-pointed); `services/[id]/reflections` still passes after the helper extraction.
 
-Integration: local Postgres with pgvector, import a fixture tree (six docx/pdf text fixtures with two duplicates and one conflict), assert the report.
+Guard tests: no `prisma.document`/`documentChunk` access under `src/lib/knowledge/` or the console routes; `/api/knowledge/*` routes no longer exist; `searchChunks` no longer exported.
 
-Guard test: `email-bypass-guard`-style registry asserting no adapter reads from `Document` rows with `category: hr` or an `assignedToId`.
+Integration: local Postgres with pgvector; import the six-file fixture export (two duplicates, one conflict, one unmapped centre); assert the `KnowledgeSyncRun` counts.
 
 ## 9. Risks & mitigations
 
 - **Embedding vendor outage** → tsvector fallback; never blocks answers.
 - **Wrong centre mapping on import** → unmapped is `excluded` + flagged, never guessed.
-- **Stale SharePoint text after Daniel uploads a PDF** → `policy_upload` supersedes by `normalizedTitle`.
-- **Model ignores strict mode** → mode is chosen by the route, prompt is per-turn, and refuse mode gives the model nothing to cite; `AssistantTurn` logs every case for audit.
-- **Write from chat creates a bad record** → propose/confirm, same schema and route as the form, audited to the turn.
-- **Neon pgvector availability** → verify `CREATE EXTENSION vector` on the prod branch before slice 1 merges; Neon supports it on all plans.
-- **Cost** → embedding ~600 docs × ~20 chunks × 1024-dim ≈ negligible one-off; per-query embed ≈ $0.00002. Logged to `AiUsage`.
+- **Stale SharePoint text after Daniel uploads a PDF** → `policy_upload` supersedes by key.
+- **Model ignores strict mode** → mode chosen by the route, per-turn prompt, refuse mode gives it nothing to cite; `AssistantTurn` logs every case.
+- **Write from chat creates a bad record** → propose/confirm, shared helper, audited to the turn.
+- **Tenant admin consent for Graph never arrives** → slice 1's local export still works; re-run it manually until 2b lands.
+- **Neon pgvector** → verify `CREATE EXTENSION vector` on a Neon branch before slice 1 merges; supported on all plans.
+- **Cost** → ~600 docs × ~20 chunks one-off embed ≈ negligible; per-query embed ≈ $0.00002; logged to `AiUsage`.
 
 ## 10. Out of scope (this spec)
 
-Voice input; parent-facing assistant; OWNA write-backs; autonomous actions without a confirm tap; per-user long-term memory (slice 5+).
+Voice input; parent-facing assistant; OWNA write-backs; autonomous actions without a confirm tap; per-user long-term memory (slice 5+); `KnowledgeBaseArticle` CRUD; multi-membership centre choice for writes (slice 5+ — needs the reflections route widened first).
