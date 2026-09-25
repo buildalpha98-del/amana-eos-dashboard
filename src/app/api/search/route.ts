@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { privateTodoWhere } from "@/lib/todos/private-filter";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 /**
  * GET /api/search?q= — global ⌘K search.
@@ -18,7 +19,7 @@ import { privateTodoWhere } from "@/lib/todos/private-filter";
  *  - eos_viewer / eos_implementer: EOS + services + people
  */
 
-const ADMIN_TIER = new Set(["owner", "head_office", "admin"]);
+const ADMIN_TIER = new Set<string>(ADMIN_ROLES);
 const EOS_ROLES = new Set(["eos_viewer", "eos_implementer", "marketing"]);
 
 export const GET = withApiAuth(async (req, session) => {

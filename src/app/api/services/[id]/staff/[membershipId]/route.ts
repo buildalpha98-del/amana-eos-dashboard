@@ -4,8 +4,9 @@ import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { updateServiceStaffSchema } from "@/lib/schemas/service-staff";
 import type { Role } from "@prisma/client";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
-const ORG_WIDE_ROLES = new Set<Role>(["owner", "head_office", "admin"]);
+const ORG_WIDE_ROLES = new Set<Role>(ADMIN_ROLES);
 
 function canMutate(role: Role, userServiceId: string | null | undefined, serviceId: string) {
   if (ORG_WIDE_ROLES.has(role)) return true;

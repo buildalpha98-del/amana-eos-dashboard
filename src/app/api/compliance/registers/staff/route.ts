@@ -10,6 +10,7 @@
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { buildStaffRegister } from "@/lib/nqf-registers";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const GET = withApiAuth(
   async (req) => {
@@ -18,5 +19,5 @@ export const GET = withApiAuth(
     const rows = await buildStaffRegister(serviceId);
     return NextResponse.json({ rows });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

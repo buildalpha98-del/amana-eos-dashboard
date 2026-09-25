@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const createQualificationSchema = z.object({
   type: z.enum([
     "cert_iii",
@@ -68,4 +69,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(qualification, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

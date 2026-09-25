@@ -23,6 +23,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { indexDocument } from "@/lib/document-indexer";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const schema = z.object({
   blobUrl: z.string().url(),
@@ -115,7 +116,7 @@ export const POST = withApiAuth(
       chunkCount: final?._count.chunks ?? 0,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 /**

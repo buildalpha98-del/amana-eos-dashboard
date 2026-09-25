@@ -3,6 +3,7 @@ import { parseAuditDocumentHybrid } from "@/lib/audit-parser";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { validateFileContent } from "@/lib/file-validation";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_TYPES = [
@@ -59,4 +60,4 @@ export const POST = withApiAuth(async (req, session) => {
       { status: 422 }
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

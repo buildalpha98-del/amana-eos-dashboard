@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const createCourseSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -114,4 +115,4 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json(course, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const CATEGORIES = [
   "physical_play", "creative_arts", "music_movement", "literacy", "numeracy",
   "nature_outdoors", "cooking_nutrition", "social_emotional", "quiet_time", "free_play", "other",
@@ -83,4 +84,4 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json(template, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

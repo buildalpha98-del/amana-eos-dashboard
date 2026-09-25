@@ -15,6 +15,7 @@ import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const maxDuration = 60;
 
@@ -117,5 +118,5 @@ export const POST = withApiAuth(
       kept,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

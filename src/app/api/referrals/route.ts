@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const createReferralSchema = z.object({
   serviceId: z.string().min(1),
   referrerName: z.string().min(1),
@@ -43,7 +44,7 @@ export const GET = withApiAuth(async (req, session) => {
   }
 
   return NextResponse.json({ referrals, statusCounts });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 export const POST = withApiAuth(async (req, session) => {
   const body = await parseJsonBody(req);
@@ -73,4 +74,4 @@ export const POST = withApiAuth(async (req, session) => {
   });
 
   return NextResponse.json(referral, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

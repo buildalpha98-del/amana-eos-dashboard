@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const rangeDays = parseInt(searchParams.get("days") || "30");
@@ -150,4 +151,4 @@ export const GET = withApiAuth(async (req, session) => {
     byCentre,
     agentWorkload,
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

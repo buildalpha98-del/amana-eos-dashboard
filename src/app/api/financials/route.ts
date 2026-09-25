@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { getStateScope } from "@/lib/service-scope";
 import { z } from "zod";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const GET = withApiAuth(
   async (req, session) => {
@@ -76,7 +77,7 @@ export const GET = withApiAuth(
       lastAttendanceSync: lastAttendanceRun?.completedAt ?? null,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 const financialEntrySchema = z.object({
@@ -199,5 +200,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json(record, { status: 201 });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

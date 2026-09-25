@@ -25,6 +25,7 @@ import {
   allPages,
   rolePageAccess,
 } from "@/lib/role-permissions";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const overridesSchema = z.object({
   overrides: z.object({
@@ -66,7 +67,7 @@ export const GET = withApiAuth(
       pages: allPages,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const PUT = withApiAuth(

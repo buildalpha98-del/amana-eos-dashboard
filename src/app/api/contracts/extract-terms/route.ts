@@ -25,6 +25,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { extractContractTerms } from "@/lib/contracts/extract-terms";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const MAX_SIZE = 10 * 1024 * 1024; // matches /api/contracts/quick-upload
 
@@ -108,7 +109,7 @@ export const POST = withApiAuth(
     }
   },
   {
-    roles: ["owner", "head_office", "admin"],
+    roles: [...ADMIN_ROLES],
     rateLimit: { max: 10, windowMs: 5 * 60_000 },
   },
 );

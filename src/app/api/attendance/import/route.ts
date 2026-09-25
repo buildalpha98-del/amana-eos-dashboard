@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import type { SessionType } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 import { requireRoomId } from "@/lib/room-resolver";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const COLUMN_MAP: Record<string, string[]> = {
   centre: ["centre", "center", "service", "site", "location", "service name", "centre name"],
@@ -226,4 +227,4 @@ const formData = await req.formData();
   }
 
   return NextResponse.json({ created, updated, skipped, errors: execErrors });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

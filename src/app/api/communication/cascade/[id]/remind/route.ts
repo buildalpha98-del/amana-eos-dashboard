@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
 import { notifyUsers } from "@/lib/notify-user";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 /**
  * POST /api/communication/cascade/[id]/remind
@@ -56,7 +57,7 @@ export const POST = withApiAuth(
     return NextResponse.json({ reminded: pending.length });
   },
   {
-    roles: ["owner", "head_office", "admin"],
+    roles: [...ADMIN_ROLES],
     rateLimit: { max: 3, windowMs: 60 * 60 * 1000 },
   },
 );

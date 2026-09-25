@@ -8,6 +8,7 @@ import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 import { logger } from "@/lib/logger";
 import { resolveActivationFromUtm } from "@/lib/activation-attribution";
 import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const childSchema = z.object({
   name: z.string().min(1),
   age: z.number().int().min(3).max(16).optional().nullable(),
@@ -77,7 +78,7 @@ export const GET = withApiAuth(async (req, session) => {
     limit,
     totalPages: Math.ceil(total / limit),
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // POST /api/enquiries — create a new enquiry
 export const POST = withApiAuth(async (req) => {
@@ -134,4 +135,4 @@ export const POST = withApiAuth(async (req) => {
   });
 
   return NextResponse.json(enquiry, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

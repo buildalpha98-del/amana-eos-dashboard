@@ -4,6 +4,7 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 export const GET = withApiAuth(async (req, session) => {
   const folders = await prisma.documentFolder.findMany({
     include: {
@@ -39,4 +40,4 @@ export const POST = withApiAuth(async (req, session) => {
   });
 
   return NextResponse.json(folder, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

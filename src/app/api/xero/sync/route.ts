@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const bodySchema = z.object({
   months: z.number().int().min(1).max(24).default(1),
 });
@@ -42,4 +43,4 @@ try {
       { status: 500 }
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

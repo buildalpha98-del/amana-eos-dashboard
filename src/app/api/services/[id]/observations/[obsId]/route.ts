@@ -3,9 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { updateObservationSchema } from "@/lib/schemas/learning-observation";
+import { isAdminRole } from "@/lib/role-permissions";
 
 const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
-const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
 
 function ensureServiceAccess(
   role: string,
@@ -35,7 +35,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   ensureServiceAccess(session.user.role, session.user.serviceId, id);
 
   const obs = await loadObservation(id, obsId);
-  if (obs.authorId !== session.user.id && !ADMIN_ROLES.has(session.user.role)) {
+  if (obs.authorId !== session.user.id && !isAdminRole(session.user.role)) {
     throw ApiError.forbidden("Only the author or an admin can edit this observation");
   }
 
@@ -75,7 +75,7 @@ export const DELETE = withApiAuth(async (_req, session, context) => {
   ensureServiceAccess(session.user.role, session.user.serviceId, id);
 
   const obs = await loadObservation(id, obsId);
-  if (obs.authorId !== session.user.id && !ADMIN_ROLES.has(session.user.role)) {
+  if (obs.authorId !== session.user.id && !isAdminRole(session.user.role)) {
     throw ApiError.forbidden("Only the author or an admin can delete this observation");
   }
 

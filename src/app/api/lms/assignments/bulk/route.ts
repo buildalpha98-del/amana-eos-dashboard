@@ -26,6 +26,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const bulkSchema = z.object({
   /** The specific assignments to drop. */
@@ -88,5 +89,5 @@ export const POST = withApiAuth(
       notFound: enrollmentIds.length - found.length,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

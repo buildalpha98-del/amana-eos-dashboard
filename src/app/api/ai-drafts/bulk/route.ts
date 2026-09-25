@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const bulkSchema = z.object({
   action: z.enum(["approve", "dismiss"]),
@@ -52,5 +53,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json({ updated: result.count });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

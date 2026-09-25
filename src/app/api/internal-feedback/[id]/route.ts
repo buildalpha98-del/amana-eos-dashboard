@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logAuditEvent } from "@/lib/audit-log";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const STATUSES = ["new", "acknowledged", "in_progress", "resolved"] as const;
 
@@ -28,7 +29,7 @@ export const GET = withApiAuth(
     if (!feedback) throw ApiError.notFound("Feedback not found");
     return NextResponse.json({ feedback });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const PATCH = withApiAuth(
@@ -83,5 +84,5 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json({ feedback: updated });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

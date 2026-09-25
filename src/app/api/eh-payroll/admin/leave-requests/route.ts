@@ -24,6 +24,7 @@ import {
 } from "@/lib/eh-payroll";
 import { ApiError } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const VALID_STATUSES = ["Pending", "Approved", "Rejected", "Cancelled"] as const;
 type ValidStatus = (typeof VALID_STATUSES)[number];
@@ -87,5 +88,5 @@ export const GET = withApiAuth(
       })),
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

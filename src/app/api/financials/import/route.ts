@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { parseFinancialsSpreadsheet } from "@/lib/financials-import";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const POST = withApiAuth(async (req, session) => {
   const formData = await req.formData();
@@ -47,4 +48,4 @@ export const POST = withApiAuth(async (req, session) => {
     }
     throw err;
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

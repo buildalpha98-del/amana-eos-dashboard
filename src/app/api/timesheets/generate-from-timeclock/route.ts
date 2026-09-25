@@ -24,6 +24,7 @@ import { prisma } from "@/lib/prisma";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { withApiAuth } from "@/lib/server-auth";
 import { payRateForShift, type ContractWindow } from "@/lib/roster-cost";
+import { isAdminRole } from "@/lib/role-permissions";
 
 const generateSchema = z.object({
   serviceId: z.string().min(1, "Service ID is required"),
@@ -42,7 +43,7 @@ const SESSION_TO_SHIFT_TYPE = {
 export const POST = withApiAuth(
   async (req, session) => {
     const role = session.user.role ?? "";
-    if (!["owner", "admin", "head_office"].includes(role)) {
+    if (!isAdminRole(role)) {
       throw ApiError.forbidden("Generating timesheets is admin-tier only.");
     }
 

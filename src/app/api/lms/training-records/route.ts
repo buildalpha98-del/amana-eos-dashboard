@@ -32,6 +32,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const TRACKS = ["essential", "monthly", "library"] as const;
 type Track = (typeof TRACKS)[number];
@@ -166,5 +167,5 @@ export const GET = withApiAuth(
       },
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

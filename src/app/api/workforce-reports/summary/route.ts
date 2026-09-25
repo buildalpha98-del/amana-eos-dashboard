@@ -26,6 +26,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { getCertStatus } from "@/lib/cert-status";
 import { getRoleLabel } from "@/lib/org-settings-shared";
 import type { Role } from "@prisma/client";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
   casual: "Casual",
@@ -219,5 +220,5 @@ export const GET = withApiAuth(
       certOutlook,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const STATUSES = [
   "lodged",
@@ -61,7 +62,7 @@ export const GET = withApiAuth(
     });
     return NextResponse.json({ claims });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const POST = withApiAuth(
@@ -135,5 +136,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json(created, { status: 201 });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

@@ -5,6 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 // ─── GET /api/xero/mappings ─────────────────────────────────────────────────
 
 export const GET = withApiAuth(async (req, session) => {
@@ -43,7 +44,7 @@ export const GET = withApiAuth(async (req, session) => {
       { status: 500 }
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // ─── POST /api/xero/mappings ────────────────────────────────────────────────
 

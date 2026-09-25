@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
-const ADMIN_ROLES = ["owner", "head_office", "admin"] as const;
 
 // GET /api/policies/[id]/acknowledgements — admin view of every
 // acknowledgement across every version, plus a summary line for the

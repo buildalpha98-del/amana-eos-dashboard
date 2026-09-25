@@ -13,6 +13,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const MIN_CELL_SIZE = 3;
 
@@ -93,5 +94,5 @@ export const GET = withApiAuth(
       bornInAustralia: applySuppression(raw.bornInAustralia),
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

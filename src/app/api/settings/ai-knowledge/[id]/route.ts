@@ -12,6 +12,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { indexTextContent } from "@/lib/document-indexer";
 import { deleteFile } from "@/lib/storage";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const KNOWLEDGE_FILE_URL = "internal://knowledge";
 const MAX_BODY_BYTES = 500_000;
@@ -69,7 +70,7 @@ export const GET = withApiAuth(
       chunkCount: doc.chunks.length,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const PATCH = withApiAuth(
@@ -124,7 +125,7 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json({ ok: true });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const DELETE = withApiAuth(
@@ -165,5 +166,5 @@ export const DELETE = withApiAuth(
 
     return NextResponse.json({ ok: true });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

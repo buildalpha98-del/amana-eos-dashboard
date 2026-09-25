@@ -18,6 +18,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isInAudience } from "@/lib/survey-audience";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const answerSchema = z.object({
   questionId: z.string().min(1),
@@ -64,7 +65,7 @@ export const GET = withApiAuth(
     }
     return NextResponse.json({ responses: survey.responses });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const POST = withApiAuth(async (req, session, context) => {

@@ -9,6 +9,7 @@ import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
 import { siteUrl } from "@/lib/site-url";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const bodySchema = z.object({
   recipients: z.array(z.string().email()).optional(),
 });
@@ -93,4 +94,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json({ success: true, emailsSent });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

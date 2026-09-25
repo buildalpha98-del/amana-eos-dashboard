@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { approveTimesheet } from "@/lib/timesheet-approve";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 // POST /api/timesheets/[id]/approve — approve a submitted timesheet
 export const POST = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
@@ -27,4 +28,4 @@ const { id } = await context!.params!;
   const updated = await approveTimesheet(timesheet, session!.user.id);
 
   return NextResponse.json(updated);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

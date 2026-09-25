@@ -19,6 +19,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import type { SurveyQuestionType } from "@prisma/client";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 type Agg =
   | { type: "yes_no"; yes: number; no: number }
@@ -74,7 +75,7 @@ export const GET = withApiAuth(
       results,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 function aggregate(

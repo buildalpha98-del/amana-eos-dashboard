@@ -19,6 +19,7 @@ import { isConfigured, EhPayrollError } from "@/lib/eh-payroll";
 import { runEmployeeSync } from "@/lib/eh-payroll-sync";
 import { ApiError } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const POST = withApiAuth(
   async (_req, session) => {
@@ -45,5 +46,5 @@ export const POST = withApiAuth(
       throw err;
     }
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

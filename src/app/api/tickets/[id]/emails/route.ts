@@ -4,6 +4,7 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const linkEmailSchema = z.object({
   from: z.string().min(1),
   to: z.string().min(1),
@@ -23,7 +24,7 @@ export const GET = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(emails);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // POST /api/tickets/[id]/emails — manually link an email to a ticket
 export const POST = withApiAuth(async (req, session, context) => {
@@ -71,4 +72,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(email, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

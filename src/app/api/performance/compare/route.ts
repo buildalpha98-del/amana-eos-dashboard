@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 export const GET = withApiAuth(async (req, session) => {
   const url = new URL(req.url);
   const serviceIdsParam = url.searchParams.get("serviceIds");
@@ -159,4 +160,4 @@ export const GET = withApiAuth(async (req, session) => {
     .sort((a, b) => b.avgScore - a.avgScore);
 
   return NextResponse.json({ centres, regional });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

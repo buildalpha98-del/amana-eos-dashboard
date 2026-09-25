@@ -3,9 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { updateRiskAssessmentSchema } from "@/lib/schemas/risk-assessment";
+import { isAdminRole } from "@/lib/role-permissions";
 
 const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
-const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
 
 function ensureServiceAccess(
   role: string,
@@ -35,7 +35,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   ensureServiceAccess(session.user.role, session.user.serviceId, id);
 
   const ra = await loadAssessment(id, raId);
-  if (ra.authorId !== session.user.id && !ADMIN_ROLES.has(session.user.role)) {
+  if (ra.authorId !== session.user.id && !isAdminRole(session.user.role)) {
     throw ApiError.forbidden(
       "Only the author or an admin can edit this risk assessment",
     );
@@ -82,7 +82,7 @@ export const DELETE = withApiAuth(async (_req, session, context) => {
   ensureServiceAccess(session.user.role, session.user.serviceId, id);
 
   const ra = await loadAssessment(id, raId);
-  if (ra.authorId !== session.user.id && !ADMIN_ROLES.has(session.user.role)) {
+  if (ra.authorId !== session.user.id && !isAdminRole(session.user.role)) {
     throw ApiError.forbidden(
       "Only the author or an admin can delete this risk assessment",
     );

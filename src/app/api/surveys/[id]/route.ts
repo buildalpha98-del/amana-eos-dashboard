@@ -22,6 +22,7 @@ import type {
   SurveyAudience,
   SurveyQuestionType,
 } from "@prisma/client";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const audienceEnum = z.enum([
   "all_staff",
@@ -174,7 +175,7 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json(full);
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const DELETE = withApiAuth(

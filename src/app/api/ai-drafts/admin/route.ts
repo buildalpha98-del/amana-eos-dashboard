@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const LIMIT = 50;
 
@@ -89,5 +90,5 @@ export const GET = withApiAuth(
       totalPages: Math.max(1, Math.ceil(total / LIMIT)),
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

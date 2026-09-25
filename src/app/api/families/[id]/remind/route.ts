@@ -18,6 +18,7 @@ import { logger } from "@/lib/logger";
 import { parentEnrolmentReminderEmail } from "@/lib/email-templates/parent-account";
 import { findEnrolmentIdsForEmail } from "@/lib/parent-account";
 import { getParentEnrolmentState } from "@/lib/parent-enrolment-state";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -105,5 +106,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json({ ok: true, email: account.email });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

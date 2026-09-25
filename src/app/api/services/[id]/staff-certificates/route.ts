@@ -19,10 +19,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
-const ORG_WIDE_ROLES = new Set(["owner", "head_office", "admin"]);
+const ORG_WIDE_ROLES = new Set<string>(ADMIN_ROLES);
 
 export const GET = withApiAuth(async (_req, session, context) => {
   const { id: serviceId } = await (context as unknown as RouteCtx).params;

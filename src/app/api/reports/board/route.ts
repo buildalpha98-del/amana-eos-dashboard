@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const postSchema = z.object({
   month: z.number().int().min(1).max(12),
   year: z.number().int().min(2020).max(2100),
@@ -37,7 +38,7 @@ export const POST = withApiAuth(async (req, session) => {
       { status: 500 },
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 /**
  * GET /api/reports/board — List all board reports (summary)
@@ -64,4 +65,4 @@ export const GET = withApiAuth(async (req, session) => {
       { status: 500 },
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

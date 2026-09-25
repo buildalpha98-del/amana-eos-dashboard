@@ -6,6 +6,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { assignOnboardingPack } from "@/lib/onboarding-assign";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const assignSchema = z.object({
   userId: z.string().min(1),
   packId: z.string().min(1),
@@ -308,7 +309,7 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json({ assignment: updated });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 /**
@@ -363,5 +364,5 @@ export const DELETE = withApiAuth(
 
     return NextResponse.json({ ok: true });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

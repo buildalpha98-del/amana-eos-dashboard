@@ -28,6 +28,7 @@ import { NOTIFICATION_TYPES } from "@/lib/notification-types";
 import { notifyUsers } from "@/lib/notify-user";
 import { isInAudience, type AudienceUser } from "@/lib/survey-audience";
 import { getWeekStart } from "@/lib/utils";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const POST = withApiAuth(
   async (_req, session, context) => {
@@ -149,5 +150,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json(updated);
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

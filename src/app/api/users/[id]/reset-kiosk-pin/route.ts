@@ -16,8 +16,8 @@ import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import type { Role } from "@prisma/client";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
-const ADMIN_ROLES: Role[] = ["owner", "head_office", "admin"];
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -55,5 +55,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json({ ok: true });
   },
-  { roles: ADMIN_ROLES },
+  { roles: [...ADMIN_ROLES] },
 );

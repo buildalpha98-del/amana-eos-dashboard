@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const patchSchema = z.object({
   section: z.string().optional(),
   question: z.string().min(1).optional(),
@@ -51,7 +52,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(updated);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 /**
  * DELETE /api/audits/templates/[id]/items/[itemId] — delete an item
@@ -69,4 +70,4 @@ const { id, itemId } = await context!.params!;
   await prisma.auditTemplateItem.delete({ where: { id: itemId } });
 
   return NextResponse.json({ deleted: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

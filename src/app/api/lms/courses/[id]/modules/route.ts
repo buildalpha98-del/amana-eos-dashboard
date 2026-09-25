@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const createModuleSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -77,4 +78,4 @@ const { id: courseId } = await context!.params!;
   });
 
   return NextResponse.json(createdModule, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

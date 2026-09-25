@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 import { parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const applySchema = z.object({
   serviceIds: z.array(z.string().min(1)).min(1, "serviceIds must be non-empty"),
@@ -172,7 +173,7 @@ export const POST = withApiAuth(
     }
   },
   {
-    roles: ["owner", "head_office", "admin"],
+    roles: [...ADMIN_ROLES],
     rateLimit: { max: 20, windowMs: 60000 },
   },
 );

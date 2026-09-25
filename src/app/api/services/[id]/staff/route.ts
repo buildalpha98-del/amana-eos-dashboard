@@ -5,10 +5,10 @@ import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { createServiceStaffSchema } from "@/lib/schemas/service-staff";
 import { deriveMembershipDefaults } from "@/lib/derive-membership-defaults";
 import { assertServiceAccess } from "@/lib/authz-scope";
-import { isAdminRole } from "@/lib/role-permissions";
+import { ADMIN_ROLES, isAdminRole } from "@/lib/role-permissions";
 import type { Role } from "@prisma/client";
 
-const ORG_WIDE_ROLES = new Set<Role>(["owner", "head_office", "admin"]);
+const ORG_WIDE_ROLES = new Set<Role>(ADMIN_ROLES);
 
 function canMutate(role: Role, userServiceId: string | null | undefined, serviceId: string) {
   if (ORG_WIDE_ROLES.has(role)) return true;

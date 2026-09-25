@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const COLUMN_MAP: Record<string, string[]> = {
   centre: ["centre", "center", "service", "site", "location", "service name", "centre name"],
@@ -257,4 +258,4 @@ const formData = await req.formData();
   }
 
   return NextResponse.json({ created, skipped, errors: execErrors });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

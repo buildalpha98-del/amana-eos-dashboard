@@ -16,6 +16,7 @@ import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const ALLOWED_CONTENT_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -56,5 +57,5 @@ export const POST = withApiAuth(
       throw ApiError.badRequest(message);
     }
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

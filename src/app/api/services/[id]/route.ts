@@ -6,6 +6,7 @@ import { sessionTimesSchema, type SessionTimes } from "@/lib/service-settings";
 import { syncRoomsQuietly } from "@/lib/rooms";
 import { getCentreScope } from "@/lib/centre-scope";
 import { z } from "zod";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const patchSchema = z.object({
   name: z.string().min(1).optional(),
@@ -254,5 +255,5 @@ export const DELETE = withApiAuth(
 
     return NextResponse.json({ success: true });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

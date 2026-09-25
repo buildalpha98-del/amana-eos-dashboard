@@ -25,6 +25,7 @@ import { logger } from "@/lib/logger";
 import { upsertContactsFromSubmission } from "@/lib/enrolment-parent-contacts";
 import { generateBookings } from "@/lib/booking-generator";
 import { stampRequiredRoomIds } from "@/lib/room-resolver";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -186,5 +187,5 @@ export const POST = withApiAuth(
       bookingsCreated,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
