@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
+  Download,
   Sparkles,
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
@@ -138,6 +139,19 @@ export default function CentreAvatarDetailPage({
               }
             : undefined
         }
+        secondaryActions={[
+          {
+            label: "Download PDF",
+            icon: Download,
+            onClick: () => {
+              window.open(
+                `/api/centre-avatars/${serviceId}/pdf`,
+                "_blank",
+                "noopener",
+              );
+            },
+          },
+        ]}
       />
 
       {isCoordinator && (
