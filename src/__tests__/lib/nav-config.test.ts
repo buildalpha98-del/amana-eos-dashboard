@@ -143,7 +143,6 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
       "/enrolments",        // Cross-service list (use service detail instead)
       "/children",          // Cross-service list (use service detail instead)
       "/roll-call",         // 404 — lives inside service detail
-      "/bookings",          // Cross-service (use service detail)
       "/billing",           // Cross-service (use service Finance tab)
       "/reports",           // Cross-service analytics
       "/timesheets",        // Cross-service HR
@@ -173,6 +172,12 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
     it.each([
       "/dashboard",
       "/services",          // their primary surface — drill in for everything
+      // 2026-09-25: /bookings moved OUT of the excludes list above. It was
+      // excluded on the "use service detail" rationale, but no booking-request
+      // approval tab was ever built inside /services/[id] — the Daily Ops
+      // "Casual Bookings" tab is fee/spot/cut-off config. Approving a casual
+      // booking is a Director-of-Service duty and this is the only UI for it.
+      "/bookings",
       // 2026-08-06: /onboarding and /queue moved to leadership only. A
       // Director of Service does their own training in My Training, and
       // the automation queue is head office's inbox.

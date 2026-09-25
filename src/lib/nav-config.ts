@@ -200,7 +200,12 @@ export const navItems: NavItem[] = [
   { href: "/services", label: "Services", icon: Building2, section: "Operations", roles: ALL_NON_MARKETING , core: true },
   // /roll-call top-level removed 2026-04-29 — lives inside /services/[id]?tab=daily-ops&sub=roll-call.
   // Coordinators / staff drill into their service to access the daily roll call grid.
-  { href: "/bookings", label: "Bookings", icon: CalendarCheck, section: "Operations", tooltip: "Review and action casual booking requests from parents", roles: ALL_NON_MARKETING , core: true },
+  // 2026-09-25: `staff` dropped from ALL_NON_MARKETING here — the page is an
+  // approval queue and POST /api/bookings/[id]/approve|decline are minRole
+  // "member", so an Educator could open it but every action 403'd. `member`
+  // stays: this link has always rendered for Directors of Service, and until
+  // 2026-09-25 rolePageAccess blocked the page it pointed at.
+  { href: "/bookings", label: "Bookings", icon: CalendarCheck, section: "Operations", tooltip: "Review and action casual booking requests from parents", roles: ["head_office", "admin", "member", "eos"], core: true },
   { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations", roles: ALL_NON_MARKETING , core: true },
   // 2026-07-23: family balance contact log — hidden from the sidebar
   // (accessed from the Financials page). Kept as an entry so ⌘K search

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import { getCentreScope } from "@/lib/centre-scope";
 import { sendBookingConfirmedNotification } from "@/lib/notifications/bookings";
 import { logger } from "@/lib/logger";
 
@@ -18,10 +19,20 @@ export const POST = withApiAuth(
 
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
-      select: { id: true, status: true },
+      select: { id: true, status: true, serviceId: true },
     });
 
     if (!booking) throw ApiError.notFound("Booking not found");
+
+    // Centre scoping: `minRole: "member"` alone let a Director of Service
+    // approve a booking at ANY centre by id. Org-wide roles (owner / admin /
+    // EOS) get a null scope and are unaffected. 404, not 403 — a caller
+    // outside the centre shouldn't learn the booking exists.
+    const { serviceIds } = await getCentreScope(session);
+    if (serviceIds !== null && !serviceIds.includes(booking.serviceId)) {
+      throw ApiError.notFound("Booking not found");
+    }
+
     if (booking.status !== "requested") {
       throw ApiError.conflict(`Cannot approve a booking with status "${booking.status}"`);
     }

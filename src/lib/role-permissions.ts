@@ -338,6 +338,17 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/accountability-chart",
     // ── Their centre — primary surface ─────────────────────────
     "/services",
+    // 2026-09-25: restored. Removed 2026-04-29 on the rationale that
+    // Bookings "lives inside /services/[id]?tab=..." — but no booking-request
+    // tab was ever built there (the Daily Ops "Casual Bookings" tab is fee /
+    // spot / cut-off CONFIG, not an approval queue). The only approve/decline
+    // UI a Director could reach was /services/[id]/booking-requests, which had
+    // zero inbound links and wrote status "cancelled" instead of "declined".
+    // Meanwhile nav-config has always shown them a Bookings link, and the
+    // coordinator "New booking request" email links to /bookings — both landed
+    // on an access-denied redirect. GET /api/bookings/requests already scopes
+    // members to their own centre, so this grants the centre, not the org.
+    "/bookings",
     // 2026-08-03: Ambassadors pilot — Directors verify records, resolve
     // attribution conflicts and enter session counts for their centre.
     "/ambassadors",
@@ -381,12 +392,14 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     // The following were in member's allowlist but caused noise / were
     // cross-service surfaces a single-centre Director shouldn't manage:
     //   /communication, /messaging, /contact-centre, /enquiries,
-    //   /conversions, /enrolments, /children, /roll-call, /bookings,
+    //   /conversions, /enrolments, /children, /roll-call,
     //   /billing, /reports, /timesheets, /contracts,
     //   /compliance/templates
     // (/holiday-quest was on this list until 2026-09-17 — see above.)
-    // - Children list / Roll Call / Bookings / Billing live inside
+    // - Children list / Roll Call / Billing live inside
     //   /services/[id]?tab=...; member reaches them by drilling in.
+    //   (/bookings was on this list until 2026-09-25 — see above: the
+    //   drill-in tab it assumed exists never did.)
     // - Cross-service surfaces (Reports, Timesheets, Contracts,
     //   Communication, Enquiries) are admin/coordinator concerns.
     // - /roll-call (top-level) was 404'ing for everyone — fully removed.
@@ -442,7 +455,11 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/services",
     "/services/[id]",
     // /roll-call removed 2026-04-29 — lives inside /services/[id]?tab=daily-ops&sub=roll-call.
-    "/bookings",
+    // /bookings removed 2026-09-25: the page is purely an approval queue, and
+    // POST /api/bookings/[id]/approve|decline are both minRole "member"
+    // (rolePriority staff=1 < member=2). Educators could open it and every
+    // Approve/Decline click 403'd. Approving a paid casual booking is a
+    // Director-of-Service duty — the page grant now matches the API gate.
     // 2026-06-02: AI assistant opened to staff so the FloatingChatWidget
     // works for them too. The /assistant page itself stays in the
     // Admin nav section (so it's not a primary surface) but the route
