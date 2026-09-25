@@ -12,6 +12,7 @@ import {
   UserPlus,
   Users,
   AlertTriangle,
+  Clock,
 } from "lucide-react";
 import { useEnrolments, type EnrolmentSubmission } from "@/hooks/useEnrolments";
 import { useEnrolmentApplications } from "@/hooks/useEnrolmentApplications";
@@ -91,6 +92,10 @@ export default function EnrolmentsPage() {
           // 2026-07-12 (nav fold): Children left the sidebar — browsing
           // enrolled children is the other half of this lifecycle.
           { label: "Children", icon: Users, onClick: () => router.push("/children") },
+          // A waitlist entry is a ParentEnquiry at stage "waitlisted" — an
+          // enrolment worked to that stage is owned by /waitlist next, but
+          // there was no route into it from here.
+          { label: "Waitlist", icon: Clock, onClick: () => router.push("/waitlist") },
         ]}
       >
         <ExportButton

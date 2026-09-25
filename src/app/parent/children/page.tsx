@@ -20,12 +20,17 @@ export default function ChildrenListPage() {
             Tap a child to see attendance, medical info, and contacts.
           </p>
         </div>
+        {/* 2026-09-25: this is the full enrolment wizard (same one used by
+            brand-new families, submitted to /api/enrol for manual review)
+            — a DIFFERENT form and pipeline from the sibling-application
+            flow tracked at /parent/enrolments. Both used to say "Enrol
+            (a) Sibling", which made them look like the same destination. */}
         <Link
           href="/parent/children/new"
           className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[color:var(--color-brand)] text-white text-sm font-semibold rounded-full min-h-[44px] shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Enrol sibling</span>
+          <span className="hidden sm:inline">New enrolment</span>
           <span className="sm:hidden">Enrol</span>
         </Link>
       </div>

@@ -15,6 +15,7 @@
  */
 
 import { useState } from "react";
+import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
@@ -23,6 +24,8 @@ import {
   Check,
   ShieldAlert,
   Tag,
+  Sparkles,
+  ChevronRight,
 } from "lucide-react";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
@@ -172,6 +175,30 @@ export function ChildInformationTab({ childId }: { childId: string }) {
           </button>
         )}
       </div>
+
+      {/* ── All About Me CTA ──────────────────────────────────
+          Staff read this on roll-call (nickname, favourite food, fears,
+          calming techniques) — but until now nothing in the portal ever
+          pointed a parent at the form that fills it in, so the field sat
+          permanently empty. This is the entry point. */}
+      <Link
+        href={`/parent/children/${data.id}/all-about-me`}
+        className="warm-card flex items-center gap-3 border border-[color:var(--color-border)] hover:shadow-md transition-shadow min-h-[44px]"
+      >
+        <div className="w-10 h-10 rounded-full bg-[color:var(--color-brand-soft)] flex items-center justify-center shrink-0">
+          <Sparkles className="w-5 h-5 text-[color:var(--color-brand)]" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">
+            Help us get to know {data.firstName}
+          </p>
+          <p className="text-xs text-muted">
+            Nicknames, favourite foods, and what helps when they&apos;re upset —
+            so educators can settle them in faster.
+          </p>
+        </div>
+        <ChevronRight className="w-4 h-4 text-muted shrink-0" />
+      </Link>
 
       {/* ── About ──────────────────────────────────────────── */}
       <Card title="About">

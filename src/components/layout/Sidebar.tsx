@@ -12,6 +12,7 @@ import {
   ChevronRight,
   ChevronDown,
   Star,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navItems, filterNavItems, partitionNavSection } from "@/lib/nav-config";
@@ -139,7 +140,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                 Amana OSHC
               </h1>
               <p className="text-2xs text-white/50 uppercase tracking-wider">
-                EOS Dashboard
+                Management Dashboard
               </p>
             </div>
           )}
@@ -386,6 +387,36 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             );
           })}
         </nav>
+
+        {/*
+          Anonymous reporting channel. `/safe-report` had ZERO inbound links
+          anywhere in the app (2026-09-25 audit) — a speak-up channel whose
+          whole premise is being findable without going through your line
+          manager was reachable only by typing the URL, so it depended entirely
+          on out-of-band distribution.
+
+          Deliberately a plain anchor, not a nav item: it sits outside the
+          role-filtered nav so every role sees it, and `target="_blank"` keeps
+          the reporter's current page out of the browser-history trail sitting
+          behind them. The page itself sends `credentials: "omit"` so no
+          session cookie rides along even while signed in.
+        */}
+        <div className={cn("px-3 pb-1", collapsed && "px-1.5")}>
+          <a
+            href="/safe-report"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Raise a concern anonymously"
+            className={cn(
+              "flex items-center gap-2 rounded-lg py-2 text-2xs text-white/40 transition-colors hover:bg-white/10 hover:text-white/80",
+              collapsed ? "justify-center px-0" : "px-2",
+            )}
+          >
+            <ShieldCheck className="h-4 w-4 flex-shrink-0" aria-hidden />
+            {!collapsed && <span>Raise a concern anonymously</span>}
+            {collapsed && <span className="sr-only">Raise a concern anonymously</span>}
+          </a>
+        </div>
 
         {/* Theme + Nav Layout toggles */}
         <div className={cn("px-3 pb-1 space-y-1.5", collapsed && "px-1.5")}>

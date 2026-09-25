@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import type { Role } from "@prisma/client";
-import { X, Plus, UserPlus, Sparkles } from "lucide-react";
+import { X, Plus, UserPlus, Sparkles, ExternalLink } from "lucide-react";
 import { AiButton } from "@/components/ui/AiButton";
 import { AiScreenBadge } from "@/components/recruitment/AiScreenBadge";
 import { CandidateDetailPanel } from "@/components/recruitment/CandidateDetailPanel";
@@ -271,6 +271,24 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                 Lists this role at amanaoshc.com.au/careers with an apply link, while
                 status is &ldquo;open&rdquo;. The Notes below become the public job ad.
               </span>
+              {/*
+                2026-09-25: this panel only ever named the external marketing
+                site, so the dashboard's OWN public apply page (/careers/[id],
+                a real working form) had no inbound link anywhere and
+                recruiters had no way to share it. Surfaced here as the
+                canonical fallback URL.
+              */}
+              {(vacancy.postedChannels ?? []).includes("website") && (
+                <a
+                  href={`/careers/${vacancy.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-brand hover:text-brand-light"
+                >
+                  Preview the apply page
+                  <ExternalLink className="h-3 w-3" aria-hidden />
+                </a>
+              )}
             </span>
           </label>
 

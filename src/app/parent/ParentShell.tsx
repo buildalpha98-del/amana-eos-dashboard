@@ -23,6 +23,7 @@ import {
   MapPin,
   FileSignature,
   LogOut,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -95,6 +96,16 @@ const ACTION_ITEMS = [
     label: "Billing",
     hint: "Statements and payment details",
     icon: DollarSign,
+  },
+  // 2026-09-25: previously the only inbound link was a widget on Home
+  // that return-nulled once a family had zero sibling applications — a
+  // family enrolling their first sibling could never reach the page, or
+  // the "Enrol a Sibling" flow it links to.
+  {
+    href: "/parent/enrolments",
+    label: "Enrolments",
+    hint: "Track sibling enrolment applications",
+    icon: UserPlus,
   },
   // 2026-08-08: public help centre — FAQ + submit-a-ticket. Lives outside
   // the portal (no auth) so it's a plain link, not a portal route.

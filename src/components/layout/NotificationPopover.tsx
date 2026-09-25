@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCheck, CheckCircle, Loader2 } from "lucide-react";
+import { CheckCheck, CheckCircle, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useNotifications,
@@ -233,6 +234,24 @@ export function NotificationPopover({ open, onClose }: NotificationPopoverProps)
             })}
           </ul>
         )}
+      </div>
+
+      {/*
+        2026-09-25: this popover was a dead end — a capped 400px scroll list
+        with no way through to /notifications, so the full inbox (cursor
+        pagination, Today/Earlier grouping, mark-all) was reachable only from
+        the sidebar, even though the bell is the surface every staff member
+        actually touches.
+      */}
+      <div className="border-t border-border/50 bg-surface/30">
+        <Link
+          href="/notifications"
+          onClick={onClose}
+          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-brand transition-colors hover:bg-surface/60"
+        >
+          View all notifications
+          <ChevronRight className="h-4 w-4" aria-hidden />
+        </Link>
       </div>
     </div>
   );

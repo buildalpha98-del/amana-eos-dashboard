@@ -4,6 +4,16 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+// ScorecardGrid reads the viewer's role (for the owner/service drill-through
+// links) via useSession — outside a <SessionProvider> that throws, so stub it
+// like the other component tests do.
+vi.mock("next-auth/react", () => ({
+  useSession: () => ({
+    data: { user: { id: "viewer-1", role: "owner" } },
+    status: "authenticated",
+  }),
+}));
+
 // DataEntryCell's mutation isn't relevant to layout tests, but it imports
 // useCreateEntry which calls into fetch-api. Stub it so the cells mount.
 vi.mock("@/hooks/useScorecard", async (orig) => {

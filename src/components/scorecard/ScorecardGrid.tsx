@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState, Fragment } from "react";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 import type { ScorecardData, MeasurableEntry } from "@/hooks/useScorecard";
 import { DataEntryCell } from "./DataEntryCell";
 import { getWeekStart } from "@/lib/utils";
@@ -12,6 +14,7 @@ import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { mutateApi } from "@/lib/fetch-api";
 import { MeasurableTrendDrawer } from "./MeasurableTrendDrawer";
+import { canAccessPage, parseRole } from "@/lib/role-permissions";
 
 function TrendArrow({ values, goalDirection }: { values: (number | null)[]; goalDirection: "above" | "below" | "exact" }) {
   // values are newest-first; find the two most recent non-null values
@@ -63,12 +66,16 @@ function getInitials(name: string | null | undefined): string {
 
 function OwnerCell({
   owner,
+  href,
 }: {
   owner: { name?: string | null; avatar?: string | null } | null | undefined;
+  /** /staff/[id] link — omitted when there's no owner or the viewer's
+   *  role can't open staff profiles (see rolePageAccess). */
+  href?: string;
 }) {
   const name = owner?.name ?? "Unassigned";
-  return (
-    <div className="inline-flex items-center gap-1.5 max-w-full">
+  const content = (
+    <>
       {owner?.avatar ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -89,7 +96,21 @@ function OwnerCell({
       >
         {name}
       </span>
-    </div>
+    </>
+  );
+
+  if (!href) {
+    return <div className="inline-flex items-center gap-1.5 max-w-full">{content}</div>;
+  }
+
+  return (
+    <Link
+      href={href}
+      className="inline-flex items-center gap-1.5 max-w-full hover:underline"
+      title={`View ${name}'s profile`}
+    >
+      {content}
+    </Link>
   );
 }
 
@@ -156,6 +177,14 @@ export function ScorecardGrid({
   onDelete?: (measurable: ScorecardData["measurables"][number]) => void;
 }) {
   const [weeksShown, setWeeksShown] = useState<number>(DEFAULT_WEEKS);
+  const { data: session } = useSession();
+  const viewerRole = parseRole(session?.user?.role);
+  // A red/off-track row is only actionable if the viewer can actually open
+  // what it points at — eos_viewer/eos_implementer see the scorecard but
+  // not /staff/[id] or /services/[id] (rolePageAccess), so don't render
+  // dead-end links for them.
+  const canOpenStaffProfile = canAccessPage(viewerRole ?? undefined, "/staff/[id]");
+  const canOpenService = canAccessPage(viewerRole ?? undefined, "/services/[id]");
 
   const weeks = useMemo(() => getTrailingWeeks(weeksShown), [weeksShown]);
   /** Always 13, independent of the columns on screen. */
@@ -360,14 +389,29 @@ export function ScorecardGrid({
                       colSpan={weeks.length + 4}
                       className="sticky left-0 z-10 bg-surface/50 px-4 py-2"
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center">
-                          <Building2 className="w-3 h-3 text-amber-700" />
+                      {canOpenService && group.key !== "unassigned" ? (
+                        <Link
+                          href={`/services/${group.key}`}
+                          className="flex items-center gap-2 w-fit hover:underline"
+                          title={`View ${group.label}`}
+                        >
+                          <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center">
+                            <Building2 className="w-3 h-3 text-amber-700" />
+                          </div>
+                          <span className="text-xs font-semibold text-muted">
+                            {group.label}
+                          </span>
+                        </Link>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center">
+                            <Building2 className="w-3 h-3 text-amber-700" />
+                          </div>
+                          <span className="text-xs font-semibold text-muted">
+                            {group.label}
+                          </span>
                         </div>
-                        <span className="text-xs font-semibold text-muted">
-                          {group.label}
-                        </span>
-                      </div>
+                      )}
                     </td>
                   </tr>
                 )}
@@ -483,7 +527,10 @@ export function ScorecardGrid({
 
                     {/* Owner */}
                     <td className="px-2 py-2">
-                      <OwnerCell owner={m.owner} />
+                      <OwnerCell
+                        owner={m.owner}
+                        href={canOpenStaffProfile && m.owner?.id ? `/staff/${m.owner.id}` : undefined}
+                      />
                     </td>
 
                     {/* 13-week Average */}
