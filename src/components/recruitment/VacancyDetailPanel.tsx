@@ -17,6 +17,8 @@ import { toast } from "@/hooks/useToast";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { ROLE_DISPLAY_NAMES } from "@/lib/role-permissions";
+import { normaliseStage } from "@/lib/recruitment/pool";
+import { IndeedPostPanel } from "@/components/recruitment/IndeedPostPanel";
 
 const ROLE_LABELS: Record<string, string> = {
   educator: "Educator",
@@ -228,7 +230,8 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
               {ROLE_LABELS[vacancy.role] || vacancy.role}
             </h3>
             <p className="text-sm text-muted">
-              {vacancy.service?.name} &middot; {vacancy.employmentType.replace("_", " ")}
+              {vacancy.service?.name ?? vacancy.region ?? "No location set"}{" "}
+              &middot; {vacancy.employmentType.replace("_", " ")}
             </p>
           </div>
           <button onClick={onClose} className="text-muted hover:text-foreground">
@@ -291,6 +294,11 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
               )}
             </span>
           </label>
+
+          {/* Indeed posting kit — Indeed has no API we can post through, so
+              this is the copy-paste path plus the tracked apply link that
+              brings those applicants back into the pool. */}
+          <IndeedPostPanel vacancy={vacancy} />
 
           {/* Details */}
           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -388,7 +396,9 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                     vacancyNotes: vacancy.notes || "None",
                     serviceName: vacancy.service?.name || "Amana OSHC",
                     candidates: (vacancy.candidates || [])
-                      .filter((c: { stage: string }) => ["applied", "screened"].includes(c.stage))
+                      .filter((c: { stage: string }) =>
+                        ["applied", "screening"].includes(normaliseStage(c.stage)),
+                      )
                       .map((c: { id: string; name: string; source: string; notes: string | null; resumeText?: string | null }) =>
                         `ID:${c.id} | Name: ${c.name} | Source: ${c.source} | Resume: ${c.resumeText || c.notes || "No resume provided"}`
                       )
@@ -398,7 +408,11 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                   label="Screen Candidates"
                   size="sm"
                   section="recruitment"
-                  disabled={!vacancy.candidates?.some((c: { stage: string }) => ["applied", "screened"].includes(c.stage))}
+                  disabled={
+                    !vacancy.candidates?.some((c: { stage: string }) =>
+                      ["applied", "screening"].includes(normaliseStage(c.stage)),
+                    )
+                  }
                 />
                 <button
                   onClick={() => setShowAddCandidate(!showAddCandidate)}
@@ -558,7 +572,13 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                         <Sparkles className="h-3 w-3" />
                         {c.aiScreenScore !== null ? "Re-screen" : "AI Screen"}
                       </button>
-                      {c.stage === "accepted" && canConvert && (
+                      {/* 2026-09-15: was pinned to the legacy "accepted"
+                          stage, which no longer exists. Anyone still in play
+                          can be converted — the decision to hire is the
+                          recruiter's, not a stage machine's. */}
+                      {!["hired", "not_suitable", "withdrawn"].includes(
+                        normaliseStage(c.stage),
+                      ) && canConvert && (
                         <button
                           type="button"
                           onClick={() =>

@@ -234,6 +234,17 @@ enum MeetingStatus {
   cancelled
 }
 
+/// 2026-09-24: every Meeting was structurally an L10 (segue → scorecard →
+/// rocks → headlines → todos → ids → conclude) — nothing distinguished a
+/// cadence. quarterly_pulse gets its own run sheet (check-in → review the
+/// quarter → V/TO review → break → set next quarter's Rocks → IDS →
+/// conclude), picked in StartMeetingDialog and rendered by a parallel
+/// sections array (see src/components/meetings/quarterly-sections.ts).
+enum MeetingType {
+  l10
+  quarterly_pulse
+}
+
 // ============================================================
 // Marketing
 // ============================================================
@@ -827,6 +838,9 @@ model User {
   filledVacancies    RecruitmentVacancy[]   @relation("VacancyFilledBy")
   assignedVacancies  RecruitmentVacancy[]   @relation("VacancyAssignee")
   candidateReferrals RecruitmentCandidate[] @relation("CandidateReferrer")
+  candidateNotes     CandidateNote[]        @relation("CandidateNoteAuthor")
+  interviewsRun      CandidateInterview[]   @relation("CandidateInterviewer")
+  interviewsLogged   CandidateInterview[]   @relation("CandidateInterviewAuthor")
   // Set when this account was created by converting a recruitment
   // candidate (hire → employee). @unique doubles as the "already
   // converted" guard — one User per candidate. SetNull because
@@ -3395,6 +3409,10 @@ model Meeting {
   title           String
   date            DateTime
   status          MeetingStatus  @default(scheduled)
+  /// Which run sheet this meeting follows. Defaults to l10 so every
+  /// existing row (and every route that doesn't pass it) keeps behaving
+  /// exactly as before.
+  type            MeetingType    @default(l10)
   currentSection  Int            @default(0)
   rating          Float?
   notes           String?        @db.Text
@@ -6233,9 +6251,17 @@ model Referral {
 // ============================================================
 
 model RecruitmentVacancy {
-  id                    String         @id @default(cuid())
-  serviceId             String
-  service               Service        @relation("ServiceVacancies", fields: [serviceId], references: [id])
+  id String @id @default(cuid())
+
+  /// The centre this ad is for. OPTIONAL since 2026-09-15: casual-pool ads are
+  /// advertised by REGION ("Eastern Melbourne — work across multiple schools"),
+  /// not by site, and forcing a single centre made those impossible to express.
+  /// A site-specific ad still sets it; a regional one sets `region` instead.
+  serviceId             String?
+  service               Service?       @relation("ServiceVacancies", fields: [serviceId], references: [id])
+  /// Free-text catchment shown as the public ad's location when there is no
+  /// single centre, e.g. "Eastern Melbourne" or "South-West Sydney".
+  region                String?
   role                  String // educator, senior_educator, coordinator, director
   employmentType        EmploymentType
   qualificationRequired String? // none, cert_iii, diploma
@@ -6266,32 +6292,148 @@ model RecruitmentVacancy {
   @@index([assignedToId])
 }
 
+/// A person in the staff funnel.
+///
+/// 2026-09-15: reworked from "an application to one vacancy" into a standing
+/// CASUAL POOL. `vacancyId` is now optional — most people register general
+/// interest and are drawn on later for Holiday Quest, a new centre, or cover.
+/// An application to a specific advertised role still sets it.
+///
+/// The extra columns exist so a coordinator can answer "who can work Tuesday
+/// afternoon in Eastern Melbourne, and are they cleared to start?" without
+/// opening a r\u00e9sum\u00e9 or making a phone call.
 model RecruitmentCandidate {
-  id               String             @id @default(cuid())
-  vacancyId        String
-  vacancy          RecruitmentVacancy @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
+  id               String              @id @default(cuid())
+  vacancyId        String?
+  vacancy          RecruitmentVacancy? @relation(fields: [vacancyId], references: [id], onDelete: SetNull)
   name             String
   email            String?
   phone            String?
-  source           String // indeed, seek, referral, community, mosque, university, walkin
-  stage            String             @default("applied") // applied, screened, interviewed, offered, accepted, rejected, withdrawn
-  appliedAt        DateTime           @default(now())
-  stageChangedAt   DateTime           @default(now())
-  interviewNotes   String?            @db.Text
+  /// Where they live — the pool is searched by proximity, because a casual who
+  /// can reach the centre in 15 minutes is worth more than a better CV an hour
+  /// away.
+  suburb           String?
+  postcode         String?
+  /// Catchment they want to work in; matches RecruitmentVacancy.region.
+  preferredRegion  String?
+  source           String // website, indeed, seek, referral, community, mosque, university, walkin
+  stage            String              @default("applied") // see POOL_STAGES in src/lib/recruitment/pool.ts
+  appliedAt        DateTime            @default(now())
+  stageChangedAt   DateTime            @default(now())
+  interviewNotes   String?             @db.Text
   referredByUserId String?
-  referredByUser   User?              @relation("CandidateReferrer", fields: [referredByUserId], references: [id])
-  notes            String?            @db.Text
-  resumeText       String?            @db.Text
+  referredByUser   User?               @relation("CandidateReferrer", fields: [referredByUserId], references: [id])
+  notes            String?             @db.Text
+  resumeText       String?             @db.Text
   resumeFileUrl    String?
   aiScreenScore    Int? // 0-100 fit score
-  aiScreenSummary  String?            @db.Text
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  staffReferral    StaffReferral?
-  convertedUser    User?              @relation("UserConvertedFromCandidate")
+  aiScreenSummary  String?             @db.Text
+
+  // ── Eligibility: can this person legally start? ───────────────────────
+  /// Highest qualification. NULL means unqualified — normal for OSHC casuals,
+  /// not missing data. Same enum the new-starter intake uses.
+  qualification QualificationType?
+  /// Currently studying towards it (a large share of OSHC casuals are students).
+  studying      Boolean            @default(false)
+  wwccNumber    String?
+  wwccExpiry    DateTime?          @db.Date
+  hasFirstAid   Boolean            @default(false)
+  /// citizen | permanent_resident | visa | unknown — see RIGHT_TO_WORK.
+  rightToWork   String?
+
+  // ── Experience ────────────────────────────────────────────────────────
+  previousRole     String?
+  previousEmployer String?
+  yearsExperience  Int?
+
+  // ── Availability: the whole point of a casual pool ────────────────────
+  /// Session types they can cover — bsc | asc | vacation_care.
+  availableSessions String[]
+  /// Weekdays they can cover — mon | tue | wed | thu | fri.
+  availableDays     String[]
+  earliestStart     DateTime? @db.Date
+  /// Own transport matters when an ad spans several schools in a region.
+  hasTransport      Boolean   @default(false)
+
+  // ── Outcome ───────────────────────────────────────────────────────────
+  /// WHY we didn't hire them, as a code from NOT_HIRED_REASONS.
+  ///
+  /// 2026-09-16: the stage already said `not_suitable`, and the reason could
+  /// go in a note — but a note can't be filtered or counted. Half the value of
+  /// keeping the people you didn't hire is spotting the pattern: if most
+  /// declines are "couldn't do afternoons", that's an advertising problem, not
+  /// a candidate problem.
+  notHiredReason String?
+  /// The specifics behind the code, in the words of whoever decided it.
+  notHiredNote   String? @db.Text
+
+  // ── Funnel management ─────────────────────────────────────────────────
+  /// 1-5 gut rating from whoever screened them.
+  rating          Int?
+  /// Last time anyone actually contacted them — a pool nobody touches goes
+  /// stale, and this is what the "not contacted in 90 days" view reads.
+  lastContactedAt DateTime?
+  archivedAt      DateTime?
+
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  staffReferral  StaffReferral?
+  convertedUser  User?                @relation("UserConvertedFromCandidate")
+  candidateNotes CandidateNote[]
+  interviews     CandidateInterview[]
 
   @@index([vacancyId])
   @@index([stage])
+  @@index([preferredRegion])
+  @@index([archivedAt])
+  @@index([notHiredReason])
+}
+
+/// A record of an actual interview.
+///
+/// 2026-09-16: `RecruitmentCandidate.interviewNotes` is one text box, so a
+/// second interview overwrote the first and nothing recorded when it happened
+/// or who was in the room. Each interview is now its own row. The legacy field
+/// is left alone and shown as "earlier interview notes".
+model CandidateInterview {
+  id            String               @id @default(cuid())
+  candidateId   String
+  candidate     RecruitmentCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  heldAt        DateTime
+  /// in_person | phone | video — see INTERVIEW_MODES.
+  mode          String?
+  /// The Amana person who ran it.
+  conductedById String?
+  conductedBy   User?                @relation("CandidateInterviewer", fields: [conductedById], references: [id], onDelete: SetNull)
+  /// Anyone else in the room, free text — panel members are often the centre
+  /// coordinator rather than a dashboard user.
+  panel         String?
+  notes         String               @db.Text
+  /// progress | hold | decline — the recommendation, not the final decision.
+  outcome       String?
+  createdById   String?
+  createdBy     User?                @relation("CandidateInterviewAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime             @default(now())
+
+  @@index([candidateId, heldAt])
+}
+
+/// An authored, timestamped note on a candidate.
+///
+/// 2026-09-15: `RecruitmentCandidate.notes` is a single text box, which loses
+/// who said what and when. Several State Managers record why someone was or
+/// wasn't a fit over months, so each observation is its own row. The legacy
+/// field stays for existing content and is shown above the thread.
+model CandidateNote {
+  id          String               @id @default(cuid())
+  candidateId String
+  candidate   RecruitmentCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  authorId    String?
+  author      User?                @relation("CandidateNoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  body        String               @db.Text
+  createdAt   DateTime             @default(now())
+
+  @@index([candidateId, createdAt])
 }
 
 model StaffReferral {
@@ -7709,6 +7851,36 @@ model EnrolmentDraft {
   updatedAt   DateTime      @updatedAt
 
   @@index([accountId])
+}
+
+/// A parent's password-reset token.
+///
+/// 2026-09-18: until now there was NO way for a parent to change their
+/// password — `passwordHash` was written once at sign-up and never again.
+/// "Forgot your password?" sent a magic LOGIN link, which signs them in but
+/// leaves the forgotten password in place, so the next sign-in stalls in
+/// exactly the same way. The sign-up route even told people they could "reset
+/// your password from the sign-in page", which was never true.
+///
+/// Separate from ParentMagicLink on purpose: a login link and a password-reset
+/// link have different lifetimes, different consequences if leaked, and must be
+/// invalidated independently — a completed reset kills every other outstanding
+/// reset, and should not silently kill a login link the parent is mid-way
+/// through using.
+model ParentPasswordReset {
+  id             String    @id @default(cuid())
+  /// Lowercased + trimmed, like every other parent lookup.
+  email          String
+  /// SHA-256 of the emailed token — the raw value is never stored.
+  tokenHash      String    @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  /// Set when staff sent it from the dashboard rather than the parent asking.
+  issuedByUserId String?
+  createdAt      DateTime  @default(now())
+
+  @@index([email])
+  @@index([tokenHash])
 }
 
 model ParentMagicLink {

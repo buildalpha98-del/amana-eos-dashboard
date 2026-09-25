@@ -55,6 +55,32 @@ function telHref(phone: string | undefined): string | null {
   return cleaned ? `tel:${cleaned}` : null;
 }
 
+/**
+ * Same shape the enrolment PDF builds from (src/lib/enrolment-pdf.ts) —
+ * street/suburb/state/postcode, falling back to the single `address`
+ * field some older submissions stored instead. Kept identical so the
+ * dashboard and the PDF never show two different addresses for the
+ * same parent.
+ */
+function parentAddress(p: {
+  street?: string;
+  suburb?: string;
+  state?: string;
+  postcode?: string;
+  address?: string;
+}): string | undefined {
+  const parts = [p.street, p.suburb, p.state, p.postcode].filter(Boolean);
+  if (parts.length) return parts.join(", ");
+  return p.address?.trim() || undefined;
+}
+
+function formatDob(dob: string | undefined): string | undefined {
+  if (!dob) return undefined;
+  const d = new Date(`${dob}T00:00:00`);
+  if (isNaN(d.getTime())) return dob;
+  return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+}
+
 function mailHref(email: string | undefined): string | null {
   if (!email) return null;
   const trimmed = email.trim();
@@ -215,6 +241,9 @@ export function RelationshipsTab({ child, canEdit }: RelationshipsTabProps) {
             relationship={primary.relationship}
             phone={primary.mobile}
             email={primary.email}
+            dob={primary.dob}
+            address={parentAddress(primary)}
+            crn={primary.crn}
           />
         ) : (
           <p className="text-sm text-muted">No primary carer recorded.</p>
@@ -252,6 +281,9 @@ export function RelationshipsTab({ child, canEdit }: RelationshipsTabProps) {
               relationship={secondary.relationship}
               phone={secondary.mobile}
               email={secondary.email}
+              dob={secondary.dob}
+              address={parentAddress(secondary)}
+              crn={secondary.crn}
             />
             {canEdit && (
               <div className="flex items-center gap-2">
@@ -437,20 +469,37 @@ function ContactRow({
   relationship,
   phone,
   email,
+  dob,
+  address,
+  crn,
 }: {
   name: string;
   relationship?: string;
   phone?: string;
   email?: string;
+  /** ISO date string (YYYY-MM-DD), as captured on the enrolment form. */
+  dob?: string;
+  address?: string;
+  crn?: string;
 }) {
   const tel = telHref(phone);
   const mail = mailHref(email);
+  const dobLabel = formatDob(dob);
   return (
     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
       <div className="min-w-0">
         <p className="text-sm font-semibold text-foreground">{name}</p>
         {relationship && (
           <p className="text-xs text-muted mt-0.5">{relationship}</p>
+        )}
+        {dobLabel && (
+          <p className="text-xs text-muted mt-1.5">DOB: {dobLabel}</p>
+        )}
+        {address && (
+          <p className="text-xs text-muted mt-0.5">{address}</p>
+        )}
+        {crn && (
+          <p className="text-xs text-muted mt-0.5">CRN: {crn}</p>
         )}
       </div>
       <div className="flex flex-col gap-1 text-sm sm:text-right">

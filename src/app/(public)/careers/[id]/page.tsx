@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { normalisePublicSource } from "@/lib/recruitment/pool";
 import { CareerApplyForm } from "./CareerApplyForm";
 
 /**
@@ -11,6 +12,10 @@ import { CareerApplyForm } from "./CareerApplyForm";
  * published to the website (`postedChannels` has "website"). Otherwise 404 —
  * you can't reach a draft/filled role by guessing its id. The website
  * careers page links here; the form posts to /api/public/careers/[id]/apply.
+ *
+ * `?src=` attributes the applicant to the ad that sent them (an Indeed post,
+ * a Seek listing, a flyer QR). It is whitelisted server-side, so a stranger
+ * editing the URL can't invent a channel — see `normalisePublicSource`.
  */
 const ROLE_LABELS: Record<string, string> = {
   educator: "Educator",
@@ -62,16 +67,26 @@ export async function generateMetadata({
 
 export default async function CareerApplyPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ src?: string }>;
 }) {
   const { id } = await params;
+  const { src } = await searchParams;
   const v = await getVacancy(id);
   if (!v) notFound();
 
   const roleLabel = ROLE_LABELS[v.role] ?? v.role.replace(/_/g, " ");
-  const centre = v.service?.name ?? "Amana OSHC";
-  const location = [v.service?.suburb, v.service?.state].filter(Boolean).join(", ");
+  // A regional casual-pool ad has no single centre — its catchment IS the
+  // location, and it is the common shape for pool advertising. Falling back to
+  // a bare "Amana OSHC" told an applicant nothing about where the work is.
+  const centre = v.service?.name ?? v.region ?? "Amana OSHC";
+  // Only a site-specific ad gets a location chip: on a regional ad the
+  // catchment is already the heading, and repeating it reads like a bug.
+  const location = v.service
+    ? [v.service.suburb, v.service.state].filter(Boolean).join(", ")
+    : "";
   const chips = [
     EMPLOYMENT_LABELS[v.employmentType] ?? v.employmentType,
     v.qualificationRequired
@@ -108,7 +123,12 @@ export default async function CareerApplyPage({
         )}
 
         <div className="mt-8">
-          <CareerApplyForm vacancyId={v.id} roleLabel={roleLabel} centre={centre} />
+          <CareerApplyForm
+            vacancyId={v.id}
+            roleLabel={roleLabel}
+            centre={centre}
+            source={normalisePublicSource(src)}
+          />
         </div>
 
         <p className="mt-8 text-center text-sm text-brand/60">

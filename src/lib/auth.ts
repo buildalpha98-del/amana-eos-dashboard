@@ -5,6 +5,7 @@ import { compare } from "bcryptjs";
 import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
+import { hasPublishedEssentials } from "@/lib/induction-essentials";
 import { getOrgSettings } from "@/lib/org-settings";
 import { logAuditEvent } from "@/lib/audit-log";
 
@@ -84,6 +85,9 @@ export const authOptions: NextAuthOptions = {
             | string
             | Date
             | null) ?? null;
+        // Whether there is a curriculum to be gated on at all. Without this
+        // the lock fires against an empty course list — see induction-lock.ts.
+        token.essentialsPublished = await hasPublishedEssentials();
         token.mfaRequired = (user as unknown as Record<string, unknown>).mfaRequired ?? false;
         token.mfaVerified = false;
 
@@ -106,11 +110,21 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      // Validate tokenVersion against database (checked periodically)
-      // and refresh the role-page-access override for this user.
-      // Piggybacking the 5-minute window means an admin's permission
-      // change propagates to active sessions within ~5 min without a
-      // re-login.
+      // Validate tokenVersion against database (checked periodically) and
+      // refresh the identity fields that drive access: role, serviceId,
+      // state, induction, and the role-page-access override. Piggybacking
+      // the 5-minute window means an admin's permission change propagates
+      // to active sessions within ~5 min without a re-login.
+      //
+      // 2026-09-15: role / serviceId / state used to be written ONLY in the
+      // `if (user)` sign-in branch above, so this comment was a promise the
+      // code didn't keep. Promoting someone to State Manager left them a
+      // Member in their own browser until they happened to log out — and,
+      // worse in the other direction, REVOKING an admin's role changed
+      // nothing about their live session. Neither a PATCH to /api/users nor
+      // this refresh touched token.role, and nothing bumped tokenVersion on
+      // a role change either, so there was no path at all from a role
+      // change to an active session.
       if (token.id && typeof token.tokenVersion === "number") {
         const lastCheck = (token.tokenVersionCheckedAt as number) ?? 0;
         const FIVE_MINUTES = 5 * 60 * 1000;
@@ -121,6 +135,9 @@ export const authOptions: NextAuthOptions = {
               select: {
                 tokenVersion: true,
                 active: true,
+                role: true,
+                serviceId: true,
+                state: true,
                 inductionStatus: true,
                 inductionGraceUntil: true,
               },
@@ -129,11 +146,23 @@ export const authOptions: NextAuthOptions = {
               return { ...token, exp: 0 }; // Force token expiry
             }
             token.tokenVersionCheckedAt = Date.now();
+            // Role, centre and state decide what the middleware, the nav and
+            // every `session.user.role` check allow. Refreshed BEFORE the
+            // override lookup below, which is keyed on the role — reading a
+            // stale role there would hand a just-promoted user the previous
+            // role's page overrides for another five minutes.
+            token.role = dbUser.role;
+            token.serviceId = dbUser.serviceId;
+            token.state = dbUser.state;
             // Refresh induction fields so locked-mode lifts within ~5 min of
             // a learner clearing (the gate APIs read the DB live, so clock-in
             // is never stale — only the UI nav lock lags by this window).
             token.inductionStatus = dbUser.inductionStatus;
             token.inductionGraceUntil = dbUser.inductionGraceUntil;
+            // Re-read on the same cadence so publishing the first essential
+            // course starts gating new starters within ~5 min, and un-publishing
+            // (or a fresh org with no curriculum) lifts the lock just as fast.
+            token.essentialsPublished = await hasPublishedEssentials();
 
             // Refresh the page-access override for this user's role.
             // Null = use compile-time defaults (kept in token so the
@@ -164,6 +193,9 @@ export const authOptions: NextAuthOptions = {
         session.user.inductionStatus = token.inductionStatus as string | undefined;
         session.user.inductionGraceUntil =
           (token.inductionGraceUntil as string | null | undefined) ?? null;
+        session.user.essentialsPublished = token.essentialsPublished as
+          | boolean
+          | undefined;
       }
       return session;
     },

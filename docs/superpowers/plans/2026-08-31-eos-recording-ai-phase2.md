@@ -1,5 +1,7 @@
 # EOS Meeting Recording + AI Review (Phase 2) Implementation Plan
 
+> Superseded on the client side by 2026-09-14-meeting-recorder-v2.md
+
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Record L10 meeting audio (browser mic) or upload a Teams/Zoom file → Deepgram diarized transcription (webhook callback) → Claude structured review (summary, decisions, proposed action items, missed items) with a human accept/dismiss queue — per spec §2 (`docs/superpowers/specs/2026-08-31-eos-meetings-todos-ai-design.md`).

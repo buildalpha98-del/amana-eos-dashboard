@@ -22,18 +22,56 @@ export type GettingStartedProgress = z.infer<typeof gettingStartedProgressSchema
 // EnrolmentSubmission
 // ---------------------------------------------------------------------------
 
+/**
+ * One text field on a stored parent record.
+ *
+ * 2026-09-17: these were plain `z.string().optional()`, which accepts
+ * `undefined` but REJECTS `null` — and a rejected field failed the whole
+ * object, so `parseJsonField` handed back its `{firstName:"",surname:""}`
+ * fallback and every consumer rendered blanks. A single null `crn` was enough
+ * to wipe the entire Primary Parent / Guardian section out of the enrolment
+ * PDF while the dashboard, which reads the raw JSON, still showed it in full.
+ *
+ * `.catch()` makes a bad field degrade to `undefined` on its own instead of
+ * taking its eleven well-formed siblings down with it. That is the right
+ * trade for a stored JSON blob written by several different code paths over
+ * two years: render what is there, drop what isn't legible.
+ */
+const parentText = () =>
+  z
+    .string()
+    .nullish()
+    .catch(undefined)
+    .transform((v) => v ?? undefined)
+    // Trailing `.optional()` keeps the KEY optional in the inferred type.
+    // Without it every caller's fallback object would have to spell out all
+    // fifteen fields just to type-check.
+    .optional();
+
 export const primaryParentSchema = z.object({
-  firstName: z.string(),
-  surname: z.string(),
-  dob: z.string().optional(),
-  email: z.string().optional(),
-  mobile: z.string().optional(),
-  address: z.string().optional(),
-  relationship: z.string().optional(),
-  occupation: z.string().optional(),
-  workplace: z.string().optional(),
-  workPhone: z.string().optional(),
-  crn: z.string().optional(),
+  // Names fall back to "" rather than failing — a record with a null surname
+  // should still render its first name, address and CRN.
+  firstName: z.string().catch(""),
+  surname: z.string().catch(""),
+  dob: parentText(),
+  email: parentText(),
+  mobile: parentText(),
+  /** Legacy single-line address. Newer writers split it into the four below. */
+  address: parentText(),
+  street: parentText(),
+  suburb: parentText(),
+  state: parentText(),
+  postcode: parentText(),
+  relationship: parentText(),
+  occupation: parentText(),
+  workplace: parentText(),
+  workPhone: parentText(),
+  crn: parentText(),
+  /**
+   * Secondary parent only: they live at the primary carer's address, so the
+   * enrolment doesn't ask for it twice and the PDF resolves it at render time.
+   */
+  livesWithPrimary: z.boolean().nullish().catch(undefined).optional(),
 }).passthrough();
 
 export type PrimaryParent = z.infer<typeof primaryParentSchema>;

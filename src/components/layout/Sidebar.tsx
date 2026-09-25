@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { useRoleLabel } from "@/contexts/RoleLabelsContext";
 import { useEffect, useMemo } from "react";
 import { useSidebar } from "@/components/layout/SidebarContext";
 import {
@@ -32,6 +33,12 @@ interface SidebarProps {
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  // The user card shows the org's role LABEL ("State Manager"), not the raw
+  // enum. 2026-09-15: it used to print `session.user.role` under a CSS
+  // `capitalize`, so a State Manager's own sidebar read "Head_office" and a
+  // Coordinator's read "Member" — neither is a name anyone uses, and it made
+  // "what role is this account actually on?" impossible to answer by looking.
+  const roleLabel = useRoleLabel(session?.user?.role);
   const { collapsed, toggleCollapsed, collapsedSections, toggleSection, favourites, toggleFavourite, expandedSections, toggleExpandedSection } = useSidebar();
   const { data: bookingRequestCount } = useBookingRequestCount();
   const { data: unreadMessageCount } = useUnreadMessageCount();
@@ -47,7 +54,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const inductionLocked = isInductionLocked(
     session?.user?.inductionStatus,
     session?.user?.inductionGraceUntil,
-    { role: session?.user?.role }
+    {
+      role: session?.user?.role,
+      essentialsPublished: session?.user?.essentialsPublished,
+    }
   );
 
   // Group filtered nav items by section.
@@ -441,9 +451,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                   <p className="text-sm font-medium truncate">
                     {session.user.name}
                   </p>
-                  <p className="text-2xs text-white/40 capitalize">
-                    {session.user.role}
-                  </p>
+                  <p className="text-2xs text-white/40">{roleLabel}</p>
                 </div>
               )}
               <button

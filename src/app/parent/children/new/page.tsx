@@ -59,6 +59,7 @@ export default function NewChildPage() {
     workPhone: "",
     crn: "",
     soleCustody: null,
+    livesWithPrimary: false,
   };
 
   const handleComplete = (result: { token: string; childNames: string }) => {

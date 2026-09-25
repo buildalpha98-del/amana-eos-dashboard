@@ -25,10 +25,29 @@ import { join, relative } from "path";
  */
 const SRC_ROOT = join(__dirname, "..", "..");
 
+/**
+ * Account RECOVERY, and nothing else.
+ *
+ * `sendEmail` drops suppressed addresses, which is right for marketing and
+ * wrong here: a bounce months ago or an unsubscribe from a newsletter must not
+ * be the reason a family can't get back into their own account. Every entry
+ * below is a "you cannot sign in" path where the alternative to sending is a
+ * person locked out indefinitely.
+ *
+ * Adding a line here is a deliberate decision, not a way around the guard. If
+ * the mail can wait for someone to notice a log line, it belongs in sendEmail.
+ */
 const ALLOWED = new Set([
   "lib/email.ts",
+  // Staff password reset.
   "app/api/auth/forgot-password/route.ts",
+  // Parent one-time sign-in link.
   "app/api/parent/auth/send-link/route.ts",
+  // Parent password reset — 2026-09-18, the portal's first one.
+  "app/api/parent/auth/forgot-password/route.ts",
+  // Staff sending a family a reset or sign-in link from the dashboard,
+  // usually with the parent on the phone.
+  "app/api/families/[id]/access/route.ts",
 ]);
 
 function walk(dir: string, out: string[] = []): string[] {

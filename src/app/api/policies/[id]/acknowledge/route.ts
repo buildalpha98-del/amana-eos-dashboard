@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
+import { refreshInductionAfterBlockerChange } from "@/lib/induction";
 
 // POST /api/policies/[id]/acknowledge — current user acknowledges the
 // current version of the policy. The unique constraint on
@@ -54,6 +55,9 @@ export const POST = withApiAuth(async (req, session, context) => {
       details: { title: doc.title, versionId },
     },
   });
+
+  // Policy acknowledgements are an induction blocker — re-evaluate the gate.
+  await refreshInductionAfterBlockerChange(session.user.id);
 
   return NextResponse.json(ack, { status: 201 });
 });

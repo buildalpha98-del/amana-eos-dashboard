@@ -1,16 +1,23 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
+import { streamStoredFile } from "@/lib/blob-proxy";
 
 /**
  * GET /api/contracts/[id]/document
  *
- * Access-checked redirect to the contract's PDF in blob storage. Used by the
- * staff portal "View Contract" button so the client never sees the raw blob
- * URL — the constraint "staff can only view their own contracts" is enforced
- * here, not by URL secrecy.
+ * Access-checked STREAM of the contract's PDF out of blob storage. Used by
+ * the staff portal "View Contract" button so the client never sees the raw
+ * blob URL — the constraint "staff can only view their own contracts" is
+ * enforced here, not by URL secrecy.
+ *
+ * 2026-09-15: this used to redirect to the blob URL, which the in-app viewer
+ * could not render — CSP has no frame-src, so `default-src 'self'` blocked
+ * the cross-origin hop and staff saw an error where their contract should
+ * be. Opening the same link in a new tab worked, because a top-level
+ * navigation isn't subject to frame-src. See src/lib/blob-proxy.ts.
  *
  * Access matrix:
  *   - Own contract (contract.userId === viewer): allowed
@@ -20,9 +27,8 @@ import { isAdminRole } from "@/lib/role-permissions";
  * Returns 404 if the contract doesn't exist or has no documentUrl
  * (blank-form contracts without an uploaded PDF).
  *
- * `?download=1` appends Vercel Blob's `download` query so the browser forces
- * `Content-Disposition: attachment` instead of inline view — used by the
- * Download affordance in the file viewer modal.
+ * `?download=1` answers with `Content-Disposition: attachment` instead of
+ * inline view — used by the Download affordance in the file viewer modal.
  */
 export const GET = withApiAuth(async (req: NextRequest, session, context) => {
   const { id } = await context!.params!;
@@ -42,9 +48,9 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
 
   if (!isOwn && !isAdmin) throw ApiError.forbidden();
 
-  const target = wantsDownload
-    ? `${contract.documentUrl}${contract.documentUrl.includes("?") ? "&" : "?"}download=contract-${contract.id}.pdf`
-    : contract.documentUrl;
-
-  return NextResponse.redirect(target);
+  return streamStoredFile(contract.documentUrl, {
+    fileName: `contract-${contract.id}.pdf`,
+    download: wantsDownload,
+    fallbackContentType: "application/pdf",
+  });
 });

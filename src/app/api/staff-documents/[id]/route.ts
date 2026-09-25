@@ -1,14 +1,21 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { canViewStaffDocument } from "@/lib/staff-access";
 import { logger } from "@/lib/logger";
+import { streamStoredFile } from "@/lib/blob-proxy";
 
 /**
  * GET /api/staff-documents/[id]
  *
- * Access-checked redirect to a Document's blob URL. Used by the staff profile
+ * Access-checked stream of a Document out of blob storage. *
+ * 2026-09-15: streams the bytes back over our own origin instead of
+ * redirecting to blob storage — a cross-origin redirect is unrenderable in
+ * the in-app file viewer, because the app's CSP sets no frame-src and so
+ * falls back to `default-src 'self'`. See src/lib/blob-proxy.ts.
+ *
+ * Used by the staff profile
  * page's Documents tab so HR docs / personal docs aren't exposed via direct
  * blob URLs in the markup.
  *
@@ -26,7 +33,7 @@ import { logger } from "@/lib/logger";
  * rostered at the same centre. It is now the Director role only.
  *
  * Returns 404 if the document doesn't exist, is soft-deleted, or has no
- * fileUrl. Optional `?download=1` rewrites the redirect target so the browser
+ * fileUrl. Optional `?download=1` answers Content-Disposition: attachment so the browser
  * forces a download (Content-Disposition: attachment) instead of inline view —
  * useful for non-PDF MIME types that browsers can't preview.
  */
@@ -65,11 +72,8 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
     throw ApiError.forbidden();
   }
 
-  // Vercel Blob URLs accept ?download=<filename> to force attachment delivery.
-  // For other storage layers this is a no-op (the query param is ignored).
-  const target = wantsDownload
-    ? `${doc.fileUrl}${doc.fileUrl.includes("?") ? "&" : "?"}download=${encodeURIComponent(doc.fileName)}`
-    : doc.fileUrl;
-
-  return NextResponse.redirect(target);
+  return streamStoredFile(doc.fileUrl, {
+    fileName: doc.fileName,
+    download: wantsDownload,
+  });
 });

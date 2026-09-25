@@ -6,6 +6,7 @@ import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
 import { normaliseTagList } from "@/lib/staff-tags";
+import { refreshInductionAfterBlockerChange } from "@/lib/induction";
 const profileUpdateSchema = z.object({
   // Identity fields — self can update own; admins can update any staff member.
   // Role is intentionally NOT here — it lives on PATCH /api/users/[id], which
@@ -280,6 +281,9 @@ const { id } = await context!.params!;
       details: { fields: Object.keys(data) },
     },
   });
+
+  // Phone is part of the induction profile blocker.
+  await refreshInductionAfterBlockerChange(id);
 
   return NextResponse.json(updated);
 });

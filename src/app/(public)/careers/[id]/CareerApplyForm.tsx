@@ -12,6 +12,12 @@ interface Props {
   vacancyId: string;
   roleLabel: string;
   centre: string;
+  /**
+   * Which ad sent this person here, resolved server-side from `?src=`.
+   * Sent with the application so the pool can tell an Indeed applicant from
+   * someone who found the careers page on their own.
+   */
+  source: string;
 }
 
 function readAsBase64(file: File): Promise<string> {
@@ -27,7 +33,12 @@ function readAsBase64(file: File): Promise<string> {
   });
 }
 
-export function CareerApplyForm({ vacancyId, roleLabel, centre }: Props) {
+export function CareerApplyForm({
+  vacancyId,
+  roleLabel,
+  centre,
+  source,
+}: Props) {
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -68,7 +79,7 @@ export function CareerApplyForm({ vacancyId, roleLabel, centre }: Props) {
       const res = await fetch(`/api/public/careers/${vacancyId}/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, ...resumeFields }),
+        body: JSON.stringify({ ...form, source, ...resumeFields }),
       });
 
       if (!res.ok) {

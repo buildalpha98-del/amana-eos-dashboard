@@ -11,6 +11,7 @@ import { uploadFile } from "@/lib/storage";
 import { notifyUsers } from "@/lib/notify-user";
 import { logger } from "@/lib/logger";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { refreshInductionAfterBlockerChange } from "@/lib/induction";
 // Reject expiry dates that fall before today — uploading an already-expired
 // cert is a UX trap (the row would immediately read "expired"). Today itself
 // is accepted because a cert valid for the rest of the day is still valid.
@@ -276,6 +277,11 @@ export const POST = withApiAuth(async (req, session) => {
       });
     }
   }
+
+  // A WWCC upload is one of the four induction blockers. Without this the
+  // user clears the blocker and stays locked — nothing else re-evaluates it.
+  // No-ops for a service-level certificate, which has no userId.
+  await refreshInductionAfterBlockerChange(cert.userId);
 
   return NextResponse.json(cert, { status: 201 });
 });

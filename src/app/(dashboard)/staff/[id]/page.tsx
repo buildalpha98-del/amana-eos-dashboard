@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/role-permissions";
+import { canViewStaffPay } from "@/lib/staff-pay-visibility";
 import { requirePageSession } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
-import { notFound } from "next/navigation";
 import type { StaffProfileData } from "@/components/staff/types";
 import { StaffProfileLayout } from "@/components/staff/StaffProfileLayout";
 import { getCertStatus } from "@/lib/cert-status";
@@ -90,7 +90,35 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     where: { id },
     include: { service: true },
   });
-  if (!targetUser) notFound();
+  // 2026-09-15: a bare notFound() here is a dead end for an EMAILED deep
+  // link. The 90-day ramp alerts point State Managers at
+  // /staff/<id>#section-ramp, and when that staff record has since been
+  // deleted the recipient got the generic "Page not found" — which reads as
+  // "the dashboard is broken", not "this person is gone". StaffRamp cascades
+  // on user delete, so no NEW alert can point at a missing record; it is
+  // always an older email outliving its subject. Say so, and offer the way
+  // back.
+  if (!targetUser) {
+    return (
+      <div className="p-6">
+        <div className="max-w-md mx-auto text-center">
+          <h1 className="text-lg font-semibold text-foreground">
+            This staff record no longer exists
+          </h1>
+          <p className="text-sm text-muted mt-2">
+            It has been deleted since this link was created. If you followed a
+            link from an email, that email is likely older than the change.
+          </p>
+          <a
+            href="/team"
+            className="inline-block mt-4 text-sm text-brand hover:underline"
+          >
+            Back to Team
+          </a>
+        </div>
+      </div>
+    );
+  }
   const ramp = await prisma.staffRamp.findUnique({ where: { userId: id }, select: { id: true } });
 
   const viewerRole = session.user.role ?? null;
@@ -364,8 +392,18 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     .sort((a, b) => b.weekEnding.getTime() - a.weekEnding.getTime())
     .slice(0, 5);
 
+  // 2026-09-15: pay and leave data is withheld from viewers who may not see
+  // it — State Managers included (see canViewStaffPay). The layout hides the
+  // Pay & compensation section, but the balances must not travel to the
+  // browser at all: they are the one pay signal nothing else on the page
+  // surfaces. Contracts deliberately still load — the Documents section
+  // renders them, and tenure is derived from the earliest start date.
+  const viewerCanViewPay = canViewStaffPay(viewerRole, isSelf);
+  const visibleBalances = viewerCanViewPay ? balances : [];
+  const visibleLeaveRequests = viewerCanViewPay ? recentLeaveRequests : [];
+
   // Derived stats
-  const annualLeave = balances.find((b) => b.leaveType === "annual");
+  const annualLeave = visibleBalances.find((b) => b.leaveType === "annual");
   const annualLeaveRemaining = annualLeave ? annualLeave.balance : null;
   const certStatuses = certificates.map((c) => getCertStatus(c.expiryDate));
   const validCertCount = certStatuses.filter((s) => s.status === "valid").length;
@@ -411,8 +449,8 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     emergencyContacts,
     latestContract,
     contracts,
-    balances,
-    recentLeaveRequests,
+    balances: visibleBalances,
+    recentLeaveRequests: visibleLeaveRequests,
     timesheetWeeks,
     qualifications,
     certificates,

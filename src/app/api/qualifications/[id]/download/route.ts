@@ -1,13 +1,19 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
+import { streamStoredFile } from "@/lib/blob-proxy";
 
 /**
  * GET /api/qualifications/[id]/download
  *
- * Access-checked redirect to a StaffQualification's certificate blob URL.
+ * Access-checked stream of a StaffQualification's certificate out of blob
+ * storage. *
+ * 2026-09-15: streams the bytes back over our own origin instead of
+ * redirecting to blob storage — a cross-origin redirect is unrenderable in
+ * the in-app file viewer, because the app's CSP sets no frame-src and so
+ * falls back to `default-src 'self'`. See src/lib/blob-proxy.ts.
  * Used by the staff profile's Certifications sub-tab so the file isn't
  * exposed as a raw blob URL in markup (the previous DocumentsTab + the
  * compliance-cert proxy already did this — qualifications were the
@@ -58,9 +64,8 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
   }
   if (!canAccess) throw ApiError.forbidden();
 
-  const target = wantsDownload
-    ? `${qual.certificateUrl}${qual.certificateUrl.includes("?") ? "&" : "?"}download=${encodeURIComponent(qual.name)}`
-    : qual.certificateUrl;
-
-  return NextResponse.redirect(target);
+  return streamStoredFile(qual.certificateUrl, {
+    fileName: qual.name,
+    download: wantsDownload,
+  });
 });

@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Upload, Trash2 } from "lucide-react";
-import { EnrolmentFormData, ParentDetails, AUSTRALIAN_STATES, RELATIONSHIP_OPTIONS } from "../types";
+import {
+  EnrolmentFormData,
+  ParentDetails,
+  AUSTRALIAN_STATES,
+  RELATIONSHIP_OPTIONS,
+  secondaryParentStarted,
+} from "../types";
 import { stateFromPostcode } from "@/lib/au-postcodes";
 
 interface Props {
@@ -64,6 +70,7 @@ function ParentSection({
   childAddress,
   onCopyChildAddress,
   copyAddressLabel,
+  sharedAddress,
 }: {
   title: string;
   parent: ParentDetails;
@@ -73,6 +80,16 @@ function ParentSection({
   childAddress?: { street: string; suburb: string; state: string; postcode: string };
   onCopyChildAddress?: () => void;
   copyAddressLabel?: string;
+  /**
+   * Offer "lives with the primary carer" INSTEAD of a second address. Most
+   * families share one, and a tick keeps the two in step where a copied
+   * address silently goes stale.
+   */
+  sharedAddress?: {
+    checked: boolean;
+    onToggle: (checked: boolean) => void;
+    primaryAddress: string;
+  };
 }) {
   return (
     <div>
@@ -103,7 +120,7 @@ function ParentSection({
 
       <div className="flex items-center justify-between mt-6 mb-3">
         <h4 className="text-sm font-semibold text-muted">Address</h4>
-        {onCopyChildAddress && (
+        {onCopyChildAddress && !sharedAddress?.checked && (
           <button
             type="button"
             onClick={onCopyChildAddress}
@@ -113,7 +130,35 @@ function ParentSection({
           </button>
         )}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+      {sharedAddress && (
+        <label className="mb-3 flex items-start gap-2.5 rounded-lg border border-border bg-surface/50 p-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={sharedAddress.checked}
+            onChange={(e) => sharedAddress.onToggle(e.target.checked)}
+            className="mt-0.5 h-4 w-4"
+          />
+          <span className="text-sm">
+            <span className="font-medium text-foreground/90">
+              Lives with the primary parent / guardian
+            </span>
+            <span className="block text-xs text-muted mt-0.5">
+              {sharedAddress.checked
+                ? sharedAddress.primaryAddress
+                  ? `We'll use ${sharedAddress.primaryAddress}.`
+                  : "We'll use the primary parent's address once it's filled in above."
+                : "Tick this if they live at the same address — no need to type it twice."}
+            </span>
+          </span>
+        </label>
+      )}
+
+      <div
+        className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${
+          sharedAddress?.checked ? "hidden" : ""
+        }`}
+      >
         <div className="sm:col-span-2">
           <Input label="Street" value={parent.street} onChange={(v) => onChange("street", v)} />
         </div>
@@ -164,6 +209,16 @@ function ParentSection({
 
 export function ParentDetailsStep({ data, updateData }: Props) {
   const [showSecondary, setShowSecondary] = useState(true);
+  /** Shown under the "lives with the primary carer" tick so it is checkable. */
+  const primaryAddressLine = [
+    data.primaryParent.street,
+    data.primaryParent.suburb,
+    data.primaryParent.state,
+    data.primaryParent.postcode,
+  ]
+    .map((v) => v?.trim())
+    .filter(Boolean)
+    .join(", ");
   const [uploading, setUploading] = useState(false);
 
   // Use functional updater so rapid back-to-back calls (e.g. postcode handler
@@ -352,6 +407,35 @@ export function ParentDetailsStep({ data, updateData }: Props) {
                 parent={data.secondaryParent}
                 onChange={updateSecondary}
                 onBatchChange={batchUpdateSecondary}
+                /*
+                 * Mark every field the step actually enforces.
+                 *
+                 * `required` is what draws the red star; without it only the
+                 * DOB was starred, and only once a FIRST NAME had been typed —
+                 * so a parent who started with the surname saw no asterisks at
+                 * all, then hit a wall of errors on Next. The condition now
+                 * mirrors validateStep exactly via the shared helper.
+                 */
+                required={
+                  data.courtOrders === false ||
+                  secondaryParentStarted(data.secondaryParent)
+                }
+                sharedAddress={{
+                  checked: data.secondaryParent.livesWithPrimary,
+                  primaryAddress: primaryAddressLine,
+                  onToggle: (checked) =>
+                    updateData({
+                      secondaryParent: {
+                        ...data.secondaryParent,
+                        livesWithPrimary: checked,
+                        // Clear the typed address when the tick takes over, so
+                        // the record never holds two competing answers.
+                        ...(checked
+                          ? { street: "", suburb: "", state: "", postcode: "" }
+                          : {}),
+                      },
+                    }),
+                }}
                 onCopyChildAddress={() => {
                   updateData({
                     secondaryParent: {

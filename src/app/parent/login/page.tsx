@@ -1,11 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, ArrowRight, CheckCircle, Lock, Loader2 } from "lucide-react";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+
+type Mode = "password" | "link" | "reset";
+
+/**
+ * The message the verify route has been redirecting with all along.
+ *
+ * `/api/parent/auth/verify` bounces a dead link to `/parent/login?error=expired`
+ * — and nothing on this page ever read it. The parent clicked their link,
+ * landed on a plain sign-in form with no explanation, and reasonably concluded
+ * the link "didn't work". Silence is the worst possible answer here, because
+ * the one thing they need to know is that asking for a fresh link will fix it.
+ */
+function LoginNotice() {
+  const params = useSearchParams();
+  const error = params.get("error");
+  const reset = params.get("reset");
+
+  if (reset === "1") {
+    return (
+      <div className="mb-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/40 dark:text-green-200">
+        Your password has been changed. Sign in with your new password below.
+      </div>
+    );
+  }
+  if (error === "expired") {
+    return (
+      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+        That link has expired or has already been used. Links last one hour and
+        work once — request a new one below and it will arrive straight away.
+      </div>
+    );
+  }
+  return null;
+}
 
 export default function ParentLoginPage() {
   const router = useRouter();
@@ -13,10 +47,17 @@ export default function ParentLoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  // 2026-07-30: password is now the primary sign-in. The magic link stays
-  // as the forgot-password path — previously it was the ONLY way in, so a
-  // parent who set a password had no field to type it into.
-  const [mode, setMode] = useState<"password" | "link">("password");
+  /**
+   * 2026-07-30: password is now the primary sign-in. The magic link stays as a
+   * way in — previously it was the ONLY way, so a parent who set a password
+   * had no field to type it into.
+   *
+   * 2026-09-18: "reset" joins them, because the magic link was standing in for
+   * a password reset and cannot do that job. It signs the parent in and leaves
+   * the forgotten password exactly as it was, so the next sign-in fails the
+   * same way. Forgetting a password now leads to setting a new one.
+   */
+  const [mode, setMode] = useState<Mode>("password");
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,10 +87,15 @@ export default function ParentLoginPage() {
 
     setLoading(true);
     try {
-      await mutateApi("/api/parent/auth/send-link", {
-        method: "POST",
-        body: { email: email.trim().toLowerCase() },
-      });
+      await mutateApi(
+        mode === "reset"
+          ? "/api/parent/auth/forgot-password"
+          : "/api/parent/auth/send-link",
+        {
+          method: "POST",
+          body: { email: email.trim().toLowerCase() },
+        },
+      );
       setSent(true);
     } catch (err) {
       toast({
@@ -96,6 +142,9 @@ export default function ParentLoginPage() {
 
         {/* Login card */}
         <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-6 sm:p-8 border border-white/50">
+          <Suspense fallback={null}>
+            <LoginNotice />
+          </Suspense>
           {sent ? (
             /* ─── Success state ────────────────────────── */
             <div className="text-center py-4">
@@ -106,9 +155,13 @@ export default function ParentLoginPage() {
                 Check your email!
               </h2>
               <p className="text-sm text-muted leading-relaxed">
-                We&apos;ve sent a login link to{" "}
+                We&apos;ve sent {mode === "reset" ? "a link to set a new password" : "a login link"} to{" "}
                 <span className="font-medium text-foreground">{email}</span>.
-                It expires in 15 minutes.
+                It expires in 1 hour.
+              </p>
+              <p className="text-xs text-muted leading-relaxed mt-2">
+                Nothing after a minute or two? Check your junk folder — and
+                make sure that&apos;s the address the centre has for you.
               </p>
               <button
                 onClick={() => {
@@ -211,22 +264,43 @@ export default function ParentLoginPage() {
                     </span>
                   ) : (
                     <>
-                      {mode === "password" ? "Sign in" : "Send Login Link"}
+                      {mode === "password"
+                        ? "Sign in"
+                        : mode === "reset"
+                          ? "Email me a reset link"
+                          : "Send Login Link"}
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
 
                 <div className="pt-1 text-center space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setMode(mode === "password" ? "link" : "password")}
-                    className="text-xs text-brand underline underline-offset-2"
-                  >
-                    {mode === "password"
-                      ? "Forgot your password? Email me a login link"
-                      : "Sign in with a password instead"}
-                  </button>
+                  {mode === "password" ? (
+                    <div className="flex flex-col gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setMode("reset")}
+                        className="text-xs text-brand underline underline-offset-2"
+                      >
+                        Forgot your password?
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMode("link")}
+                        className="text-xs text-muted underline underline-offset-2"
+                      >
+                        Or email me a one-time login link
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setMode("password")}
+                      className="text-xs text-brand underline underline-offset-2"
+                    >
+                      Sign in with a password instead
+                    </button>
+                  )}
                   <p className="text-xs text-muted">
                     New to Amana OSHC?{" "}
                     <a href="/parent/signup" className="text-brand underline">

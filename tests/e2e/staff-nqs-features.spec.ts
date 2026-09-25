@@ -149,8 +149,18 @@ test.describe("Shift Handover widget", () => {
     await gotoFirstService(page, { v2: "1", tab: "today" });
 
     // Either a "No open handovers" empty state or a list of notes — both accept.
-    await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
-    const text = await page.locator("main").innerText();
-    expect(text.toLowerCase()).toContain("shift handover");
+    //
+    // Web-first assertion, NOT toBeVisible() + a one-shot innerText() read.
+    // <main> is laid out as an EMPTY animating container before React fills
+    // it: measured at the instant toBeVisible() resolves, it was
+    // 1024x560 with opacity 0.82 and textContent.length === 0, reaching 901
+    // characters ~500ms later. toBeVisible() is satisfied by that empty box,
+    // so the immediate read returned "" and the assertion failed on a page
+    // that was about to be correct. toContainText polls instead, which is
+    // what made this fail on roughly every second nightly run since at
+    // least 2026-09-10 while passing on the ones in between.
+    await expect(page.locator("main")).toContainText(/shift handover/i, {
+      timeout: 15_000,
+    });
   });
 });

@@ -195,10 +195,22 @@ describe("PATCH /api/recruitment/candidates/[id] (feature: recruitment.candidate
     mockSession({ id: "u-1", name: "Admin", role: "admin" });
     prismaMock.recruitmentCandidate.update.mockResolvedValue({
       id: "c-1",
-      stage: "offered",
+      stage: "interviewed",
     });
-    const req = createRequest("PATCH", "/api/recruitment/candidates/c-1", { body: { stage: "offered" } });
+    const req = createRequest("PATCH", "/api/recruitment/candidates/c-1", { body: { stage: "interviewed" } });
     const res = await patchCandidate(req, { params: Promise.resolve({ id: "c-1" }) });
     expect(res.status).toBe(200);
+  });
+
+  it("400 on a stage outside the funnel", async () => {
+    // 2026-09-15: stage was unvalidated free text, so a typo silently created
+    // a stage nothing filtered on. Legacy values like "offered" are readable
+    // (normaliseStage) but no longer writable.
+    mockSession({ id: "u-1", name: "Admin", role: "admin" });
+    const req = createRequest("PATCH", "/api/recruitment/candidates/c-1", {
+      body: { stage: "offered" },
+    });
+    const res = await patchCandidate(req, { params: Promise.resolve({ id: "c-1" }) });
+    expect(res.status).toBe(400);
   });
 });

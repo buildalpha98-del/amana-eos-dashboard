@@ -4,6 +4,7 @@ import { uploadFile, deleteFile } from "@/lib/storage";
 import { withApiAuth } from "@/lib/server-auth";
 import { validateFileContent } from "@/lib/file-validation";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { refreshInductionAfterBlockerChange } from "@/lib/induction";
 
 // Keep under Vercel's serverless body-size limit (~4.5 MB) so a
 // rejected upload returns a clean 413 here instead of a
@@ -133,6 +134,9 @@ const { id } = await context!.params!;
     where: { id },
     data: { avatar: url },
   });
+
+  // A photo is part of the induction profile blocker.
+  await refreshInductionAfterBlockerChange(id);
 
   return NextResponse.json({ avatar: url });
 });

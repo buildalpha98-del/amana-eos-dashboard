@@ -178,6 +178,7 @@ export const allPages = [
   "/knowledge",
   // HR
   "/recruitment",
+  "/hiring",
   // 2026-07-05 (nav consolidation phase 1): consolidated D&I + WGEA hub.
   // Owner/head_office/admin only (inherited via allPages — deliberately
   // NOT added to the marketing/member/staff/EOS allowlists).
@@ -379,6 +380,11 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     // pathMatches(); same for the Roll Call / Bookings / Children /
     // Billing tabs nested inside service detail.
     "/activity-library",
+    // 2026-09-17: the coordinator RUNS vacation care at their centre — the
+    // 2026-04-29 note below classed Holiday Quest as "a marketing planner",
+    // which is backwards. Children stays out on purpose: the list lives inside
+    // /services/[id]?tab=children, which they reach by drilling in.
+    "/holiday-quest",
     "/onboarding",
     "/compliance",
     "/policies",
@@ -412,7 +418,8 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     //   /communication, /messaging, /contact-centre, /enquiries,
     //   /conversions, /enrolments, /children, /roll-call, /bookings,
     //   /billing, /reports, /timesheets, /contracts,
-    //   /compliance/templates, /holiday-quest
+    //   /compliance/templates
+    // (/holiday-quest was on this list until 2026-09-17 — see above.)
     // - Children list / Roll Call / Bookings / Billing live inside
     //   /services/[id]?tab=...; member reaches them by drilling in.
     // - Cross-service surfaces (Reports, Timesheets, Contracts,

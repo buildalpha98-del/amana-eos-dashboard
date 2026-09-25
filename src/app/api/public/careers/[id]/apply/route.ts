@@ -2,46 +2,60 @@
  * POST /api/public/careers/[id]/apply — public job application intake.
  *
  * INTENTIONALLY UNAUTHENTICATED. A member of the public applies for a vacancy
- * that has been published to the website. Creates a RecruitmentCandidate with
- * `source: "website"`, which drops straight into the recruiter's pipeline (and
- * AI screening). Applications are only accepted for vacancies that are still
- * open AND flagged for the website — you can't apply to an unpublished or
- * filled role by guessing its id.
+ * that has been published to the website. Creates a RecruitmentCandidate that
+ * drops straight into the recruiter's pipeline (and AI screening), attributed
+ * to wherever they came from — `website` unless the link carried a `?src=`
+ * (see `normalisePublicSource`), which is how an Indeed ad's applicants are
+ * told apart from organic ones. Applications are only accepted for vacancies
+ * that are still open AND flagged for the website — you can't apply to an
+ * unpublished or filled role by guessing its id.
  *
  * Abuse controls: per-IP rate limit + honeypot field. Resume upload is inline
  * (base64) and reuses the same validated storage path as enrolment documents.
  */
-import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { uploadFile } from "@/lib/storage";
-import { validateFileContent } from "@/lib/file-validation";
-import { INLINE_BASE64_MAX_UPLOAD } from "@/lib/upload-strategy";
+import { storeResume } from "@/lib/recruitment/resume-upload";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import {
+  POOL_SESSIONS,
+  POOL_DAYS,
+  POOL_SOURCES,
+  normalisePublicSource,
+  sourceLabel,
+} from "@/lib/recruitment/pool";
 
-// 2026-09-25: was 10 MB, which the platform could never deliver — the resume
-// arrives inline as base64 inside the JSON body, so the serverless body cap
-// is the real ceiling and base64 inflates by a third. Anything over ~3.4 MB
-// raw was rejected at the edge before this route ran. Shared with the form so
-// the two cannot drift apart again.
-const MAX_RESUME_SIZE = INLINE_BASE64_MAX_UPLOAD;
-const ALLOWED_EXTENSIONS = new Set([".pdf", ".docx"]);
-const EXTENSION_TO_MIME: Record<string, string> = {
-  ".pdf": "application/pdf",
-  ".docx":
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-};
 
 const applySchema = z.object({
   name: z.string().min(1, "name is required").max(120),
   email: z.string().email("a valid email is required").max(200),
   phone: z.string().max(40).optional().nullable(),
   message: z.string().max(5000).optional().nullable(),
+  // 2026-09-15: the same funnel fields the pool registration form collects, so
+  // an applicant to a specific ad lands in the pool as complete as anyone else.
+  suburb: z.string().max(120).optional().nullable(),
+  postcode: z.string().max(10).optional().nullable(),
+  qualification: z
+    .enum(["cert_iii", "diploma", "bachelor", "masters", "other"])
+    .optional()
+    .nullable(),
+  studying: z.boolean().optional(),
+  previousRole: z.string().max(200).optional().nullable(),
+  previousEmployer: z.string().max(200).optional().nullable(),
+  availableSessions: z.array(z.enum(POOL_SESSIONS)).optional(),
+  availableDays: z.array(z.enum(POOL_DAYS)).optional(),
+  hasTransport: z.boolean().optional(),
+  /**
+   * Where this application came from, carried on the ad's link as `?src=`.
+   * Whitelisted rather than free text — see `normalisePublicSource`. An
+   * unknown value is not an error; it just reads as an ordinary website visit.
+   */
+  source: z.enum(POOL_SOURCES).optional().nullable(),
   resumeFile: z.string().optional().nullable(), // base64, no data: prefix
   resumeFilename: z.string().max(200).optional().nullable(),
   resumeContentType: z.string().max(120).optional().nullable(),
@@ -80,6 +94,7 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
     );
   }
   const data = parsed.data;
+  const source = normalisePublicSource(data.source);
 
   // Honeypot: silently accept (so the bot thinks it worked) but do nothing.
   if (data.company && data.company.trim() !== "") {
@@ -106,50 +121,9 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
     );
   }
 
-  // ── Optional resume upload (inline base64) ───────────────────────────
-  let resumeFileUrl: string | null = null;
-  if (data.resumeFile) {
-    const filename = data.resumeFilename ?? "resume";
-    const ext = path.extname(filename).toLowerCase();
-    if (!ALLOWED_EXTENSIONS.has(ext)) {
-      throw ApiError.badRequest(
-        `Resume must be a PDF or Word (.docx) file (got "${ext || "unknown"}").`,
-      );
-    }
-
-    const buffer = Buffer.from(data.resumeFile, "base64");
-    if (buffer.length === 0) {
-      throw ApiError.badRequest("Resume file is empty or malformed.");
-    }
-    if (buffer.length > MAX_RESUME_SIZE) {
-      throw ApiError.badRequest("Resume exceeds the 10MB limit.");
-    }
-
-    const declaredMime =
-      data.resumeContentType ||
-      EXTENSION_TO_MIME[ext] ||
-      "application/octet-stream";
-    const arrayBuffer = buffer.buffer.slice(
-      buffer.byteOffset,
-      buffer.byteOffset + buffer.byteLength,
-    );
-    if (!validateFileContent(arrayBuffer, declaredMime)) {
-      throw ApiError.badRequest(
-        "Resume content does not match its file type.",
-      );
-    }
-
-    const baseName = path
-      .basename(filename, ext)
-      .replace(/[^a-zA-Z0-9-_]/g, "-")
-      .substring(0, 80);
-    const uniqueName = `${baseName || "resume"}-${Date.now()}${ext}`;
-    const { url } = await uploadFile(buffer, uniqueName, {
-      contentType: declaredMime,
-      folder: "resumes",
-    });
-    resumeFileUrl = url;
-  }
+  // Résumé handling is shared with the pool registration form so the two
+  // public intake paths can't drift on what they accept.
+  const resumeFileUrl = await storeResume(data);
 
   const roleLabel = ROLE_LABELS[vacancy.role] ?? vacancy.role.replace(/_/g, " ");
   const centre = vacancy.service?.name ?? "Amana OSHC";
@@ -160,9 +134,18 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
       name: data.name.trim(),
       email: data.email.trim(),
       phone: data.phone?.trim() || null,
-      source: "website",
+      source,
       notes: data.message?.trim() || null,
       resumeFileUrl,
+      suburb: data.suburb?.trim() || null,
+      postcode: data.postcode?.trim() || null,
+      qualification: data.qualification ?? null,
+      studying: data.studying ?? false,
+      previousRole: data.previousRole?.trim() || null,
+      previousEmployer: data.previousEmployer?.trim() || null,
+      availableSessions: data.availableSessions ?? [],
+      availableDays: data.availableDays ?? [],
+      hasTransport: data.hasTransport ?? false,
     },
     select: { id: true },
   });
@@ -170,6 +153,7 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
   logger.info("Website job application received", {
     candidateId: candidate.id,
     vacancyId: vacancy.id,
+    source,
     role: vacancy.role,
     hasResume: Boolean(resumeFileUrl),
   });
@@ -189,11 +173,11 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
       recipients = owners.map((o) => o.email);
     }
     if (recipients.length > 0) {
-      const dashUrl = `${process.env.NEXTAUTH_URL ?? "https://amanaoshc.company"}/recruitment`;
+      const dashUrl = `${process.env.NEXTAUTH_URL ?? "https://amanaoshc.company"}/hiring`;
       await sendEmail({
         to: recipients,
         subject: `New application: ${roleLabel} — ${centre}`,
-        html: `<p>A new application came in from the website careers page.</p>
+        html: `<p>A new application came in from the ${escapeHtml(sourceLabel(source))} careers link.</p>
                <p><strong>Applicant:</strong> ${escapeHtml(data.name)}</p>
                <p><strong>Role:</strong> ${escapeHtml(roleLabel)} — ${escapeHtml(centre)}</p>
                <p><strong>Email:</strong> ${escapeHtml(data.email)}</p>

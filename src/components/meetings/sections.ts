@@ -7,7 +7,9 @@ import {
   Lightbulb,
   Trophy,
 } from "lucide-react";
+import type { MeetingType } from "@prisma/client";
 import type { L10Section } from "./types";
+import { QUARTERLY_PULSE_SECTIONS } from "./quarterly-sections";
 
 export const L10_SECTIONS: L10Section[] = [
   { key: "segue", label: "Segue", duration: 5, icon: Users, color: "text-purple-600" },
@@ -18,3 +20,12 @@ export const L10_SECTIONS: L10Section[] = [
   { key: "ids", label: "IDS", duration: 60, icon: Lightbulb, color: "text-red-600" },
   { key: "conclude", label: "Conclude", duration: 5, icon: Trophy, color: "text-brand" },
 ];
+
+/**
+ * Resolves the run sheet for a meeting's type. The single lookup used by
+ * ActiveMeetingView and MeetingListView so the two never drift — a new
+ * meeting type only needs adding here once.
+ */
+export function getMeetingSections(type: MeetingType): L10Section[] {
+  return type === "quarterly_pulse" ? QUARTERLY_PULSE_SECTIONS : L10_SECTIONS;
+}

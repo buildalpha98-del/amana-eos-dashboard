@@ -5,6 +5,9 @@ import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
 const updateVacancySchema = z.object({
+  serviceId: z.string().nullable().optional(),
+  /** Catchment for a regional ad — see the create route for why. */
+  region: z.string().max(120).nullable().optional(),
   role: z.string().min(1).optional(),
   employmentType: z.string().optional(),
   qualificationRequired: z.string().nullable().optional(),
