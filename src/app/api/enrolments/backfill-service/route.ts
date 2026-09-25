@@ -25,6 +25,7 @@ import { logAmbassadorEnrolmentForChild } from "@/lib/ambassadors/log-enrolment"
 import { upsertContactsFromSubmission } from "@/lib/enrolment-parent-contacts";
 import { generateBookings } from "@/lib/booking-generator";
 import { stampRequiredRoomIds } from "@/lib/room-resolver";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const bodySchema = z.object({
   /** Write the matches. Omitted = report only. */
@@ -217,7 +218,7 @@ export const POST = withApiAuth(
       summary: countBy(proposals),
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 function countBy(proposals: BackfillProposal[]) {

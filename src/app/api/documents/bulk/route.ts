@@ -7,6 +7,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { validateFileContent } from "@/lib/file-validation";
 import { logger } from "@/lib/logger";
 import { indexDocument } from "@/lib/document-indexer";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -201,4 +202,4 @@ const formData = await req.formData();
     documents: created.map((d) => ({ id: d.id, title: d.title })),
     ...(failedFiles.length > 0 ? { failedFiles } : {}),
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

@@ -23,6 +23,7 @@ import {
   terminateEmployee,
   EhPayrollError,
 } from "@/lib/eh-payroll";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 /**
  * Push the separation to Employment Hero. Fire-and-forget in spirit —
@@ -157,7 +158,7 @@ export const GET = withApiAuth(
     }
     return NextResponse.json({ record });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 /**
@@ -287,7 +288,7 @@ export const POST = withApiAuth(
 
     return NextResponse.json(fresh ?? created, { status: 201 });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const PATCH = withApiAuth(
@@ -397,5 +398,5 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json(updated);
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

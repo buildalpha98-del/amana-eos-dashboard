@@ -30,6 +30,7 @@ import { ApiError } from "@/lib/api-error";
 import { getCentreScope } from "@/lib/centre-scope";
 import { buildListWhere } from "@/lib/employees/build-list-where";
 import { formatEmployeeRow } from "@/lib/employees/format-employee-row";
+import { isAdminRole } from "@/lib/role-permissions";
 
 const querySchema = z.object({
   q: z.string().optional(),
@@ -117,7 +118,7 @@ export const GET = withApiAuth(async (req, session) => {
   // pendingCount drives the admin-only "Resend all pending (N)" button
   // in the page header. Only compute it for admin-tier viewers so we
   // don't pay for a per-page count on every member/staff load.
-  const isAdminTier = ["owner", "head_office", "admin"].includes(role);
+  const isAdminTier = isAdminRole(role);
   const pendingWhere = isAdminTier
     ? {
         active: true,

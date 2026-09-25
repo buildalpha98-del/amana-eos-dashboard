@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const createTemplateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
@@ -74,4 +75,4 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json(template, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

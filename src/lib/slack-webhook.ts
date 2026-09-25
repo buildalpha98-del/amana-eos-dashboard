@@ -12,9 +12,14 @@ function truncate(s: string, n: number): string {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
 
-function buildDashboardUrl(id: string): string {
+function buildDashboardUrl(): string {
+  // /admin/feedback is a bare redirect to /feedback?tab=internal that
+  // drops query params, and neither FeedbackHubContent nor
+  // FeedbackInboxContent reads an `?id=` to open a specific item — an
+  // `?id=` here would silently land on the unscoped inbox. Link straight
+  // at the honest destination until deep-linking a single item is wired up.
   const base = process.env.NEXTAUTH_URL?.replace(/\/$/, "") ?? "";
-  return `${base}/admin/feedback?id=${id}`;
+  return `${base}/feedback?tab=internal`;
 }
 
 async function attempt(url: string, body: string): Promise<void> {
@@ -45,7 +50,7 @@ export async function sendSlackFeedback(payload: SlackFeedbackPayload): Promise<
   if (!url) return;
 
   const body = JSON.stringify({
-    text: `🐛 New ${payload.category} from ${payload.authorName} (${payload.role}): "${truncate(payload.message, 100)}" — ${buildDashboardUrl(payload.id)}`,
+    text: `🐛 New ${payload.category} from ${payload.authorName} (${payload.role}): "${truncate(payload.message, 100)}" — ${buildDashboardUrl()}`,
   });
 
   try {

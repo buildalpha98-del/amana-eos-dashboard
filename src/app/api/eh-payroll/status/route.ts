@@ -22,6 +22,7 @@ import {
   EhPayrollError,
 } from "@/lib/eh-payroll";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const GET = withApiAuth(
   async () => {
@@ -83,5 +84,5 @@ export const GET = withApiAuth(
       error: connectError,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

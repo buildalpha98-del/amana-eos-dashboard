@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const updateCascadeSchema = z.object({
   message: z.string().min(1, "Message is required"),
 });
@@ -78,7 +79,7 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(cascade);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // DELETE /api/communication/cascade/[id] — soft delete
 export const DELETE = withApiAuth(async (req, session, context) => {
@@ -110,4 +111,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

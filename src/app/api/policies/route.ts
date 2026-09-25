@@ -5,9 +5,9 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { saveUploadedBuffer } from "@/app/api/_lib/upload";
 import type { PolicyDocumentCategory } from "@prisma/client";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const POLICY_CATEGORIES = ["policy", "procedure", "other"] as const;
-const ADMIN_ROLES = ["owner", "head_office", "admin"] as const;
 
 const createPolicySchema = z.object({
   title: z.string().min(1, "Title is required").max(200),

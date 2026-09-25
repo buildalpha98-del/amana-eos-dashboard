@@ -33,6 +33,7 @@ import {
   parentMagicLinkEmail,
 } from "@/lib/email-templates/parent-portal";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -196,5 +197,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json({ ok: true, email: account.email });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

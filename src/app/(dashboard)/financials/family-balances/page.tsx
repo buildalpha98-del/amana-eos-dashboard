@@ -8,8 +8,10 @@
  * nobody slips through the cracks.
  */
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
+  AlertTriangle,
   DollarSign,
   Phone,
   Mail,
@@ -115,7 +117,9 @@ function formatDate(iso: string): string {
   });
 }
 
-export default function FamilyBalancesPage() {
+function FamilyBalancesContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { data, isLoading, error, refetch } = useFamilyBalanceContacts();
   // Modal state: either creating (with optional prefill from a same-account
   // clone) OR editing an existing contact. Never both — opening one closes
@@ -158,7 +162,9 @@ export default function FamilyBalancesPage() {
   // rows and already sends each contact's centre, so filtering here
   // costs nothing and keeps the counts on the cards honest — they
   // describe what's on screen rather than what's in the database.
-  const [search, setSearch] = useState("");
+  // Arriving from a /billing/aged-debtors "chase" link carries the
+  // family's name as ?search= so the log opens pre-filtered to them.
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [serviceFilter, setServiceFilter] = useState("");
   const [whoFilter, setWhoFilter] = useState("");
   const [outcomeFilter, setOutcomeFilter] = useState("");
@@ -243,6 +249,15 @@ export default function FamilyBalancesPage() {
           icon: Plus,
           onClick: openCreate,
         }}
+        secondaryActions={[
+          // Back to the ageing view this chase log is tracking against —
+          // this page has the same owner/head_office/admin gate.
+          {
+            label: "Aged debtors",
+            icon: AlertTriangle,
+            onClick: () => router.push("/billing/aged-debtors"),
+          },
+        ]}
       />
 
       {error && (
@@ -613,5 +628,19 @@ function ContactsTable({
         </table>
       </div>
     </div>
+  );
+}
+
+/**
+ * 2026-09-25: the content reads `?search=` so a debtor row on
+ * /billing/aged-debtors can deep-link into that family's chase log.
+ * `useSearchParams` opts the subtree into client-side rendering, so it needs a
+ * Suspense boundary or the production build fails to prerender this route.
+ */
+export default function FamilyBalancesPage() {
+  return (
+    <Suspense>
+      <FamilyBalancesContent />
+    </Suspense>
   );
 }

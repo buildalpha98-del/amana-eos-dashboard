@@ -16,6 +16,7 @@ import { getOrgSettings } from "@/lib/org-settings";
 import { sendFirstShiftChecklistEmail } from "@/lib/new-starter-request/first-shift-email";
 import { createStaffRamp } from "@/lib/ramp/create";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 /**
  * Onboarding requests — the Team tab's leadership-only "Onboarding"
@@ -68,7 +69,7 @@ export const GET = withApiAuth(
     });
     return NextResponse.json({ requests });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 // ---------------------------------------------------------------------------
@@ -265,5 +266,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json(withInvite, { status: 201 });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

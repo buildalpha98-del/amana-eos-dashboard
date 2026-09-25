@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { isConfigured, listEmployees, EhPayrollError } from "@/lib/eh-payroll";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const GET = withApiAuth(
   async () => {
@@ -79,5 +80,5 @@ export const GET = withApiAuth(
       unmappedDashboardUsers,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

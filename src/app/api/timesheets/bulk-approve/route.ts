@@ -5,6 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { approveTimesheet } from "@/lib/timesheet-approve";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const bulkApproveSchema = z.object({
   ids: z.array(z.string().min(1)).min(1, "At least one timesheet id is required").max(50, "At most 50 timesheets per bulk approval"),
@@ -66,4 +67,4 @@ export const POST = withApiAuth(async (req, session) => {
   }
 
   return NextResponse.json({ approved, skipped });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

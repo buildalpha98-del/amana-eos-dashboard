@@ -22,7 +22,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-import { isAdminRole } from "@/lib/role-permissions";
+import { ADMIN_ROLES, isAdminRole } from "@/lib/role-permissions";
 import { requireRoomId } from "@/lib/room-resolver";
 import {
   defaultTimesForSession,
@@ -31,7 +31,7 @@ import {
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
-const ORG_WIDE_ROLES = new Set(["owner", "head_office", "admin"]);
+const ORG_WIDE_ROLES = new Set<string>(ADMIN_ROLES);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function userServiceIdOf(session: {

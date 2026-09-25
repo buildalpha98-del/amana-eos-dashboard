@@ -7,6 +7,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const VALID_SECTIONS: NarrativeSection[] = [
   "executive",
   "financial",
@@ -56,4 +57,4 @@ export const POST = withApiAuth(async (req, session, context) => {
       { status: 500 },
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

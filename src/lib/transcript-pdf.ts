@@ -173,7 +173,7 @@ export async function generateTranscriptPdf(
   doc.setFontSize(7);
   doc.setTextColor(150, 150, 150);
   doc.text(
-    "Amana OSHC — generated from the EOS Dashboard LMS. This is an official record of training completion.",
+    "Amana OSHC — generated from the Management Dashboard LMS. This is an official record of training completion.",
     margin,
     290,
   );

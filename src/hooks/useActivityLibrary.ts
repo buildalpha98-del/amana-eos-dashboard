@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { uploadFileSmart } from "@/lib/upload-client";
 import { toast } from "@/hooks/useToast";
 
 // ── Types ─────────────────────────────────────────────────────
@@ -123,22 +124,22 @@ export function useDeleteActivityTemplate() {
   });
 }
 
-// FormData upload — keep raw fetch (mutateApi sets Content-Type to application/json)
+/**
+ * Two steps on purpose (2026-09-25): `uploadFileSmart` puts the bytes in Blob
+ * storage — compressing photos, routing around the ~4.5 MB serverless body cap
+ * and sniffing magic bytes — then we record the returned URL as JSON. The old
+ * single-step FormData POST wrote to the serverless filesystem, which does not
+ * persist on Vercel; see the comment on the route.
+ */
 export function useUploadTemplateFile() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ templateId, file }: { templateId: string; file: File }) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch(`/api/activity-templates/${templateId}/files`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to upload file");
-      }
-      return res.json() as Promise<ActivityTemplateFile>;
+      const uploaded = await uploadFileSmart(file);
+      return mutateApi<ActivityTemplateFile>(
+        `/api/activity-templates/${templateId}/files`,
+        { method: "POST", body: uploaded },
+      );
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["activity-templates"] });

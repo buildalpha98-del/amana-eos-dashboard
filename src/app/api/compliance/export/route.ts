@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { COMPLIANCE_EXPORT_TYPES as REQUIRED_CERT_TYPES } from "@/lib/required-cert-types";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const TYPE_LABELS: Record<string, string> = {
   wwcc: "WWCC",
@@ -141,4 +142,4 @@ const { searchParams } = new URL(req.url);
       "Content-Disposition": `attachment; filename="compliance-matrix-${today}.csv"`,
     },
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

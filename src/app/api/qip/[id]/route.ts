@@ -5,6 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const updateQipSchema = z.object({
   status: z.string().optional(),
   documentType: z.string().optional(),
@@ -73,4 +74,4 @@ const { id } = await context!.params!;
     logger.error("QIP PATCH/:id", { err });
     return NextResponse.json({ error: "Failed to update QIP" }, { status: 500 });
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

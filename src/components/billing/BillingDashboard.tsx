@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   AlertTriangle,
   CreditCard,
@@ -12,6 +14,7 @@ import {
   Sparkles,
   XCircle,
 } from "lucide-react";
+import { isAdminRole } from "@/lib/role-permissions";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FamilyBillingSection } from "@/components/billing/FamilyBillingSection";
 import { GenerateStatementDialog } from "@/components/billing/GenerateStatementDialog";
@@ -63,6 +66,11 @@ const STATUS_BADGE: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 export function BillingDashboard() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { data: session } = useSession();
+  const isAdmin = isAdminRole(session?.user?.role);
+
   // Filters
   const [serviceId, setServiceId] = useState("");
   const [view, setView] = useState<"statements" | "families">("statements");
@@ -76,8 +84,20 @@ export function BillingDashboard() {
     contactId: string;
     serviceId: string;
   } | null>(null);
-  const [detailId, setDetailId] = useState<string | null>(null);
+  // Deep-linked from /billing/aged-debtors ("Invoice ..." link on an
+  // expanded family row) via ?statementId= — there's no separate
+  // /billing/statements page, this panel IS the statement detail view.
+  const [detailId, setDetailId] = useState<string | null>(
+    () => searchParams.get("statementId"),
+  );
   const [voidConfirmId, setVoidConfirmId] = useState<string | null>(null);
+
+  const closeDetail = () => {
+    setDetailId(null);
+    if (searchParams.get("statementId")) {
+      router.replace("/billing");
+    }
+  };
 
   // Data
   const { data, isLoading } = useBillingStatements({
@@ -143,6 +163,22 @@ export function BillingDashboard() {
             label: "Generate from bookings",
             icon: Sparkles,
             onClick: () => setGenerateOpen(true),
+          },
+          // 2026-09-25: /billing was a dead end — the natural jump-off
+          // points for a family with an overdue statement (who else
+          // owes money, and the chase log for it) were nav-only.
+          // Gated to match those pages' own access (owner/head_office/admin).
+          {
+            label: "Aged debtors",
+            icon: AlertTriangle,
+            onClick: () => router.push("/billing/aged-debtors"),
+            hidden: !isAdmin,
+          },
+          {
+            label: "Family balances",
+            icon: DollarSign,
+            onClick: () => router.push("/financials/family-balances"),
+            hidden: !isAdmin,
           },
         ]}
       />
@@ -390,7 +426,7 @@ export function BillingDashboard() {
 
       <StatementDetailPanel
         statementId={detailId}
-        onClose={() => setDetailId(null)}
+        onClose={closeDetail}
       />
     </>
   );

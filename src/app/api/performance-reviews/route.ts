@@ -19,6 +19,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES, isAdminRole } from "@/lib/role-permissions";
 
 const TYPES = ["probation", "mid_year", "annual", "ad_hoc"] as const;
 
@@ -32,7 +33,6 @@ const createSchema = z.object({
   privateNotes: z.string().max(20_000).optional().nullable(),
 });
 
-const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
 
 function stripPrivate<T extends { privateNotes?: string | null }>(review: T): T {
   // Subjects never see privateNotes. Cheaper than building a parallel
@@ -60,7 +60,7 @@ export const GET = withApiAuth(async (req, session) => {
   } else if (userId === callerId) {
     subjectId = callerId;
   } else {
-    if (!ADMIN_ROLES.has(role)) throw ApiError.forbidden();
+    if (!isAdminRole(role)) throw ApiError.forbidden();
     subjectId = userId;
   }
 
@@ -75,7 +75,7 @@ export const GET = withApiAuth(async (req, session) => {
   });
 
   // Strip privateNotes from rows the subject is reading themselves.
-  const isAdmin = ADMIN_ROLES.has(role);
+  const isAdmin = isAdminRole(role);
   const out = isAdmin ? reviews : reviews.map(stripPrivate);
 
   return NextResponse.json({ reviews: out });
@@ -163,5 +163,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json(created, { status: 201 });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

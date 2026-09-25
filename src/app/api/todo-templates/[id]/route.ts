@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const patchSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional(),
@@ -64,7 +65,7 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(template);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // DELETE /api/todo-templates/[id] — soft delete (set isActive=false)
 export const DELETE = withApiAuth(async (req, session, context) => {
@@ -93,4 +94,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const createTouchpointSchema = z.object({
   type: z.string().min(1, "Type is required"),
   channel: z.string().min(1, "Channel is required"),
@@ -30,7 +31,7 @@ export const GET = withApiAuth(async (req, session, context) => {
       { status: 500 },
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // POST /api/enquiries/[id]/touchpoints — create a touchpoint
 export const POST = withApiAuth(async (req, session, context) => {
@@ -65,4 +66,4 @@ export const POST = withApiAuth(async (req, session, context) => {
       { status: 500 },
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

@@ -11,6 +11,22 @@ import { isEosRole } from "@/lib/role-enum";
 export const ADMIN_ROLES = ["owner", "admin", "head_office"] as const;
 
 /**
+ * The admin tier *as the page layer sees it*, i.e. including `eos`.
+ *
+ * `rolePageAccess.eos` is `allPages.filter(p => !ADMIN_EXCLUDED.has(p))` — the
+ * broad "EOS Member" tier is deliberately given admin-level PAGE access. API
+ * routes, however, were written against the three-role `ADMIN_ROLES` literal,
+ * so an EOS Member could open a page the sidebar offered them and then get a
+ * 403 from the API behind it.
+ *
+ * Use this where a route backs a page that `eos` can genuinely reach. Do NOT
+ * blanket-swap `ADMIN_ROLES` for it: plenty of admin routes (payroll writes,
+ * permission changes, seeding) should stay closed to `eos`, and widening them
+ * is a policy decision, not a refactor.
+ */
+export const ADMIN_ROLES_WITH_EOS = [...ADMIN_ROLES, "eos"] as const;
+
+/**
  * Check whether a role string is an admin role (owner, head_office, or admin).
  * Safe narrowing — accepts any string and returns whether it matches ADMIN_ROLES.
  */
@@ -144,13 +160,18 @@ export const allPages = [
   "/contact-centre",
   "/messaging",
   "/enrolments",
+  // 2026-09-25: `/waitlist` shipped 2026-07-30 with a `core: true` sidebar
+  // entry but was never registered here, so `canAccessPage` returned false for
+  // every role (owner included, since `owner: allPages`) and `filterNavItems`
+  // dropped the item for everyone. The page was reachable only by typing the
+  // URL. Same class as the `/contact-centre` / `/messaging` misses above.
+  "/waitlist",
   "/ambassadors",
   "/families",
   "/children",
   "/children/[id]",
   "/conversions",
   // Operations extras
-  "/roll-call",
   "/bookings",
   "/billing",
   "/reports",
@@ -174,9 +195,19 @@ export const allPages = [
   // so the redirect can fire.
   "/handbook",
   "/tools/the-amana-way",
-    "/tools/handbook",
-    "/tools/amana-way-one-pager",
-    "/tools/employee-handbook",
+  "/tools/handbook",
+  "/tools/amana-way-one-pager",
+  "/tools/employee-handbook",
+  // 2026-09-25: same reason as the block above, three stubs that were missed.
+  // `/staff` → /team, `/wgea-report` + `/diversity-dashboard` →
+  // /workforce-reports. Unregistered, middleware bounced every role (owner
+  // included) to /dashboard BEFORE the page could run its own `redirect()`, so
+  // the bookmark-preservation these files exist for never worked. Note
+  // `/staff/[id]` does not cover the bare `/staff`: `pathMatches` compiles it
+  // to `^/staff/[^/]+(?:/.*)?$`, which requires a trailing segment.
+  "/staff",
+  "/wgea-report",
+  "/diversity-dashboard",
   // Admin
   "/leadership",
   "/automations",
@@ -307,6 +338,10 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
   // service-leader scope going forward.
   member: [
     "/position-descriptions", // 2026-07-12: was missing from role access entirely
+    // 2026-09-25: `/api/waitlist` and `/api/waitlist/offer-spot` both grant
+    // `member`, so a Director of Service is meant to work their own centre's
+    // waitlist. Granting the page to match the API it calls.
+    "/waitlist",
     // ── Personal hub ────────────────────────────────────────────
     "/dashboard",
     "/getting-started",

@@ -12,8 +12,20 @@ import path from "path";
 import { ApiError } from "@/lib/api-error";
 import { uploadFile } from "@/lib/storage";
 import { validateFileContent } from "@/lib/file-validation";
+import { INLINE_BASE64_MAX_UPLOAD } from "@/lib/upload-strategy";
 
-export const MAX_RESUME_SIZE = 10 * 1024 * 1024; // 10 MB
+/**
+ * 2026-09-25: was 10 MB, which the platform could never actually deliver.
+ * The résumé arrives inline as base64 inside the JSON body, so the serverless
+ * body cap — not this number — is the real ceiling, and base64 inflates bytes
+ * by a third. Anything over ~3.4 MB raw was rejected AT THE EDGE before the
+ * route ran: no server log, and an HTML error page where the client expected
+ * JSON, so the applicant saw a generic failure and their application was lost.
+ *
+ * Shared with the forms via `describeInlineOversizeError` so the number the
+ * applicant is told and the number we enforce cannot drift apart.
+ */
+export const MAX_RESUME_SIZE = INLINE_BASE64_MAX_UPLOAD;
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".docx"]);
 const EXTENSION_TO_MIME: Record<string, string> = {
   ".pdf": "application/pdf",
@@ -52,7 +64,9 @@ export async function storeResume(
     throw ApiError.badRequest("Resume file is empty or malformed.");
   }
   if (buffer.length > MAX_RESUME_SIZE) {
-    throw ApiError.badRequest("Resume exceeds the 10MB limit.");
+    throw ApiError.badRequest(
+      `Resume exceeds the ${Math.round((MAX_RESUME_SIZE / (1024 * 1024)) * 10) / 10}MB limit.`,
+    );
   }
 
   const declaredMime =

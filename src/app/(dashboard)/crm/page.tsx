@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useLeads } from "@/hooks/useCRM";
 import type { LeadSummary, LeadFilters } from "@/hooks/useCRM";
 import { CrmKanban } from "@/components/crm/CrmKanban";
@@ -27,6 +28,7 @@ import {
   Handshake,
   Loader2,
   Repeat,
+  Mail,
 } from "lucide-react";
 import { ConversionsContent } from "@/components/crm/ConversionsContent";
 import { ExportButton } from "@/components/ui/ExportButton";
@@ -64,6 +66,7 @@ interface UserOption {
 }
 
 export default function CrmPage() {
+  const router = useRouter();
   // "conversions" joined the view toggle in the 2026-07-05 nav
   // consolidation — /conversions redirects to /crm?view=conversions.
   // window.location (not useSearchParams) so no Suspense boundary is
@@ -130,6 +133,11 @@ export default function CrmPage() {
         description="Sales pipeline & lead management"
         primaryAction={{ label: "New Lead", icon: Plus, onClick: () => setShowCreate(true) }}
         secondaryActions={[
+          {
+            label: "Templates",
+            icon: Mail,
+            onClick: () => router.push("/crm/templates"),
+          },
           {
             label: "Export CSV",
             icon: Download,

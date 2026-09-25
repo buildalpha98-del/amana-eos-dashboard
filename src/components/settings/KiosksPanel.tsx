@@ -81,7 +81,16 @@ export function KiosksPanel() {
       ) : !data?.kiosks?.length ? (
         <p className="text-xs text-muted py-3">
           No kiosks registered yet. Register one and paste the token into the
-          tablet at <code>/kiosk</code>.
+          tablet at{" "}
+          <a
+            href="/kiosk"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand hover:underline"
+          >
+            /kiosk
+          </a>
+          .
         </p>
       ) : (
         <ul className="divide-y divide-border">

@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const bodySchema = z.object({
   email: z.string().email("Valid email is required"),
   firstName: z.string().optional(),
@@ -84,4 +85,4 @@ export const POST = withApiAuth(async (req, session) => {
     contactId: contact.id,
     stepsCreated: created.count,
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

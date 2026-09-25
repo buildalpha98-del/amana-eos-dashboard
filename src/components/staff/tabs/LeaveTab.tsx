@@ -58,7 +58,7 @@ export function LeaveTab({ targetUserId, balances, recentRequests, canRequest }:
           <div className="flex items-center gap-2">
             {canRequest && (
               <Link
-                href="/leave"
+                href="/my-leave"
                 className="inline-flex items-center gap-1.5 text-sm text-brand hover:underline"
               >
                 <PlusCircle className="w-4 h-4" />

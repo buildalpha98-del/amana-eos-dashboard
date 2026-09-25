@@ -5,6 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { publishCourses } from "@/lib/course-publish";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const updateCourseSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional().nullable(),
@@ -140,7 +141,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(course);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // DELETE /api/lms/courses/[id] — soft delete course
 export const DELETE = withApiAuth(async (req, session, context) => {
@@ -152,4 +153,4 @@ export const DELETE = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

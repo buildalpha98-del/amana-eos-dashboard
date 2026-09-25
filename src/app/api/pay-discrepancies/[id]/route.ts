@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { notifyPayDiscrepancyResolved } from "@/lib/pay-discrepancy/notify";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -65,5 +66,5 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json(updated);
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

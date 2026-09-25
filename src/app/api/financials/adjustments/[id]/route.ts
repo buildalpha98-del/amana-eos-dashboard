@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const patchAdjustmentSchema = z.object({
   periodMonth: z.string().min(1).optional(),
   category: z.enum(["personal_expense", "one_off_cost", "non_operating", "system_migration", "founder_above_market", "other"]).optional(),
@@ -51,4 +52,4 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     logger.error("Adjustments PATCH/:id", { err });
     return NextResponse.json({ error: "Failed to update adjustment" }, { status: 500 });
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

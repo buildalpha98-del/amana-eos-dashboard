@@ -23,10 +23,11 @@ import {
   mergeServiceContent,
   serviceContentSchema,
 } from "@/lib/service-content-shared";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
-const ORG_WIDE_EDIT_ROLES = new Set(["owner", "head_office", "admin"]);
+const ORG_WIDE_EDIT_ROLES = new Set<string>(ADMIN_ROLES);
 
 const MAX_BYTES = 100_000;
 

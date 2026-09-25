@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
+import { isAdminRole } from "@/lib/role-permissions";
 
 const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
-const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
 
 /**
  * POST /api/services/[id]/newsletter/generate
@@ -26,7 +26,7 @@ export const POST = withApiAuth(
     ) {
       throw ApiError.forbidden("You do not have access to this service");
     }
-    if (!ADMIN_ROLES.has(session.user.role) && session.user.role !== "member") {
+    if (!isAdminRole(session.user.role) && session.user.role !== "member") {
       throw ApiError.forbidden(
         "Only coordinators and admins can generate newsletters",
       );

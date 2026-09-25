@@ -4,9 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import type { PolicyDocumentCategory } from "@prisma/client";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const POLICY_CATEGORIES = ["policy", "procedure", "other"] as const;
-const ADMIN_ROLES = ["owner", "head_office", "admin"] as const;
 
 const updatePolicySchema = z.object({
   title: z.string().min(1).max(200).optional(),

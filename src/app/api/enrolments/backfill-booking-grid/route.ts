@@ -30,6 +30,7 @@ import { logger } from "@/lib/logger";
 import { backfillBookingGrid } from "@/lib/booking-grid";
 import { generateBookings } from "@/lib/booking-generator";
 import { stampRequiredRoomIds } from "@/lib/room-resolver";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const bodySchema = z.object({
   /** Write the repairs. Omitted = report only. */
@@ -217,7 +218,7 @@ export const POST = withApiAuth(
       summary: summarise(proposals),
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 /**

@@ -31,6 +31,7 @@ import { logger } from "@/lib/logger";
 import { computeEligibility } from "@/lib/casual-conversion";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
 import { notifyUser } from "@/lib/notify-user";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const DEDUP_WINDOW_DAYS = 60;
 
@@ -52,7 +53,7 @@ export const GET = withApiHandler(async (req) => {
     // can see the eligibility status on the staff profile but don't
     // own the conversion decision.
     const recipients = await prisma.user.findMany({
-      where: { active: true, role: { in: ["owner", "head_office", "admin"] } },
+      where: { active: true, role: { in: [...ADMIN_ROLES] } },
       select: { id: true, name: true, email: true },
     });
     if (recipients.length === 0) {

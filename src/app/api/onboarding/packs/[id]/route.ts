@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const updatePackSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional().nullable(),
@@ -64,7 +65,7 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(pack);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // DELETE /api/onboarding/packs/[id] — soft delete pack
 export const DELETE = withApiAuth(async (req, session, context) => {
@@ -76,4 +77,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

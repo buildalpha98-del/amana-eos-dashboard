@@ -21,8 +21,8 @@ import { hash } from "bcryptjs";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import type { Role } from "@prisma/client";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
-const ADMIN_ROLES: Role[] = ["owner", "head_office", "admin"];
 
 const createKioskSchema = z.object({
   serviceId: z.string().min(1),
@@ -78,7 +78,7 @@ export const POST = withApiAuth(
       { status: 201 },
     );
   },
-  { roles: ADMIN_ROLES },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const GET = withApiAuth(
@@ -101,5 +101,5 @@ export const GET = withApiAuth(
     });
     return NextResponse.json({ kiosks });
   },
-  { roles: ADMIN_ROLES },
+  { roles: [...ADMIN_ROLES] },
 );

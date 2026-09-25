@@ -22,6 +22,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { upsertContactsFromSubmission } from "@/lib/enrolment-parent-contacts";
 import { isPlacementReason } from "@/lib/placement-reason";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -250,5 +251,5 @@ export const POST = withApiAuth(
       moved: move,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

@@ -6,6 +6,7 @@ import { skipIfServiceAlertsPaused } from "@/lib/service-alerts-pause";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { siteUrl } from "@/lib/site-url";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const BRAND_COLOR = "#004E64";
 const ACCENT_COLOR = "#FECE00";
@@ -230,7 +231,7 @@ export const GET = withApiHandler(async (req) => {
     // ── 4. Send to owner/admin/head_office users ────────────
     const recipients = await prisma.user.findMany({
       where: {
-        role: { in: ["owner", "admin", "head_office"] },
+        role: { in: [...ADMIN_ROLES] },
         active: true,
       },
       select: { name: true, email: true },

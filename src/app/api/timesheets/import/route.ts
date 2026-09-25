@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/api-error";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const importEntrySchema = z.object({
   email: z.string().email(),
   date: z.string().min(1),
@@ -138,4 +139,4 @@ export const POST = withApiAuth(async (req, session) => {
     unmatched,
     entriesCreated: created.count,
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

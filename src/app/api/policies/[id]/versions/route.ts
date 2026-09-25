@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { saveUploadedBuffer } from "@/app/api/_lib/upload";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
-const ADMIN_ROLES = ["owner", "head_office", "admin"] as const;
 
 // POST /api/policies/[id]/versions — upload a new PDF version of an existing
 // policy. Auto-bumps versionNumber, repoints currentVersion. Because

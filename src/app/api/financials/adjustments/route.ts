@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const createAdjustmentSchema = z.object({
   periodMonth: z.string().min(1),
   category: z.enum(["personal_expense", "one_off_cost", "non_operating", "system_migration", "founder_above_market", "other"]),
@@ -69,7 +70,7 @@ export const GET = withApiAuth(async (req, session) => {
     logger.error("Adjustments GET", { err });
     return NextResponse.json({ error: "Failed to fetch adjustments" }, { status: 500 });
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 /**
  * POST /api/financials/adjustments
@@ -104,7 +105,7 @@ try {
     logger.error("Adjustments POST", { err });
     return NextResponse.json({ error: "Failed to create adjustment" }, { status: 500 });
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 /**
  * DELETE /api/financials/adjustments

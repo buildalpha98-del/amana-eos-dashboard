@@ -221,7 +221,7 @@ function emailShell(opts: {
           </td></tr></table>
         </td></tr>
         <tr><td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
-          <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">${brandName} &mdash; EOS Dashboard<br/>${opts.footerNote}</p>
+          <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">${brandName} &mdash; Management Dashboard<br/>${opts.footerNote}</p>
         </td></tr>
       </table>
     </td></tr>

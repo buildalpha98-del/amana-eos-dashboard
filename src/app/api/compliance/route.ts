@@ -10,6 +10,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { uploadFile } from "@/lib/storage";
 import { notifyUsers } from "@/lib/notify-user";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { refreshInductionAfterBlockerChange } from "@/lib/induction";
 // Reject expiry dates that fall before today — uploading an already-expired
 // cert is a UX trap (the row would immediately read "expired"). Today itself
@@ -248,7 +249,7 @@ export const POST = withApiAuth(async (req, session) => {
       const admins = await prisma.user.findMany({
         where: {
           active: true,
-          role: { in: ["owner", "head_office", "admin"] },
+          role: { in: [...ADMIN_ROLES] },
         },
         select: { id: true },
       });

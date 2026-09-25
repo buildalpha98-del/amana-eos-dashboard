@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 // GET /api/activity-log — paginated activity log
 export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
@@ -32,4 +33,4 @@ export const GET = withApiAuth(async (req, session) => {
     page,
     totalPages: Math.ceil(total / limit),
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

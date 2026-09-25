@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const patchSchema = z.object({
   itemIds: z.array(z.string().min(1)).min(1, "itemIds array is required"),
 });
@@ -49,4 +50,4 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   );
 
   return NextResponse.json({ reordered: itemIds.length });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

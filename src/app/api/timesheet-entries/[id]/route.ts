@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 // Parent-sheet statuses under which entries may no longer be edited or deleted.
 const LOCKED_STATUSES: string[] = ["approved", "exported_to_xero"];
@@ -89,7 +90,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(updated);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // DELETE /api/timesheet-entries/[id] — delete single entry
 export const DELETE = withApiAuth(async (req, session, context) => {
@@ -114,4 +115,4 @@ export const DELETE = withApiAuth(async (req, session, context) => {
   await prisma.timesheetEntry.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

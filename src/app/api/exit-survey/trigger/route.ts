@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const triggerSchema = z.object({
   serviceId: z.string().min(1),
@@ -106,4 +107,4 @@ export const POST = withApiAuth(async (req) => {
     surveyToken,
     expiresAt: tokenExpiresAt,
   }, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

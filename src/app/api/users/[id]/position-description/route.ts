@@ -23,6 +23,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES, isAdminRole } from "@/lib/role-permissions";
 
 const bodySchema = z.object({
   positionDescriptionId: z.string().nullable(),
@@ -32,14 +33,13 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
 
 export const GET = withApiAuth(async (_req, session, context) => {
   const { id: targetUserId } = await (context as unknown as RouteContext).params;
   const role = session!.user.role;
   const callerId = session!.user.id;
 
-  if (!ADMIN_ROLES.has(role) && callerId !== targetUserId) {
+  if (!isAdminRole(role) && callerId !== targetUserId) {
     throw ApiError.forbidden();
   }
 
@@ -56,7 +56,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
   // Hide drafts from non-admin readers (admin assigning by mistake).
   const pd = user.positionDescription;
   const visiblePd =
-    pd && pd.status === "draft" && !ADMIN_ROLES.has(role) ? null : pd;
+    pd && pd.status === "draft" && !isAdminRole(role) ? null : pd;
 
   return NextResponse.json({
     positionDescriptionId: user.positionDescriptionId,
@@ -146,5 +146,5 @@ export const PUT = withApiAuth(
 
     return NextResponse.json(updated);
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

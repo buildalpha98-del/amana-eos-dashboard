@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const reorderSchema = z.object({
   serviceId: z.string().min(1, "serviceId is required"),
@@ -31,4 +32,4 @@ export const POST = withApiAuth(async (req: NextRequest) => {
     serviceId,
     count: orderedIds.length,
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

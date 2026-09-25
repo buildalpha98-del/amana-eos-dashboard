@@ -20,6 +20,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES, isAdminRole } from "@/lib/role-permissions";
 
 const STATUSES = ["draft", "published", "archived"] as const;
 const ROLES: Role[] = [
@@ -41,7 +42,6 @@ const patchSchema = z.object({
   status: z.enum(STATUSES).optional(),
 });
 
-const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -50,7 +50,7 @@ interface RouteContext {
 export const GET = withApiAuth(async (_req, session, context) => {
   const { id } = await (context as unknown as RouteContext).params;
   const role = session!.user.role;
-  const isAdmin = ADMIN_ROLES.has(role);
+  const isAdmin = isAdminRole(role);
 
   const pd = await prisma.positionDescription.findUnique({
     where: { id },
@@ -148,7 +148,7 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json(updated);
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const DELETE = withApiAuth(

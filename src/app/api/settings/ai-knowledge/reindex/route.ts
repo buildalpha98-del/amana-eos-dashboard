@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { indexDocument } from "@/lib/document-indexer";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const maxDuration = 300;
 
@@ -100,5 +101,5 @@ export const POST = withApiAuth(
       failures,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

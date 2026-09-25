@@ -34,6 +34,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { indexDocument } from "@/lib/document-indexer";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const ALLOWED_CONTENT_TYPES = [
   "application/pdf",
@@ -201,7 +202,7 @@ export const POST = withApiAuth(
       throw ApiError.badRequest(message);
     }
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 /**

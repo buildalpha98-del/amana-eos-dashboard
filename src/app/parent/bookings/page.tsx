@@ -1,10 +1,13 @@
 "use client";
 
-import { useV2Flag } from "../utils/useV2Flag";
-import BookingsV1 from "./BookingsV1";
-import BookingsV2 from "./BookingsV2";
+/**
+ * 2026-09-25: the V1/V2 switch is gone, same reasoning as Home and Child
+ * Detail — NEXT_PUBLIC_PARENT_PORTAL_V2 was never set in production, so
+ * BookingsV2 had never rendered for a single family while every change to
+ * Bookings had to be made twice or silently rot in the copy nobody could
+ * reach.
+ */
 
-export default function BookingsPage() {
-  const v2 = useV2Flag();
-  return v2 ? <BookingsV2 /> : <BookingsV1 />;
-}
+import ParentBookings from "./BookingsV1";
+
+export default ParentBookings;

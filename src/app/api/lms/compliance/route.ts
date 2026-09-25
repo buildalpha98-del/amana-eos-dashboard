@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { getTrainingComplianceReport } from "@/lib/training-compliance";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 /**
  * GET /api/lms/compliance
@@ -14,5 +15,5 @@ export const GET = withApiAuth(
     const report = await getTrainingComplianceReport();
     return NextResponse.json(report);
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

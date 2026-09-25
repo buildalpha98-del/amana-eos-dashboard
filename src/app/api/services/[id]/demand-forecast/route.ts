@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { getWeekStart } from "@/lib/utils";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 /**
  * GET /api/services/[id]/demand-forecast
@@ -236,5 +237,5 @@ const { id: serviceId } = await context!.params!;
       { status: 500 },
     );
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 

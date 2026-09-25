@@ -13,6 +13,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const CONTACT_METHODS = ["email", "phone", "sms", "in_person"] as const;
 const CONTACT_OUTCOMES = [
@@ -89,7 +90,7 @@ export const PATCH = withApiAuth(
       amountOwing: Number(updated.amountOwing),
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );
 
 export const DELETE = withApiAuth(
@@ -114,5 +115,5 @@ export const DELETE = withApiAuth(
 
     return NextResponse.json({ ok: true });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

@@ -120,3 +120,36 @@ export function describeRecordingOversizeError(sizeBytes: number): string {
   if (sizeBytes <= RECORDING_MAX_UPLOAD) return "";
   return `That recording is ${asMb(sizeBytes)}MB — the limit is ${asMb(RECORDING_MAX_UPLOAD)}MB. Export a lower-quality or audio-only version and try again.`;
 }
+
+// ── Inline base64 lane (public forms, 2026-09-25) ───────────────────────
+// The public careers form cannot use `uploadFileSmart`: both `/api/upload`
+// and `/api/upload/blob-token` are `withApiAuth`, and exposing an
+// unauthenticated blob-token endpoint would let anyone write to our Blob
+// store. So the resume travels inline, base64-encoded, inside the JSON body.
+//
+// That makes the serverless body cap the real ceiling, and base64 inflates
+// bytes by 4/3. The form previously advertised the general 10 MB limit, so
+// every resume over ~3.4 MB was rejected AT THE EDGE before the route ran —
+// no server log, and an HTML error page where the client expected JSON. The
+// applicant saw a generic failure and their application was lost.
+//
+// This ceiling is the honest one: the largest raw file whose base64 form,
+// plus the rest of the JSON body, still fits under SERVERLESS_BODY_LIMIT.
+
+/** Encoded size of `n` raw bytes under base64 (4 bytes out per 3 in, padded). */
+export function base64EncodedSize(rawBytes: number): number {
+  return Math.ceil(rawBytes / 3) * 4;
+}
+
+/**
+ * Raw-byte ceiling for a file sent inline as base64 JSON. 2.5 MB encodes to
+ * ~3.4 MB, leaving ~600 KB of headroom under the 4 MB cap for the other form
+ * fields and JSON overhead.
+ */
+export const INLINE_BASE64_MAX_UPLOAD = Math.floor(2.5 * 1024 * 1024);
+
+/** Oversize message for the inline-base64 lane ("" when the size is fine). */
+export function describeInlineOversizeError(sizeBytes: number): string {
+  if (sizeBytes <= INLINE_BASE64_MAX_UPLOAD) return "";
+  return `That file is ${asMb(sizeBytes)}MB — the limit is ${asMb(INLINE_BASE64_MAX_UPLOAD)}MB. Save it as a PDF, or reduce the quality, and try again.`;
+}

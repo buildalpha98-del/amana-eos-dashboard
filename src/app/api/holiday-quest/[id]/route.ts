@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const patchSchema = z.object({
   theme: z.string().optional(),
   morningActivity: z.string().optional(),
@@ -69,7 +70,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(updated);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 /**
  * DELETE /api/holiday-quest/[id] — delete a day
@@ -85,4 +86,4 @@ export const DELETE = withApiAuth(async (req, session, context) => {
   await prisma.holidayQuestDay.delete({ where: { id } });
 
   return NextResponse.json({ deleted: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

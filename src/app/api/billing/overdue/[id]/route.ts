@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const patchSchema = z.object({
   amountPaid: z.number().optional(),
   reminderStatus: z.string().optional(),
@@ -95,7 +96,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     logger.error("Billing Overdue PATCH/:id", { err });
     return NextResponse.json({ error: "Failed to update record" }, { status: 500 });
   }
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 /**
  * DELETE /api/billing/overdue/[id]

@@ -1,24 +1,33 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { withApiAuth } from "@/lib/server-auth";
-import { validateFileContent } from "@/lib/file-validation";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { safeAttachmentUrl } from "@/lib/schemas/message-attachments";
+import { UPLOAD_ALLOWED_MIMES } from "@/lib/upload-strategy";
 
-const ALLOWED_TYPES = [
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "text/plain",
-  "text/csv",
-  "image/png",
-  "image/jpeg",
-  "image/gif",
-  "image/webp",
-];
+/**
+ * 2026-09-25: this route used to accept the raw file as multipart and write it
+ * with `fs.writeFile` into `process.cwd()/public/uploads`, storing
+ * `fileUrl: "/uploads/<name>"`. On Vercel the serverless filesystem is
+ * read-only outside /tmp and is discarded between invocations, so in
+ * production the write failed (or the bytes vanished) and the DB row was left
+ * pointing at a URL that 404s. Template attachments have never worked there.
+ *
+ * It now follows the house convention documented in CLAUDE.md: the client
+ * calls `uploadFileSmart()`, which compresses, routes around the ~4.5 MB
+ * serverless body cap, sniffs magic bytes and returns a Vercel Blob URL. This
+ * route only records the resulting metadata — and only ever accepts a URL on
+ * our own Blob host (`safeAttachmentUrl`), never an arbitrary one.
+ */
 
-const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+const fileInputSchema = z.object({
+  fileName: z.string().min(1).max(300),
+  fileUrl: safeAttachmentUrl,
+  fileSize: z.number().int().min(0),
+  mimeType: z.enum(UPLOAD_ALLOWED_MIMES),
+});
 
 // GET /api/activity-templates/[id]/files
 export const GET = withApiAuth(async (req, session, context) => {
@@ -32,74 +41,35 @@ export const GET = withApiAuth(async (req, session, context) => {
   return NextResponse.json(files);
 });
 
-// POST /api/activity-templates/[id]/files — upload file
-export const POST = withApiAuth(async (req, session, context) => {
-const { id } = await context!.params!;
+// POST /api/activity-templates/[id]/files — record an uploaded file
+export const POST = withApiAuth(
+  async (req, session, context) => {
+    const { id } = await context!.params!;
 
-  // Verify template exists
-  const template = await prisma.activityTemplate.findFirst({
-    where: { id, deleted: false },
-    select: { id: true },
-  });
+    const template = await prisma.activityTemplate.findFirst({
+      where: { id, deleted: false },
+      select: { id: true },
+    });
+    if (!template) throw ApiError.notFound("Template not found");
 
-  if (!template) {
-    return NextResponse.json({ error: "Template not found" }, { status: 404 });
-  }
-
-  const formData = await req.formData();
-  const file = formData.get("file") as File | null;
-
-  if (!file) {
-    return NextResponse.json({ error: "No file provided" }, { status: 400 });
-  }
-
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    return NextResponse.json(
-      { error: `File type ${file.type} is not allowed` },
-      { status: 400 }
-    );
-  }
-
-  if (file.size > MAX_SIZE) {
-    return NextResponse.json({ error: "File exceeds 10MB limit" }, { status: 400 });
-  }
-
-  const bytes = await file.arrayBuffer();
-
-  // Validate file content matches declared MIME type (skip for text/csv and text/plain)
-  if (file.type !== "text/csv" && file.type !== "text/plain") {
-    if (!validateFileContent(bytes, file.type)) {
-      return NextResponse.json(
-        { error: "File content does not match declared type" },
-        { status: 400 },
-      );
+    const body = await parseJsonBody(req);
+    const parsed = fileInputSchema.safeParse(body);
+    if (!parsed.success) {
+      throw ApiError.badRequest("Invalid file details", parsed.error.flatten());
     }
-  }
 
-  const ext = path.extname(file.name) || "";
-  const baseName = path
-    .basename(file.name, ext)
-    .replace(/[^a-zA-Z0-9-_]/g, "-")
-    .substring(0, 50);
-  const uniqueName = `${baseName}-${Date.now()}${ext}`;
+    const record = await prisma.activityTemplateFile.create({
+      data: {
+        templateId: id,
+        fileName: parsed.data.fileName,
+        fileUrl: parsed.data.fileUrl,
+        fileSize: parsed.data.fileSize,
+        mimeType: parsed.data.mimeType,
+        uploadedById: session!.user.id,
+      },
+    });
 
-  const uploadsDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadsDir, { recursive: true });
-
-  const buffer = Buffer.from(bytes);
-  const filePath = path.join(uploadsDir, uniqueName);
-  await writeFile(filePath, buffer);
-
-  const record = await prisma.activityTemplateFile.create({
-    data: {
-      templateId: id,
-      fileName: file.name,
-      fileUrl: `/uploads/${uniqueName}`,
-      fileSize: file.size,
-      mimeType: file.type,
-      uploadedById: session!.user.id,
-    },
-  });
-
-  return NextResponse.json(record, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+    return NextResponse.json(record, { status: 201 });
+  },
+  { roles: [...ADMIN_ROLES] },
+);

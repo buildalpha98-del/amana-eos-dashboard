@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const createMessageSchema = z.object({
   body: z.string().min(1, "Message body is required"),
 });
@@ -23,7 +24,7 @@ export const GET = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(messages);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // POST /api/tickets/[id]/messages — send a reply
 export const POST = withApiAuth(async (req, session, context) => {
@@ -100,4 +101,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(message, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

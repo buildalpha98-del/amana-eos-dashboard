@@ -14,7 +14,7 @@
 import { Fragment, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ChevronDown, Mail, Search } from "lucide-react";
+import { AlertTriangle, ChevronDown, Mail, Phone, Search } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -361,6 +361,19 @@ export default function AgedDebtorsPage() {
                                 <Mail className="w-4 h-4" />
                               </a>
                             )}
+                            {/* Into the chase log for this family — the
+                                ageing view says who owes what, the chase
+                                log is where the contact attempt gets
+                                recorded. */}
+                            <Link
+                              href={`/financials/family-balances?search=${encodeURIComponent(
+                                f.name,
+                              )}`}
+                              aria-label={`Log a chase attempt for ${f.name}`}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:text-brand hover:bg-surface"
+                            >
+                              <Phone className="w-4 h-4" />
+                            </Link>
                             <button
                               type="button"
                               onClick={() =>
@@ -393,7 +406,7 @@ export default function AgedDebtorsPage() {
                                     className="flex items-center gap-3 text-xs"
                                   >
                                     <Link
-                                      href={`/billing/statements?id=${s.id}`}
+                                      href={`/billing?statementId=${s.id}`}
                                       className="text-brand hover:underline"
                                     >
                                       Invoice {s.id.slice(-6)}

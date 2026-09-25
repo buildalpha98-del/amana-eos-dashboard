@@ -286,6 +286,7 @@ export function RegistersClient({
             description="A formal record of the nominated supervisor for each service, including date of nomination and acceptance of consent. Currently this dashboard tracks coordinators via User.role = 'member' but doesn't capture the formal nomination consent."
             recommendation="Until this register is built, keep nomination consent forms in the documents library tagged 'nominated_supervisor' and surface them here in the next iteration."
             icon={UserCog}
+            href="/documents"
           />
         </section>
       )}
@@ -297,6 +298,7 @@ export function RegistersClient({
             description="Required for any volunteer or student over 18 who participates in education and care while at the service. Captures full name, address, date of birth, dates of attendance, and evidence of WWCC."
             recommendation="If you currently engage volunteers (e.g. parent helpers, work-experience students), keep paper records in a tagged document folder until this register is built."
             icon={HeartHandshake}
+            href="/documents"
           />
         </section>
       )}
@@ -354,11 +356,13 @@ function PlaceholderTab({
   description,
   recommendation,
   icon: Icon,
+  href,
 }: {
   title: string;
   description: string;
   recommendation: string;
   icon: React.ComponentType<{ className?: string }>;
+  href?: string;
 }) {
   return (
     <div className="rounded-lg border border-dashed border-border p-8 max-w-2xl">
@@ -368,6 +372,14 @@ function PlaceholderTab({
       <p className="text-sm text-foreground/80 mt-3">
         <span className="font-medium">In the meantime:</span> {recommendation}
       </p>
+      {href && (
+        <Link
+          href={href}
+          className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline mt-3"
+        >
+          Open documents library
+        </Link>
+      )}
     </div>
   );
 }

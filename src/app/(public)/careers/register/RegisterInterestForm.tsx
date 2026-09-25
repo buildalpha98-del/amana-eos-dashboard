@@ -19,6 +19,7 @@ import {
   RIGHT_TO_WORK,
   RIGHT_TO_WORK_LABELS,
 } from "@/lib/recruitment/pool";
+import { describeInlineOversizeError } from "@/lib/upload-strategy";
 
 const QUALIFICATIONS = [
   { value: "", label: "No qualification yet" },
@@ -29,7 +30,6 @@ const QUALIFICATIONS = [
   { value: "other", label: "Something else" },
 ];
 
-const MAX_RESUME_BYTES = 10 * 1024 * 1024;
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -99,9 +99,13 @@ export function RegisterInterestForm({ source }: Props) {
     try {
       let resumeFields = {};
       if (resume) {
-        if (resume.size > MAX_RESUME_BYTES) {
-          throw new Error("Your résumé needs to be under 10MB.");
-        }
+        // The real ceiling is the serverless body cap, not a round 10MB:
+        // this résumé travels inline as base64, which inflates it by a third,
+        // so anything larger is rejected at the edge before the route runs and
+        // the registration is lost with no server log. Same fix as the
+        // per-vacancy apply form.
+        const oversize = describeInlineOversizeError(resume.size);
+        if (oversize) throw new Error(oversize);
         resumeFields = {
           resumeFile: await fileToBase64(resume),
           resumeFilename: resume.name,
@@ -122,6 +126,13 @@ export function RegisterInterestForm({ source }: Props) {
         }),
       });
       if (!res.ok) {
+        // A 413 from the platform edge is an HTML page, not our JSON error
+        // shape — say something useful instead of a generic failure.
+        if (res.status === 413) {
+          throw new Error(
+            "Your résumé is too large to send. Please attach a smaller file and try again.",
+          );
+        }
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? "Something went wrong. Please try again.");
       }
@@ -251,7 +262,7 @@ export function RegisterInterestForm({ source }: Props) {
       </div>
 
       <label className="block">
-        <span className="text-sm font-medium text-foreground/80">Résumé (PDF or Word)</span>
+        <span className="text-sm font-medium text-foreground/80">Résumé (PDF or Word, up to 2.5MB)</span>
         <input
           type="file"
           accept=".pdf,.docx"

@@ -76,6 +76,22 @@
 
   /* Overshoot easing for tap affordances */
   --ease-spring-gentle: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─── Auth "dawn" backdrop ──────────────────────────────── */
+  /* The signed-out shell (login, forgot/reset password, enrol, parent
+     signup, not-found) used to hardcode
+     `from-[#001824] via-[#003344] to-[#0A5E7E]` in nine separate files.
+     Tokenised so the sky is edited once. The three stops read as night →
+     brand teal → the lit edge of the horizon. */
+  --color-auth-sky-top: #001824;
+  --color-auth-sky-mid: #00374A;
+  --color-auth-sky-low: #0A5E7E;
+  /* Warm light pooling at the horizon — the only place accent is allowed to
+     bleed into a large area, because it reads as sunlight rather than UI.
+     Deliberately AMBER, not the accent yellow: yellow over a blue-teal sky
+     lands on a pale yellow-green, so the warm stop has to carry the gold. */
+  --color-auth-glow: rgba(214, 121, 18, 0.42);
+  --color-auth-glow-soft: rgba(254, 206, 0, 0.20);
 }
 
 /* ─── Base ──────────────────────────────────────────────── */

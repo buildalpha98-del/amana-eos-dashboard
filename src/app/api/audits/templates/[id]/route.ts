@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const patchSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
@@ -206,7 +207,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json({ ...template, ...(respread ? { respread } : {}) });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 /**
  * DELETE /api/audits/templates/[id] — permanently remove a template

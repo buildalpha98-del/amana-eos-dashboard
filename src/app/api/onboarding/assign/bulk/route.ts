@@ -24,6 +24,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const bulkSchema = z.object({
   onboardingIds: z.array(z.string().min(1)).min(1).max(500),
@@ -80,5 +81,5 @@ export const POST = withApiAuth(
       notFound: onboardingIds.length - found.length,
     });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

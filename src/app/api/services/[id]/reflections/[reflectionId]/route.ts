@@ -3,9 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { updateReflectionSchema } from "@/lib/schemas/staff-reflection";
+import { isAdminRole } from "@/lib/role-permissions";
 
 const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
-const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
 
 function ensureServiceAccess(
   role: string,
@@ -37,7 +37,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   const ref = await loadReflection(id, reflectionId);
   // Only author or admin-up can edit.
-  if (ref.authorId !== session.user.id && !ADMIN_ROLES.has(session.user.role)) {
+  if (ref.authorId !== session.user.id && !isAdminRole(session.user.role)) {
     throw ApiError.forbidden("Only the author or an admin can edit this reflection");
   }
 
@@ -80,7 +80,7 @@ export const DELETE = withApiAuth(async (_req, session, context) => {
   ensureServiceAccess(session.user.role, session.user.serviceId, id);
 
   const ref = await loadReflection(id, reflectionId);
-  if (ref.authorId !== session.user.id && !ADMIN_ROLES.has(session.user.role)) {
+  if (ref.authorId !== session.user.id && !isAdminRole(session.user.role)) {
     throw ApiError.forbidden(
       "Only the author or an admin can delete this reflection",
     );

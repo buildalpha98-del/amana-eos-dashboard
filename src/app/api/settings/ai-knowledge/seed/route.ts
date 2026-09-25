@@ -16,6 +16,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { indexTextContent } from "@/lib/document-indexer";
 import { KNOWLEDGE_SEEDS } from "@/lib/ai-knowledge-seeds";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const KNOWLEDGE_FILE_URL = "internal://knowledge";
 
@@ -85,5 +86,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json({ results });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

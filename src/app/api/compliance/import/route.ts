@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import type { CertificateType } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const COLUMN_MAP: Record<string, string[]> = {
   staffName: ["staff", "staff name", "employee", "name", "full name"],
@@ -219,4 +220,4 @@ const formData = await req.formData();
   }
 
   return NextResponse.json({ created, updated: 0, skipped, errors: execErrors });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

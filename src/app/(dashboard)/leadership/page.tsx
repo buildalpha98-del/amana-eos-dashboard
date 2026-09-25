@@ -1,6 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useLeadershipOverview } from "@/hooks/useLeadership";
 import { LeaderboardContent } from "@/components/contact-centre/LeaderboardContent";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -11,6 +13,7 @@ import { LeadershipRecentIncidentsCard } from "@/components/leadership/Leadershi
 import { LeadershipCertExpiryCard } from "@/components/leadership/LeadershipCertExpiryCard";
 import { LeadershipForecastAlerts } from "@/components/leadership/LeadershipForecastAlerts";
 import { PerformanceListCard } from "@/components/leadership/PerformanceListCard";
+import { canAccessPage, parseRole } from "@/lib/role-permissions";
 import { cn } from "@/lib/utils";
 
 const SentimentTrendChart = dynamic(
@@ -56,6 +59,12 @@ function Kpi({ icon: Icon, value, label, iconClass }: { icon: typeof Users; valu
 
 export default function LeadershipPage() {
   const { data, isLoading, error, refetch } = useLeadershipOverview();
+  const { data: session } = useSession();
+  const viewerRole = parseRole(session?.user?.role);
+  // A State Manager spotting a red row needs to click into the failing
+  // service — but only when their role can actually open /services/[id]
+  // (rolePageAccess in role-permissions.ts); otherwise leave the row inert.
+  const canOpenService = canAccessPage(viewerRole ?? undefined, "/services/[id]");
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -143,16 +152,38 @@ export default function LeadershipPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.rocksRollup.byService.map((row) => (
-                      <tr key={row.serviceId} className="border-b border-border/50">
-                        <td className="py-2 text-foreground">{row.serviceName}</td>
-                        <td className="py-2 text-right text-foreground">{row.total}</td>
-                        <td className="py-2 text-right text-emerald-700">{row.onTrack}</td>
-                        <td className="py-2 text-right text-muted">
-                          {row.total > 0 ? `${Math.round((row.onTrack / row.total) * 100)}%` : "—"}
-                        </td>
-                      </tr>
-                    ))}
+                    {data.rocksRollup.byService.map((row) =>
+                      canOpenService ? (
+                        <tr
+                          key={row.serviceId}
+                          className="border-b border-border/50 hover:bg-surface/50"
+                        >
+                          <td className="py-2 text-foreground">
+                            <Link
+                              href={`/services/${row.serviceId}`}
+                              className="hover:underline hover:text-brand"
+                              title={`View ${row.serviceName}`}
+                            >
+                              {row.serviceName}
+                            </Link>
+                          </td>
+                          <td className="py-2 text-right text-foreground">{row.total}</td>
+                          <td className="py-2 text-right text-emerald-700">{row.onTrack}</td>
+                          <td className="py-2 text-right text-muted">
+                            {row.total > 0 ? `${Math.round((row.onTrack / row.total) * 100)}%` : "—"}
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr key={row.serviceId} className="border-b border-border/50">
+                          <td className="py-2 text-foreground">{row.serviceName}</td>
+                          <td className="py-2 text-right text-foreground">{row.total}</td>
+                          <td className="py-2 text-right text-emerald-700">{row.onTrack}</td>
+                          <td className="py-2 text-right text-muted">
+                            {row.total > 0 ? `${Math.round((row.onTrack / row.total) * 100)}%` : "—"}
+                          </td>
+                        </tr>
+                      )
+                    )}
                   </tbody>
                 </table>
               </div>

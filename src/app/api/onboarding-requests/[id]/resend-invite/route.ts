@@ -27,6 +27,7 @@ import { ApiError } from "@/lib/api-error";
 import { generateTempPassword } from "@/lib/temp-password";
 import { sendWelcomeInvite, inviteDelivered } from "@/lib/staff-invite";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const POST = withApiAuth(
   async (_req, session, context) => {
@@ -110,7 +111,7 @@ export const POST = withApiAuth(
     });
   },
   {
-    roles: ["owner", "head_office", "admin"],
+    roles: [...ADMIN_ROLES],
     rateLimit: { max: 10, windowMs: 5 * 60_000 },
   },
 );

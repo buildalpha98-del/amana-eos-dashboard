@@ -8,6 +8,7 @@ import {
 } from "@/lib/health-score";
 import { withApiAuth } from "@/lib/server-auth";
 import { getOrgSettings } from "@/lib/org-settings";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 // GET /api/performance/history — returns last 6 months of scores per centre
 export const GET = withApiAuth(async (req, session) => {
@@ -293,4 +294,4 @@ export const GET = withApiAuth(async (req, session) => {
   });
 
   return NextResponse.json({ centres: history, orgAvg, months: sortedMonths });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

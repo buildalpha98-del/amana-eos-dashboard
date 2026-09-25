@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { DATA_ROOM_SECTIONS, TOTAL_WEIGHT, type DocumentStatus } from "@/lib/data-room-config";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES_WITH_EOS } from "@/lib/role-permissions";
 
 /**
  * GET /api/data-room — returns DD sections with completeness scores
@@ -259,4 +260,4 @@ export const GET = withApiAuth(async (req, session) => {
     sections,
     generatedAt: new Date().toISOString(),
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES_WITH_EOS] });

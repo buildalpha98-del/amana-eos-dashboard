@@ -97,7 +97,7 @@ function buildUserReminderHtml(
           <tr>
             <td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
               <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">
-                ${brandName} &mdash; EOS Dashboard<br/>
+                ${brandName} &mdash; Management Dashboard<br/>
                 Sent weekly on Mondays to ensure policy compliance across the organisation.
               </p>
             </td>
@@ -232,7 +232,7 @@ function buildAdminSummaryHtml(
           <tr>
             <td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
               <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">
-                ${brandName} &mdash; EOS Dashboard<br/>
+                ${brandName} &mdash; Management Dashboard<br/>
                 Admin compliance summary sent weekly on Mondays.
               </p>
             </td>

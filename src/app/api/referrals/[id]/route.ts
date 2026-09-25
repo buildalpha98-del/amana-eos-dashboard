@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const updateReferralSchema = z.object({
   status: z.enum(["pending", "enquired", "enrolled", "rewarded", "expired"]).optional(),
   rewardIssuedAt: z.string().optional(),
@@ -34,4 +35,4 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(referral);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

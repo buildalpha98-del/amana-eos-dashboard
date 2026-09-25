@@ -1952,6 +1952,15 @@ export default function TimesheetsPage() {
             icon: CalendarDays,
             onClick: () => router.push("/leave-payroll"),
           },
+          // 2026-09-25: timesheets are the downstream of published
+          // shifts, but /roster had zero inbound links anywhere but the
+          // sidebar. Same gating story as "Leave" above — the roster
+          // page itself is role-restricted.
+          {
+            label: "Roster",
+            icon: Calendar,
+            onClick: () => router.push("/roster"),
+          },
         ]}
       >
         <ExportButton

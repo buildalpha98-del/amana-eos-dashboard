@@ -18,13 +18,13 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { notifyUser } from "@/lib/notify-user";
 import { logger } from "@/lib/logger";
+import { isAdminRole } from "@/lib/role-permissions";
 
 const patchSchema = z.object({
   status: z.enum(["approved", "rejected", "cancelled"]),
   decisionNote: z.string().max(2000).optional().nullable(),
 });
 
-const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
 
 interface RouteContext {
   params: Promise<{ id: string; approvalId: string }>;
@@ -36,7 +36,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   ).params;
   const userId = session!.user.id;
   const role = session!.user.role;
-  const isAdmin = ADMIN_ROLES.has(role);
+  const isAdmin = isAdminRole(role);
 
   const existing = await prisma.purchaseApproval.findUnique({
     where: { id: approvalId },

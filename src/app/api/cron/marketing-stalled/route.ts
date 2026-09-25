@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getResend, sendEmail } from "@/lib/email";
 import { withApiHandler } from "@/lib/api-handler";
 import { siteUrl } from "@/lib/site-url";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const BRAND_COLOR = "#004E64";
 const DASHBOARD_URL = siteUrl();
@@ -214,7 +215,7 @@ export const GET = withApiHandler(async (req) => {
     const recipients = await prisma.user.findMany({
       where: {
         active: true,
-        role: { in: ["owner", "head_office", "admin"] },
+        role: { in: [...ADMIN_ROLES] },
         email: { not: "" },
       },
       select: { email: true },

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { EmailBlock } from "@/lib/email-marketing-layout";
 import type { EmailTemplateCategory } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
+import { isAdminRole } from "@/lib/role-permissions";
 
 /**
  * POST /api/email-templates/seed
@@ -12,7 +13,7 @@ import { withApiAuth } from "@/lib/server-auth";
  * Only creates templates that don't already exist (by name).
  */
 export const POST = withApiAuth(async (req, session) => {
-if (!["owner", "admin", "head_office"].includes(session?.user?.role || "")) {
+if (!isAdminRole(session?.user?.role || "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

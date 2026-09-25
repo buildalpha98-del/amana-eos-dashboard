@@ -18,6 +18,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES, isAdminRole } from "@/lib/role-permissions";
 
 const STATUSES = ["draft", "published", "archived"] as const;
 const ROLES: Role[] = [
@@ -39,13 +40,12 @@ const createSchema = z.object({
   status: z.enum(STATUSES).optional(),
 });
 
-const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
 
 export const GET = withApiAuth(async (req, session) => {
   const role = session!.user.role;
   const callerId = session!.user.id;
   const { searchParams } = new URL(req.url);
-  const isAdmin = ADMIN_ROLES.has(role);
+  const isAdmin = isAdminRole(role);
 
   // ?mine=1 — return the caller's currently assigned PD (or null).
   if (searchParams.get("mine") === "1") {
@@ -147,5 +147,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json(created, { status: 201 });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: [...ADMIN_ROLES] },
 );

@@ -8,6 +8,7 @@ import { z } from "zod";
 import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 const patchTicketSchema = z.object({
   subject: z.string().min(1).optional(),
   priority: z.enum(["urgent", "high", "normal", "low"]).optional(),
@@ -41,7 +42,7 @@ export const GET = withApiAuth(async (req, session, context) => {
   }
 
   return NextResponse.json(ticket);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // PATCH /api/tickets/[id]
 export const PATCH = withApiAuth(async (req, session, context) => {
@@ -153,7 +154,7 @@ const { id } = await context!.params!;
   }
 
   return NextResponse.json(ticket);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });
 
 // DELETE /api/tickets/[id] — soft delete
 export const DELETE = withApiAuth(async (req, session, context) => {
@@ -174,4 +175,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: [...ADMIN_ROLES] });

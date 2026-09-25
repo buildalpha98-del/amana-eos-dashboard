@@ -5,6 +5,7 @@ import { acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { siteUrl } from "@/lib/site-url";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const BRAND_COLOR = "#004E64";
 const ACCENT_COLOR = "#FECE00";
@@ -172,7 +173,7 @@ export const GET = withApiHandler(async (req) => {
 
     const admins = await prisma.user.findMany({
       where: {
-        role: { in: ["owner", "admin", "head_office"] },
+        role: { in: [...ADMIN_ROLES] },
         active: true,
       },
       select: { name: true, email: true },
