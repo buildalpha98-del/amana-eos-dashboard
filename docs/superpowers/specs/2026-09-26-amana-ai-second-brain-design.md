@@ -1,7 +1,7 @@
 # Amana AI — Operations Second Brain — Design
 
 **Date:** 2026-09-26
-**Status:** Approved in brainstorming; spec review round 3
+**Status:** Spec review ✅ approved (round 3, 2026-09-26); awaiting Jayden's read before planning
 **Audience order:** educators on the floor first, then coordinators
 **Destination:** C (agent platform with write actions). **Road:** B (retrieval rebuild + educator read tools), built so nothing is undone on the way to C.
 
@@ -118,7 +118,7 @@ model AssistantTurn {
 }
 ```
 
-`AssistantTurn` rows are pruned after 90 days by the existing `email-janitor`-style daily cron (`knowledge-janitor`). `AiUsage.userId` becomes nullable so cron/script embedding runs can log cost without a user (`section: "knowledge-index"`); `GET /api/ai/usage` (Settings usage dashboard) groups by user and must render null-user rows under a "System" bucket — verified in its route test before the migration lands.
+`AssistantTurn` rows are pruned after 90 days by the existing `email-janitor`-style daily cron (`knowledge-janitor`). `AiUsage.userId` becomes nullable so cron/script embedding runs can log cost without a user (`section: "knowledge-index"`); `GET /api/ai/usage` (Settings usage dashboard) groups by user and must render null-user rows under a "System" bucket — verified by a new route test (`src/__tests__/api/ai-usage.test.ts`) before the migration lands.
 
 Migration (hand-written SQL in the Prisma migration): `CREATE EXTENSION IF NOT EXISTS vector`; GIN index on `searchVector`; HNSW index on `embedding` (`vector_cosine_ops`). **`searchVector` is set explicitly by the indexing pipeline** (`UPDATE … SET "searchVector" = to_tsvector('english', content)`) — the same approach `document-indexer.ts` uses today; there is no trigger.
 
@@ -152,7 +152,7 @@ Each adapter is idempotent, keyed on `(sourceKind, externalId)`, and shares one 
 | `lms_module` | (a) `LMSModule` save when the parent course is `status: published`; (b) `PATCH /api/lms/courses/[id]` when `status` transitions **to** `published` → index every reading module of that course; transitions to `draft`/`archived` → mark those sources `excluded` | Reading modules only; quiz questions/answers are never indexed. (b) covers the normal authoring order (draft course → write modules → publish) |
 | `centre_facts` | `PATCH /api/services/[id]/content` (the existing `Service.content` route) | Renders selected `serviceContentSchema` fields to Markdown: `contacts`, `dailyRoutine`, `foodProvider`, `locationWithinSchool`, `meetingPoints`, `parentOnboarding`, plus a **new `staffNotes` field** (string, max 4000, coordinator-editable, labelled "Staff-only notes — gate/alarm, evacuation point, key contacts"). `serviceId` set; `category: centre`. Parent-facing fields (`about`, `tagline`, `heroImage`, `enrolmentThankYou`) are not indexed |
 | `regulator` | Curated list in `src/lib/knowledge/regulator-sources.ts` + monthly cron `knowledge-regulator-refresh` | NQS, National Regulations guide, MTOP v2.0, *Staying Healthy* exclusion table, Children's Services Award summary, ASCIA action-plan guidance, NSW/VIC regulator pages. Fetch + `extractTextFromBuffer`. Distinct from the existing `regulatory-monitor` cron (which AI-scans for *changes* and files a report); this adapter indexes the *reference text* |
-| `manual` | `/api/settings/ai-knowledge/upload` + `/register` (existing admin upload/paste UI) | Admin sets category/tier/service/state in the form |
+| `manual` | Root `POST /api/settings/ai-knowledge` (paste) + `/upload` + `/register` (existing admin upload/paste UI) | Admin sets category/tier/service/state in the form |
 | `backfill` | `POST /api/settings/ai-knowledge/sync { adapter: "backfill" }` + once at first deploy | Sweeps `KnowledgeBaseArticle`, handbook defaults, published `LMSModule`s, every `Service.content`, and current `PolicyDocumentVersion`s |
 
 Embedding: Voyage `voyage-3` (1024-dim) via `src/lib/embeddings.ts` — batches of 128, retry with backoff, cost logged to `AiUsage` (`userId: null`, `section: "knowledge-index"`). Env: `VOYAGE_API_KEY`. `contentHash` unchanged → no re-chunk, no re-embed.
