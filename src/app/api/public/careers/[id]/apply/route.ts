@@ -20,10 +20,16 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { uploadFile } from "@/lib/storage";
 import { validateFileContent } from "@/lib/file-validation";
+import { INLINE_BASE64_MAX_UPLOAD } from "@/lib/upload-strategy";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 
-const MAX_RESUME_SIZE = 10 * 1024 * 1024; // 10 MB
+// 2026-09-25: was 10 MB, which the platform could never deliver — the resume
+// arrives inline as base64 inside the JSON body, so the serverless body cap
+// is the real ceiling and base64 inflates by a third. Anything over ~3.4 MB
+// raw was rejected at the edge before this route ran. Shared with the form so
+// the two cannot drift apart again.
+const MAX_RESUME_SIZE = INLINE_BASE64_MAX_UPLOAD;
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".docx"]);
 const EXTENSION_TO_MIME: Record<string, string> = {
   ".pdf": "application/pdf",
