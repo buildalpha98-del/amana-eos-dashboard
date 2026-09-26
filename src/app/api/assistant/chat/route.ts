@@ -84,7 +84,7 @@ export const POST = withApiAuth(async (req, session) => {
   // 2026-09-27: financial/pipeline context is admin-only (spec §1 item 4).
   // Every role used to get current-month revenue by centre in its prompt.
   const dashboardContext = isAdmin ? await buildDashboardContext() : "";
-  const scope = await buildKnowledgeScope(session!);
+  const scope = await buildKnowledgeScope(session);
   const pageContext = currentPage ? getPageContext(currentPage) : "";
   const systemPrompt = [
     AMANA_SYSTEM_PROMPT,
@@ -120,6 +120,9 @@ export const POST = withApiAuth(async (req, session) => {
     "external (e.g. *From ACECQA → National Quality Standard:*).",
     "Prefer the internal library whenever it covers the question —",
     "external content can change without notice.",
+    "ACECQA pages are often unreachable from here (bot protection) — if",
+    "a fetch fails, say so plainly and point the user at acecqa.gov.au",
+    "rather than retrying.",
     "",
     "### When you find an answer",
     "",
