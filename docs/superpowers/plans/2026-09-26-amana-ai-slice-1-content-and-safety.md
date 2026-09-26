@@ -1470,8 +1470,11 @@ Expected: PASS (10 tests).
 
 `src/app/api/ai/usage/route.ts:51–52` does `r.user.id` / `r.user.name` and would throw on the first `knowledge-index` row. Change the accumulation to:
 ```ts
-    const uid = r.user?.id ?? "system"; // the select has no bare userId column
-    const name = r.user?.name ?? "System";
+    // Two "no acting user" conventions coexist: knowledge-index rows write a
+    // real null userId; src/lib/ai-task-agent.ts:194 writes the sentinel
+    // string "system". Both must land in the ONE System bucket.
+    const uid = !r.user || r.user.id === "system" ? "system" : r.user.id;
+    const name = uid === "system" ? "System" : r.user!.name;
     if (!byUser[uid]) byUser[uid] = { name, calls: 0, inputTokens: 0, outputTokens: 0 };
 ```
 and any other `r.user.` read to `r.user?.`. Add a two-line test now in `src/__tests__/api/ai-usage.test.ts` (the full file is written in Task 23 — create it here with just the "buckets null-user rows under System" case from Task 23 Step 4, and Task 23 then adds nothing new to it).
@@ -3712,7 +3715,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ---
 
-## Chunk 5: Console UI, SharePoint export/import, cron, guards, docs, first prod run
+## Chunk 5: Console UI, SharePoint export/import, cron
 
 ### Task 21: Knowledge console over the new shape
 
@@ -3903,7 +3906,13 @@ export function KnowledgeSourceRow({ entry: e, onEdit, onDelete }: Props) {
       </span>
       {e.status !== "active" && (
         <span className="text-2xs px-1.5 py-0.5 rounded bg-surface text-muted">
-          {e.status === "superseded" ? "Superseded" : e.excludedBy === "admin" ? "Excluded (admin)" : "Excluded (origin unpublished)"}
+          {e.status === "superseded"
+            ? "Superseded"
+            : e.excludedBy === "admin"
+              ? "Excluded (admin)"
+              : e.sourceKind === "sharepoint"
+                ? "Excluded (unmapped centre)"
+                : "Excluded (origin unpublished)"}
         </span>
       )}
 
@@ -4625,12 +4634,14 @@ describe("GET /api/ai/usage", () => {
     mockSession({ id: "u", name: "O", role: "owner" });
     prismaMock.aiUsage.findMany.mockResolvedValue([
       { userId: null, user: null, templateSlug: null, model: "voyage-3", inputTokens: 10, outputTokens: 0, durationMs: 0, section: "knowledge-index", createdAt: new Date() },
+      // legacy sentinel written by ai-task-agent.ts — must share the System bucket
+      { userId: "system", user: { id: "system", name: "System Agent" }, templateSlug: "t", model: "claude", inputTokens: 1, outputTokens: 1, durationMs: 1, section: "agent", createdAt: new Date() },
       { userId: "u", user: { id: "u", name: "O" }, templateSlug: "x", model: "claude", inputTokens: 5, outputTokens: 5, durationMs: 1, section: "marketing", createdAt: new Date() },
     ]);
     const res = await GET(createRequest("GET", "/api/ai/usage?days=30"));
     const json = await res.json();
     expect(res.status).toBe(200);
-    expect(json.byUser.system).toMatchObject({ name: "System", calls: 1 });
+    expect(json.byUser.system).toMatchObject({ name: "System", calls: 2 });
     expect(json.byUser.u).toMatchObject({ name: "O", calls: 1 });
   });
 });

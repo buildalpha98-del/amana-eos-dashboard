@@ -59,6 +59,10 @@ model KnowledgeSource {
   externalUrl     String?             // citation target
   contentHash     String
   status          KnowledgeStatus     @default(active)
+  /// who set status=excluded: "adapter" (origin unpublished/archived — the adapter
+  /// re-activates it when the origin returns) or "admin" (console decision — never
+  /// auto-reverted; adapter excludes touch ACTIVE rows only). null otherwise.
+  excludedBy      String?
   supersededById  String?
   indexedAt       DateTime?
   indexError      String?
@@ -81,7 +85,10 @@ model KnowledgeChunk {
   content      String                       @db.Text
   tokenCount   Int
   searchVector Unsupported("tsvector")?
-  embedding    Unsupported("vector(1024)")?
+  /// vector(1024) in the hand-written SQL. Declared without the typmod because
+  /// Prisma 5.22 introspects pgvector columns as bare `vector` (verified) and
+  /// would otherwise propose a spurious SET DATA TYPE on every `migrate diff`.
+  embedding    Unsupported("vector")?
   createdAt    DateTime                     @default(now())
 
   @@unique([sourceId, chunkIndex])
