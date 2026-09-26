@@ -90,6 +90,15 @@ export const serviceContentSchema = z.object({
    * Empty means the button is hidden rather than a dead link.
    */
   sharepointUrl: z.string().max(2_048),
+
+  /**
+   * 2026-09-27: staff-only operational notes for this centre — gate/alarm
+   * codes, evacuation point, school office contact, key people. Indexed
+   * into the Amana AI knowledge store scoped to THIS service (adapter
+   * `centre_facts`); never shown to parents. Coordinator-editable via the
+   * same PATCH as the rest of the content tab.
+   */
+  staffNotes: z.string().max(4_000).default(""),
 });
 
 export type ServiceContent = z.infer<typeof serviceContentSchema>;
@@ -110,6 +119,7 @@ export const SERVICE_CONTENT_DEFAULTS: ServiceContent = {
   policyDocumentIds: [],
   enrolmentThankYou: "",
   sharepointUrl: "",
+  staffNotes: "",
 };
 
 /**
@@ -164,5 +174,19 @@ export function mergeServiceContent(
     policyDocumentIds,
     enrolmentThankYou: str("enrolmentThankYou"),
     sharepointUrl: str("sharepointUrl"),
+    staffNotes: str("staffNotes"),
   };
+}
+
+export type ParentServiceContent = Omit<ServiceContent, "staffNotes">;
+
+/**
+ * The parent-portal view of a centre's content. `staffNotes` (gate/alarm
+ * codes, evacuation points) is staff-only and is removed HERE, not by
+ * convention at the call site. Any future staff-only field joins this omit.
+ */
+export function toParentContent(content: ServiceContent): ParentServiceContent {
+  const { staffNotes: _staffOnly, ...parent } = content;
+  void _staffOnly;
+  return parent;
 }

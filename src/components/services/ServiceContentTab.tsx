@@ -295,6 +295,24 @@ export function ServiceContentTab({ serviceId }: Props) {
         </Field>
       </Section>
 
+      {/* 2026-09-27: staff-only operational notes. Indexed into the Amana AI
+          knowledge store scoped to THIS centre (centre_facts adapter) and
+          stripped from the parent portal by toParentContent(). */}
+      <Section title="Staff-only notes">
+        <Field label="Gate/alarm codes, evacuation point, school office contact, key people">
+          <Textarea
+            value={content.staffNotes}
+            onChange={(v) => setContent((c) => ({ ...c, staffNotes: v }))}
+            disabled={!canEdit}
+            rows={4}
+            placeholder="e.g. Gate code 1234 (changes each term). Evacuation point: oval. School office: 03 9000 0000. Nominated supervisor: Sara K."
+          />
+          <span className="text-2xs text-muted mt-1 block">
+            Indexed for Amana AI so staff can ask &quot;what&apos;s the gate code at Doveton?&quot;. Never shown to parents.
+          </span>
+        </Field>
+      </Section>
+
       {/* Hero */}
       <Section title="Hero image + tagline">
         <div className="flex gap-4 items-start">
