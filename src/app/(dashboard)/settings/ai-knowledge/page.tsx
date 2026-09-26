@@ -1,73 +1,41 @@
 "use client";
 
 /**
- * /settings/ai-knowledge — Knowledge Library admin surface.
+ * /settings/ai-knowledge — AI Knowledge console.
  *
- * Admins paste in plain-text knowledge sources (Amana Way, Employee
- * Handbook, Proven Process, anything else). The text is chunked and
- * stored in DocumentChunk so the existing `search_knowledge_base`
- * tool the AI assistant calls can find it.
+ * One table over every KnowledgeSource the assistant's `search_knowledge`
+ * tool retrieves from: adapter-owned rows (handbook, help articles, centre
+ * facts, published training modules, current policy PDFs, regulator refs,
+ * SharePoint imports) beside admin-pasted / uploaded `manual` rows.
  *
- * Owner / admin / head_office can edit. No staff access — these
- * surfaces edit the knowledge the bot draws from, not the bot itself.
+ * Manual rows are created, edited and deleted here. Everything else changes
+ * at its origin — from this page it can only be tier-overridden, excluded /
+ * restored, or re-indexed (per row). The toolbar kicks the server-runnable
+ * adapters (dashboard backfill, regulator refresh, handbook re-sync).
  *
- * 2026-06-02.
+ * Owner / admin / head_office can edit. No staff access — these surfaces
+ * edit the knowledge the bot draws from, not the bot itself.
  */
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Brain,
-  Plus,
-  Loader2,
-  X,
-  Pencil,
-  Trash2,
-  AlertTriangle,
-  CheckCircle2,
-  Sparkles,
-  Upload,
-  FileText,
-  ExternalLink,
-} from "lucide-react";
+import { Brain, Plus, Upload, RefreshCw, Globe, BookOpen } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/Button";
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
-import { useEscapeClose } from "@/hooks/useEscapeClose";
-
-interface KnowledgeEntrySummary {
-  id: string;
-  title: string;
-  description: string | null;
-  fileName: string | null;
-  fileUrl: string;
-  mimeType: string | null;
-  /** "text" = pasted-in entry editable inline; "file" = uploaded
-   *  PDF/DOCX/etc. with a download link. */
-  kind: "text" | "file";
-  indexed: boolean;
-  indexedAt: string | null;
-  indexError: string | null;
-  createdAt: string;
-  updatedAt: string;
-  _count: { chunks: number };
-}
-
-interface KnowledgeEntryDetail {
-  id: string;
-  title: string;
-  body: string;
-  /** Same discriminator as the list endpoint — file entries make the
-   *  body textarea read-only since you can't edit a PDF's text inline. */
-  kind: "text" | "file";
-  fileName: string | null;
-  fileUrl: string | null;
-  indexed: boolean;
-  indexedAt: string | null;
-  indexError: string | null;
-  chunkCount: number;
-}
+import { KnowledgeSourceRow } from "@/components/settings/ai-knowledge/KnowledgeSourceRow";
+import { EntryModal } from "@/components/settings/ai-knowledge/EntryModal";
+import { LastSyncPanel } from "@/components/settings/ai-knowledge/LastSyncPanel";
+import {
+  KIND_LABEL,
+  type KnowledgeEntrySummary,
+  type SourceKind,
+  type Status,
+  type SyncRunSummary,
+  type Tier,
+} from "@/components/settings/ai-knowledge/types";
 
 // Seed suggestions shown when the library is empty. Picking one
 // pre-fills the title in the editor so the admin can paste straight
@@ -78,16 +46,22 @@ const SEED_SUGGESTIONS = [
   { title: "Proven Process", hint: "How we run the business — the EOS playbook" },
 ];
 
-function formatDate(iso: string | null): string {
-  if (!iso) return "Never";
-  return new Date(iso).toLocaleString("en-AU", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+/** What POST /register (and the seed route's per-source results) report. */
+interface RegisterResult {
+  id: string | null;
+  outcome: string;
+  error: string | null;
+  /** Set when the upload was left to the webhook (zips). */
+  reason?: string;
 }
+
+const KINDS = Object.keys(KIND_LABEL) as SourceKind[];
+const STATUSES: { value: Status | "all"; label: string }[] = [
+  { value: "active", label: "Active" },
+  { value: "superseded", label: "Superseded" },
+  { value: "excluded", label: "Excluded" },
+  { value: "all", label: "All statuses" },
+];
 
 export default function AiKnowledgePage() {
   const [editing, setEditing] = useState<{
@@ -102,10 +76,28 @@ export default function AiKnowledgePage() {
   >({
     queryKey: ["ai-knowledge"],
     queryFn: () => fetchApi("/api/settings/ai-knowledge"),
+    retry: 2,
     staleTime: 30_000,
   });
 
-  const entries = data?.entries ?? [];
+  const entries = useMemo(() => data?.entries ?? [], [data]);
+
+  // ── Filters (client-side over the full list) ─────────────────
+  const [search, setSearch] = useState("");
+  const [kindFilter, setKindFilter] = useState<SourceKind | "all">("all");
+  const [tierFilter, setTierFilter] = useState<Tier | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<Status | "all">("active");
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return entries.filter((e) => {
+      if (kindFilter !== "all" && e.sourceKind !== kindFilter) return false;
+      if (tierFilter !== "all" && (e.tierOverride ?? e.tier) !== tierFilter) return false;
+      if (statusFilter !== "all" && e.status !== statusFilter) return false;
+      if (q && !e.title.toLowerCase().includes(q) && !(e.serviceName ?? "").toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [entries, search, kindFilter, tierFilter, statusFilter]);
 
   const qc = useQueryClient();
   // Hidden <input type="file"> we trigger from the visible Upload
@@ -120,12 +112,12 @@ export default function AiKnowledgePage() {
     current: string | null;
   } | null>(null);
 
-  const uploadOne = async (file: File) => {
+  const uploadOne = async (file: File): Promise<RegisterResult> => {
     // Client-direct upload to Vercel Blob via @vercel/blob/client.
     // File bytes go browser → Blob directly; our API only mediates
-    // the token + the post-upload Document creation. Sidesteps the
-    // serverless function body-size limit (~4.5 MB) — handles up to
-    // the 50 MB server-side cap configured in onBeforeGenerateToken.
+    // the token + the post-upload KnowledgeSource creation. Sidesteps
+    // the serverless function body-size limit (~4.5 MB) — handles up
+    // to the 50 MB server-side cap configured in onBeforeGenerateToken.
     const { upload } = await import("@vercel/blob/client");
     const title = file.name.replace(/\.[^.]+$/, "");
 
@@ -159,13 +151,10 @@ export default function AiKnowledgePage() {
     // 2026-06-17: don't rely on the onUploadCompleted webhook — it
     // can drop work silently under bulk fan-out. Ping the register
     // endpoint directly with the blob URL. It's idempotent so an
-    // eventual webhook arriving later won't double-create.
-    await mutateApi<{
-      id: string;
-      indexed: boolean;
-      indexError: string | null;
-      chunkCount: number;
-    }>("/api/settings/ai-knowledge/register", {
+    // eventual webhook arriving later won't double-create. Zips are
+    // the exception: register short-circuits (`reason`) and the
+    // webhook unpacks + registers one source per entry.
+    return mutateApi<RegisterResult>("/api/settings/ai-knowledge/register", {
       method: "POST",
       body: {
         blobUrl: blob.url,
@@ -175,8 +164,6 @@ export default function AiKnowledgePage() {
         fileSize: file.size,
       },
     });
-
-    return { url: blob.url, title };
   };
 
   const uploadMut = useMutation({
@@ -184,20 +171,31 @@ export default function AiKnowledgePage() {
       // Sequential, not parallel — Vercel Blob token generation +
       // indexing both touch the DB; running 80 in parallel would
       // hammer the connection pool and the embedding API.
-      let done = 0;
+      let indexed = 0;
+      let unchanged = 0;
+      let queued = 0;
       let failed = 0;
       const failures: string[] = [];
       setBulkProgress({ total: files.length, done: 0, failed: 0, current: null });
       for (const file of files) {
         setBulkProgress({
           total: files.length,
-          done,
+          done: indexed + unchanged + queued,
           failed,
           current: file.name,
         });
         try {
-          await uploadOne(file);
-          done += 1;
+          const r = await uploadOne(file);
+          if (r.outcome === "error") {
+            failed += 1;
+            failures.push(`${file.name}: ${r.error ?? "indexing failed"}`);
+          } else if (r.reason) {
+            queued += 1;
+          } else if (r.outcome === "unchanged") {
+            unchanged += 1;
+          } else {
+            indexed += 1;
+          }
         } catch (err) {
           failed += 1;
           failures.push(`${file.name}: ${err instanceof Error ? err.message : String(err)}`);
@@ -205,32 +203,32 @@ export default function AiKnowledgePage() {
       }
       setBulkProgress({
         total: files.length,
-        done,
+        done: indexed + unchanged + queued,
         failed,
         current: null,
       });
-      return { total: files.length, done, failed, failures };
+      return { total: files.length, indexed, unchanged, queued, failed, failures };
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
       if (data.failed === 0) {
+        const parts = [`${data.indexed} indexed`];
+        if (data.unchanged) parts.push(`${data.unchanged} unchanged`);
+        if (data.queued) parts.push(`${data.queued} zip${data.queued === 1 ? "" : "s"} unpacking in the background`);
         toast({
-          description:
-            data.total === 1
-              ? `Uploaded — indexing in the background. Refresh in a moment.`
-              : `Uploaded ${data.done} files — indexing in the background.`,
+          description: `Uploaded ${data.total} file${data.total === 1 ? "" : "s"} — ${parts.join(", ")}.`,
         });
       } else {
         toast({
           variant: "destructive",
-          description: `${data.done} uploaded, ${data.failed} failed. First failure: ${data.failures[0]?.slice(0, 120) ?? "unknown"}`,
+          description: `${data.indexed + data.unchanged + data.queued} uploaded, ${data.failed} failed. First failure: ${data.failures[0]?.slice(0, 120) ?? "unknown"}`,
         });
       }
       // Clear progress card after a beat so the user sees the final tally.
       setTimeout(() => setBulkProgress(null), 4000);
     },
     onError: (err: Error) => {
-      toast({ variant: "destructive", description: err.message });
+      toast({ variant: "destructive", description: err.message || "Upload failed" });
       setBulkProgress(null);
     },
   });
@@ -244,175 +242,118 @@ export default function AiKnowledgePage() {
     if (files.length) uploadMut.mutate(files);
   };
 
+  // Handbook re-sync — idempotent (a matching contentHash is a no-op).
   const seedMut = useMutation({
     mutationFn: () =>
-      mutateApi<{
-        results: Array<{ title: string; status: "created" | "skipped" }>;
-      }>("/api/settings/ai-knowledge/seed", { method: "POST" }),
+      mutateApi<{ results: { sourceId: string; outcome: string; error?: string }[] }>(
+        "/api/settings/ai-knowledge/seed",
+        { method: "POST" },
+      ),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
-      const created = data.results.filter((r) => r.status === "created").length;
-      const skipped = data.results.filter((r) => r.status === "skipped").length;
+      const by = (o: string) => data.results.filter((r) => r.outcome === o).length;
+      const indexed = by("created") + by("updated");
+      const unchanged = by("unchanged");
+      const errors = by("error");
       toast({
-        description: created
-          ? `Seeded ${created} starter ${created === 1 ? "entry" : "entries"}.${skipped ? ` (${skipped} already existed.)` : ""}`
-          : "All starter entries already exist — nothing to seed.",
+        description: `${indexed} indexed, ${unchanged} unchanged, ${errors} failed`,
+        ...(errors ? { variant: "destructive" as const } : {}),
       });
     },
     onError: (err: Error) =>
-      toast({ variant: "destructive", description: err.message }),
+      toast({ variant: "destructive", description: err.message || "Re-index failed" }),
   });
 
-  // Retries indexing for every file that's still `indexed=false`.
-  // Useful when a bulk zip upload partially completes and a handful
-  // of rows are stuck without an Indexed badge.
-  const reindexMut = useMutation({
-    mutationFn: () =>
-      mutateApi<{
-        checked: number;
-        done: number;
-        failed: number;
-        failures: { title: string; error: string }[];
-      }>("/api/settings/ai-knowledge/reindex", { method: "POST" }),
-    onSuccess: (data) => {
+  // Server-runnable adapters. `backfill` walks every dashboard-owned source;
+  // `regulator` re-fetches the ACECQA / state-regulator reference pages.
+  const sync = useMutation({
+    mutationFn: (adapter: "backfill" | "regulator") =>
+      mutateApi<SyncRunSummary>("/api/settings/ai-knowledge/sync", {
+        method: "POST",
+        body: { adapter },
+      }),
+    onSuccess: (run) => {
       qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
-      if (data.checked === 0) {
-        toast({ description: "Nothing to re-index — every file is already indexed." });
-        return;
-      }
-      if (data.failed === 0) {
-        toast({ description: `Re-indexed ${data.done} of ${data.checked} files.` });
-      } else {
-        toast({
-          variant: "destructive",
-          description: `Re-indexed ${data.done}/${data.checked}. ${data.failed} failed — first: ${data.failures[0]?.error?.slice(0, 120) ?? "unknown"}`,
-        });
-      }
-    },
-    onError: (err: Error) =>
-      toast({ variant: "destructive", description: err.message }),
-  });
-
-  // Collapse duplicate Document rows by filename — keeps the most
-  // recently indexed copy of each, deletes the rest (and their
-  // chunks). Re-uploads + Recover-from-storage runs can leave
-  // duplicates with different blob URLs but identical content.
-  const dedupeMut = useMutation({
-    mutationFn: () =>
-      mutateApi<{
-        scanned: number;
-        duplicateGroups: number;
-        removed: number;
-        kept: { id: string; fileName: string; copiesRemoved: number }[];
-      }>("/api/settings/ai-knowledge/dedupe", { method: "POST" }),
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
-      if (data.removed === 0) {
-        toast({ description: "No duplicates found." });
-        return;
-      }
+      qc.invalidateQueries({ queryKey: ["ai-knowledge-sync-runs"] });
+      const c = run.counts ?? {};
       toast({
-        description: `Removed ${data.removed} duplicate file${data.removed === 1 ? "" : "s"} across ${data.duplicateGroups} group${data.duplicateGroups === 1 ? "" : "s"}.`,
+        description: run.error
+          ? `Sync failed: ${run.error}`
+          : `Sync done — ${c.created ?? 0} new, ${c.updated ?? 0} updated, ${c.unchanged ?? 0} unchanged, ${c.errors ?? 0} errors.`,
+        ...(run.error ? { variant: "destructive" as const } : {}),
       });
     },
     onError: (err: Error) =>
-      toast({ variant: "destructive", description: err.message }),
+      toast({ variant: "destructive", description: err.message || "Sync failed" }),
   });
 
-  // Backfill missing Document rows from Blob storage. Use after a
-  // bulk upload where the webhook may have dropped — walks the
-  // ai-knowledge/ prefix in Blob and creates Document rows for any
-  // orphaned files, then indexes them.
-  const backfillMut = useMutation({
-    mutationFn: () =>
-      mutateApi<{
-        totalInStorage: number;
-        alreadyRegistered: number;
-        newlyCreated: number;
-        newlyIndexed: number;
-        failed: number;
-        failures: { fileName: string; error: string }[];
-      }>("/api/settings/ai-knowledge/backfill", { method: "POST" }),
-    onSuccess: (data) => {
+  // Row-level delete (manual entries only — the route 409s otherwise).
+  const del = useMutation({
+    mutationFn: (id: string) =>
+      mutateApi(`/api/settings/ai-knowledge/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
-      if (data.newlyCreated === 0 && data.totalInStorage === 0) {
-        toast({ description: "No files found in storage to recover." });
-        return;
-      }
-      if (data.newlyCreated === 0) {
-        toast({ description: `Nothing new — all ${data.totalInStorage} storage files are already in the library.` });
-        return;
-      }
-      const msg = `Recovered ${data.newlyCreated} file${data.newlyCreated === 1 ? "" : "s"} from storage (${data.newlyIndexed} indexed${data.failed ? `, ${data.failed} failed` : ""}).`;
-      toast({
-        description: data.failed
-          ? `${msg} First error: ${data.failures[0]?.error?.slice(0, 120) ?? "unknown"}`
-          : msg,
-        variant: data.failed ? "destructive" : undefined,
-      });
+      toast({ description: "Knowledge entry deleted." });
     },
     onError: (err: Error) =>
-      toast({ variant: "destructive", description: err.message }),
+      toast({ variant: "destructive", description: err.message || "Delete failed" }),
   });
+  const confirmDelete = (id: string) => {
+    if (!window.confirm("Delete this knowledge entry? Bot will no longer have access to it.")) return;
+    del.mutate(id);
+  };
 
-  // 2026-06-17: auto-trigger reindex once per page load if any entries
-  // are unindexed. The Vercel Blob webhook that runs indexDocument on
-  // first upload can drop work under load (large zip fan-outs, cold
-  // starts). Letting the page heal itself means coordinators don't
-  // need to remember the manual button.
-  const autoReindexedRef = useRef(false);
-  useEffect(() => {
-    if (autoReindexedRef.current) return;
-    if (!entries || entries.length === 0) return;
-    const unindexed = entries.filter((e) => !e.indexed);
-    if (unindexed.length === 0) return;
-    autoReindexedRef.current = true;
-    reindexMut.mutate();
-    // intentionally exclude reindexMut from deps — its identity
-    // changes every render and would cause a loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries]);
+  const syncingBackfill = sync.isPending && sync.variables === "backfill";
+  const syncingRegulator = sync.isPending && sync.variables === "regulator";
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <PageHeader title="AI Knowledge Library">
+      <PageHeader title="AI Knowledge">
         <p className="text-sm text-muted">
-          The text snippets the AI assistant searches when staff ask
-          questions. Each entry is chunked, indexed, and available to
-          the bot&apos;s knowledge-base lookup.
+          Every source the AI assistant searches when staff ask questions —
+          synced from the dashboard, imported from SharePoint, or pasted and
+          uploaded here.
         </p>
       </PageHeader>
 
-      <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50/40 p-4 text-sm text-blue-900 dark:text-blue-200 space-y-1">
+      <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-950/30 p-4 text-sm text-blue-900 dark:text-blue-200 space-y-1">
         <p className="font-semibold">How this works</p>
         <p className="text-xs">
-          Paste in the content (e.g. your Amana Way handbook, employee
-          handbook, proven process). The AI bot searches across all
-          entries when staff ask questions. Updates take effect
+          Handbooks, help articles, centre facts, training modules and policy
+          PDFs sync in from where they live; SharePoint policies arrive via
+          import. Paste or upload anything else. Only pasted / uploaded entries
+          are edited here — everything else can be excluded from search,
+          given a tier override, or re-indexed. Updates take effect
           immediately — no re-deploy needed.
         </p>
       </div>
 
-      {/* Library size — confirms documents + chunks are actually
-          there. Quick sanity check when the bot says it "can't find"
-          something the user just uploaded. */}
+      {/* Library size — confirms sources + chunks are actually there.
+          Quick sanity check when the bot says it "can't find" something
+          the user just uploaded. */}
       {!isLoading && entries.length > 0 && (() => {
-        const indexedCount = entries.filter((e) => e.indexed).length;
-        const totalChunks = entries.reduce((s, e) => s + e._count.chunks, 0);
+        const active = entries.filter((e) => e.status === "active");
+        const indexedCount = active.filter((e) => e.indexedAt !== null).length;
+        const totalChunks = active.reduce((s, e) => s + e.chunkCount, 0);
         const errored = entries.filter((e) => e.indexError).length;
         return (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-card rounded-lg border border-border p-3">
-              <p className="text-2xs uppercase tracking-wide text-muted">Documents</p>
-              <p className="text-2xl font-bold text-foreground">{entries.length}</p>
+              <p className="text-2xs uppercase tracking-wide text-muted">Sources</p>
+              <p className="text-2xl font-bold text-foreground">
+                {active.length}
+                {active.length !== entries.length && (
+                  <span className="text-sm font-normal text-muted"> / {entries.length}</span>
+                )}
+              </p>
             </div>
             <div className="bg-card rounded-lg border border-border p-3">
               <p className="text-2xs uppercase tracking-wide text-muted">Indexed</p>
               <p className={cn(
                 "text-2xl font-bold",
-                indexedCount === entries.length ? "text-emerald-600" : "text-amber-600",
+                indexedCount === active.length ? "text-success" : "text-warning",
               )}>
-                {indexedCount}/{entries.length}
+                {indexedCount}/{active.length}
               </p>
             </div>
             <div className="bg-card rounded-lg border border-border p-3">
@@ -423,7 +364,7 @@ export default function AiKnowledgePage() {
               <p className="text-2xs uppercase tracking-wide text-muted">Errors</p>
               <p className={cn(
                 "text-2xl font-bold",
-                errored === 0 ? "text-emerald-600" : "text-red-600",
+                errored === 0 ? "text-success" : "text-danger",
               )}>
                 {errored}
               </p>
@@ -493,62 +434,38 @@ export default function AiKnowledgePage() {
       )}
 
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => dedupeMut.mutate()}
-          disabled={dedupeMut.isPending}
-          title="Find files with identical names and delete all but the newest indexed copy. Idempotent — safe to click any time."
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-foreground border border-border rounded-md hover:bg-surface disabled:opacity-50"
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => sync.mutate("backfill")}
+          loading={syncingBackfill}
+          disabled={sync.isPending}
+          iconLeft={<RefreshCw className="w-4 h-4" />}
+          title="Re-index handbooks, help articles, centre facts, published training modules and current policy PDFs"
         >
-          {dedupeMut.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Trash2 className="w-4 h-4 text-rose-500" />
-          )}
-          {dedupeMut.isPending ? "Deduping…" : "Remove duplicates"}
-        </button>
-        <button
-          type="button"
-          onClick={() => backfillMut.mutate()}
-          disabled={backfillMut.isPending}
-          title="Scan Vercel Blob storage and recover any files that were uploaded but never registered in the dashboard. Safe to click any time."
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-foreground border border-border rounded-md hover:bg-surface disabled:opacity-50"
+          {syncingBackfill ? "Syncing…" : "Sync from dashboard"}
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => sync.mutate("regulator")}
+          loading={syncingRegulator}
+          disabled={sync.isPending}
+          iconLeft={<Globe className="w-4 h-4" />}
+          title="Re-fetch the regulator reference pages (ACECQA, state regulators)"
         >
-          {backfillMut.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Upload className="w-4 h-4 text-blue-500" />
-          )}
-          {backfillMut.isPending ? "Recovering…" : "Recover from storage"}
-        </button>
-        <button
-          type="button"
-          onClick={() => reindexMut.mutate()}
-          disabled={reindexMut.isPending}
-          title="Retry indexing for any file that's still showing 'Not indexed'. Safe to click any time — finished files are skipped."
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-foreground border border-border rounded-md hover:bg-surface disabled:opacity-50"
-        >
-          {reindexMut.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
-          )}
-          {reindexMut.isPending ? "Re-indexing…" : "Re-index unindexed"}
-        </button>
-        <button
-          type="button"
+          {syncingRegulator ? "Refreshing…" : "Refresh regulator refs"}
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => seedMut.mutate()}
-          disabled={seedMut.isPending}
-          title="Pre-fill the library with starter Amana Way, Employee Handbook, and Proven Process entries. Idempotent — re-running skips existing entries."
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-foreground border border-border rounded-md hover:bg-surface disabled:opacity-50"
+          loading={seedMut.isPending}
+          iconLeft={<BookOpen className="w-4 h-4" />}
+          title="Re-sync the Employee Handbook sections. Idempotent — unchanged sections are skipped."
         >
-          {seedMut.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Sparkles className="w-4 h-4 text-amber-500" />
-          )}
-          {seedMut.isPending ? "Seeding…" : "Seed starter content"}
-        </button>
+          {seedMut.isPending ? "Re-indexing…" : "Re-index handbooks"}
+        </Button>
         {/* Hidden native input — visible button triggers it via ref.
             Restricting `accept` is a UX hint only (clients can pick
             anything); server validates type + size. */}
@@ -565,120 +482,108 @@ export default function AiKnowledgePage() {
             e.target.value = "";
           }}
         />
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploadMut.isPending}
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-foreground border border-border rounded-md hover:bg-surface disabled:opacity-50"
+          loading={uploadMut.isPending}
+          iconLeft={<Upload className="w-4 h-4" />}
         >
-          {uploadMut.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Upload className="w-4 h-4" />
-          )}
           {uploadMut.isPending ? "Uploading…" : "Upload PDF / Word"}
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          size="sm"
           onClick={() => setEditing({ mode: "create" })}
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand/90"
+          iconLeft={<Plus className="w-4 h-4" />}
         >
-          <Plus className="w-4 h-4" />
           New entry
-        </button>
+        </Button>
       </div>
+
+      <LastSyncPanel />
 
       {isLoading ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : error ? (
-        <p className="text-sm text-red-600">Unable to load entries.</p>
+        <p className="text-sm text-danger">Unable to load entries.</p>
       ) : entries.length === 0 ? (
         <EmptyState onPick={(title) => setEditing({ mode: "create", initialTitle: title })} />
       ) : (
-        <ul className="space-y-2">
-          {entries.map((e) => (
-            <li
-              key={e.id}
-              className="bg-card rounded-lg border border-border p-4 flex flex-wrap items-start gap-3 hover:bg-surface/40 cursor-pointer"
-              onClick={() => setEditing({ mode: "edit", id: e.id })}
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="search"
+              aria-label="Search sources"
+              placeholder="Search by title or centre…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="flex-1 min-w-[12rem] rounded-md border border-border bg-card px-3 py-1.5 text-sm"
+            />
+            <select
+              aria-label="Filter by source kind"
+              value={kindFilter}
+              onChange={(e) =>
+                // Options are "all" plus the KIND_LABEL keys — a string we control.
+                setKindFilter(e.target.value as SourceKind | "all")
+              }
+              className="rounded-md border border-border bg-card px-2 py-1.5 text-sm"
             >
-              {/* File entries get the doc icon + a different background
-                  so they're visually distinct from the pasted-text
-                  entries (which remain Brain-iconed). */}
-              <div
-                className={
-                  e.kind === "file"
-                    ? "shrink-0 p-2 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
-                    : "shrink-0 p-2 rounded-md bg-brand/10 text-brand"
-                }
-              >
-                {e.kind === "file" ? (
-                  <FileText className="w-4 h-4" />
-                ) : (
-                  <Brain className="w-4 h-4" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold text-foreground">
-                    {e.title}
-                  </span>
-                  {e.kind === "file" && (
-                    <span className="text-2xs font-semibold uppercase px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200">
-                      {(e.fileName?.split(".").pop() ?? "FILE").toUpperCase()}
-                    </span>
-                  )}
-                  {e.indexed ? (
-                    <span className="inline-flex items-center gap-0.5 text-2xs font-semibold px-1.5 py-0.5 rounded border bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Indexed
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-0.5 text-2xs font-semibold px-1.5 py-0.5 rounded border bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800">
-                      <AlertTriangle className="w-3 h-3" />
-                      Not indexed
-                    </span>
-                  )}
-                  {e.indexError && (
-                    <span
-                      className="text-2xs font-semibold uppercase px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200"
-                      title={e.indexError}
-                    >
-                      Error
-                    </span>
-                  )}
-                </div>
-                {e.indexError && (
-                  <p className="text-xs text-red-700 mt-0.5">
-                    {e.indexError}
-                  </p>
-                )}
-                {!e.indexError && e.description && (
-                  <p className="text-xs text-muted mt-0.5 line-clamp-2">
-                    {e.description}
-                  </p>
-                )}
-                <p className="text-xs text-muted mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
-                  <span>
-                    {e._count.chunks} chunk{e._count.chunks === 1 ? "" : "s"} ·
-                    last indexed {formatDate(e.indexedAt)}
-                  </span>
-                  {e.kind === "file" && e.fileUrl && (
-                    <a
-                      href={e.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(ev) => ev.stopPropagation()}
-                      className="inline-flex items-center gap-1 text-brand hover:underline"
-                    >
-                      Open original <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
+              <option value="all">All kinds</option>
+              {KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {KIND_LABEL[k]}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Filter by tier"
+              value={tierFilter}
+              onChange={(e) =>
+                // Options are "all" plus the two Tier values — a string we control.
+                setTierFilter(e.target.value as Tier | "all")
+              }
+              className="rounded-md border border-border bg-card px-2 py-1.5 text-sm"
+            >
+              <option value="all">All tiers</option>
+              <option value="safety_critical">Safety-critical</option>
+              <option value="general">General</option>
+            </select>
+            <select
+              aria-label="Filter by status"
+              value={statusFilter}
+              onChange={(e) =>
+                // Options are exactly the STATUSES list — a string we control.
+                setStatusFilter(e.target.value as Status | "all")
+              }
+              className="rounded-md border border-border bg-card px-2 py-1.5 text-sm"
+            >
+              {STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className="text-xs text-muted">
+            Showing {filtered.length} of {entries.length}
+          </p>
+          {filtered.length === 0 ? (
+            <p className="text-sm text-muted rounded-lg border border-dashed border-border p-6 text-center">
+              No sources match these filters.
+            </p>
+          ) : (
+            <ul className="rounded-lg border border-border bg-card overflow-hidden">
+              {filtered.map((e) => (
+                <KnowledgeSourceRow
+                  key={e.id}
+                  entry={e}
+                  onEdit={(id) => setEditing({ mode: "edit", id })}
+                  onDelete={confirmDelete}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       {editing && (
@@ -698,12 +603,12 @@ function EmptyState({ onPick }: { onPick: (title: string) => void }) {
     <div className="rounded-lg border border-dashed border-border p-6 text-center">
       <Brain className="w-10 h-10 mx-auto text-border mb-3" />
       <p className="text-sm font-medium text-foreground">
-        No knowledge entries yet
+        No knowledge sources yet
       </p>
       <p className="text-xs text-muted mt-1 max-w-md mx-auto">
-        Add entries below to give the AI bot something to draw on when
-        staff ask questions. You can paste in any plain-text content
-        (markdown is fine).
+        Run &ldquo;Sync from dashboard&rdquo; to pull in handbooks, help
+        articles and policies, or paste in any plain-text content
+        (markdown is fine) to give the AI bot something to draw on.
       </p>
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         {SEED_SUGGESTIONS.map((s) => (
@@ -717,227 +622,6 @@ function EmptyState({ onPick }: { onPick: (title: string) => void }) {
             <span className="text-xs text-muted">{s.hint}</span>
           </button>
         ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Create / edit modal ────────────────────────────────────────────
-
-function EntryModal({
-  mode,
-  id,
-  initialTitle,
-  onClose,
-}: {
-  mode: "create" | "edit";
-  id?: string;
-  initialTitle?: string;
-  onClose: () => void;
-}) {
-  useEscapeClose(onClose);
-  const qc = useQueryClient();
-  const isEdit = mode === "edit";
-
-  const { data: existing } = useQuery<KnowledgeEntryDetail, ApiResponseError>({
-    queryKey: ["ai-knowledge", id],
-    queryFn: () => fetchApi(`/api/settings/ai-knowledge/${id}`),
-    enabled: isEdit && !!id,
-  });
-
-  const [title, setTitle] = useState(initialTitle ?? "");
-  const [body, setBody] = useState("");
-  const [hydrated, setHydrated] = useState(false);
-
-  // Hydrate once when the existing entry loads (render-time sync guarded by
-  // the hydrated flag, per React's "adjusting state when props change" pattern)
-  if (existing && !hydrated) {
-    setHydrated(true);
-    setTitle(existing.title);
-    setBody(existing.body);
-  }
-
-  const byteSize = useMemo(() => Buffer.byteLength(body, "utf-8"), [body]);
-
-  const save = useMutation({
-    mutationFn: () =>
-      isEdit
-        ? mutateApi(`/api/settings/ai-knowledge/${id}`, {
-            method: "PATCH",
-            body: { title: title.trim(), body },
-          })
-        : mutateApi("/api/settings/ai-knowledge", {
-            method: "POST",
-            body: { title: title.trim(), body },
-          }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
-      toast({
-        description: isEdit
-          ? "Knowledge entry updated and re-indexed."
-          : "Knowledge entry created and indexed.",
-      });
-      onClose();
-    },
-    onError: (err: Error) =>
-      toast({ variant: "destructive", description: err.message }),
-  });
-
-  const del = useMutation({
-    mutationFn: () =>
-      mutateApi(`/api/settings/ai-knowledge/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
-      toast({ description: "Knowledge entry deleted." });
-      onClose();
-    },
-    onError: (err: Error) =>
-      toast({ variant: "destructive", description: err.message }),
-  });
-
-  const handleDelete = () => {
-    if (!window.confirm("Delete this knowledge entry? Bot will no longer have access to it.")) return;
-    del.mutate();
-  };
-
-  const canSave =
-    !!title.trim() && !!body.trim() && byteSize <= 500_000 && !save.isPending;
-
-  return (
-    <div
-      className="fixed inset-0 z-[60] bg-black/60 flex items-stretch sm:items-center justify-center sm:p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !save.isPending) onClose();
-      }}
-    >
-      <div className="bg-card w-full h-full sm:h-auto sm:max-h-[90vh] sm:w-full sm:max-w-3xl flex flex-col shadow-2xl sm:rounded-xl">
-        <header className="flex items-center justify-between gap-3 p-4 border-b border-border shrink-0">
-          <h2 className="text-base font-semibold text-foreground">
-            {isEdit ? "Edit knowledge entry" : "New knowledge entry"}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={save.isPending}
-            className="p-2 -mr-1.5 rounded-lg hover:bg-surface disabled:opacity-50"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5 text-muted" />
-          </button>
-        </header>
-
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
-              Title
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={200}
-              disabled={save.isPending}
-              placeholder="e.g. The Amana Way"
-              className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm font-medium"
-            />
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-foreground">
-                {existing?.kind === "file"
-                  ? "Extracted text (read-only)"
-                  : "Body"}
-              </label>
-              <span
-                className={`text-xs ${byteSize > 500_000 ? "text-red-600" : "text-muted"}`}
-              >
-                {byteSize.toLocaleString()}
-                {existing?.kind === "file"
-                  ? ` bytes (from ${existing.fileName})`
-                  : " / 500,000 bytes"}
-              </span>
-            </div>
-            <textarea
-              rows={20}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              disabled={save.isPending || existing?.kind === "file"}
-              readOnly={existing?.kind === "file"}
-              placeholder={
-                existing?.kind === "file"
-                  ? ""
-                  : "Paste in the content. Markdown headings (# Heading) are detected and used to chunk by section for better retrieval."
-              }
-              className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm font-mono"
-            />
-            {existing?.kind === "file" ? (
-              <p className="text-xs text-muted mt-1">
-                This is the text extracted from{" "}
-                <code>{existing.fileName}</code> at upload time. To
-                change the content, delete this entry and re-upload.
-                You can still rename it via the Title field above.
-              </p>
-            ) : (
-              <p className="text-xs text-muted mt-1">
-                Tip: include headings (Markdown <code>#</code> style) so
-                the chunker can split on natural section boundaries —
-                improves retrieval quality.
-              </p>
-            )}
-          </div>
-        </div>
-
-        <footer
-          className="border-t border-border bg-card shrink-0 p-4 flex flex-wrap items-center justify-between gap-2"
-          style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
-        >
-          <div>
-            {isEdit && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={save.isPending || del.isPending}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-md hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
-              >
-                {del.isPending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Trash2 className="w-3.5 h-3.5" />
-                )}
-                Delete
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={save.isPending}
-              className="px-4 py-2 text-sm text-muted hover:text-foreground rounded-md border border-border disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => save.mutate()}
-              disabled={!canSave}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand/90 disabled:opacity-50"
-            >
-              {save.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : isEdit ? (
-                <Pencil className="w-4 h-4" />
-              ) : (
-                <Plus className="w-4 h-4" />
-              )}
-              {save.isPending
-                ? "Saving…"
-                : isEdit
-                  ? "Save & re-index"
-                  : "Save & index"}
-            </button>
-          </div>
-        </footer>
       </div>
     </div>
   );

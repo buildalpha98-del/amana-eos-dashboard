@@ -187,7 +187,8 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
       // 2026-06-29: /leave retired from the sidebar — new leave requests
       // go through My Portal → Employment Hero. The route still resolves
       // for admins draining the historical backlog.
-      "/knowledge",
+      // 2026-09-27: /knowledge retired from the sidebar — the page is a
+      // redirect to /assistant, which has its own nav entry.
       "/my-portal",
       // /profile is reachable but not surfaced in the sidebar nav (avatar menu).
     ])("still includes core nav item %s", (href) => {
@@ -549,7 +550,7 @@ describe("OSHC Coordinator sidebar", () => {
 
   it("surfaces the coordinator's daily surfaces without a '+N more' click", () => {
     const { opsCore } = coordinatorNav();
-    for (const href of ["/services", "/holiday-quest", "/knowledge", "/requests"]) {
+    for (const href of ["/services", "/holiday-quest", "/requests"]) {
       expect(opsCore).toContain(href);
     }
   });
