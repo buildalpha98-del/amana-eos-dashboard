@@ -24,7 +24,11 @@ export async function syncPolicyVersion(versionId: string): Promise<UpsertResult
   const res = await fetch(v.fileUrl);
   if (!res.ok) {
     logger.error("Knowledge: policy PDF download failed", { versionId, status: res.status });
-    return { sourceId: "", outcome: "error", error: `download ${res.status}` };
+    return {
+      sourceId: "",
+      outcome: "error",
+      error: `download ${res.status} — ${v.document.title} (version ${v.versionNumber})`,
+    };
   }
   const text = await extractTextFromBuffer(Buffer.from(await res.arrayBuffer()), "application/pdf");
 

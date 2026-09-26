@@ -27,7 +27,7 @@ export function countOutcomes(results: UpsertResult[]): SyncCounts {
 }
 
 export async function runAdapter(adapter: RunnableAdapter, startedById: string | null) {
-  if (!(RUNNABLE_ADAPTERS as readonly string[]).includes(adapter)) {
+  if (!RUNNABLE_ADAPTERS.includes(adapter)) {
     throw new Error(`Adapter "${adapter}" is not runnable from the server`);
   }
   const run = await prisma.knowledgeSyncRun.create({

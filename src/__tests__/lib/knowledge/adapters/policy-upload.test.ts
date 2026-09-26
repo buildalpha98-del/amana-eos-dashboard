@@ -30,6 +30,17 @@ describe("policy_upload adapter", () => {
     });
   });
 
+  it("download failure returns an identifiable error (title + version)", async () => {
+    global.fetch = vi.fn(async () => new Response(null, { status: 500 })) as unknown as typeof fetch;
+    const result = await syncPolicyVersion("v1");
+    expect(result).toEqual({
+      sourceId: "",
+      outcome: "error",
+      error: "download 500 — QA2 Medical Conditions Policy (version 4)",
+    });
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
   it("does nothing for an archived policy and returns null", async () => {
     prismaMock.policyDocumentVersion.findUnique.mockResolvedValue({
       id: "v1", versionNumber: 1, fileUrl: "u", document: { id: "d1", title: "T", category: "other", isArchived: true },
