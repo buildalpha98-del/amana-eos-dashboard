@@ -162,7 +162,7 @@ Each adapter is idempotent, keyed on `(sourceKind, externalId)`, and shares one 
 | `manual` | Root `POST /api/settings/ai-knowledge` (paste) + `/upload` + `/register` (existing admin upload/paste UI) | Admin sets category/tier/service/state in the form |
 | `backfill` | `POST /api/settings/ai-knowledge/sync { adapter: "backfill" }` + once at first deploy | Sweeps `KnowledgeBaseArticle`, handbook defaults, published `LMSModule`s, every `Service.content`, and current `PolicyDocumentVersion`s |
 
-Embedding: Voyage `voyage-3` (1024-dim) via `src/lib/embeddings.ts` — batches of 128, retry with backoff, cost logged to `AiUsage` (`userId: null`, `section: "knowledge-index"`). Env: `VOYAGE_API_KEY`. `contentHash` unchanged → no re-chunk, no re-embed.
+Embedding: Voyage `voyage-3` (1024-dim) via `src/lib/embeddings.ts` — batches of 128, retry with backoff, never throws; `embedTextsWithUsage()` returns `{ vectors, usage }` per call (no module-level usage state — adapters can run concurrently), cost logged to `AiUsage` (`userId: null`, `section: "knowledge-index"`). Env: `VOYAGE_API_KEY`. `contentHash` unchanged → no re-chunk, no re-embed.
 
 ### 3.4 Retrieval
 
@@ -190,7 +190,7 @@ The `$x IS NULL OR …` branches matter: `= ANY(NULL)` matches nothing, and `get
 
 ### 3.5 Tiered answer policy
 
-**Tier lives on the source, set at import, overridable by admin.** Heuristic: `qualityArea = 2` (Children's Health & Safety), or title matches child protection / medication / incident / emergency / evacuation / lockdown / safe arrival / collection / missing child / anaphylaxis / asthma / epilepsy / diabetes → `safety_critical`. Everything else `general`. `tierOverride` wins.
+**Tier lives on the source, set at import, overridable by admin.** Heuristic (`inferTier` in `src/lib/knowledge/normalize.ts` is the source of truth): `qualityArea = 2` (Children's Health & Safety), or the title matches child protection / safeguarding / medication / medical condition / incident / injury / emergency / evacuation / lockdown / bushfire / safe arrival / safe collection (of children) / missing child / anaphylaxis / allergy / asthma / epilepsy / diabetes / first aid / infectious / illness / water safety / sun safe / excursion / safe transport (of children) → `safety_critical`. Bare "collection"/"transport" are deliberately NOT matched ("Data Collection Policy", "Transport Allowance"). Everything else `general`. `tierOverride` wins.
 
 **Per turn, before the model runs**, the route pre-retrieves once on the user's latest message. Pre-retrieval does two jobs: it picks the mode, and its chunks are injected into the system prompt as context so the common case needs no tool round-trip. `search_knowledge` remains a tool for follow-up searches with different wording. Tools are **never** removed by mode — "when's my next shift" still calls `my_shifts` in any mode.
 
