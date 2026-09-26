@@ -78,7 +78,7 @@ export const POST = withApiAuth(
     } else {
       logger.info("AI knowledge: manual source created", { sourceId: result.sourceId, actorId: session!.user.id });
     }
-    const error = [result.error, tierStampError].filter(Boolean).join(" ") || null;
+    const error = [result.error, tierStampError].filter(Boolean).join(". ") || null;
     return NextResponse.json(
       { id: result.sourceId, outcome: result.outcome, error },
       { status: 201 },

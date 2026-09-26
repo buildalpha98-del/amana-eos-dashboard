@@ -17,7 +17,11 @@ export const GET = withApiHandler(
     if (!guard.acquired) return NextResponse.json({ skipped: true, reason: guard.reason });
     try {
       const run = await runAdapter("regulator", null);
-      await guard.complete({ runId: run.id, counts: run.counts });
+      // A recorded adapter error (a regulator page that failed to fetch, an
+      // embeddings outage) must show as a FAILED month in cron-health, not a
+      // clean one — the run still returns 200 with the error in the body.
+      if (run.error) await guard.fail(new Error(run.error));
+      else await guard.complete({ runId: run.id, counts: run.counts });
       return NextResponse.json({ runId: run.id, counts: run.counts, error: run.error });
     } catch (err) {
       await guard.fail(err);

@@ -20,6 +20,7 @@ describe("GET /api/cron/knowledge-regulator-refresh", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     acquire.mockImplementation(async () => ({ acquired: true, complete, fail }));
+    runAdapter.mockImplementation(async () => ({ id: "run1", counts: { created: 2 }, error: null }));
   });
   it("401 without the cron secret", async () => {
     expect((await GET(createRequest("GET", "/x"))).status).toBe(401);
@@ -35,6 +36,19 @@ describe("GET /api/cron/knowledge-regulator-refresh", () => {
     expect(acquire).toHaveBeenCalledWith("knowledge-regulator-refresh", "monthly");
     expect(runAdapter).toHaveBeenCalledWith("regulator", null);
     expect((await res.json()).runId).toBe("run1");
-    expect(complete).toHaveBeenCalled();
+    expect(complete).toHaveBeenCalledWith({ runId: "run1", counts: { created: 2 } });
+    expect(fail).not.toHaveBeenCalled();
+  });
+  it("fails the CronRun when the adapter records an error (still 200 with the error in the body)", async () => {
+    runAdapter.mockImplementation(async () => ({ id: "run2", counts: { created: 0 }, error: "boom" }));
+    const res = await GET(createRequest("GET", "/x", { headers: { authorization: "Bearer secret" } }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.runId).toBe("run2");
+    expect(body.error).toBe("boom");
+    expect(fail).toHaveBeenCalledTimes(1);
+    expect(fail.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect((fail.mock.calls[0][0] as Error).message).toBe("boom");
+    expect(complete).not.toHaveBeenCalled();
   });
 });
