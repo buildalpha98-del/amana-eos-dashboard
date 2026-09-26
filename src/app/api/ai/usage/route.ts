@@ -51,7 +51,7 @@ export const GET = withApiAuth(async (req, session) => {
     // write a real null userId; src/lib/ai-task-agent.ts:194 writes the
     // sentinel string "system". Both must land in the ONE System bucket.
     const uid = !r.user || r.user.id === "system" ? "system" : r.user.id;
-    const name = uid === "system" ? "System" : r.user!.name;
+    const name = r.user && uid !== "system" ? r.user.name : "System";
     if (!byUser[uid]) byUser[uid] = { name, calls: 0, inputTokens: 0, outputTokens: 0 };
     byUser[uid].calls++;
     byUser[uid].inputTokens += r.inputTokens;

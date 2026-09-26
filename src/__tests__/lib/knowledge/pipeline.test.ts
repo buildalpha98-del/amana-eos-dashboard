@@ -105,6 +105,20 @@ describe("upsertKnowledgeSource", () => {
     expect(data.status).toBeUndefined();
     expect(data.excludedBy).toBeUndefined();
   });
+
+  it("re-indexes a row whose hash matches but has a stale indexError", async () => {
+    prismaMock.knowledgeSource.findUnique.mockResolvedValue({
+      id: "src-1", contentHash: hashContent(baseInput.text), status: "active", indexError: "boom",
+    });
+    const res = await upsertKnowledgeSource(baseInput);
+    expect(res.outcome).toBe("updated");
+    expect(prismaMock.knowledgeChunk.createMany).toHaveBeenCalled();
+  });
+
+  it("passes an explicit timeout/maxWait to the indexing transaction", async () => {
+    await upsertKnowledgeSource(baseInput);
+    expect(prismaMock.$transaction.mock.calls[0][1]).toEqual({ timeout: 30_000, maxWait: 5_000 });
+  });
 });
 
 describe("excludeSources", () => {
@@ -135,9 +149,9 @@ describe("applySupersession", () => {
 
   it("keeps the highest version active within (normalizedTitle,state,serviceId) and marks the rest superseded", async () => {
     prismaMock.knowledgeSource.findMany.mockResolvedValue([
-      { id: "v2", version: 2, status: "active", sourceKind: "sharepoint" },
-      { id: "v3", version: 3, status: "active", sourceKind: "sharepoint" },
-      { id: "vnull", version: null, status: "active", sourceKind: "sharepoint" },
+      { id: "v2", version: 2, status: "active", sourceKind: "sharepoint", updatedAt: new Date("2026-01-02") },
+      { id: "v3", version: 3, status: "active", sourceKind: "sharepoint", updatedAt: new Date("2026-01-03") },
+      { id: "vnull", version: null, status: "active", sourceKind: "sharepoint", updatedAt: new Date("2026-01-01") },
     ]);
     prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 2 });
     const winner = await applySupersession({ normalizedTitle: "x", state: null, serviceId: null });
@@ -149,10 +163,24 @@ describe("applySupersession", () => {
 
   it("policy_upload always wins over sharepoint regardless of version", async () => {
     prismaMock.knowledgeSource.findMany.mockResolvedValue([
-      { id: "sp", version: 9, status: "active", sourceKind: "sharepoint" },
-      { id: "pdf", version: 1, status: "active", sourceKind: "policy_upload" },
+      { id: "sp", version: 9, status: "active", sourceKind: "sharepoint", updatedAt: new Date("2026-01-01") },
+      { id: "pdf", version: 1, status: "active", sourceKind: "policy_upload", updatedAt: new Date("2026-01-01") },
     ]);
     prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 1 });
     expect(await applySupersession({ normalizedTitle: "x", state: null, serviceId: null })).toBe("pdf");
+  });
+
+  it("same kind, same version: the more recently updated row wins", async () => {
+    prismaMock.knowledgeSource.findMany.mockResolvedValue([
+      { id: "old", version: 2, status: "active", sourceKind: "sharepoint", updatedAt: new Date("2026-01-01") },
+      { id: "new", version: 2, status: "active", sourceKind: "sharepoint", updatedAt: new Date("2026-02-01") },
+    ]);
+    prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 1 });
+    const winner = await applySupersession({ normalizedTitle: "x", state: null, serviceId: null });
+    expect(winner).toBe("new");
+    expect(prismaMock.knowledgeSource.updateMany.mock.calls[0][0]).toEqual({
+      where: { id: { in: ["old"] } },
+      data: { status: "superseded", supersededById: "new" },
+    });
   });
 });

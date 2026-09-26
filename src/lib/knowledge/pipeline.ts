@@ -57,14 +57,17 @@ export async function upsertKnowledgeSource(
         externalId: input.externalId,
       },
     },
-    select: { id: true, contentHash: true, status: true, excludedBy: true },
+    select: { id: true, contentHash: true, status: true, excludedBy: true, indexError: true },
   });
 
   // An adapter-excluded row whose origin has come back (republished course,
   // unarchived policy) is re-activated. Admin exclusions are never reverted.
   const reactivate = existing?.status === "excluded" && existing.excludedBy === "adapter";
 
-  if (existing && existing.contentHash === contentHash) {
+  // A row with a matching hash but a stale indexError means the LAST attempt
+  // never actually indexed anything — re-running with an unchanged hash
+  // would report "unchanged" forever and leave the chunks stale/absent.
+  if (existing && existing.contentHash === contentHash && existing.indexError == null) {
     if (!reactivate) return { sourceId: existing.id, outcome: "unchanged" };
     await prisma.knowledgeSource.update({
       where: { id: existing.id },
@@ -163,7 +166,11 @@ export async function indexSource(
         where: { id: sourceId },
         data: { indexedAt: new Date(), indexError: vectors ? null : "Embeddings unavailable — tsvector only" },
       });
-    });
+      // Large SOP docs can be 100–200 chunks, one round trip per chunk for
+      // the embedding UPDATE — well past Prisma's 5s interactive-transaction
+      // default. maxWait is how long we'll queue for a connection; timeout
+      // is how long the transaction itself may run once it has one.
+    }, { timeout: 30_000, maxWait: 5_000 });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     logger.error("Knowledge: index failed", { sourceId, err: message });
@@ -243,7 +250,9 @@ export async function applySupersession(key: {
   const sorted = [...rows].sort((a, b) => {
     const pk = (KIND_PRIORITY[b.sourceKind] ?? 0) - (KIND_PRIORITY[a.sourceKind] ?? 0);
     if (pk !== 0) return pk;
-    return (b.version ?? 0) - (a.version ?? 0);
+    const vk = (b.version ?? 0) - (a.version ?? 0);
+    if (vk !== 0) return vk;
+    return b.updatedAt.getTime() - a.updatedAt.getTime();
   });
   const winner = sorted[0];
   const losers = sorted.slice(1).map((r) => r.id);
