@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Loader2, X, Pencil, Trash2 } from "lucide-react";
+import { Plus, X, Pencil, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
-import { CATEGORIES, isFile, type Category, type KnowledgeEntryDetail, type Tier } from "./types";
+import { CATEGORIES, isCategory, isFile, isTier, type Category, type KnowledgeEntryDetail, type Tier } from "./types";
 
 // ─── Create / edit modal ────────────────────────────────────────────
 
@@ -14,17 +15,23 @@ import { CATEGORIES, isFile, type Category, type KnowledgeEntryDetail, type Tier
  * Create a pasted-text `manual` source, or edit an existing manual one.
  * Uploaded files (Blob-backed) can only be renamed here — the route 409s
  * on a body edit, so the textarea is read-only and `save` sends `{ title }`.
+ *
+ * Delete is the page's mutation (`onDelete`) — one confirm string, one
+ * success path — so the row's trash icon and this footer can't drift.
  */
 export function EntryModal({
   mode,
   id,
-  initialTitle,
   onClose,
+  onDelete,
+  deleting = false,
 }: {
   mode: "create" | "edit";
   id?: string;
-  initialTitle?: string;
   onClose: () => void;
+  onDelete: (id: string) => void;
+  /** The page's delete mutation is in flight for this entry. */
+  deleting?: boolean;
 }) {
   useEscapeClose(onClose);
   const qc = useQueryClient();
@@ -39,7 +46,7 @@ export function EntryModal({
   });
   const fileEntry = !!existing && isFile(existing);
 
-  const [title, setTitle] = useState(initialTitle ?? "");
+  const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [category, setCategory] = useState<Category>("guide");
   // "auto" sends nothing — the pipeline's inferTier() decides.
@@ -54,7 +61,7 @@ export function EntryModal({
     setBody(existing.body);
   }
 
-  const byteSize = useMemo(() => Buffer.byteLength(body, "utf-8"), [body]);
+  const byteSize = useMemo(() => new TextEncoder().encode(body).length, [body]);
 
   const save = useMutation({
     mutationFn: async (): Promise<{ outcome?: string; error?: string | null }> => {
@@ -84,7 +91,7 @@ export function EntryModal({
           description: isEdit
             ? fileEntry
               ? "Knowledge entry renamed."
-              : "Knowledge entry updated and re-indexed."
+              : "Knowledge entry saved."
             : "Knowledge entry created and indexed.",
         });
       }
@@ -93,23 +100,6 @@ export function EntryModal({
     onError: (err: Error) =>
       toast({ variant: "destructive", description: err.message || "Something went wrong" }),
   });
-
-  const del = useMutation({
-    mutationFn: () =>
-      mutateApi(`/api/settings/ai-knowledge/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
-      toast({ description: "Knowledge entry deleted." });
-      onClose();
-    },
-    onError: (err: Error) =>
-      toast({ variant: "destructive", description: err.message || "Something went wrong" }),
-  });
-
-  const handleDelete = () => {
-    if (!window.confirm("Delete this knowledge entry? Bot will no longer have access to it.")) return;
-    del.mutate();
-  };
 
   const canSave =
     !!title.trim() &&
@@ -163,10 +153,10 @@ export function EntryModal({
                 <select
                   id="ai-knowledge-category"
                   value={category}
-                  onChange={(e) =>
-                    // Options are exactly the CATEGORIES list — a string we control.
-                    setCategory(e.target.value as Category)
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (isCategory(v)) setCategory(v);
+                  }}
                   disabled={save.isPending}
                   className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
                 >
@@ -184,10 +174,10 @@ export function EntryModal({
                 <select
                   id="ai-knowledge-tier"
                   value={tier}
-                  onChange={(e) =>
-                    // Options are "auto" plus the two Tier values — a string we control.
-                    setTier(e.target.value as Tier | "auto")
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setTier(isTier(v) ? v : "auto");
+                  }}
                   disabled={save.isPending}
                   className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
                 >
@@ -248,44 +238,30 @@ export function EntryModal({
           style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
         >
           <div>
-            {isEdit && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={save.isPending || del.isPending}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-md hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
+            {isEdit && id && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => onDelete(id)}
+                loading={deleting}
+                disabled={save.isPending}
+                iconLeft={<Trash2 className="w-3.5 h-3.5" />}
               >
-                {del.isPending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Trash2 className="w-3.5 h-3.5" />
-                )}
                 Delete
-              </button>
+              </Button>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={save.isPending}
-              className="px-4 py-2 text-sm text-muted hover:text-foreground rounded-md border border-border disabled:opacity-50"
-            >
+            <Button variant="outline" size="sm" onClick={onClose} disabled={save.isPending || deleting}>
               Cancel
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              size="sm"
               onClick={() => save.mutate()}
-              disabled={!canSave}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand/90 disabled:opacity-50"
+              loading={save.isPending}
+              disabled={!canSave || deleting}
+              iconLeft={isEdit ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             >
-              {save.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : isEdit ? (
-                <Pencil className="w-4 h-4" />
-              ) : (
-                <Plus className="w-4 h-4" />
-              )}
               {save.isPending
                 ? "Saving…"
                 : isEdit
@@ -293,7 +269,7 @@ export function EntryModal({
                     ? "Save"
                     : "Save & re-index"
                   : "Save & index"}
-            </button>
+            </Button>
           </div>
         </footer>
       </div>

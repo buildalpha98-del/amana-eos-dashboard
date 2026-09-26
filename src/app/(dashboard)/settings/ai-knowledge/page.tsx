@@ -17,7 +17,7 @@
  * edit the knowledge the bot draws from, not the bot itself.
  */
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Brain, Plus, Upload, RefreshCw, Globe, BookOpen } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -29,22 +29,18 @@ import { KnowledgeSourceRow } from "@/components/settings/ai-knowledge/Knowledge
 import { EntryModal } from "@/components/settings/ai-knowledge/EntryModal";
 import { LastSyncPanel } from "@/components/settings/ai-knowledge/LastSyncPanel";
 import {
+  isSourceKind,
+  isStatus,
+  isTier,
   KIND_LABEL,
+  SOURCE_KINDS,
   type KnowledgeEntrySummary,
+  type KnowledgePatchBody,
   type SourceKind,
   type Status,
   type SyncRunSummary,
   type Tier,
 } from "@/components/settings/ai-knowledge/types";
-
-// Seed suggestions shown when the library is empty. Picking one
-// pre-fills the title in the editor so the admin can paste straight
-// in. Not exhaustive — admin can name new entries anything.
-const SEED_SUGGESTIONS = [
-  { title: "The Amana Way", hint: "Our handbook of values + how we work" },
-  { title: "Employee Handbook", hint: "Conditions, policies, procedures" },
-  { title: "Proven Process", hint: "How we run the business — the EOS playbook" },
-];
 
 /** What POST /register (and the seed route's per-source results) report. */
 interface RegisterResult {
@@ -55,8 +51,7 @@ interface RegisterResult {
   reason?: string;
 }
 
-const KINDS = Object.keys(KIND_LABEL) as SourceKind[];
-const STATUSES: { value: Status | "all"; label: string }[] = [
+const STATUS_OPTIONS: { value: Status | "all"; label: string }[] = [
   { value: "active", label: "Active" },
   { value: "superseded", label: "Superseded" },
   { value: "excluded", label: "Excluded" },
@@ -64,11 +59,7 @@ const STATUSES: { value: Status | "all"; label: string }[] = [
 ];
 
 export default function AiKnowledgePage() {
-  const [editing, setEditing] = useState<{
-    mode: "create" | "edit";
-    id?: string;
-    initialTitle?: string;
-  } | null>(null);
+  const [editing, setEditing] = useState<{ mode: "create" | "edit"; id?: string } | null>(null);
 
   const { data, isLoading, error } = useQuery<
     { entries: KnowledgeEntrySummary[] },
@@ -94,10 +85,29 @@ export default function AiKnowledgePage() {
       if (kindFilter !== "all" && e.sourceKind !== kindFilter) return false;
       if (tierFilter !== "all" && (e.tierOverride ?? e.tier) !== tierFilter) return false;
       if (statusFilter !== "all" && e.status !== statusFilter) return false;
-      if (q && !e.title.toLowerCase().includes(q) && !(e.serviceName ?? "").toLowerCase().includes(q)) return false;
+      if (q) {
+        const haystack = [e.title, e.serviceName ?? "", KIND_LABEL[e.sourceKind], e.category]
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
       return true;
     });
   }, [entries, search, kindFilter, tierFilter, statusFilter]);
+
+  // Library size — confirms sources + chunks are actually there. Quick sanity
+  // check when the bot says it "can't find" something the user just uploaded.
+  // Memoised over `entries` so a keystroke in the search box doesn't recount.
+  const stats = useMemo(() => {
+    const active = entries.filter((e) => e.status === "active");
+    return {
+      total: entries.length,
+      active: active.length,
+      indexed: active.filter((e) => e.indexedAt !== null).length,
+      chunks: active.reduce((sum, e) => sum + e.chunkCount, 0),
+      errored: entries.filter((e) => e.indexError).length,
+    };
+  }, [entries]);
 
   const qc = useQueryClient();
   // Hidden <input type="file"> we trigger from the visible Upload
@@ -111,6 +121,16 @@ export default function AiKnowledgePage() {
     failed: number;
     current: string | null;
   } | null>(null);
+  // The "Finished — N uploaded" card lingers for a beat after a batch; the
+  // timer is cleared on unmount so a navigation mid-linger can't set state
+  // on a dead component.
+  const clearProgressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (clearProgressTimer.current) clearTimeout(clearProgressTimer.current);
+    },
+    [],
+  );
 
   const uploadOne = async (file: File): Promise<RegisterResult> => {
     // Client-direct upload to Vercel Blob via @vercel/blob/client.
@@ -225,7 +245,8 @@ export default function AiKnowledgePage() {
         });
       }
       // Clear progress card after a beat so the user sees the final tally.
-      setTimeout(() => setBulkProgress(null), 4000);
+      if (clearProgressTimer.current) clearTimeout(clearProgressTimer.current);
+      clearProgressTimer.current = setTimeout(() => setBulkProgress(null), 4000);
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Upload failed" });
@@ -287,13 +308,40 @@ export default function AiKnowledgePage() {
       toast({ variant: "destructive", description: err.message || "Sync failed" }),
   });
 
-  // Row-level delete (manual entries only — the route 409s otherwise).
+  // Row-level mutations live here, once, rather than once per row — the
+  // rows stay presentational and get `pending` ids for their spinners.
+  const rowError = (err: Error) =>
+    toast({ variant: "destructive", description: err.message || "Something went wrong" });
+  const patch = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: KnowledgePatchBody }) =>
+      mutateApi(`/api/settings/ai-knowledge/${id}`, { method: "PATCH", body }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["ai-knowledge"] }),
+    onError: rowError,
+  });
+  const reindex = useMutation({
+    mutationFn: (id: string) =>
+      mutateApi<{ ok: boolean; chunks?: number; error?: string }>(
+        `/api/settings/ai-knowledge/${id}/reindex`,
+        { method: "POST" },
+      ),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
+      toast({
+        description: r.ok ? `Re-indexed (${r.chunks ?? 0} chunks)` : `Re-index failed: ${r.error ?? "unknown"}`,
+        ...(r.ok ? {} : { variant: "destructive" as const }),
+      });
+    },
+    onError: rowError,
+  });
+  // Delete (manual entries only — the route 409s otherwise). Shared by the
+  // row's trash icon and the edit modal's footer; closes the modal if open.
   const del = useMutation({
     mutationFn: (id: string) =>
       mutateApi(`/api/settings/ai-knowledge/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
       toast({ description: "Knowledge entry deleted." });
+      setEditing(null);
     },
     onError: (err: Error) =>
       toast({ variant: "destructive", description: err.message || "Delete failed" }),
@@ -301,6 +349,10 @@ export default function AiKnowledgePage() {
   const confirmDelete = (id: string) => {
     if (!window.confirm("Delete this knowledge entry? Bot will no longer have access to it.")) return;
     del.mutate(id);
+  };
+  const rowPending = {
+    patchId: patch.isPending ? patch.variables?.id : undefined,
+    reindexId: reindex.isPending ? reindex.variables : undefined,
   };
 
   const syncingBackfill = sync.isPending && sync.variables === "backfill";
@@ -328,50 +380,41 @@ export default function AiKnowledgePage() {
         </p>
       </div>
 
-      {/* Library size — confirms sources + chunks are actually there.
-          Quick sanity check when the bot says it "can't find" something
-          the user just uploaded. */}
-      {!isLoading && entries.length > 0 && (() => {
-        const active = entries.filter((e) => e.status === "active");
-        const indexedCount = active.filter((e) => e.indexedAt !== null).length;
-        const totalChunks = active.reduce((s, e) => s + e.chunkCount, 0);
-        const errored = entries.filter((e) => e.indexError).length;
-        return (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-card rounded-lg border border-border p-3">
-              <p className="text-2xs uppercase tracking-wide text-muted">Sources</p>
-              <p className="text-2xl font-bold text-foreground">
-                {active.length}
-                {active.length !== entries.length && (
-                  <span className="text-sm font-normal text-muted"> / {entries.length}</span>
-                )}
-              </p>
-            </div>
-            <div className="bg-card rounded-lg border border-border p-3">
-              <p className="text-2xs uppercase tracking-wide text-muted">Indexed</p>
-              <p className={cn(
-                "text-2xl font-bold",
-                indexedCount === active.length ? "text-success" : "text-warning",
-              )}>
-                {indexedCount}/{active.length}
-              </p>
-            </div>
-            <div className="bg-card rounded-lg border border-border p-3">
-              <p className="text-2xs uppercase tracking-wide text-muted">Chunks</p>
-              <p className="text-2xl font-bold text-foreground">{totalChunks}</p>
-            </div>
-            <div className="bg-card rounded-lg border border-border p-3">
-              <p className="text-2xs uppercase tracking-wide text-muted">Errors</p>
-              <p className={cn(
-                "text-2xl font-bold",
-                errored === 0 ? "text-success" : "text-danger",
-              )}>
-                {errored}
-              </p>
-            </div>
+      {!isLoading && stats.total > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-card rounded-lg border border-border p-3">
+            <p className="text-2xs uppercase tracking-wide text-muted">Sources</p>
+            <p className="text-2xl font-bold text-foreground">
+              {stats.active}
+              {stats.active !== stats.total && (
+                <span className="text-sm font-normal text-muted"> / {stats.total}</span>
+              )}
+            </p>
           </div>
-        );
-      })()}
+          <div className="bg-card rounded-lg border border-border p-3">
+            <p className="text-2xs uppercase tracking-wide text-muted">Indexed</p>
+            <p className={cn(
+              "text-2xl font-bold",
+              stats.indexed === stats.active ? "text-success" : "text-warning",
+            )}>
+              {stats.indexed}/{stats.active}
+            </p>
+          </div>
+          <div className="bg-card rounded-lg border border-border p-3">
+            <p className="text-2xs uppercase tracking-wide text-muted">Chunks</p>
+            <p className="text-2xl font-bold text-foreground">{stats.chunks}</p>
+          </div>
+          <div className="bg-card rounded-lg border border-border p-3">
+            <p className="text-2xs uppercase tracking-wide text-muted">Errors</p>
+            <p className={cn(
+              "text-2xl font-bold",
+              stats.errored === 0 ? "text-success" : "text-danger",
+            )}>
+              {stats.errored}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Drag-and-drop zone — accepts a folder or multi-selection of
           PDFs/DOCXs. Uploads sequentially so we don't hammer the
@@ -507,14 +550,14 @@ export default function AiKnowledgePage() {
       ) : error ? (
         <p className="text-sm text-danger">Unable to load entries.</p>
       ) : entries.length === 0 ? (
-        <EmptyState onPick={(title) => setEditing({ mode: "create", initialTitle: title })} />
+        <EmptyState onSync={() => sync.mutate("backfill")} syncing={syncingBackfill} disabled={sync.isPending} />
       ) : (
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <input
               type="search"
               aria-label="Search sources"
-              placeholder="Search by title or centre…"
+              placeholder="Search by title, centre, kind or category…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="flex-1 min-w-[12rem] rounded-md border border-border bg-card px-3 py-1.5 text-sm"
@@ -522,14 +565,14 @@ export default function AiKnowledgePage() {
             <select
               aria-label="Filter by source kind"
               value={kindFilter}
-              onChange={(e) =>
-                // Options are "all" plus the KIND_LABEL keys — a string we control.
-                setKindFilter(e.target.value as SourceKind | "all")
-              }
+              onChange={(e) => {
+                const v = e.target.value;
+                setKindFilter(isSourceKind(v) ? v : "all");
+              }}
               className="rounded-md border border-border bg-card px-2 py-1.5 text-sm"
             >
               <option value="all">All kinds</option>
-              {KINDS.map((k) => (
+              {SOURCE_KINDS.map((k) => (
                 <option key={k} value={k}>
                   {KIND_LABEL[k]}
                 </option>
@@ -538,10 +581,10 @@ export default function AiKnowledgePage() {
             <select
               aria-label="Filter by tier"
               value={tierFilter}
-              onChange={(e) =>
-                // Options are "all" plus the two Tier values — a string we control.
-                setTierFilter(e.target.value as Tier | "all")
-              }
+              onChange={(e) => {
+                const v = e.target.value;
+                setTierFilter(isTier(v) ? v : "all");
+              }}
               className="rounded-md border border-border bg-card px-2 py-1.5 text-sm"
             >
               <option value="all">All tiers</option>
@@ -551,13 +594,13 @@ export default function AiKnowledgePage() {
             <select
               aria-label="Filter by status"
               value={statusFilter}
-              onChange={(e) =>
-                // Options are exactly the STATUSES list — a string we control.
-                setStatusFilter(e.target.value as Status | "all")
-              }
+              onChange={(e) => {
+                const v = e.target.value;
+                setStatusFilter(isStatus(v) ? v : "all");
+              }}
               className="rounded-md border border-border bg-card px-2 py-1.5 text-sm"
             >
-              {STATUSES.map((s) => (
+              {STATUS_OPTIONS.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
                 </option>
@@ -579,6 +622,9 @@ export default function AiKnowledgePage() {
                   entry={e}
                   onEdit={(id) => setEditing({ mode: "edit", id })}
                   onDelete={confirmDelete}
+                  onPatch={(id, body) => patch.mutate({ id, body })}
+                  onReindex={(id) => reindex.mutate(id)}
+                  pending={rowPending}
                 />
               ))}
             </ul>
@@ -590,15 +636,24 @@ export default function AiKnowledgePage() {
         <EntryModal
           mode={editing.mode}
           id={editing.id}
-          initialTitle={editing.initialTitle}
           onClose={() => setEditing(null)}
+          onDelete={confirmDelete}
+          deleting={del.isPending}
         />
       )}
     </div>
   );
 }
 
-function EmptyState({ onPick }: { onPick: (title: string) => void }) {
+function EmptyState({
+  onSync,
+  syncing,
+  disabled,
+}: {
+  onSync: () => void;
+  syncing: boolean;
+  disabled: boolean;
+}) {
   return (
     <div className="rounded-lg border border-dashed border-border p-6 text-center">
       <Brain className="w-10 h-10 mx-auto text-border mb-3" />
@@ -606,22 +661,21 @@ function EmptyState({ onPick }: { onPick: (title: string) => void }) {
         No knowledge sources yet
       </p>
       <p className="text-xs text-muted mt-1 max-w-md mx-auto">
-        Run &ldquo;Sync from dashboard&rdquo; to pull in handbooks, help
-        articles and policies, or paste in any plain-text content
-        (markdown is fine) to give the AI bot something to draw on.
+        Run &ldquo;Sync from dashboard&rdquo; to pull in the handbooks, help
+        articles, centre facts, training modules and policies that already
+        live here, or paste in any plain-text content (markdown is fine) to
+        give the AI bot something to draw on.
       </p>
-      <div className="mt-4 flex flex-wrap justify-center gap-2">
-        {SEED_SUGGESTIONS.map((s) => (
-          <button
-            key={s.title}
-            type="button"
-            onClick={() => onPick(s.title)}
-            className="inline-flex flex-col items-start gap-0.5 px-3 py-2 text-left text-sm border border-border rounded-md hover:bg-surface"
-          >
-            <span className="font-medium text-foreground">{s.title}</span>
-            <span className="text-xs text-muted">{s.hint}</span>
-          </button>
-        ))}
+      <div className="mt-4 flex justify-center">
+        <Button
+          size="sm"
+          onClick={onSync}
+          loading={syncing}
+          disabled={disabled}
+          iconLeft={<RefreshCw className="w-4 h-4" />}
+        >
+          {syncing ? "Syncing…" : "Sync from dashboard"}
+        </Button>
       </div>
     </div>
   );

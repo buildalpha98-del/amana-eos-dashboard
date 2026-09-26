@@ -1,10 +1,7 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, Pencil, RefreshCw, Trash2, EyeOff, Eye } from "lucide-react";
-import { mutateApi } from "@/lib/fetch-api";
-import { toast } from "@/hooks/useToast";
-import { isManual, KIND_LABEL, type KnowledgeEntrySummary, type Tier } from "./types";
+import { isManual, isTier, KIND_LABEL, type KnowledgeEntrySummary, type KnowledgePatchBody, type Tier } from "./types";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "Never";
@@ -26,40 +23,22 @@ interface Props {
   entry: KnowledgeEntrySummary;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onPatch: (id: string, body: KnowledgePatchBody) => void;
+  onReindex: (id: string) => void;
+  /** Ids of the rows whose PATCH / re-index is in flight — the page owns the mutations. */
+  pending: { patchId?: string; reindexId?: string };
 }
 
 /**
  * One KnowledgeSource in the console. Tier override, exclude/restore and
  * re-index apply to every kind; edit/delete only to `manual` rows (adapter-
- * owned sources change at their origin).
+ * owned sources change at their origin). Presentational — every action is
+ * a callback into the page, which holds the mutations once rather than
+ * once per row.
  */
-export function KnowledgeSourceRow({ entry: e, onEdit, onDelete }: Props) {
-  const qc = useQueryClient();
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
-  const onError = (err: Error) =>
-    toast({ variant: "destructive", description: err.message || "Something went wrong" });
-
-  const patch = useMutation({
-    mutationFn: (body: { tierOverride?: Tier | null; status?: "active" | "excluded" }) =>
-      mutateApi(`/api/settings/ai-knowledge/${e.id}`, { method: "PATCH", body }),
-    onSuccess: invalidate,
-    onError,
-  });
-  const reindex = useMutation({
-    mutationFn: () =>
-      mutateApi<{ ok: boolean; chunks?: number; error?: string }>(
-        `/api/settings/ai-knowledge/${e.id}/reindex`,
-        { method: "POST" },
-      ),
-    onSuccess: (r) => {
-      invalidate();
-      toast({
-        description: r.ok ? `Re-indexed (${r.chunks ?? 0} chunks)` : `Re-index failed: ${r.error ?? "unknown"}`,
-        ...(r.ok ? {} : { variant: "destructive" as const }),
-      });
-    },
-    onError,
-  });
+export function KnowledgeSourceRow({ entry: e, onEdit, onDelete, onPatch, onReindex, pending }: Props) {
+  const patching = pending.patchId === e.id;
+  const reindexing = pending.reindexId === e.id;
 
   const effectiveTier = e.tierOverride ?? e.tier;
   const dim = e.status !== "active" ? "opacity-60" : "";
@@ -119,12 +98,11 @@ export function KnowledgeSourceRow({ entry: e, onEdit, onDelete }: Props) {
           aria-label="Tier override"
           className="text-2xs rounded border border-border bg-card px-1 py-0.5"
           value={e.tierOverride ?? "auto"}
-          onChange={(ev) =>
-            // The <select> only offers "auto" plus the two Tier values, so the
-            // cast narrows a string we control — not user-typed input.
-            patch.mutate({ tierOverride: ev.target.value === "auto" ? null : (ev.target.value as Tier) })
-          }
-          disabled={patch.isPending}
+          onChange={(ev) => {
+            const v = ev.target.value;
+            onPatch(e.id, { tierOverride: isTier(v) ? v : null });
+          }}
+          disabled={patching}
         >
           <option value="auto">Auto ({e.tier === "safety_critical" ? "safety" : "general"})</option>
           <option value="safety_critical">Safety-critical</option>
@@ -136,8 +114,8 @@ export function KnowledgeSourceRow({ entry: e, onEdit, onDelete }: Props) {
             aria-label={e.status === "excluded" ? "Restore" : "Exclude"}
             title={e.status === "excluded" ? "Restore to search" : "Exclude from search"}
             className="p-1 rounded hover:bg-surface text-muted"
-            onClick={() => patch.mutate({ status: e.status === "excluded" ? "active" : "excluded" })}
-            disabled={patch.isPending}
+            onClick={() => onPatch(e.id, { status: e.status === "excluded" ? "active" : "excluded" })}
+            disabled={patching}
           >
             {e.status === "excluded" ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
           </button>
@@ -147,10 +125,10 @@ export function KnowledgeSourceRow({ entry: e, onEdit, onDelete }: Props) {
           aria-label="Re-index"
           title="Re-chunk and re-embed"
           className="p-1 rounded hover:bg-surface text-muted"
-          onClick={() => reindex.mutate()}
-          disabled={reindex.isPending}
+          onClick={() => onReindex(e.id)}
+          disabled={reindexing}
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${reindex.isPending ? "animate-spin" : ""}`} />
+          <RefreshCw className={`h-3.5 w-3.5 ${reindexing ? "animate-spin" : ""}`} />
         </button>
         {editable && (
           <>

@@ -10,7 +10,10 @@ const LABEL: Record<string, string> = {
   sharepoint: "SharePoint import",
 };
 
-/** Latest run per adapter — hidden entirely until something has ever run. */
+/**
+ * Latest run per adapter — hidden entirely until something has ever run. A
+ * run with no `finishedAt` is still in flight (a backfill can take minutes).
+ */
 export function LastSyncPanel() {
   const { data } = useQuery<{ runs: SyncRunSummary[] }>({
     queryKey: ["ai-knowledge-sync-runs"],
@@ -31,6 +34,7 @@ export function LastSyncPanel() {
             <div className="flex flex-wrap gap-x-3 text-muted">
               <span className="text-foreground font-medium">{LABEL[r.adapter] ?? r.adapter}</span>
               <span>{new Date(r.startedAt).toLocaleString("en-AU")}</span>
+              {r.finishedAt === null && <span className="text-warning">running…</span>}
               {Object.entries(r.counts ?? {}).map(([k, v]) => (
                 <span key={k}>
                   {k} {v}
@@ -45,7 +49,7 @@ export function LastSyncPanel() {
                 </summary>
                 <ul className="mt-1 space-y-1">
                   {conflicts.map((c, i) => (
-                    <li key={i}>
+                    <li key={c.paths[0] ?? i}>
                       <span className="font-medium">{c.normalizedTitle}</span>
                       {c.state ? ` (${c.state})` : ""}
                       {c.version ? ` V${c.version}` : ""}

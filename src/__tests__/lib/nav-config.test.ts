@@ -532,11 +532,11 @@ describe("My Portal grouping (2026-08-06)", () => {
 });
 
 describe("OSHC Coordinator sidebar", () => {
-  // 2026-09-17: a coordinator's day is their centre, vacation care, design
-  // requests and looking things up. Holiday Quest was withheld as "a marketing
-  // planner" when the coordinator is the person who RUNS vacation care, and
-  // the Knowledge Base sat in the "+N more" overflow, which for a daily
-  // reference is the same as missing.
+  // 2026-09-17: a coordinator's day is their centre, vacation care and design
+  // requests. Holiday Quest was withheld as "a marketing planner" when the
+  // coordinator is the person who RUNS vacation care. (The Knowledge Base
+  // item that used to sit beside these was retired on 2026-09-27 — /knowledge
+  // now redirects to /assistant, which has its own nav entry.)
   const coordinatorNav = () => {
     const items = filterNavItems(navItems, "member" as Role).filter(
       (i) => !i.hidden,
