@@ -415,7 +415,7 @@ DATABASE_URL="postgresql://localhost:5432/amana_eos_migtest" npx prisma migrate 
 DATABASE_URL="postgresql://localhost:5432/amana_eos_migtest" npx prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --exit-code; echo "diff exit: $?"
 dropdb amana_eos_migtest
 ```
-Expected: every migration from `0_init` applies cleanly including this one; diff exit `0`, or a diff that mentions ONLY the `embedding`/`searchVector` columns (Prisma's `Unsupported` noise) — anything else is a real drift to fix.
+Expected: every migration from `0_init` applies cleanly including this one; diff exit `0`, or a diff that mentions ONLY the `embedding`/`searchVector` columns (Prisma's `Unsupported` noise) — anything else is a real drift to fix. If an UNRELATED historical migration fails on the fresh DB (CI has never replayed history — it uses `db push`), don't fix history here: `DATABASE_URL=<scratch> npx prisma db push` then `npx prisma db execute --file prisma/migrations/20260927000000_knowledge_store/migration.sql --url <scratch>` exercises just this migration, then run the diff. Afterwards, run `npx prisma db pull --print | grep -A1 embedding` and make the schema's `Unsupported("…")` string match what introspection reports — that is the zero-noise choice.
 
 - [ ] **Step 4: Verify pgvector on a Neon branch BEFORE the first push (one-off, do not skip)**
 
@@ -487,7 +487,7 @@ describe("service content staffNotes", () => {
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `npx vitest run src/__tests__/lib/service-content-shared.test.ts`
-Expected: FAIL — `staffNotes` unknown key / undefined.
+Expected: FAIL — `TypeError: toParentContent is not a function` (and `staffNotes` undefined).
 
 - [ ] **Step 3: Implement**
 
@@ -500,9 +500,9 @@ In `serviceContentSchema`, after `sharepointUrl: z.string().max(2_048),` add:
    * `centre_facts`); never shown to parents. Coordinator-editable via the
    * same PATCH as the rest of the content tab.
    */
-  staffNotes: z.string().max(4_000),
+  staffNotes: z.string().max(4_000).default(""),
 ```
-In `SERVICE_CONTENT_DEFAULTS` add `staffNotes: "",`. In `mergeServiceContent`'s returned object add `staffNotes: str("staffNotes"),` (it uses the `str()` helper for every string field — follow the existing pattern for `sharepointUrl`). Then add, after `mergeServiceContent`:
+(`.default("")` so a Content tab loaded before this deploy doesn't 400 with "Required" on its next save — the PATCH route parses the whole object.) In `SERVICE_CONTENT_DEFAULTS` add `staffNotes: "",`. In `mergeServiceContent`'s returned object add `staffNotes: str("staffNotes"),` (it uses the `str()` helper for every string field — follow the existing pattern for `sharepointUrl`). Then add, after `mergeServiceContent`:
 ```ts
 export type ParentServiceContent = Omit<ServiceContent, "staffNotes">;
 
@@ -543,9 +543,9 @@ In `src/components/services/ServiceContentTab.tsx`, directly after the `<Section
             rows={4}
             placeholder="e.g. Gate code 1234 (changes each term). Evacuation point: oval. School office: 03 9000 0000. Nominated supervisor: Sara K."
           />
-          <p className="text-2xs text-muted mt-1">
+          <span className="text-2xs text-muted mt-1 block">
             Indexed for Amana AI so staff can ask "what's the gate code at Doveton?". Never shown to parents.
-          </p>
+          </span>
         </Field>
       </Section>
 ```
@@ -1157,7 +1157,7 @@ Expected: FAIL — module not found.
  *
  * Nothing here reads Document/DocumentChunk — guard-tested.
  */
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { chunkText } from "@/lib/document-indexer";
@@ -1390,11 +1390,11 @@ Expected: PASS (6 tests).
 
 `src/app/api/ai/usage/route.ts:51–52` does `r.user.id` / `r.user.name` and would throw on the first `knowledge-index` row. Change the accumulation to:
 ```ts
-    const uid = r.userId ?? "system";
+    const uid = r.user?.id ?? "system"; // the select has no bare userId column
     const name = r.user?.name ?? "System";
     if (!byUser[uid]) byUser[uid] = { name, calls: 0, inputTokens: 0, outputTokens: 0 };
 ```
-and any other `r.user.` read to `r.user?.`. The route test that locks this in is written in Task 23 (same PR).
+and any other `r.user.` read to `r.user?.`. Add a two-line test now in `src/__tests__/api/ai-usage.test.ts` (the full file is written in Task 23 — create it here with just the "buckets null-user rows under System" case from Task 23 Step 4, and Task 23 then adds nothing new to it).
 
 - [ ] **Step 6: Commit**
 
