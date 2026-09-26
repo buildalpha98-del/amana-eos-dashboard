@@ -220,10 +220,14 @@ Three properties, no exceptions:
 | `my_induction` | `getInductionReadiness(userId)` | "Why can't I clock in?" |
 | `my_centre` | `Service` (address, phone, manager) + the `centre_facts` source | "Who's my coordinator?" |
 | `my_training` | `LMSEnrollment` progress | "What courses do I still have to do?" |
+| `service_roster_today` | `RosterShift` for the user's **primary** service today (+ RP register) — every staff role; scope from session | "Who's on with me?" / "Who's the RP?" |
+| `child_medical_plan` | Child medical/allergy plans + authorised collectors, by child name, **primary service only**; never returns other centres' children; result logged on `AssistantTurn` (PII read audit) | "Does Ali have allergies?" / "Who can collect Mia?" |
+
+The last two are service-scoped reads pulled forward from the coordinator set (decision 2026-09-26): an educator at pick-up needs them more than a coordinator at a desk. They use `session.user.serviceId` (primary) only, matching `ensureServiceAccess`.
 
 Existing admin tools are re-registered unchanged. `fetch_oshc_reference` stays (host allowlist unchanged); it overlaps the `regulator` adapter and is the fallback for pages not curated.
 
-**Coordinator read tools (slice 4, scoped via `getCentreScope`):** `service_bookings_today`, `service_roster_today`, `child_medical_plan` (by child name, within scope only), `service_open_incidents`.
+**Coordinator read tools (slice 4, scoped via `getCentreScope`):** `service_bookings_today`, `service_open_incidents`, `service_ratio_forecast`, plus `service_roster_today`/`child_medical_plan` widened from primary-only to the member's full `getCentreScope`.
 
 ### 3.7 Write contract (C)
 
@@ -308,9 +312,10 @@ This makes slice 1 independently shippable.
 | **1 — Content + safety** | Schema + migration (pgvector, `KnowledgeSource`/`Chunk`/`SyncRun`/`AssistantTurn`, `AiUsage.userId` nullable, `Service.content.staffNotes`); pipeline (chunk + embed + tsvector); adapters `handbook`, `help_article`, `policy_upload`, `centre_facts`, `regulator`, `manual`, `backfill`; SharePoint local export + import (§5.1) run against prod; retire the old store per §3.2; role-gate `buildDashboardContext()`; `search_knowledge` over the new store (tsvector + vector, no mode logic yet) | Bot is more useful and no longer dangerous |
 | **2 — Retrieval policy** | Hybrid RRF ranking, `buildKnowledgeScope`, tier heuristic + override, strict/refuse/general modes, `safety-intent.ts`, `resolveEscalation`, citations as chips, `AssistantTurn` logging, admin console incl. "test a question" | Recall + safety policy |
 | **2b — Graph sync** (parallel, gated on admin consent) | §5.2 | SharePoint stays current without a laptop |
-| **3 — Educator tools** | Tool registry, six `my_*` tools, phone UI (full-screen, quick prompts, `tel:` escalation), `MobileTabBar` entry | "Any question" for educators |
+| **3 — Educator tools** | Tool registry, six `my_*` tools + `service_roster_today` + `child_medical_plan` (primary-service reads), phone UI (full-screen, quick prompts, `tel:` escalation), `MobileTabBar` entry | "Any question" for educators |
 | **4 — Coordinators (C begins)** | Service-scoped reads; `PendingAction` + propose/confirm + `createStaffReflection` extraction + `log_reflection`; confirmation card. **Prerequisite:** PR #166 (QIP evidence engine) merged or rebased, or `log_reflection` ships with `type: "weekly"` and no QIP claim | First write action |
-| 5+ | `report_hazard`, `request_leave` (`serviceId` null), `log_incident`; per-user memory; proactive nudges | The second brain |
+| **5** (order decided 2026-09-26) | (1) `log_incident` — bot extracts mandatory incident fields, asks for the rest, coordinator review; (2) `request_leave` sick-leave (`serviceId` null) + coordinator notification; (3) `clock_in`/`clock_out` via the existing clock routes (+ `assertUserCleared`); (4) **morning briefing** push at shift start (shift, co-workers, bookings, medical-plan flags, due drills) | Most taps removed for most people |
+| 6+ | `report_hazard`, `log_observation`, roster swap, coordinator approvals, family posts, creative-request intake, EOS issue/rock capture; proactive nudges (cert expiry, unsubmitted timesheet); page-aware pre-fill; voice input; offline queue; "teach the bot" → draft `manual` source; escalate-to-human with transcript | The second brain |
 
 Each slice ships as its own PR, build + tests green. Slice 1 is strictly additive except for the §3.2 deletions.
 
@@ -323,7 +328,7 @@ Unit (`src/__tests__/lib/knowledge/`):
 - Escalation fallback chain (manager → head_office by state → org contact).
 - Import deduper: V2 vs V3 → V3 active; same key + version, different hash → conflict; NSW V3 vs VIC V2 → **both active**; unmapped centre → excluded + flagged; unchanged hash → no re-embed; skip rules (audit folder, contract filenames).
 - `policy_upload` supersedes only the state-null SharePoint source.
-- Tool registry per role; `buildDashboardContext` absent for staff.
+- Tool registry per role; `buildDashboardContext` absent for staff; `child_medical_plan` and `service_roster_today` for a staff user return only their primary service's rows and 404 a child at another centre (no existence leak).
 - Propose/confirm: cross-user confirm → 404; expired → 410; double-commit → 410; commit goes through `createStaffReflection` with `serviceId` from session; model output cannot set `serviceId`.
 
 Route tests (`src/__tests__/api/`): `assistant/chat` mode selection and SSE events; `assistant/actions/[id]/confirm`; `settings/ai-knowledge/*` (sync, reindex, upload re-pointed); `services/[id]/reflections` still passes after the helper extraction.
