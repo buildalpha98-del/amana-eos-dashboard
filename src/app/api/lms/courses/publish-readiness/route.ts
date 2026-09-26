@@ -25,6 +25,8 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { assessTrackDrafts, publishCourses } from "@/lib/course-publish";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { syncAfterResponse } from "@/lib/knowledge/hooks";
+import { syncLmsCourse } from "@/lib/knowledge/adapters/lms-module";
 
 const TRACKS = ["essential", "monthly", "library"] as const;
 type Track = (typeof TRACKS)[number];
@@ -129,6 +131,10 @@ export const POST = withApiAuth(
         { status: 409 },
       );
     }
+
+    syncAfterResponse("lms_module", async () => {
+      for (const courseId of courseIds) await syncLmsCourse(courseId);
+    });
 
     return NextResponse.json(outcome.result);
   },

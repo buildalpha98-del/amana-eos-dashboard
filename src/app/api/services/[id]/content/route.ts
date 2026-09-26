@@ -30,6 +30,8 @@ import {
 } from "@/lib/service-content-shared";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { getCentreScope } from "@/lib/centre-scope";
+import { syncAfterResponse } from "@/lib/knowledge/hooks";
+import { syncCentreFacts } from "@/lib/knowledge/adapters/centre-facts";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -116,6 +118,8 @@ export const PATCH = withApiAuth(
         details: { fields: Object.keys(parsed.data).length },
       },
     });
+
+    syncAfterResponse("centre_facts", () => syncCentreFacts(serviceId));
 
     return NextResponse.json({
       content: mergeServiceContent(updated.content),

@@ -6,6 +6,8 @@ import { parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { publishCourses } from "@/lib/course-publish";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { syncAfterResponse } from "@/lib/knowledge/hooks";
+import { syncLmsCourse } from "@/lib/knowledge/adapters/lms-module";
 const updateCourseSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional().nullable(),
@@ -140,6 +142,8 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     },
   });
 
+  syncAfterResponse("lms_module", () => syncLmsCourse(id));
+
   return NextResponse.json(course);
 }, { roles: [...ADMIN_ROLES] });
 
@@ -151,6 +155,8 @@ export const DELETE = withApiAuth(async (req, session, context) => {
     where: { id },
     data: { deleted: true },
   });
+
+  syncAfterResponse("lms_module", () => syncLmsCourse(id));
 
   return NextResponse.json({ success: true });
 }, { roles: [...ADMIN_ROLES] });

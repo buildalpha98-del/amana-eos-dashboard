@@ -6,6 +6,8 @@ import { ApiError } from "@/lib/api-error";
 import { saveUploadedBuffer } from "@/app/api/_lib/upload";
 import type { PolicyDocumentCategory } from "@prisma/client";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { syncAfterResponse } from "@/lib/knowledge/hooks";
+import { syncPolicyVersion } from "@/lib/knowledge/adapters/policy-upload";
 
 const POLICY_CATEGORIES = ["policy", "procedure", "other"] as const;
 
@@ -164,6 +166,9 @@ export const POST = withApiAuth(
         details: { title: result.title, category: result.category },
       },
     });
+
+    const versionId = result.currentVersion?.id;
+    if (versionId) syncAfterResponse("policy_upload", () => syncPolicyVersion(versionId));
 
     return NextResponse.json(result, { status: 201 });
   },
