@@ -100,6 +100,21 @@ describe("/api/settings/ai-knowledge", () => {
       expect(prismaMock.knowledgeSource.update).toHaveBeenCalledWith({ where: { id: "k1" }, data: { tierOverride: "safety_critical" } });
     });
 
+    it("a failed tierOverride stamp after a successful create still 201s, surfaces the failure, and logs it", async () => {
+      asOwner();
+      prismaMock.knowledgeSource.update.mockRejectedValueOnce(new Error("db down"));
+      const res = await POST(createRequest("POST", "/api/settings/ai-knowledge", { body: { title: "Roll call", body: "# Roll call\n…", tier: "safety_critical" } }));
+      expect(res.status).toBe(201);
+      const json = await res.json();
+      expect(json.id).toBe("k1");
+      expect(json.outcome).toBe("created");
+      expect(json.error).toMatch(/tier/i);
+      expect(logger.error).toHaveBeenCalledWith(
+        "AI knowledge: tierOverride stamp failed after create",
+        expect.objectContaining({ sourceId: "k1", actorId: "u" }),
+      );
+    });
+
     it("surfaces an indexing error in the body and warns, instead of a silent 201", async () => {
       asOwner();
       createManual.mockResolvedValueOnce({ sourceId: "k9", outcome: "error", error: "No text content extracted" });

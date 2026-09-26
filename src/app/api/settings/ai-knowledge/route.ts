@@ -54,8 +54,20 @@ export const POST = withApiAuth(
     // slot the row's PATCH writes), not the heuristic `tier` column — otherwise
     // the next edit's re-derivation would silently overwrite it.
     const result = await createManualSource({ title: title.trim(), text: body, category, serviceId, state });
+    let tierStampError: string | null = null;
     if (tier) {
-      await prisma.knowledgeSource.update({ where: { id: result.sourceId }, data: { tierOverride: tier } });
+      try {
+        await prisma.knowledgeSource.update({ where: { id: result.sourceId }, data: { tierOverride: tier } });
+      } catch (err) {
+        // The source row (and its indexing outcome) already succeeded — a
+        // second 500 here would make the client retry and create a
+        // duplicate row. Surface the failure in the response instead so
+        // the admin knows to re-check the tier on the row that was made.
+        tierStampError = "Source created, but the tier override failed to save — re-check the tier on this entry.";
+        logger.error("AI knowledge: tierOverride stamp failed after create", {
+          sourceId: result.sourceId, actorId: session!.user.id, err,
+        });
+      }
     }
     if (result.outcome === "error") {
       // The row exists (so the admin can retry via reindex) but nothing is
@@ -66,8 +78,9 @@ export const POST = withApiAuth(
     } else {
       logger.info("AI knowledge: manual source created", { sourceId: result.sourceId, actorId: session!.user.id });
     }
+    const error = [result.error, tierStampError].filter(Boolean).join(" ") || null;
     return NextResponse.json(
-      { id: result.sourceId, outcome: result.outcome, error: result.error ?? null },
+      { id: result.sourceId, outcome: result.outcome, error },
       { status: 201 },
     );
   },

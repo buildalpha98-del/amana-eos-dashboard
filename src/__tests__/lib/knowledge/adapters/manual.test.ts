@@ -80,6 +80,10 @@ describe("manual adapter", () => {
       expect(inferCategory("Employee Handbook.pdf")).toBe("guide");
       expect(inferCategory("notes.txt", "")).toBe("guide");
     });
+
+    it("still matches through a Vercel Blob random-suffix pathname", () => {
+      expect(inferCategory("Sun-Safety-Policy-AbC123xyz.pdf")).toBe("policy");
+    });
   });
 
   it("rejects updating a non-manual source", async () => {
