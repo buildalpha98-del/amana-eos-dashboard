@@ -3,16 +3,24 @@ import path from "node:path";
 import { prismaMock } from "../../../helpers/prisma-mock";
 import type { UpsertResult } from "@/lib/knowledge/types";
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
-vi.mock("@/lib/logger", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
+const { loggerMock } = vi.hoisted(() => ({ loggerMock: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
+vi.mock("@/lib/logger", () => ({ logger: loggerMock }));
 const { upsert, upsertCreated } = vi.hoisted(() => {
   const upsertCreated = async (i: { externalId: string }): Promise<UpsertResult> => ({ sourceId: `src-${i.externalId}`, outcome: "created" });
   return { upsertCreated, upsert: vi.fn<(i: { externalId: string }) => Promise<UpsertResult>>(upsertCreated) };
 });
-vi.mock("@/lib/knowledge/pipeline", () => ({ upsertKnowledgeSource: (i: unknown) => upsert(i as { externalId: string }) }));
+// excludeSources stays REAL so the test proves the adapter goes through the
+// active-only updateMany (an admin exclusion must never be overwritten).
+vi.mock("@/lib/knowledge/pipeline", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/knowledge/pipeline")>();
+  return { ...actual, upsertKnowledgeSource: (i: unknown) => upsert(i as { externalId: string }) };
+});
 
-import { classifyPath, matchServiceByFolder, parseExportFile, importExportDir } from "@/lib/knowledge/adapters/sharepoint-export";
+import { classifyPath, matchServiceByFolder, parseExportFile, importExportDir, listExportFiles } from "@/lib/knowledge/adapters/sharepoint-export";
 
 const FIX = path.join(process.cwd(), "src/__tests__/fixtures/knowledge-export");
+// 8 fixture files: 7 importable (3 Bushfire copies, Rest Time V2 + V3, OPS-10, toilet) + 1 under AUDIT.
+const FIXTURE_IMPORTABLE = 7;
 
 describe("classifyPath", () => {
   it("maps each tree to category + scope", () => {
@@ -21,12 +29,38 @@ describe("classifyPath", () => {
     expect(classifyPath("Shared Documents/SOPs/Jayden full SOP/6. Centre Operations/OPS-10.docx")).toEqual({ tree: "sop", category: "sop", centreFolder: null, skip: false });
     expect(classifyPath("Melbourne Schools/Amana OSHC - Minaret Doveton/QA3/x.docx")).toEqual({ tree: "centre", category: "procedure", centreFolder: "Amana OSHC - Minaret Doveton", skip: false });
     expect(classifyPath("Shared Documents/SOPs/Amana OSHC AUDIT/QA 2/x.docx").skip).toBe(true);
+    expect(classifyPath("Shared Documents/SOPs/Amana OSHC AUDIT 2026/QA 2/x.docx").skip).toBe(true);
     expect(classifyPath("Shared Documents/SOPs/Amana HR Management Review Audit/x.docx").skip).toBe(true);
     expect(classifyPath("NSW Schools/Amana OSHC - Foo/Employment Contract - J Smith.docx").skip).toBe(true);
     expect(classifyPath("NSW Schools/Amana OSHC - Foo/WWCC - J Smith.pdf").skip).toBe(true);
     expect(classifyPath("NSW Schools/Amana OSHC - Foo/Contractor Induction Procedure.docx").skip).toBe(false); // \bcontracts?\b, not "contractor"
     expect(classifyPath("NSW Schools/Amana OSHC - Foo/menu.png").skip).toBe(true);
     expect(classifyPath("Random/other.docx").skip).toBe(true);
+  });
+
+  it("tests PII words against the FULL path — a PII folder skips whatever its files are called", () => {
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Staff Contracts/roster.docx").skip).toBe(true);
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/WWCC/J Smith.pdf").skip).toBe(true);
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Staff Files/x.docx").skip).toBe(true);
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Personnel/QA7 Something.docx").skip).toBe(true);
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Working With Children/list.docx").skip).toBe(true);
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Employee Records/x.pdf").skip).toBe(true);
+    expect(classifyPath("Shared Documents/SOPs/Jayden full SOP/Police Certificate Procedure.docx").skip).toBe(true);
+    // A clean folder with a clean file still imports
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/QA2/Sun Safety Procedure.docx").skip).toBe(false);
+  });
+
+  it("allowlists .doc/.docx/.pdf on the basename and skips every other extension", () => {
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Arrival Notes.doc").skip).toBe(false);
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Arrival Notes.DOCX").skip).toBe(false);
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Arrival Notes.PDF").skip).toBe(false);
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Arrival Notes.msg").skip).toBe(true);
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Arrival Notes.txt").skip).toBe(true);
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Arrival Notes.xlsx").skip).toBe(true);
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Arrival Notes.pptx").skip).toBe(true);
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Arrival Notes").skip).toBe(true);
+    // The extension rule is on the basename only — ".pdf" inside a folder name does not admit a .msg
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/things.pdf/note.msg").skip).toBe(true);
   });
 
   it("skips staff-compliance scans case-insensitively (Visa, WWCC, police check)", () => {
@@ -55,6 +89,10 @@ describe("matchServiceByFolder", () => {
     expect(matchServiceByFolder("Amana OSHC - Somewhere Else", services)).toBeNull();
   });
 
+  it("matches a folder that CONTAINS the single fitting service name", () => {
+    expect(matchServiceByFolder("Amana OSHC - Minaret Doveton Campus", services)).toBe("s1");
+  });
+
   it("prefers an exact normalised match over containment across similarly named centres", () => {
     const similar = [{ id: "m1", name: "Amana OSHC Minaret" }, { id: "m2", name: "Amana OSHC Minaret Doveton" }];
     expect(matchServiceByFolder("Amana OSHC - Minaret Doveton", similar)).toBe("m2");
@@ -65,6 +103,14 @@ describe("matchServiceByFolder", () => {
     const similar = [{ id: "m1", name: "Amana OSHC Minaret" }, { id: "m2", name: "Amana OSHC Minaret Doveton" }];
     expect(matchServiceByFolder("Amana OSHC - Minaret Doveton Campus", similar)).toBeNull();
     expect(matchServiceByFolder("", similar)).toBeNull();
+  });
+
+  it("containment is token-bounded — 'hub' does not match 'hubert street'", () => {
+    const hub = [{ id: "h1", name: "Amana OSHC Hub" }];
+    expect(matchServiceByFolder("Amana OSHC - Hubert Street", hub)).toBeNull();
+    expect(matchServiceByFolder("Amana OSHC - The Hub", hub)).toBe("h1");
+    const hubert = [{ id: "h2", name: "Amana OSHC Hubert Street" }];
+    expect(matchServiceByFolder("Amana OSHC - Hub", hubert)).toBeNull();
   });
 });
 
@@ -80,6 +126,21 @@ describe("parseExportFile", () => {
     expect(() => parseExportFile("---\nid: 1\nname: A.docx\n---\nbody")).toThrow(/Missing frontmatter key: webUrl/);
     expect(() => parseExportFile("no frontmatter")).toThrow(/Missing frontmatter/);
   });
+
+  it("strips a leading BOM and normalises CRLF line endings", () => {
+    const crlf = "\uFEFF---\r\nid: 1\r\nname: A.docx\r\nwebUrl: https://x/A.docx\r\npath: P/A.docx\r\nlastModified: 2026-01-01T00:00:00.000Z\r\n---\r\n# A\r\n\r\nbody\r\n";
+    const f = parseExportFile(crlf);
+    expect(f).toEqual({ id: "1", name: "A.docx", webUrl: "https://x/A.docx", path: "P/A.docx", lastModified: "2026-01-01T00:00:00.000Z", text: "# A\n\nbody" });
+  });
+});
+
+describe("listExportFiles", () => {
+  it("walks recursively, keeps only .md and returns absolute paths sorted", async () => {
+    const files = await listExportFiles(FIX);
+    expect(files).toHaveLength(FIXTURE_IMPORTABLE + 1);
+    expect(files.every((f) => f.endsWith(".md") && path.isAbsolute(f))).toBe(true);
+    expect(files).toEqual([...files].sort());
+  });
 });
 
 describe("importExportDir", () => {
@@ -88,12 +149,13 @@ describe("importExportDir", () => {
     upsert.mockImplementation(upsertCreated);
     prismaMock.service.findMany.mockResolvedValue([{ id: "s1", name: "Amana OSHC Minaret Doveton" }]);
     prismaMock.knowledgeSource.findMany.mockResolvedValue([]);
-    prismaMock.knowledgeSource.update.mockResolvedValue({});
+    prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 1 });
   });
 
   it("imports the fixture tree with dedupe, conflict and skip outcomes", async () => {
     const report = await importExportDir(FIX);
-    expect(report.counts).toEqual({ imported: 6, unchanged: 0, superseded: 0, conflicts: 1, unmapped: 0, skipped: 1, errors: 0 });
+    expect(report.counts).toEqual({ imported: FIXTURE_IMPORTABLE, unchanged: 0, superseded: 0, conflicts: 1, unmapped: 0, skipped: 1, errors: 0 });
+    expect(upsert).toHaveBeenCalledTimes(FIXTURE_IMPORTABLE);
     const inputs = upsert.mock.calls.map((c) => c[0] as Record<string, unknown>);
     const rest3 = inputs.find((i) => String(i.title).includes("V3"));
     expect(rest3).toMatchObject({ sourceKind: "sharepoint", category: "procedure", state: null, serviceId: null });
@@ -101,21 +163,43 @@ describe("importExportDir", () => {
     expect(sop).toMatchObject({ category: "sop" });
     const centre = inputs.find((i) => String(i.title).startsWith("toilet"));
     expect(centre).toMatchObject({ serviceId: "s1", category: "procedure" });
-    expect(report.conflicts[0]).toMatchObject({ normalizedTitle: "qa2 bushfire policy", state: "NSW" });
-    expect(report.conflicts[0].paths).toHaveLength(2);
+    expect(report.files).toHaveLength(FIXTURE_IMPORTABLE);
+    expect(report.files.find((f) => f.path.includes("toilet"))).toMatchObject({ tree: "centre", category: "procedure", serviceId: "s1", serviceName: "Amana OSHC Minaret Doveton" });
     expect(report.skipped[0].path).toContain("Amana OSHC AUDIT");
+    expect(report.warnings).toEqual([]);
     // Nothing was excluded: every non-skipped file mapped cleanly
-    expect(prismaMock.knowledgeSource.update).not.toHaveBeenCalled();
+    expect(prismaMock.knowledgeSource.updateMany).not.toHaveBeenCalled();
+    // Frontmatter paths match the on-disk paths, so no drift warning
+    expect(loggerMock.warn).not.toHaveBeenCalled();
   });
 
-  it("flags an unmapped centre folder and excludes its source", async () => {
+  it("reports ONE conflict per key listing every copy when three copies differ", async () => {
+    const report = await importExportDir(FIX);
+    expect(report.counts.conflicts).toBe(1);
+    expect(report.conflicts).toHaveLength(1);
+    expect(report.conflicts[0]).toMatchObject({ normalizedTitle: "qa2 bushfire policy", state: "NSW", version: 11 });
+    expect(report.conflicts[0].paths).toHaveLength(3);
+    expect(report.conflicts[0].paths).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Reg 168 Policies and Procedures/Policies/QA2 Bushfire"),
+        expect.stringContaining("NSW & VIC state policies/Policies/QA2 Bushfire"),
+        expect.stringContaining("Jayden full SOP/6. Centre Operations/QA2 Bushfire"),
+      ]),
+    );
+  });
+
+  it("flags an unmapped centre folder and adapter-excludes its source via the active-only updateMany", async () => {
     prismaMock.service.findMany.mockResolvedValue([]);
     const report = await importExportDir(FIX);
     expect(report.counts.unmapped).toBe(1);
     expect(report.unmapped[0]).toMatchObject({ centreFolder: "Amana OSHC - Minaret Doveton" });
-    const excluded = prismaMock.knowledgeSource.update.mock.calls.find((c: unknown[]) => (c[0] as { data: { status?: string } }).data.status === "excluded");
-    expect(excluded).toBeTruthy();
-    expect((excluded![0] as { data: { excludedBy?: string } }).data.excludedBy).toBe("adapter");
+    expect(prismaMock.knowledgeSource.updateMany).toHaveBeenCalledTimes(1);
+    expect(prismaMock.knowledgeSource.updateMany).toHaveBeenCalledWith({
+      where: { id: "src-01KJARKPZIKJUMSP2DTFALRIYQ3ELYWK06", status: "active" },
+      data: { status: "excluded", excludedBy: "adapter" },
+    });
+    // The single Service is gone, so no service-scoped key clashes: still one conflict
+    expect(report.counts.conflicts).toBe(1);
   });
 
   it("records upsert errors per file without aborting the run", async () => {
@@ -126,7 +210,7 @@ describe("importExportDir", () => {
     );
     const report = await importExportDir(FIX);
     expect(report.counts.errors).toBe(1);
-    expect(report.counts.imported).toBe(5);
+    expect(report.counts.imported).toBe(FIXTURE_IMPORTABLE - 1);
     expect(report.errors[0]).toMatchObject({ error: "embed failed" });
     expect(report.errors[0].path).toContain("OPS-10");
   });
@@ -138,5 +222,39 @@ describe("importExportDir", () => {
     expect(prismaMock.knowledgeSource.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { sourceKind: "sharepoint", status: "superseded" } }),
     );
+  });
+
+  it("logs progress at the end of the walk (and every 25 files)", async () => {
+    await importExportDir(FIX);
+    const progress = loggerMock.info.mock.calls.filter((c) => c[0] === "Knowledge: export import progress");
+    expect(progress).toHaveLength(1);
+    expect(progress[0][1]).toMatchObject({ done: FIXTURE_IMPORTABLE + 1, total: FIXTURE_IMPORTABLE + 1 });
+  });
+
+  describe("dry mode", () => {
+    it("computes the same tally, conflicts and unmapped with NO upsert, exclusion or superseded query", async () => {
+      prismaMock.service.findMany.mockResolvedValue([]);
+      const report = await importExportDir(FIX, { dry: true });
+      expect(report.counts).toEqual({ imported: FIXTURE_IMPORTABLE, unchanged: 0, superseded: 0, conflicts: 1, unmapped: 1, skipped: 1, errors: 0 });
+      expect(report.files).toHaveLength(FIXTURE_IMPORTABLE);
+      expect(report.conflicts[0].paths).toHaveLength(3);
+      expect(report.unmapped[0]).toMatchObject({ centreFolder: "Amana OSHC - Minaret Doveton" });
+      expect(upsert).not.toHaveBeenCalled();
+      expect(prismaMock.knowledgeSource.updateMany).not.toHaveBeenCalled();
+      expect(prismaMock.knowledgeSource.update).not.toHaveBeenCalled();
+      expect(prismaMock.knowledgeSource.findMany).not.toHaveBeenCalled();
+      expect(report.warnings).toEqual([]);
+    });
+
+    it("degrades to all-unmapped with a warning when the Service lookup fails; a real run rethrows", async () => {
+      // Prisma quotes the whole invocation; the warning keeps only the line that says what went wrong
+      prismaMock.service.findMany.mockRejectedValue(new Error("\nInvalid `prisma.service.findMany()` invocation in\n/x.ts:1:1\n\n  1 try {\n→ 2   services = await prisma.service.findMany(\nCan't reach database server at `127.0.0.1:1`\n\nPlease make sure your database server is running at `127.0.0.1:1`."));
+      const report = await importExportDir(FIX, { dry: true });
+      expect(report.warnings).toHaveLength(1);
+      expect(report.warnings[0]).toMatch(/^Service lookup failed \(Can't reach database server at `127\.0\.0\.1:1`\)/);
+      expect(report.counts.unmapped).toBe(1);
+      expect(upsert).not.toHaveBeenCalled();
+      await expect(importExportDir(FIX)).rejects.toThrow(/Can't reach database server/);
+    });
   });
 });

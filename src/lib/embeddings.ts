@@ -16,6 +16,7 @@ export const EMBEDDING_DIMENSIONS = 1024;
 const ENDPOINT = "https://api.voyageai.com/v1/embeddings";
 // Assumes callers chunk to ~500 tokens (128 × 500 ≈ 64k tokens/request, under Voyage's per-request cap); not enforced here.
 const BATCH_SIZE = 128;
+const REQUEST_TIMEOUT_MS = 30_000;
 
 export function isEmbeddingsConfigured(): boolean {
   return Boolean(process.env.VOYAGE_API_KEY);
@@ -57,6 +58,9 @@ export async function embedTextsWithUsage(
       try {
         const res = await fetch(ENDPOINT, {
           method: "POST",
+          // A hung socket must not stall a 1,000-file import; the retry loop
+          // below treats the TimeoutError like any other failed attempt.
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
           headers: {
             Authorization: `Bearer ${key}`,
             "Content-Type": "application/json",

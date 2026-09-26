@@ -52,6 +52,32 @@ describe("embeddings", () => {
     expect(await embedTexts(["x"], { retries: 1, retryDelayMs: 0 })).toBeNull();
   });
 
+  it("bounds every Voyage request with a 30s AbortSignal timeout", async () => {
+    process.env.VOYAGE_API_KEY = "test";
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
+    let seenSignal: unknown;
+    global.fetch = vi.fn(async (_url, init) => {
+      seenSignal = (init as RequestInit).signal;
+      return new Response(JSON.stringify({ data: [{ index: 0, embedding: [1] }], usage: { total_tokens: 1 } }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const { embedTexts } = await import("@/lib/embeddings");
+    expect(await embedTexts(["x"])).toEqual([[1]]);
+    expect(timeoutSpy).toHaveBeenCalledWith(30_000);
+    expect(seenSignal).toBeInstanceOf(AbortSignal);
+    timeoutSpy.mockRestore();
+  });
+
+  it("treats a timed-out request like any failed attempt: retries, then null (never throws)", async () => {
+    process.env.VOYAGE_API_KEY = "test";
+    const fetchSpy = vi.fn(async () => {
+      throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+    });
+    global.fetch = fetchSpy as unknown as typeof fetch;
+    const { embedTexts } = await import("@/lib/embeddings");
+    expect(await embedTexts(["x"], { retries: 1, retryDelayMs: 0 })).toBeNull();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
   it("returns [] fast for empty input without calling fetch", async () => {
     process.env.VOYAGE_API_KEY = "test";
     const fetchSpy = vi.fn();
