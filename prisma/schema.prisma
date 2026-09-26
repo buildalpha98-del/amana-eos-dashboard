@@ -3068,10 +3068,11 @@ model Service {
   childRecords     Child[]            @relation("ServiceChildren")
 
   // ── Parent Portal Relations ──────────────────────
-  bookings    Booking[]    @relation("ServiceBookings_Portal")
-  absences    Absence[]    @relation("ServiceAbsences")
-  statements  Statement[]  @relation("ServiceStatements")
-  parentPosts ParentPost[] @relation("ServiceParentPosts")
+  bookings         Booking[]         @relation("ServiceBookings_Portal")
+  absences         Absence[]         @relation("ServiceAbsences")
+  statements       Statement[]       @relation("ServiceStatements")
+  knowledgeSources KnowledgeSource[] @relation("ServiceKnowledgeSources")
+  parentPosts      ParentPost[]      @relation("ServiceParentPosts")
 
   // ── Cowork Reports ──────────────────────────────
   coworkReports CoworkReport[] @relation("CoworkReportService")
@@ -7061,8 +7062,11 @@ model AiPromptTemplate {
 
 model AiUsage {
   id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation("AiUsageLogs", fields: [userId], references: [id], onDelete: Cascade)
+  // Nullable since 2026-09-27: cron/script embedding runs (section
+  // "knowledge-index") have no acting user. The usage dashboard buckets
+  // null under "System".
+  userId       String?
+  user         User?    @relation("AiUsageLogs", fields: [userId], references: [id], onDelete: Cascade)
   templateSlug String? // null for freeform assistant chat
   model        String
   inputTokens  Int
@@ -10934,4 +10938,129 @@ model AmbassadorAdjustment {
   createdAt       DateTime  @default(now())
 
   @@unique([pilotId, educatorId, type])
+}
+
+// ─── Amana AI knowledge store (2026-09-27) ───────────────────────────
+// Opt-in by adapter: nothing enters KnowledgeSource except through a
+// named adapter in src/lib/knowledge/adapters. There is deliberately no
+// relation to Document — the HR file cabinet (contracts, certs) must
+// never be indexable. See docs/superpowers/specs/2026-09-26-amana-ai-second-brain-design.md §3.1.
+
+enum KnowledgeSourceKind {
+  sharepoint
+  policy_upload
+  help_article
+  handbook
+  lms_module
+  centre_facts
+  regulator
+  manual
+}
+
+enum KnowledgeCategory {
+  policy
+  procedure
+  sop
+  guide
+  reference
+  centre
+}
+
+enum KnowledgeTier {
+  safety_critical
+  general
+}
+
+enum KnowledgeStatus {
+  active
+  superseded
+  excluded
+}
+
+model KnowledgeSource {
+  id              String              @id @default(cuid())
+  title           String
+  /// lowercased, "V<n>"/"NSW"/"VIC"/"OSHC" tokens and punctuation stripped — the dedupe key with state + serviceId
+  normalizedTitle String
+  sourceKind      KnowledgeSourceKind
+  category        KnowledgeCategory
+  tier            KnowledgeTier       @default(general)
+  /// admin override wins over the import heuristic
+  tierOverride    KnowledgeTier?
+  qualityArea     Int?
+  serviceId       String?
+  service         Service?            @relation("ServiceKnowledgeSources", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// canonical abbreviation ("NSW", "VIC") or null = all states
+  state           String?
+  /// help_article only; [] = every role
+  audienceRoles   String[]            @default([])
+  version         Int?
+  /// SharePoint item id | PolicyDocumentVersion.id | article id | `service:<id>` | URL | manual id
+  externalId      String
+  externalUrl     String?
+  contentHash     String
+  status          KnowledgeStatus     @default(active)
+  /// who set status=excluded: "adapter" (origin unpublished/archived — the adapter
+  /// re-activates it when the origin comes back) or "admin" (console decision —
+  /// never auto-reverted). null when active/superseded.
+  excludedBy      String?
+  supersededById  String?
+  indexedAt       DateTime?
+  indexError      String?
+  chunks          KnowledgeChunk[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@unique([sourceKind, externalId])
+  @@index([status, tier])
+  @@index([serviceId])
+  @@index([normalizedTitle, state, serviceId])
+}
+
+model KnowledgeChunk {
+  id           String                   @id @default(cuid())
+  sourceId     String
+  source       KnowledgeSource          @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  chunkIndex   Int
+  heading      String?
+  content      String                   @db.Text
+  tokenCount   Int
+  searchVector Unsupported("tsvector")?
+  /// vector(1024) in SQL. Declared without the typmod here because Prisma
+  /// introspects pgvector columns as bare `vector` and would otherwise keep
+  /// proposing a spurious SET DATA TYPE on every `migrate diff`.
+  embedding    Unsupported("vector")?
+  createdAt    DateTime                 @default(now())
+
+  @@unique([sourceId, chunkIndex])
+}
+
+model KnowledgeSyncRun {
+  id          String    @id @default(cuid())
+  adapter     String
+  startedById String?
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+  cursor      String?
+  counts      Json
+  details     Json
+  error       String?
+
+  @@index([adapter, startedAt])
+}
+
+model AssistantTurn {
+  id           String   @id @default(cuid())
+  userId       String
+  serviceId    String?
+  mode         String
+  message      String   @db.Text
+  chunkIds     String[]
+  toolCalls    Json
+  inputTokens  Int
+  outputTokens Int
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }
