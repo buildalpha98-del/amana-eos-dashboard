@@ -3077,9 +3077,9 @@ Existing route tests must keep passing; add `vi.mock("@/lib/knowledge/adapters/<
 - [ ] **Step 1: Policies create + version + archive + title edit**
 
 In `src/app/api/policies/route.ts` `POST`: `const result = await prisma.$transaction(…)` (line ~128) — inside the callback the row is called `linked` (lines 149–155, `include: { currentVersion: true }`), but OUTSIDE it is `result`. After the `activityLog.create` that follows the transaction: `if (result.currentVersion) void syncPolicyVersion(result.currentVersion.id).catch(…)`.
-In `src/app/api/policies/[id]/versions/route.ts` after `activityLog.create`: `syncAfterResponse("policy_upload", () => syncPolicyVersion(result.id).catch(…)` (`result` is the created `PolicyDocumentVersion`).
-In `src/app/api/policies/[id]/archive/route.ts`: add `currentVersionId: true` to the existing `findUnique` select; after the update: if `parsed.data.isArchived` → `syncAfterResponse("policy_upload", () => excludePolicySources(id))`; else → `if (existing.currentVersionId) void syncPolicyVersion(existing.currentVersionId).catch(…)` (`currentVersionId` is `String?`).
-In `src/app/api/policies/[id]/route.ts` `PATCH` (title/category edit, line ~76): select `currentVersionId` and after the update `if (currentVersionId) void syncPolicyVersion(currentVersionId).catch(…)` — otherwise the source title goes stale until the next version upload.
+In `src/app/api/policies/[id]/versions/route.ts` after `activityLog.create`: `syncAfterResponse("policy_upload", () => syncPolicyVersion(result.id))` (`result` is the created `PolicyDocumentVersion`).
+In `src/app/api/policies/[id]/archive/route.ts`: add `currentVersionId: true` to the existing `findUnique` select; after the update: if `parsed.data.isArchived` → `syncAfterResponse("policy_upload", () => excludePolicySources(id))`; else → `if (existing.currentVersionId) syncAfterResponse("policy_upload", () => syncPolicyVersion(existing.currentVersionId!))` (`currentVersionId` is `String?`; the guard makes the `!` safe — or bind it to a const first).
+In `src/app/api/policies/[id]/route.ts` `PATCH` (title/category edit, line ~76): select `currentVersionId` and after the update `if (currentVersionId) syncAfterResponse("policy_upload", () => syncPolicyVersion(currentVersionId))` — otherwise the source title goes stale until the next version upload.
 
 - [ ] **Step 2: Service content**
 
@@ -3095,11 +3095,11 @@ In `src/app/api/knowledge-base/seed/route.ts` after `createMany`: `syncAfterResp
 
 - [ ] **Step 5: LMS — every course-status and module write path**
 
-`src/app/api/lms/courses/route.ts` `POST` (create, may carry inline modules and `status: "published"`): after `prisma.lMSCourse.create` → `syncAfterResponse("lms_module", () => syncLmsCourse(course.id).catch(…)`.
-`src/app/api/lms/courses/[id]/route.ts` `PATCH`: after `prisma.lMSCourse.update`, `syncAfterResponse("lms_module", () => syncLmsCourse(id).catch(…)` — fires on every PATCH, covering `status` transitions both ways. `DELETE` (soft delete, `data: { deleted: true }` at ~line 150): after the update, `syncAfterResponse("lms_module", () => syncLmsCourse(id).catch(…)` — the adapter sees `deleted` and excludes the course's sources (backfill queries `deleted: false`, so nothing else would ever revisit it).
+`src/app/api/lms/courses/route.ts` `POST` (create, may carry inline modules and `status: "published"`): after `prisma.lMSCourse.create` → `syncAfterResponse("lms_module", () => syncLmsCourse(course.id))`.
+`src/app/api/lms/courses/[id]/route.ts` `PATCH`: after `prisma.lMSCourse.update`, `syncAfterResponse("lms_module", () => syncLmsCourse(id))` — fires on every PATCH, covering `status` transitions both ways. `DELETE` (soft delete, `data: { deleted: true }` at ~line 150): after the update, `syncAfterResponse("lms_module", () => syncLmsCourse(id))` — the adapter sees `deleted` and excludes the course's sources (backfill queries `deleted: false`, so nothing else would ever revisit it).
 `src/app/api/lms/courses/publish-readiness/route.ts` `POST` (bulk publish via `publishCourses`, ~line 112): after a successful publish, `syncAfterResponse("lms_module", async () => { for (const courseId of courseIds) await syncLmsCourse(courseId); })` — this IS the "transition to published" spec §3.3(b) names.
-`src/app/api/lms/courses/[id]/modules/route.ts` `POST` (the param is bound as `const { id: courseId }`): after `lMSModule.create`, `syncAfterResponse("lms_module", () => syncLmsCourse(courseId).catch(…)`.
-`src/app/api/lms/modules/[moduleId]/route.ts` `PATCH`: after update, `syncAfterResponse("lms_module", () => syncLmsModule(moduleId))`; `DELETE`: read `courseId` before deleting (`findUnique({ select: { courseId } })`), then after delete `syncAfterResponse("lms_module", () => syncLmsCourse(courseId).catch(…)` — the adapter keys sources by `<courseId>:<moduleId>` and excludes everything under the course prefix that it didn't just index, so the deleted module's source is excluded without needing its id.
+`src/app/api/lms/courses/[id]/modules/route.ts` `POST` (the param is bound as `const { id: courseId }`): after `lMSModule.create`, `syncAfterResponse("lms_module", () => syncLmsCourse(courseId))`.
+`src/app/api/lms/modules/[moduleId]/route.ts` `PATCH`: after update, `syncAfterResponse("lms_module", () => syncLmsModule(moduleId))`; `DELETE`: read `courseId` before deleting (`findUnique({ select: { courseId } })`), then after delete `syncAfterResponse("lms_module", () => syncLmsCourse(courseId))` — the adapter keys sources by `<courseId>:<moduleId>` and excludes everything under the course prefix that it didn't just index, so the deleted module's source is excluded without needing its id.
 
 - [ ] **Step 6: Run the affected route tests**
 
