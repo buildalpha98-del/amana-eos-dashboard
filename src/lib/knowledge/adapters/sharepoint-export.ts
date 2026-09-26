@@ -25,7 +25,8 @@ export interface PathClass {
 }
 
 // Tested against "/" + the full normalised path, so a suffix ("Amana OSHC AUDIT 2026/") still skips.
-const SKIP_DIRS = [/\/Amana OSHC AUDIT[^/]*\//i, /Amana HR Management Review Audit/i];
+// "Formatted Versions/" holds PDF renders of the sibling .docx — same document, second format; the .docx is authoritative.
+const SKIP_DIRS = [/\/Amana OSHC AUDIT[^/]*\//i, /Amana HR Management Review Audit/i, /\/Formatted Versions\//i];
 // PII floor from spec §5 plus the staff-compliance scans centre folders hold.
 // Tested against the FULL path, not the basename: a folder named "Staff
 // Contracts" or "WWCC" holds PII whatever its files are called.

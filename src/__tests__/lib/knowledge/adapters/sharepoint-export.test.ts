@@ -69,6 +69,13 @@ describe("classifyPath", () => {
     expect(classifyPath("NSW Schools/Amana OSHC - Foo/things.pdf/note.msg").skip).toBe(true);
   });
 
+  it("skips 'Formatted Versions/' PDF renders but not their sibling .docx (same document, second format)", () => {
+    expect(classifyPath("Shared Documents/SOPs/Jayden full SOP/4. HR SOPs/Formatted Versions/HR-02 Staff Induction & Cultural Immersion.pdf").skip).toBe(true);
+    expect(classifyPath("Shared Documents/SOPs/Jayden full SOP/4. HR SOPs/HR-02 Staff Induction & Cultural Immersion.docx").skip).toBe(false);
+    // case-insensitive
+    expect(classifyPath("Shared Documents/SOPs/Jayden full SOP/4. HR SOPs/formatted versions/HR-04 Something.pdf").skip).toBe(true);
+  });
+
   it("skips staff-compliance scans case-insensitively (Visa, WWCC, police check)", () => {
     expect(classifyPath("NSW Schools/Amana OSHC - Foo/Visa - J Smith.pdf").skip).toBe(true);
     expect(classifyPath("NSW Schools/Amana OSHC - Foo/j smith VISA grant.pdf").skip).toBe(true);

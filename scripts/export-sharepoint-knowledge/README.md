@@ -31,7 +31,8 @@ Trees to export:
 - `NSW Schools/<centre>/**` and `Melbourne Schools/<centre>/**` (centre-specific procedures)
 
 Skip: `Shared Documents/SOPs/Amana OSHC AUDIT*/**`, `Amana HR Management Review Audit/**`,
-and any path — folder OR file — containing contract / payslip / TFN / candidate / resume / CV /
+`**/Formatted Versions/**` (PDF renders of the sibling `.docx` — same document, second format;
+the `.docx` is authoritative), and any path — folder OR file — containing contract / payslip / TFN / candidate / resume / CV /
 WWCC / passport / visa / police check / working with children / staff files / personnel /
 employee records. Only `.doc`, `.docx` and `.pdf` are importable; everything else (`.msg`,
 `.txt`, images, spreadsheets, decks) skips. The importer re-applies these rules (`SKIP_DIRS`,
