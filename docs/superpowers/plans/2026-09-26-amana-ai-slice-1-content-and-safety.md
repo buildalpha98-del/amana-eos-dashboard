@@ -196,6 +196,10 @@ model KnowledgeSource {
   externalUrl     String?
   contentHash     String
   status          KnowledgeStatus     @default(active)
+  /// who set status=excluded: "adapter" (origin unpublished/archived — the adapter
+  /// re-activates it when the origin comes back) or "admin" (console decision —
+  /// never auto-reverted). null when active/superseded.
+  excludedBy      String?
   supersededById  String?
   indexedAt       DateTime?
   indexError      String?
@@ -330,6 +334,7 @@ CREATE TABLE "KnowledgeSource" (
   "externalUrl"     TEXT,
   "contentHash"     TEXT NOT NULL,
   "status"          "KnowledgeStatus" NOT NULL DEFAULT 'active',
+  "excludedBy"      TEXT,
   "supersededById"  TEXT,
   "indexedAt"       TIMESTAMP(3),
   "indexError"      TEXT,
@@ -1104,6 +1109,41 @@ describe("upsertKnowledgeSource", () => {
     await upsertKnowledgeSource({ ...baseInput, tier: "general" });
     expect(prismaMock.knowledgeSource.create.mock.calls[0][0].data.tier).toBe("general");
   });
+
+  it("re-activates an adapter-excluded source when its origin comes back (unchanged hash)", async () => {
+    prismaMock.knowledgeSource.findUnique.mockResolvedValue({
+      id: "src-1", contentHash: hashContent(baseInput.text), status: "excluded", excludedBy: "adapter",
+    });
+    const res = await upsertKnowledgeSource(baseInput);
+    expect(res.outcome).toBe("updated");
+    expect(prismaMock.knowledgeSource.update.mock.calls[0][0]).toMatchObject({
+      where: { id: "src-1" }, data: { status: "active", excludedBy: null },
+    });
+    expect(prismaMock.knowledgeChunk.createMany).not.toHaveBeenCalled();
+  });
+
+  it("never re-activates an admin-excluded source", async () => {
+    prismaMock.knowledgeSource.findUnique.mockResolvedValue({
+      id: "src-1", contentHash: "stale", status: "excluded", excludedBy: "admin",
+    });
+    const res = await upsertKnowledgeSource(baseInput);
+    expect(res.outcome).toBe("updated");
+    const data = prismaMock.knowledgeSource.update.mock.calls[0][0].data;
+    expect(data.status).toBeUndefined();
+    expect(data.excludedBy).toBeUndefined();
+  });
+});
+
+describe("excludeSources", () => {
+  it("stamps status + excludedBy", async () => {
+    prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 2 });
+    const { excludeSources } = await import("@/lib/knowledge/pipeline");
+    await excludeSources({ sourceKind: "lms_module", externalId: { in: ["a", "b"] } }, "adapter");
+    expect(prismaMock.knowledgeSource.updateMany.mock.calls[0][0]).toEqual({
+      where: { sourceKind: "lms_module", externalId: { in: ["a", "b"] }, status: { not: "superseded" } },
+      data: { status: "excluded", excludedBy: "adapter" },
+    });
+  });
 });
 
 describe("applySupersession", () => {
@@ -1201,11 +1241,21 @@ export async function upsertKnowledgeSource(
         externalId: input.externalId,
       },
     },
-    select: { id: true, contentHash: true, status: true },
+    select: { id: true, contentHash: true, status: true, excludedBy: true },
   });
 
+  // An adapter-excluded row whose origin has come back (republished course,
+  // unarchived policy) is re-activated. Admin exclusions are never reverted.
+  const reactivate = existing?.status === "excluded" && existing.excludedBy === "adapter";
+
   if (existing && existing.contentHash === contentHash) {
-    return { sourceId: existing.id, outcome: "unchanged" };
+    if (!reactivate) return { sourceId: existing.id, outcome: "unchanged" };
+    await prisma.knowledgeSource.update({
+      where: { id: existing.id },
+      data: { status: "active", excludedBy: null },
+    });
+    await applySupersession({ normalizedTitle, state, serviceId: input.serviceId ?? null });
+    return { sourceId: existing.id, outcome: "updated" };
   }
 
   const data = {
@@ -1222,6 +1272,7 @@ export async function upsertKnowledgeSource(
     externalId: input.externalId,
     externalUrl: input.externalUrl ?? null,
     contentHash,
+    ...(reactivate ? { status: "active" as const, excludedBy: null } : {}),
   };
 
   const row = existing
@@ -1327,6 +1378,18 @@ export async function indexSource(
   return { ok: true, chunks: chunks.length };
 }
 
+/** The ONLY way to set status=excluded. `by` records who, so adapters can undo their own. */
+export async function excludeSources(
+  where: Prisma.KnowledgeSourceWhereInput,
+  by: "adapter" | "admin",
+): Promise<number> {
+  const r = await prisma.knowledgeSource.updateMany({
+    where: { ...where, status: { not: "superseded" } },
+    data: { status: "excluded", excludedBy: by },
+  });
+  return r.count;
+}
+
 /**
  * Within one dedupe key, exactly one source is `active`:
  * (Keyed on the NEW title. A renamed source leaves its old group
@@ -1384,7 +1447,7 @@ Note on the test for `applySupersession` with the "unchanged status" case: the m
 - [ ] **Step 4: Run to verify they pass**
 
 Run: `npx vitest run src/__tests__/lib/knowledge/pipeline.test.ts`
-Expected: PASS (6 tests).
+Expected: PASS (9 tests).
 
 - [ ] **Step 5: Make `GET /api/ai/usage` tolerate the null-user rows this pipeline now writes**
 
@@ -1883,6 +1946,9 @@ function overridesSection(data: unknown): string {
 /**
  * Index the three seeded handbooks plus any admin override map. Called
  * from the two content PATCH routes and from the backfill adapter.
+ * Overrides are APPENDED (not substituted), so a superseded seed sentence
+ * remains searchable alongside the admin's replacement — acceptable for
+ * slice 1; a keyed substitution needs the panels' section map.
  */
 export async function syncHandbook(): Promise<UpsertResult[]> {
   const [way, handbook] = await Promise.all([
@@ -1938,7 +2004,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prismaMock } from "../../../helpers/prisma-mock";
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 const upsert = vi.fn(async () => ({ sourceId: "s", outcome: "created" }));
-vi.mock("@/lib/knowledge/pipeline", () => ({ upsertKnowledgeSource: (i: unknown) => upsert(i) }));
+const exclude = vi.fn(async () => 0);
+vi.mock("@/lib/knowledge/pipeline", () => ({ upsertKnowledgeSource: (i: unknown) => upsert(i), excludeSources: (...a: unknown[]) => exclude(...a) }));
 import { syncHelpArticles } from "@/lib/knowledge/adapters/help-article";
 
 describe("syncHelpArticles", () => {
@@ -1947,19 +2014,18 @@ describe("syncHelpArticles", () => {
     prismaMock.knowledgeBaseArticle.findMany.mockResolvedValue([
       { id: "a1", title: "Roster basics", body: "# Roster\n…", slug: "roster-basics", audienceRoles: ["staff"], category: "operations" },
     ]);
-    prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 0 });
     await syncHelpArticles();
     expect(prismaMock.knowledgeBaseArticle.findMany.mock.calls[0][0].where).toEqual({ published: true });
     const input = upsert.mock.calls[0][0] as Record<string, unknown>;
     expect(input).toMatchObject({
       sourceKind: "help_article", externalId: "a1", category: "guide",
-      audienceRoles: ["staff"], externalUrl: "/help?article=roster-basics", tier: "general",
+      audienceRoles: ["staff"], externalUrl: "/help", tier: "general",
     });
-    // unpublished/deleted articles are excluded
-    expect(prismaMock.knowledgeSource.updateMany.mock.calls[0][0]).toEqual({
-      where: { sourceKind: "help_article", externalId: { notIn: ["a1"] }, status: "active" },
-      data: { status: "excluded" },
-    });
+    // unpublished/deleted articles are adapter-excluded (re-activated by upsert if republished)
+    expect(exclude).toHaveBeenCalledWith(
+      { sourceKind: "help_article", externalId: { notIn: ["a1"] } },
+      "adapter",
+    );
   });
 });
 ```
@@ -1974,10 +2040,14 @@ Expected: FAIL.
 ```ts
 // src/lib/knowledge/adapters/help-article.ts
 import { prisma } from "@/lib/prisma";
-import { upsertKnowledgeSource } from "../pipeline";
+import { upsertKnowledgeSource, excludeSources } from "../pipeline";
 import type { UpsertResult } from "../types";
 
-/** Published KnowledgeBaseArticle rows (staff /help). Articles have no CRUD — triggered by the seed route and backfill. */
+/**
+ * Published KnowledgeBaseArticle rows (staff /help). Articles have no CRUD —
+ * triggered by the seed route and backfill. The /help page has no per-article
+ * deep link today, so externalUrl is the page itself.
+ */
 export async function syncHelpArticles(): Promise<UpsertResult[]> {
   const articles = await prisma.knowledgeBaseArticle.findMany({
     where: { published: true },
@@ -1993,15 +2063,15 @@ export async function syncHelpArticles(): Promise<UpsertResult[]> {
         category: "guide",
         tier: "general",
         text: `# ${a.title}\n\n${a.body}`,
-        externalUrl: `/help?article=${a.slug}`,
+        externalUrl: "/help",
         audienceRoles: a.audienceRoles,
       }),
     );
   }
-  await prisma.knowledgeSource.updateMany({
-    where: { sourceKind: "help_article", externalId: { notIn: articles.map((a) => a.id) }, status: "active" },
-    data: { status: "excluded" },
-  });
+  await excludeSources(
+    { sourceKind: "help_article", externalId: { notIn: articles.map((a) => a.id) } },
+    "adapter",
+  );
   return results;
 }
 ```
@@ -2033,7 +2103,8 @@ import { prismaMock } from "../../../helpers/prisma-mock";
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/lib/logger", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 const upsert = vi.fn(async () => ({ sourceId: "s", outcome: "created" }));
-vi.mock("@/lib/knowledge/pipeline", () => ({ upsertKnowledgeSource: (i: unknown) => upsert(i) }));
+const exclude = vi.fn(async () => 0);
+vi.mock("@/lib/knowledge/pipeline", () => ({ upsertKnowledgeSource: (i: unknown) => upsert(i), excludeSources: (...a: unknown[]) => exclude(...a) }));
 vi.mock("@/lib/document-indexer", () => ({ extractTextFromBuffer: vi.fn(async () => "# Policy\n\nText") }));
 import { syncPolicyVersion, excludePolicySources } from "@/lib/knowledge/adapters/policy-upload";
 
@@ -2066,13 +2137,13 @@ describe("policy_upload adapter", () => {
     expect(upsert).not.toHaveBeenCalled();
   });
 
-  it("excludePolicySources marks every version source of the policy excluded", async () => {
+  it("excludePolicySources adapter-excludes every version source of the policy", async () => {
     prismaMock.policyDocumentVersion.findMany.mockResolvedValue([{ id: "v1" }, { id: "v2" }]);
     await excludePolicySources("d1");
-    expect(prismaMock.knowledgeSource.updateMany.mock.calls[0][0]).toEqual({
-      where: { sourceKind: "policy_upload", externalId: { in: ["v1", "v2"] } },
-      data: { status: "excluded" },
-    });
+    expect(exclude).toHaveBeenCalledWith(
+      { sourceKind: "policy_upload", externalId: { in: ["v1", "v2"] } },
+      "adapter",
+    );
   });
 });
 ```
@@ -2089,7 +2160,7 @@ Expected: FAIL.
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { extractTextFromBuffer } from "@/lib/document-indexer";
-import { upsertKnowledgeSource } from "../pipeline";
+import { upsertKnowledgeSource, excludeSources } from "../pipeline";
 import type { UpsertResult } from "../types";
 
 /**
@@ -2120,22 +2191,22 @@ export async function syncPolicyVersion(versionId: string): Promise<UpsertResult
     sourceKind: "policy_upload",
     externalId: v.id,
     title: v.document.title,
-    category: v.document.category === "procedure" ? "procedure" : "policy",
+    category: v.document.category === "procedure" ? "procedure" : v.document.category === "policy" ? "policy" : "guide",
     text,
     version: v.versionNumber,
     externalUrl: `/policies/${v.document.id}`,
   });
 }
 
-/** Archived policy → every version's source excluded (never searched). */
+/** Archived policy → every version's source adapter-excluded; un-archiving re-syncs the current version, which re-activates it. */
 export async function excludePolicySources(documentId: string): Promise<void> {
   const versions = await prisma.policyDocumentVersion.findMany({
     where: { documentId }, select: { id: true },
   });
-  await prisma.knowledgeSource.updateMany({
-    where: { sourceKind: "policy_upload", externalId: { in: versions.map((x) => x.id) } },
-    data: { status: "excluded" },
-  });
+  await excludeSources(
+    { sourceKind: "policy_upload", externalId: { in: versions.map((x) => x.id) } },
+    "adapter",
+  );
 }
 ```
 
@@ -2170,7 +2241,7 @@ import { syncCentreFacts, renderCentreFacts } from "@/lib/knowledge/adapters/cen
 
 const service = {
   id: "svc1", name: "Amana OSHC Doveton", address: "1 School Rd", phone: "0400 000 000", state: "Victoria",
-  manager: { name: "Sara K", phone: "0411 111 111" },
+  manager: { name: "Sara K", phone: "0411 111 111" }, // phone present in the row, must NOT be rendered
   content: {
     contacts: [{ role: "School office", name: "Reception", phone: "03 9000 0000", email: "" }],
     dailyRoutine: "BSC 6:45–9:00", foodProvider: "Halal Kitchen", locationWithinSchool: "Hall B",
@@ -2187,6 +2258,7 @@ describe("centre_facts adapter", () => {
     expect(md).toContain("# Amana OSHC Doveton");
     expect(md).toContain("Gate code 1234");
     expect(md).toContain("Sara K");
+    expect(md).not.toContain("0411 111 111"); // manager's personal mobile is never indexed
     expect(md).toContain("Halal Kitchen");
     expect(md).not.toContain("PARENT COPY");
   });
@@ -2195,7 +2267,7 @@ describe("centre_facts adapter", () => {
     await syncCentreFacts("svc1");
     expect(upsert.mock.calls[0][0]).toMatchObject({
       sourceKind: "centre_facts", externalId: "service:svc1", serviceId: "svc1",
-      category: "centre", tier: "general", state: "Victoria", externalUrl: "/services/svc1?tab=content",
+      category: "centre", tier: "general", state: "Victoria", externalUrl: "/services/svc1?tab=overview&sub=about",
     });
   });
 
@@ -2222,7 +2294,7 @@ import type { UpsertResult } from "../types";
 
 interface ServiceForFacts {
   id: string; name: string; address: string | null; phone: string | null; state: string | null;
-  manager: { name: string | null; phone: string | null } | null;
+  manager: { name: string | null } | null;
   content: unknown;
 }
 
@@ -2235,7 +2307,8 @@ export function renderCentreFacts(s: ServiceForFacts): string {
   };
   add("Address", s.address);
   add("Centre phone", s.phone);
-  add("Coordinator / manager", s.manager?.name ? `${s.manager.name}${s.manager.phone ? ` — ${s.manager.phone}` : ""}` : null);
+  // Name only — User.phone is a personal mobile; the numbers a centre publishes live in `contacts`.
+  add("Coordinator / manager", s.manager?.name ?? null);
   if (c.contacts.length) {
     lines.push("## Key contacts", "");
     for (const k of c.contacts) {
@@ -2258,7 +2331,7 @@ export async function syncCentreFacts(serviceId: string): Promise<UpsertResult |
     where: { id: serviceId },
     select: {
       id: true, name: true, address: true, phone: true, state: true, content: true,
-      manager: { select: { name: true, phone: true } },
+      manager: { select: { name: true } },
     },
   });
   if (!s) return null;
@@ -2271,12 +2344,10 @@ export async function syncCentreFacts(serviceId: string): Promise<UpsertResult |
     text: renderCentreFacts(s),
     serviceId: s.id,
     state: s.state,
-    externalUrl: `/services/${s.id}?tab=content`,
+    externalUrl: `/services/${s.id}?tab=overview&sub=about`, // where ServiceContentTab mounts (page.tsx ~571)
   });
 }
 ```
-
-If `User` has no `phone` field, select `email` instead and render it — check `awk '/^model User /,/^}/' prisma/schema.prisma | grep -E "phone|mobile"` first and use whichever exists.
 
 - [ ] **Step 4: Run to verify it passes**
 
@@ -2304,15 +2375,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prismaMock } from "../../../helpers/prisma-mock";
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 const upsert = vi.fn(async () => ({ sourceId: "s", outcome: "created" }));
-vi.mock("@/lib/knowledge/pipeline", () => ({ upsertKnowledgeSource: (i: unknown) => upsert(i) }));
+const exclude = vi.fn(async () => 0);
+vi.mock("@/lib/knowledge/pipeline", () => ({ upsertKnowledgeSource: (i: unknown) => upsert(i), excludeSources: (...a: unknown[]) => exclude(...a) }));
 import { syncLmsCourse, syncLmsModule } from "@/lib/knowledge/adapters/lms-module";
 
 describe("lms_module adapter", () => {
-  beforeEach(() => { vi.clearAllMocks(); prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 0 }); });
+  beforeEach(() => vi.clearAllMocks());
 
-  it("published course → indexes document modules only; quiz modules never", async () => {
+  it("published course → indexes document modules only; quiz modules never; stale module sources excluded", async () => {
     prismaMock.lMSCourse.findUnique.mockResolvedValue({
-      id: "c1", title: "Child Protection", status: "published", deleted: false,
+      id: "c1", title: "Child Protection", status: "published", deleted: false, serviceId: null,
       modules: [
         { id: "m1", title: "Reading", type: "document", content: "# Intro\n…" },
         { id: "m2", title: "Quiz", type: "quiz", content: "answers" },
@@ -2322,26 +2394,38 @@ describe("lms_module adapter", () => {
     await syncLmsCourse("c1");
     expect(upsert).toHaveBeenCalledTimes(1);
     expect(upsert.mock.calls[0][0]).toMatchObject({
-      sourceKind: "lms_module", externalId: "m1", title: "Child Protection — Reading", category: "guide",
-      externalUrl: "/my-training",
+      sourceKind: "lms_module", externalId: "c1:m1", title: "Child Protection — Reading", category: "guide",
+      externalUrl: "/my-training", serviceId: null,
     });
+    // everything under this course that was NOT just indexed (quiz, empty, and any DELETED module) → adapter-excluded
+    expect(exclude).toHaveBeenCalledWith(
+      { sourceKind: "lms_module", externalId: { startsWith: "c1:", notIn: ["c1:m1"] } },
+      "adapter",
+    );
   });
 
-  it("draft/archived/deleted course → its module sources are excluded", async () => {
+  it("draft/archived/deleted course → every module source under it is adapter-excluded", async () => {
     prismaMock.lMSCourse.findUnique.mockResolvedValue({
-      id: "c1", title: "X", status: "draft", deleted: false,
+      id: "c1", title: "X", status: "draft", deleted: false, serviceId: "svc1",
       modules: [{ id: "m1", title: "R", type: "document", content: "t" }],
     });
     await syncLmsCourse("c1");
     expect(upsert).not.toHaveBeenCalled();
-    expect(prismaMock.knowledgeSource.updateMany.mock.calls[0][0]).toEqual({
-      where: { sourceKind: "lms_module", externalId: { in: ["m1"] } }, data: { status: "excluded" },
+    expect(exclude).toHaveBeenCalledWith({ sourceKind: "lms_module", externalId: { startsWith: "c1:" } }, "adapter");
+  });
+
+  it("centre-specific course → sources scoped to that service", async () => {
+    prismaMock.lMSCourse.findUnique.mockResolvedValue({
+      id: "c2", title: "Doveton Induction", status: "published", deleted: false, serviceId: "svc1",
+      modules: [{ id: "m1", title: "Site", type: "document", content: "t" }],
     });
+    await syncLmsCourse("c2");
+    expect(upsert.mock.calls[0][0]).toMatchObject({ externalId: "c2:m1", serviceId: "svc1" });
   });
 
   it("syncLmsModule resolves the course and delegates", async () => {
     prismaMock.lMSModule.findUnique.mockResolvedValue({ courseId: "c1" });
-    prismaMock.lMSCourse.findUnique.mockResolvedValue({ id: "c1", title: "X", status: "published", deleted: false, modules: [] });
+    prismaMock.lMSCourse.findUnique.mockResolvedValue({ id: "c1", title: "X", status: "published", deleted: false, serviceId: null, modules: [] });
     await syncLmsModule("m9");
     expect(prismaMock.lMSCourse.findUnique).toHaveBeenCalled();
   });
@@ -2358,33 +2442,33 @@ Expected: FAIL.
 ```ts
 // src/lib/knowledge/adapters/lms-module.ts
 import { prisma } from "@/lib/prisma";
-import { upsertKnowledgeSource } from "../pipeline";
+import { upsertKnowledgeSource, excludeSources } from "../pipeline";
 import type { UpsertResult } from "../types";
 
 /**
  * Reading (`document`) modules of PUBLISHED courses. Quiz content is
- * never indexed — it holds the answers. Any other course status excludes
- * the course's sources. Triggers: course PATCH (status transitions) and
- * module create/update/delete (spec §3.3).
+ * never indexed — it holds the answers. Any other course status
+ * adapter-excludes the course's sources; republishing re-activates them
+ * via upsert. Triggers: course PATCH (status transitions) and module
+ * create/update/delete (spec §3.3).
+ *
+ * externalId is `<courseId>:<moduleId>` so "everything under this course"
+ * is a prefix query — that is how a DELETED module (no longer in
+ * course.modules) still gets excluded on the post-delete sync.
  */
 export async function syncLmsCourse(courseId: string): Promise<UpsertResult[]> {
   const course = await prisma.lMSCourse.findUnique({
     where: { id: courseId },
     select: {
-      id: true, title: true, status: true, deleted: true,
+      id: true, title: true, status: true, deleted: true, serviceId: true,
       modules: { select: { id: true, title: true, type: true, content: true } },
     },
   });
   if (!course) return [];
-  const moduleIds = course.modules.map((m) => m.id);
+  const prefix = `${course.id}:`;
 
   if (course.status !== "published" || course.deleted) {
-    if (moduleIds.length) {
-      await prisma.knowledgeSource.updateMany({
-        where: { sourceKind: "lms_module", externalId: { in: moduleIds } },
-        data: { status: "excluded" },
-      });
-    }
+    await excludeSources({ sourceKind: "lms_module", externalId: { startsWith: prefix } }, "adapter");
     return [];
   }
 
@@ -2392,26 +2476,25 @@ export async function syncLmsCourse(courseId: string): Promise<UpsertResult[]> {
   const indexed: string[] = [];
   for (const m of course.modules) {
     if (m.type !== "document" || !m.content?.trim()) continue;
-    indexed.push(m.id);
+    const externalId = `${prefix}${m.id}`;
+    indexed.push(externalId);
     results.push(
       await upsertKnowledgeSource({
         sourceKind: "lms_module",
-        externalId: m.id,
+        externalId,
         title: `${course.title} — ${m.title}`,
         category: "guide",
         tier: "general",
         text: `# ${course.title} — ${m.title}\n\n${m.content}`,
         externalUrl: "/my-training",
+        serviceId: course.serviceId ?? null,
       }),
     );
   }
-  const stale = moduleIds.filter((id) => !indexed.includes(id));
-  if (stale.length) {
-    await prisma.knowledgeSource.updateMany({
-      where: { sourceKind: "lms_module", externalId: { in: stale } },
-      data: { status: "excluded" },
-    });
-  }
+  await excludeSources(
+    { sourceKind: "lms_module", externalId: { startsWith: prefix, notIn: indexed } },
+    "adapter",
+  );
   return results;
 }
 
@@ -2425,7 +2508,7 @@ export async function syncLmsModule(moduleId: string): Promise<UpsertResult[]> {
 - [ ] **Step 4: Run to verify it passes**
 
 Run: `npx vitest run src/__tests__/lib/knowledge/adapters/lms-module.test.ts`
-Expected: PASS (3 tests).
+Expected: PASS (4 tests).
 
 - [ ] **Step 5: Commit**
 
@@ -2435,11 +2518,65 @@ git add src/lib/knowledge/adapters/lms-module.ts src/__tests__/lib/knowledge/ada
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
-### Task 15: Adapter — `regulator` + curated source list
+### Task 15: Adapter — `regulator` + curated source list + `reference-hosts` leaf module
 
 **Files:**
-- Create: `src/lib/knowledge/regulator-sources.ts`, `src/lib/knowledge/adapters/regulator.ts`
-- Test: `src/__tests__/lib/knowledge/adapters/regulator.test.ts`
+- Create: `src/lib/reference-hosts.ts`, `src/lib/knowledge/regulator-sources.ts`, `src/lib/knowledge/adapters/regulator.ts`
+- Modify: `src/lib/ai-tools.ts` (import the allow-list from the leaf module instead of defining it)
+- Test: `src/__tests__/lib/reference-hosts.test.ts`, `src/__tests__/lib/knowledge/adapters/regulator.test.ts`
+
+The host allow-list moves out of `ai-tools.ts` into a dependency-free leaf so the adapter (and its unit test) never loads `ai-tools` → `@/lib/prisma`. Two hosts are added for the two most safety-relevant references the spec lists (NHMRC *Staying Healthy*, ASCIA action plans).
+
+- [ ] **Step 0: Leaf module + test**
+
+```ts
+// src/lib/reference-hosts.ts
+/**
+ * Public hosts the assistant may fetch or index. Shared by the
+ * fetch_oshc_reference tool and the regulator knowledge adapter — one
+ * trust boundary. Adding a host here is a deliberate decision.
+ */
+export const ALLOWED_REFERENCE_HOSTS: ReadonlySet<string> = new Set([
+  "acecqa.gov.au", "www.acecqa.gov.au", "nqaits.acecqa.gov.au",
+  "education.gov.au", "www.education.gov.au",
+  "education.nsw.gov.au", "www.education.nsw.gov.au",
+  "education.vic.gov.au", "www.education.vic.gov.au",
+  "safeworkaustralia.gov.au", "www.safeworkaustralia.gov.au",
+  "fairwork.gov.au", "www.fairwork.gov.au",
+  "fwc.gov.au", "www.fwc.gov.au",
+  "legislation.gov.au", "www.legislation.gov.au",
+  "ochre.nsw.gov.au", "www.ochre.nsw.gov.au",
+  "esafety.gov.au", "www.esafety.gov.au",
+  // 2026-09-27: the two safety references spec §3.3 names
+  "nhmrc.gov.au", "www.nhmrc.gov.au",
+  "allergy.org.au", "www.allergy.org.au",
+]);
+
+export function isAllowedReferenceHost(url: string): boolean {
+  try {
+    return ALLOWED_REFERENCE_HOSTS.has(new URL(url).hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+```
+Copy the existing entries from `ALLOWED_HOSTS` in `src/lib/ai-tools.ts:397–418` verbatim (the list above is from the tool description — reconcile against the code; the code is authoritative) and ADD the four NHMRC/ASCIA entries. Then in `ai-tools.ts` delete the `ALLOWED_HOSTS` set, `import { ALLOWED_REFERENCE_HOSTS, isAllowedReferenceHost } from "@/lib/reference-hosts";`, replace the inline `ALLOWED_HOSTS.has(parsed.hostname.toLowerCase())` check in `fetchOshcReference` with `isAllowedReferenceHost(url)`, and update the error's `allowedHosts` listing to read from `ALLOWED_REFERENCE_HOSTS`. Also append "nhmrc.gov.au, allergy.org.au" to the tool description's "Allowed hosts:" sentence.
+
+```ts
+// src/__tests__/lib/reference-hosts.test.ts
+import { describe, it, expect } from "vitest";
+import { isAllowedReferenceHost, ALLOWED_REFERENCE_HOSTS } from "@/lib/reference-hosts";
+describe("reference hosts", () => {
+  it("accepts allow-listed hosts case-insensitively and rejects everything else", () => {
+    expect(isAllowedReferenceHost("https://www.acecqa.gov.au/x")).toBe(true);
+    expect(isAllowedReferenceHost("https://WWW.NHMRC.GOV.AU/x")).toBe(true);
+    expect(isAllowedReferenceHost("https://evil.example/x")).toBe(false);
+    expect(isAllowedReferenceHost("not a url")).toBe(false);
+    expect(ALLOWED_REFERENCE_HOSTS.has("allergy.org.au")).toBe(true);
+  });
+});
+```
+Run: `npx vitest run src/__tests__/lib/reference-hosts.test.ts src/__tests__/lib/ai-tools*` — Expected: PASS.
 
 - [ ] **Step 1: Write the source list**
 
@@ -2471,10 +2608,12 @@ export const REGULATOR_SOURCES: RegulatorSource[] = [
   { id: "vic-regulator", title: "Victorian Department of Education — Quality Assessment and Regulation", url: "https://www.education.vic.gov.au/childhood/providers/regulation/Pages/default.aspx", tier: "general" },
   { id: "fairwork-childrens-award", title: "Fair Work — Children's Services Award summary", url: "https://www.fairwork.gov.au/employment-conditions/awards/awards-summary/ma000120-summary", tier: "general" },
   { id: "safework-first-aid", title: "Safe Work Australia — First aid in the workplace", url: "https://www.safeworkaustralia.gov.au/safety-topic/managing-health-and-safety/first-aid", tier: "safety_critical" },
+  { id: "nhmrc-staying-healthy", title: "NHMRC — Staying Healthy: preventing infectious diseases in early childhood (exclusion periods)", url: "https://www.nhmrc.gov.au/about-us/publications/staying-healthy-preventing-infectious-diseases-early-childhood-education-and-care-services", tier: "safety_critical" },
+  { id: "ascia-action-plans", title: "ASCIA — Action plans for anaphylaxis and allergic reactions", url: "https://www.allergy.org.au/hp/anaphylaxis/ascia-action-plan-for-anaphylaxis", tier: "safety_critical" },
 ];
 ```
 
-If a URL 404s at import time, the run report records it and the source is skipped — do not guess a replacement; leave it for the admin.
+`id` is the stable key (`externalId`); editing a URL keeps the same source. If a URL 404s at import time, the run report records it and the source is skipped — do not guess a replacement; leave it for the admin.
 
 - [ ] **Step 2: Write the failing test**
 
@@ -2483,7 +2622,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 vi.mock("@/lib/logger", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 const upsert = vi.fn(async () => ({ sourceId: "s", outcome: "created" }));
 vi.mock("@/lib/knowledge/pipeline", () => ({ upsertKnowledgeSource: (i: unknown) => upsert(i) }));
-vi.mock("@/lib/document-indexer", () => ({ extractTextFromBuffer: vi.fn(async (_b: Buffer, mime: string) => `text:${mime}`) }));
+const exclude = vi.fn(async () => 0);
+vi.mock("@/lib/knowledge/pipeline", () => ({ upsertKnowledgeSource: (i: unknown) => upsert(i), excludeSources: (...a: unknown[]) => exclude(...a) }));
+vi.mock("@/lib/document-indexer", () => ({ extractTextFromBuffer: vi.fn(async (b: Buffer) => b.toString("utf8")) }));
 vi.mock("@/lib/knowledge/regulator-sources", () => ({
   REGULATOR_SOURCES: [
     { id: "ok", title: "OK page", url: "https://www.acecqa.gov.au/ok", tier: "general" },
@@ -2500,19 +2641,29 @@ describe("regulator adapter", () => {
     global.fetch = vi.fn(async (url: string) =>
       String(url).endsWith("/gone")
         ? new Response("", { status: 404 })
-        : new Response("<html>hi</html>", { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }),
+        : new Response("<html><head><style>x{}</style><script>bad()</script></head><body><h1>Hi</h1> <p>there</p></body></html>", {
+            status: 200, headers: { "content-type": "text/html; charset=utf-8" },
+          }),
     ) as unknown as typeof fetch;
   });
   afterEach(() => { global.fetch = realFetch; });
 
-  it("indexes reachable allow-listed pages, reports failures, refuses foreign hosts", async () => {
+  it("indexes reachable allow-listed pages (tags stripped), keys by id, reports failures, refuses foreign hosts, excludes unlisted ids", async () => {
     const report = await syncRegulator();
     expect(upsert).toHaveBeenCalledTimes(1);
-    expect(upsert.mock.calls[0][0]).toMatchObject({ sourceKind: "regulator", externalId: "https://www.acecqa.gov.au/ok", category: "reference", text: "text:text/html" });
+    const input = upsert.mock.calls[0][0] as Record<string, unknown>;
+    expect(input).toMatchObject({ sourceKind: "regulator", externalId: "ok", externalUrl: "https://www.acecqa.gov.au/ok", category: "reference" });
+    expect(String(input.text)).not.toMatch(/<[a-z]/);
+    expect(String(input.text)).not.toContain("bad()");
+    expect(String(input.text)).toContain("Hi");
     expect(report.errors).toEqual([
       { id: "gone", error: "HTTP 404" },
       { id: "bad-host", error: "host not allowed" },
     ]);
+    expect(exclude).toHaveBeenCalledWith({ sourceKind: "regulator", externalId: { notIn: ["ok", "gone", "bad-host"] } }, "adapter");
+    const init = (global.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][1] as RequestInit;
+    expect(init.redirect).toBe("error");
+    expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 });
 ```
@@ -2528,9 +2679,9 @@ Expected: FAIL.
 // src/lib/knowledge/adapters/regulator.ts
 import { logger } from "@/lib/logger";
 import { extractTextFromBuffer } from "@/lib/document-indexer";
-import { isAllowedReferenceHost } from "@/lib/ai-tools";
+import { isAllowedReferenceHost } from "@/lib/reference-hosts";
 import { REGULATOR_SOURCES } from "../regulator-sources";
-import { upsertKnowledgeSource } from "../pipeline";
+import { upsertKnowledgeSource, excludeSources } from "../pipeline";
 import type { UpsertResult } from "../types";
 
 export interface RegulatorReport {
@@ -2538,20 +2689,56 @@ export interface RegulatorReport {
   errors: { id: string; error: string }[];
 }
 
-/** Fetch + index each curated public page/PDF. Never throws; failures land in the report. */
+const FETCH_TIMEOUT_MS = 15_000;
+const MAX_BYTES = 3 * 1024 * 1024; // PDFs of the National Regs guide are ~2 MB
+
+/** HTML → text. Nav chrome survives (acceptable for slice 1); scripts/styles do not. */
+export function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<\/(p|div|li|h[1-6]|tr|br)>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\s*\n\s*/g, "\n")
+    .trim();
+}
+
+/**
+ * Fetch + index each curated public page/PDF. Never throws; failures land
+ * in the report. Same trust boundary as fetch_oshc_reference: allow-listed
+ * hosts only, no cross-host redirects, bounded size and time. Sources whose
+ * id is no longer in the list are adapter-excluded.
+ */
 export async function syncRegulator(): Promise<RegulatorReport> {
   const report: RegulatorReport = { results: [], errors: [] };
   for (const src of REGULATOR_SOURCES) {
     try {
       if (!isAllowedReferenceHost(src.url)) throw new Error("host not allowed");
-      const res = await fetch(src.url, { headers: { "User-Agent": "AmanaOSHC-KnowledgeBot/1.0" } });
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+      let res: Response;
+      try {
+        res = await fetch(src.url, {
+          headers: { "User-Agent": "AmanaOSHC-KnowledgeBot/1.0" },
+          redirect: "error",
+          signal: ctrl.signal,
+        });
+      } finally {
+        clearTimeout(timer);
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.byteLength > MAX_BYTES) throw new Error(`too large (${buf.byteLength} bytes)`);
       const mime = (res.headers.get("content-type") ?? "text/html").split(";")[0].trim();
-      const text = await extractTextFromBuffer(Buffer.from(await res.arrayBuffer()), mime === "application/pdf" ? mime : "text/html");
+      const text =
+        mime === "application/pdf"
+          ? await extractTextFromBuffer(buf, mime)
+          : stripHtml(await extractTextFromBuffer(buf, "text/html"));
       report.results.push(
         await upsertKnowledgeSource({
           sourceKind: "regulator",
-          externalId: src.url,
+          externalId: src.id,
           title: src.title,
           category: "reference",
           tier: src.tier,
@@ -2565,13 +2752,13 @@ export async function syncRegulator(): Promise<RegulatorReport> {
       report.errors.push({ id: src.id, error });
     }
   }
+  await excludeSources(
+    { sourceKind: "regulator", externalId: { notIn: REGULATOR_SOURCES.map((s) => s.id) } },
+    "adapter",
+  );
   return report;
 }
 ```
-
-`extractTextFromBuffer` treats `text/html` as UTF-8 text (it is in `TEXT_MIME_TYPES`) — HTML tags will be in the chunk text. Add a tag-stripping step in this adapter: `text = text.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+\n/g, "\n")` when `mime` starts with `text/html`, before upsert. Update the test's expected `text` to `"text:text/html"` → the mocked extractor returns no tags so the assertion holds.
-
-`isAllowedReferenceHost(url)` does not exist yet — Task 18 exports it from `ai-tools.ts` (it wraps the existing `ALLOWED_HOSTS` set). Implement Task 18's export first if running out of order.
 
 - [ ] **Step 5: Run to verify it passes**
 
@@ -2581,7 +2768,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/lib/knowledge/regulator-sources.ts src/lib/knowledge/adapters/regulator.ts src/__tests__/lib/knowledge/adapters/regulator.test.ts && git commit -m "feat(knowledge): regulator adapter + curated public sources
+git add src/lib/reference-hosts.ts src/lib/ai-tools.ts src/lib/knowledge/regulator-sources.ts src/lib/knowledge/adapters/regulator.ts src/__tests__/lib/reference-hosts.test.ts src/__tests__/lib/knowledge/adapters/regulator.test.ts && git commit -m "feat(knowledge): regulator adapter, curated sources, reference-hosts leaf module
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
@@ -2863,7 +3050,7 @@ In `src/app/api/knowledge-base/seed/route.ts` after `createMany`: `void syncHelp
 
 `src/app/api/lms/courses/[id]/route.ts` `PATCH`: after `prisma.lMSCourse.update`, `void syncLmsCourse(id).catch(…)` — this fires on every PATCH, which covers `status` transitions in both directions.
 `src/app/api/lms/courses/[id]/modules/route.ts` `POST`: after `lMSModule.create`, `void syncLmsCourse(id).catch(…)`.
-`src/app/api/lms/modules/[moduleId]/route.ts` `PATCH`: after update, `void syncLmsModule(moduleId).catch(…)`; `DELETE`: read `courseId` before deleting (`findUnique({ select: { courseId } })`), then after delete `void syncLmsCourse(courseId).catch(…)`.
+`src/app/api/lms/modules/[moduleId]/route.ts` `PATCH`: after update, `void syncLmsModule(moduleId).catch(…)`; `DELETE`: read `courseId` before deleting (`findUnique({ select: { courseId } })`), then after delete `void syncLmsCourse(courseId).catch(…)` — the adapter keys sources by `<courseId>:<moduleId>` and excludes everything under the course prefix that it didn't just index, so the deleted module's source is excluded without needing its id.
 
 - [ ] **Step 6: Run the affected route tests**
 
@@ -2896,7 +3083,7 @@ vi.mock("@/lib/knowledge/search", () => ({
   searchKnowledge: (...a: unknown[]) => search(...a),
   formatHitsForPrompt: () => "### Doc\n\nbody",
 }));
-import { ASSISTANT_TOOLS, executeToolCall, isAllowedReferenceHost } from "@/lib/ai-tools";
+import { ASSISTANT_TOOLS, executeToolCall } from "@/lib/ai-tools";
 
 describe("search_knowledge tool", () => {
   it("is registered under the new name and the old name is gone", () => {
@@ -2912,11 +3099,6 @@ describe("search_knowledge tool", () => {
     expect(out).toContain("Doc");
   });
 
-  it("isAllowedReferenceHost wraps the allow-list", () => {
-    expect(isAllowedReferenceHost("https://www.acecqa.gov.au/x")).toBe(true);
-    expect(isAllowedReferenceHost("https://evil.example/x")).toBe(false);
-    expect(isAllowedReferenceHost("not a url")).toBe(false);
-  });
 });
 ```
 
@@ -2971,17 +3153,7 @@ and
       }
 ```
 with `import type { KnowledgeScope } from "@/lib/knowledge/types";` at the top. Remove the `@/lib/document-indexer` import.
-3. Export the host check next to `ALLOWED_HOSTS`:
-```ts
-export function isAllowedReferenceHost(url: string): boolean {
-  try {
-    return ALLOWED_HOSTS.has(new URL(url).hostname.toLowerCase());
-  } catch {
-    return false;
-  }
-}
-```
-and use it inside `fetchOshcReference` in place of the inline `ALLOWED_HOSTS.has(parsed.hostname…)` check.
+3. (Host allow-list already moved to `src/lib/reference-hosts.ts` in Task 15 — nothing to do here.)
 4. Update the `assistant/tool-calling` seed template text in `prisma/seed.ts` if it names `search_knowledge_base` (`grep -n search_knowledge_base prisma/seed.ts src -r`) — rename to `search_knowledge` everywhere.
 
 - [ ] **Step 4: Write the failing chat-route test**
@@ -3094,7 +3266,8 @@ interface KnowledgeEntry {
   id: string; title: string; sourceKind: KnowledgeSourceKind; category: KnowledgeCategory;
   tier: KnowledgeTier; tierOverride: KnowledgeTier | null; qualityArea: number | null;
   serviceId: string | null; serviceName: string | null; state: string | null; version: number | null;
-  status: KnowledgeStatus; externalUrl: string | null; indexedAt: string | null; indexError: string | null;
+  status: KnowledgeStatus; excludedBy: "adapter" | "admin" | null; externalUrl: string | null;
+  indexedAt: string | null; indexError: string | null;
   chunkCount: number; createdAt: string; updatedAt: string;
 }
 ```
@@ -3168,7 +3341,7 @@ describe("/api/settings/ai-knowledge", () => {
     prismaMock.knowledgeSource.update.mockResolvedValue({});
     expect((await PATCH(createRequest("PATCH", "/x", { body: { body: "new" } }), ctx("k1"))).status).toBe(400); // not manual
     expect((await PATCH(createRequest("PATCH", "/x", { body: { tierOverride: "safety_critical", status: "excluded" } }), ctx("k1"))).status).toBe(200);
-    expect(prismaMock.knowledgeSource.update.mock.calls[0][0].data).toEqual({ tierOverride: "safety_critical", status: "excluded" });
+    expect(prismaMock.knowledgeSource.update.mock.calls[0][0].data).toEqual({ tierOverride: "safety_critical", status: "excluded", excludedBy: "admin" });
     prismaMock.knowledgeSource.findUnique.mockResolvedValue(null);
     expect((await PATCH(createRequest("PATCH", "/x", { body: { title: "t" } }), ctx("nope"))).status).toBe(404);
   });
@@ -3228,7 +3401,7 @@ const createSchema = z.object({
 
 export const ENTRY_SELECT = {
   id: true, title: true, sourceKind: true, category: true, tier: true, tierOverride: true, qualityArea: true,
-  serviceId: true, service: { select: { name: true } }, state: true, version: true, status: true, externalUrl: true,
+  serviceId: true, service: { select: { name: true } }, state: true, version: true, status: true, excludedBy: true, externalUrl: true,
   indexedAt: true, indexError: true, createdAt: true, updatedAt: true, _count: { select: { chunks: true } },
 } as const;
 
@@ -3326,9 +3499,12 @@ export const PATCH = withApiAuth(
       }
       await updateManualSource(id, { title: title?.trim(), text: body });
     }
-    const data: { tierOverride?: "safety_critical" | "general" | null; status?: "active" | "excluded" } = {};
+    const data: { tierOverride?: "safety_critical" | "general" | null; status?: "active" | "excluded"; excludedBy?: "admin" | null } = {};
     if (tierOverride !== undefined) data.tierOverride = tierOverride;
-    if (status !== undefined) data.status = status;
+    if (status !== undefined) {
+      data.status = status;
+      data.excludedBy = status === "excluded" ? "admin" : null; // admin decisions are never auto-reverted by adapters
+    }
     if (Object.keys(data).length) await prisma.knowledgeSource.update({ where: { id }, data });
     logger.info("AI knowledge: source updated", { id, keys: Object.keys(parsed.data) });
     return NextResponse.json({ ok: true });
@@ -3506,6 +3682,7 @@ interface KnowledgeEntrySummary {
   state: string | null;
   version: number | null;
   status: Status;
+  excludedBy: "adapter" | "admin" | null;
   externalUrl: string | null;
   indexedAt: string | null;
   indexError: string | null;
@@ -3560,7 +3737,7 @@ Toolbar buttons (replace the three old ones): `<Button variant="secondary" onCli
 
 - [ ] **Step 3: Row rendering**
 
-Each row shows: title (linked to `externalUrl` when present, `target="_blank"`), a `KIND_LABEL` chip, category, `QA{n}` when set, `serviceName` or "Org-wide", `state` or "All states", `V{version}` when set, a tier chip (`safety_critical` → amber `bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200`, `general` → `bg-surface text-muted`; when `tierOverride` is set show it with a "(override)" suffix), status chip (`superseded`/`excluded` rows rendered with `opacity-60`), `chunkCount`, `indexedAt` via the existing `formatDate`, and `indexError` in `text-destructive` when present.
+Each row shows: title (linked to `externalUrl` when present, `target="_blank"`), a `KIND_LABEL` chip, category, `QA{n}` when set, `serviceName` or "Org-wide", `state` or "All states", `V{version}` when set, a tier chip (`safety_critical` → amber `bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200`, `general` → `bg-surface text-muted`; when `tierOverride` is set show it with a "(override)" suffix), status chip (`superseded`/`excluded` rows rendered with `opacity-60`; an excluded chip reads "Excluded (admin)" or "Excluded (origin unpublished)" from `excludedBy`), `chunkCount`, `indexedAt` via the existing `formatDate`, and `indexError` in `text-destructive` when present.
 
 Row actions (icon buttons with `aria-label`):
 - **Tier override** — a `<select aria-label="Tier override">` with options `Auto (${tier})`, `Safety-critical`, `General` → `PATCH /api/settings/ai-knowledge/${id}` `{ tierOverride: null | "safety_critical" | "general" }`.
@@ -3702,6 +3879,7 @@ describe("importExportDir", () => {
     expect(report.unmapped[0]).toMatchObject({ centreFolder: "Amana OSHC - Minaret Doveton" });
     const excluded = prismaMock.knowledgeSource.update.mock.calls.find((c) => (c[0] as { data: { status?: string } }).data.status === "excluded");
     expect(excluded).toBeTruthy();
+    expect((excluded![0] as { data: { excludedBy?: string } }).data.excludedBy).toBe("admin");
   });
 });
 ```
@@ -3863,7 +4041,9 @@ export async function importExportDir(dir: string): Promise<ImportReport> {
       });
       if (res.outcome === "error") { report.errors.push({ path: f.path, error: res.error ?? "unknown" }); report.counts.errors++; continue; }
       if (unmapped) {
-        await prisma.knowledgeSource.update({ where: { id: res.sourceId }, data: { status: "excluded" } });
+        // Not "adapter": an unmapped centre is a data problem for a human, and
+        // re-running the import must not silently re-activate it.
+        await prisma.knowledgeSource.update({ where: { id: res.sourceId }, data: { status: "excluded", excludedBy: "admin" } });
       }
       if (res.outcome === "unchanged") report.counts.unchanged++; else report.counts.imported++;
     } catch (err) {
