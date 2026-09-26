@@ -17,8 +17,8 @@ import type { KnowledgeScope } from "./types";
 const NO_STATE_ROLES = new Set(["owner", "admin", "eos", "eos_viewer", "eos_implementer"]);
 
 export async function buildKnowledgeScope(session: Session): Promise<KnowledgeScope> {
-  const role = String(session.user.role);
-  const userId = String(session.user.id);
+  const role = session.user.role;
+  const userId = session.user.id;
   const { serviceIds } = await getCentreScope(session);
 
   let state: string | null = null;

@@ -37,6 +37,11 @@ describe("searchKnowledge", () => {
     expect(hits[0].tsRank).toBe(0.5);
     expect(hits[0].cosineDistance).toBe(0.1);
     expect(hits.map((h) => h.chunkId).sort()).toEqual(["a", "b", "c"]);
+    // the vector leg receives the embedded query as its $1 vector literal
+    const vectorCall = prismaMock.$queryRawUnsafe.mock.calls.find((c: unknown[]) =>
+      String(c[0]).includes("<=>"),
+    );
+    expect(vectorCall?.[1]).toBe("[0.1,0.2]");
   });
 
   it("passes scope as SQL params, casting arrays, and never interpolates them", async () => {
@@ -80,6 +85,24 @@ describe("searchKnowledge", () => {
     );
     const hits = await searchKnowledge("posting to families", { role: "owner", serviceIds: null, state: null }, 8);
     expect(hits.map((h) => h.chunkId)).toEqual(["w"]);
+  });
+
+  it("degrades to tsvector-only when the vector leg's DB query rejects", async () => {
+    embedTexts.mockResolvedValue([[0.1, 0.2]]);
+    prismaMock.$queryRawUnsafe.mockImplementation(async (sql: string) => {
+      if (sql.includes("<=>")) throw new Error("relation \"vector\" does not exist");
+      if (sql.includes("plainto_tsquery")) return [row("a", { tsRank: 0.4 })];
+      return [];
+    });
+    const hits = await searchKnowledge("rest time", { role: "owner", serviceIds: null, state: null }, 8);
+    expect(hits.map((h) => h.chunkId)).toEqual(["a"]);
+  });
+
+  it("returns no hits and makes no DB/embedding call for a blank query", async () => {
+    const hits = await searchKnowledge("   ", { role: "owner", serviceIds: null, state: null }, 8);
+    expect(hits).toEqual([]);
+    expect(embedTexts).not.toHaveBeenCalled();
+    expect(prismaMock.$queryRawUnsafe).not.toHaveBeenCalled();
   });
 });
 

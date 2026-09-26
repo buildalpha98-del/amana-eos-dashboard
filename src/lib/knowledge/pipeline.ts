@@ -181,15 +181,14 @@ export async function indexSource(
     return { ok: false, error: message };
   }
 
-  if (vectors) {
-    const usage = embedded!.usage;
+  if (embedded) {
     prisma.aiUsage
       .create({
         data: {
           userId: null,
           templateSlug: null,
           model: EMBEDDING_MODEL,
-          inputTokens: usage.totalTokens,
+          inputTokens: embedded.usage.totalTokens,
           outputTokens: 0,
           durationMs: 0,
           section: "knowledge-index",

@@ -45,7 +45,7 @@ const SCOPE_WHERE = `
     AND ($3::text IS NULL OR s.state IS NULL OR s.state = $3)
     AND (cardinality(s."audienceRoles") = 0 OR $4 = ANY(s."audienceRoles"))`;
 
-function tsQuery(fn: "plainto_tsquery" | "websearch_to_tsquery", limit: number): string {
+function tsQuery(fn: "plainto_tsquery" | "websearch_to_tsquery"): string {
   return `${SELECT},
     ts_rank(c."searchVector", ${fn}('english', $1)) AS "tsRank",
     NULL::float8 AS "cosineDistance"
@@ -54,7 +54,7 @@ function tsQuery(fn: "plainto_tsquery" | "websearch_to_tsquery", limit: number):
   WHERE c."searchVector" @@ ${fn}('english', $1)
     AND ${SCOPE_WHERE}
   ORDER BY "tsRank" DESC
-  LIMIT ${limit}`;
+  LIMIT ${VECTOR_CANDIDATES}`;
 }
 
 const VECTOR_QUERY = `${SELECT},
@@ -72,15 +72,23 @@ export async function searchKnowledge(
   scope: KnowledgeScope,
   limit = 8,
 ): Promise<KnowledgeHit[]> {
+  // A blank query matches nothing in either leg (an empty tsquery matches
+  // every row and an all-zero embedding is meaningless) — short-circuit
+  // rather than pay for a DB round trip and an embeddings call to learn that.
+  if (!query.trim()) return [];
+
   const params: unknown[] = [scope.serviceIds, scope.state, scope.role];
 
   const textLeg = (async (): Promise<Row[]> => {
     const strict = await prisma.$queryRawUnsafe<Row[]>(
-      tsQuery("plainto_tsquery", VECTOR_CANDIDATES), query, ...params,
+      tsQuery("plainto_tsquery"), query, ...params,
     );
     if (strict.length > 0) return strict;
+    // plainto_tsquery ANDs every term together — one off-vocabulary word
+    // (typo, jargon) blanks the whole leg. websearch_to_tsquery tolerates
+    // that (OR-ish phrase handling), so retry before giving up on text.
     return prisma.$queryRawUnsafe<Row[]>(
-      tsQuery("websearch_to_tsquery", VECTOR_CANDIDATES), query, ...params,
+      tsQuery("websearch_to_tsquery"), query, ...params,
     );
   })();
 
@@ -92,7 +100,15 @@ export async function searchKnowledge(
       logger.warn("Knowledge: query embedding threw", { err });
     }
     if (!vec || !vec[0]) return [];
-    return prisma.$queryRawUnsafe<Row[]>(VECTOR_QUERY, toVectorLiteral(vec[0]), ...params);
+    try {
+      return await prisma.$queryRawUnsafe<Row[]>(VECTOR_QUERY, toVectorLiteral(vec[0]), ...params);
+    } catch (err) {
+      // pgvector-side failure (missing extension/index, a transient DB
+      // error on this leg) degrades to tsvector-only rather than rejecting
+      // the whole Promise.all and losing the text leg's results too.
+      logger.warn("Knowledge: vector search failed — tsvector only", { err });
+      return [];
+    }
   })();
 
   const [textRows, vectorRows] = await Promise.all([textLeg, vectorLeg]);
