@@ -14,7 +14,7 @@ import path from "node:path";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import type { KnowledgeCategory } from "@prisma/client";
-import { upsertKnowledgeSource, excludeSources } from "../pipeline";
+import { upsertKnowledgeSource, excludeSources, applySupersession } from "../pipeline";
 import { hashContent, normalizeTitle, parseFilenameMeta, canonicalState } from "../normalize";
 
 export interface PathClass {
@@ -194,6 +194,12 @@ export async function importExportDir(dir: string, opts: ImportOptions = {}): Pr
   // list. An id is "seen" once it reached the upsert, whatever the outcome:
   // a file that failed to index this run is still in SharePoint.
   const seenIds: string[] = [];
+  // Every dedupe group this run touched. upsertKnowledgeSource re-runs
+  // supersession only on a write — an "unchanged" fast-path returns before
+  // it — so a precedence change (category outranking version) would never
+  // reach a group whose members' text did not change. One cheap pass per
+  // distinct key after the walk re-applies the current rules idempotently.
+  const seenKeys = new Map<string, { normalizedTitle: string; state: string | null; serviceId: string | null }>();
   let done = 0;
   for (const full of files) {
     const rel = path.relative(dir, full).replace(/\\/g, "/").replace(/\.md$/, "");
@@ -229,6 +235,7 @@ export async function importExportDir(dir: string, opts: ImportOptions = {}): Pr
       if (dry) { report.counts.imported++; continue; }
 
       seenIds.push(f.id);
+      seenKeys.set(JSON.stringify([normalizedTitle, state, serviceId]), { normalizedTitle, state, serviceId });
       const res = await upsertKnowledgeSource({
         sourceKind: "sharepoint",
         externalId: f.id,
@@ -274,6 +281,8 @@ export async function importExportDir(dir: string, opts: ImportOptions = {}): Pr
   }
 
   if (!dry) {
+    // Re-apply supersession to every group seen this run (see seenKeys).
+    for (const key of seenKeys.values()) await applySupersession(key);
     // Retire what SharePoint no longer has. Guarded against an EMPTY walk: a
     // wrong `--from` directory must not exclude the entire SharePoint library
     // (an adapter exclusion is undone by the next real import, but the AI

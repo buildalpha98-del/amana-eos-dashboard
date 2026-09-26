@@ -11,7 +11,7 @@ vi.mock("@/lib/embeddings", () => ({
   toVectorLiteral: (v: number[]) => `[${v.join(",")}]`,
 }));
 
-import { searchKnowledge, formatHitsForPrompt } from "@/lib/knowledge/search";
+import { searchKnowledge, formatHitsForPrompt, SOP_HIT_NOTE } from "@/lib/knowledge/search";
 
 // Both text-leg passes contain "plainto_tsquery" (the OR retry is built from
 // it), so route on the OR construction rather than the function name.
@@ -158,5 +158,17 @@ describe("formatHitsForPrompt", () => {
     expect(text).toContain("Doc a");
     expect(text).toContain("OpenUrl: https://x/a.pdf");
     expect(text).toContain("Steps");
+  });
+
+  it("labels every document with its category + tier, and flags an SOP as possibly older than the state policy", () => {
+    const text = formatHitsForPrompt([
+      { ...row("sop", { title: "OPS-08 Medical Administration", category: "sop", tier: "general" }), fusedScore: 1 } as never,
+      { ...row("proc", { title: "QA2 Managing Medical Conditions Procedure", category: "procedure", tier: "safety_critical" }), fusedScore: 0.9 } as never,
+    ]);
+    expect(SOP_HIT_NOTE).toMatch(/company SOP; may be older than the state policy: prefer a policy\/procedure source/);
+    expect(text).toContain(`### OPS-08 Medical Administration (sop, general)${SOP_HIT_NOTE}`);
+    expect(text).toContain("### QA2 Managing Medical Conditions Procedure (procedure, safety_critical)\n");
+    // The note is SOP-only — exactly one occurrence.
+    expect(text.split(SOP_HIT_NOTE)).toHaveLength(2);
   });
 });

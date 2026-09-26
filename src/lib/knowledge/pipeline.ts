@@ -5,9 +5,10 @@
  *     → find by (sourceKind, externalId)
  *     → row current? (hash unchanged AND the last index SUCCEEDED AND it is
  *       embedded — or there is no embeddings key to embed with) → "unchanged"
- *       (no re-chunk, no re-embed) — unless the title changed, which lands
- *       title/normalizedTitle + the title-derived fields and re-runs
- *       supersession for the old AND new key
+ *       (no re-chunk, no re-embed) — unless the title changed OR the derived
+ *       tier / category drifted from what is stored, which lands
+ *       title/normalizedTitle + the derived fields and re-runs supersession
+ *       for the old AND new key
  *     → create/update the source row with derived fields + the canonical
  *       `text`, `indexedAt: null`, `embedded: false` — the hash alone never
  *       marks a row current; only a successful indexSource does
@@ -48,6 +49,18 @@ const KIND_PRIORITY: Record<string, number> = {
   sharepoint: 1,
 };
 
+/**
+ * Category precedence within a dedupe group: a state policy / procedure
+ * always beats a company SOP of the same title, whatever its version or
+ * updatedAt. The Jayden SOP set is over a year old and must never
+ * supersede the actual state policies (owner rule, 2026-09-26).
+ */
+const CATEGORY_PRIORITY: Record<string, number> = {
+  policy: 3,
+  procedure: 2,
+  sop: 1,
+};
+
 export async function upsertKnowledgeSource(
   input: KnowledgeSourceInput,
 ): Promise<UpsertResult> {
@@ -56,7 +69,7 @@ export async function upsertKnowledgeSource(
   const version = input.version ?? meta.version;
   const state = canonicalState(input.state ?? meta.state);
   const normalizedTitle = normalizeTitle(input.title);
-  const tier = input.tier ?? inferTier({ qualityArea, title: input.title });
+  const tier = input.tier ?? inferTier({ qualityArea, title: input.title, category: input.category });
   const contentHash = hashContent(input.text);
 
   const existing = await prisma.knowledgeSource.findUnique({
@@ -70,6 +83,7 @@ export async function upsertKnowledgeSource(
       id: true, contentHash: true, status: true, excludedBy: true, indexError: true,
       indexedAt: true, embedded: true, text: true,
       title: true, normalizedTitle: true, state: true, serviceId: true,
+      tier: true, category: true,
     },
   });
 
@@ -99,13 +113,19 @@ export async function upsertKnowledgeSource(
   if (existing && current) {
     // hashContent() covers the TEXT only — a rename with identical text
     // must still land title/normalizedTitle (+ the title-derived fields)
-    // without paying for a re-chunk/re-embed.
+    // without paying for a re-chunk/re-embed. The same fast-path lands a
+    // tier or category that the heuristic / adapter now derives differently
+    // (an SOP stored as safety_critical before SOPs were pinned to general):
+    // without it a rule change never reaches a row whose text is unchanged.
     const renamed = input.title !== existing.title;
-    if (!reactivate && !renamed) return { sourceId: existing.id, outcome: "unchanged" };
+    const derivedChanged = renamed || existing.tier !== tier || existing.category !== input.category;
+    if (!reactivate && !derivedChanged) return { sourceId: existing.id, outcome: "unchanged" };
     await prisma.knowledgeSource.update({
       where: { id: existing.id },
       data: {
-        ...(renamed ? { title: input.title, normalizedTitle, qualityArea, version, state, tier } : {}),
+        ...(derivedChanged
+          ? { title: input.title, normalizedTitle, qualityArea, version, state, tier, category: input.category }
+          : {}),
         ...(reactivate ? { status: "active" as const, excludedBy: null } : {}),
       },
     });
@@ -319,8 +339,11 @@ export async function excludeSources(
 /**
  * Within one dedupe key, exactly one source is `active`:
  *   1. highest KIND_PRIORITY (policy_upload > manual > sharepoint > others)
- *   2. then highest version (null = 0)
- *   3. then most recently updated
+ *   2. then highest CATEGORY_PRIORITY (policy > procedure > sop > others) —
+ *      a state policy/procedure beats a company SOP of the same title
+ *      regardless of version or recency; the SOP set is a year stale
+ *   3. then highest version (null = 0)
+ *   4. then most recently updated
  * Everything else → superseded with supersededById. `excluded` rows are
  * never touched. Returns the winner's id (or null if the key is empty).
  *
@@ -338,7 +361,7 @@ export async function applySupersession(key: SupersessionKey): Promise<string | 
       serviceId: key.serviceId,
       status: { in: ["active", "superseded"] },
     },
-    select: { id: true, version: true, sourceKind: true, status: true, updatedAt: true },
+    select: { id: true, version: true, sourceKind: true, category: true, status: true, updatedAt: true },
     orderBy: { updatedAt: "desc" },
   });
   if (rows.length === 0) return null;
@@ -346,6 +369,8 @@ export async function applySupersession(key: SupersessionKey): Promise<string | 
   const sorted = [...rows].sort((a, b) => {
     const pk = (KIND_PRIORITY[b.sourceKind] ?? 0) - (KIND_PRIORITY[a.sourceKind] ?? 0);
     if (pk !== 0) return pk;
+    const ck = (CATEGORY_PRIORITY[b.category] ?? 0) - (CATEGORY_PRIORITY[a.category] ?? 0);
+    if (ck !== 0) return ck;
     const vk = (b.version ?? 0) - (a.version ?? 0);
     if (vk !== 0) return vk;
     return b.updatedAt.getTime() - a.updatedAt.getTime();

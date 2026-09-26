@@ -163,7 +163,15 @@ export async function searchKnowledge(
     .slice(0, limit);
 }
 
-/** Tool-result text: one block per document, chunks in order, OpenUrl for citations. */
+/**
+ * Appended to an SOP hit's header. The Jayden SOP set is over a year old,
+ * so when a state policy / procedure covers the same question the model
+ * must answer from that, not the SOP (owner rule, 2026-09-26).
+ */
+export const SOP_HIT_NOTE =
+  " — company SOP; may be older than the state policy: prefer a policy/procedure source when one covers the question";
+
+/** Tool-result text: one block per document (labelled with category + tier), chunks in order, OpenUrl for citations. */
 export function formatHitsForPrompt(hits: KnowledgeHit[]): string {
   const byDoc = new Map<string, KnowledgeHit[]>();
   for (const h of hits) {
@@ -174,7 +182,8 @@ export function formatHitsForPrompt(hits: KnowledgeHit[]): string {
   const parts: string[] = [];
   for (const [, list] of byDoc) {
     const first = list[0];
-    const head = [`### ${first.title} (${first.category}, ${first.tier})`];
+    const note = first.category === "sop" ? SOP_HIT_NOTE : "";
+    const head = [`### ${first.title} (${first.category}, ${first.tier})${note}`];
     if (first.externalUrl) head.push(`OpenUrl: ${first.externalUrl}`);
     const body = [...list]
       .sort((a, b) => a.chunkIndex - b.chunkIndex)

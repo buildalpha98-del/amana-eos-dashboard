@@ -31,13 +31,15 @@ const baseInput = {
   state: "New South Wales",
 };
 
-/** What the DB already holds for baseInput — same title, same key, fully indexed + embedded. */
+/** What the DB already holds for baseInput — same title, same key, same derived tier/category, fully indexed + embedded. */
 const storedRow = {
   id: "src-1",
   title: baseInput.title,
   normalizedTitle: "qa2 rest time procedure",
   state: "NSW",
   serviceId: null,
+  tier: "safety_critical",
+  category: "procedure",
   excludedBy: null,
   indexError: null,
   indexedAt: new Date("2026-01-01"),
@@ -123,6 +125,7 @@ describe("upsertKnowledgeSource", () => {
           version: 4,
           state: "NSW",
           tier: "safety_critical",
+          category: "procedure",
         },
       });
       // No chunk/embedding work at all — the text didn't change.
@@ -284,6 +287,69 @@ describe("upsertKnowledgeSource", () => {
   it("honours an explicit tier from the adapter", async () => {
     await upsertKnowledgeSource({ ...baseInput, tier: "general" });
     expect(prismaMock.knowledgeSource.create.mock.calls[0][0].data.tier).toBe("general");
+  });
+
+  it("an SOP is created as tier general even when its title carries a safety keyword", async () => {
+    await upsertKnowledgeSource({ ...baseInput, title: "OPS-08 Medication Administration.docx", category: "sop", state: null });
+    expect(prismaMock.knowledgeSource.create.mock.calls[0][0].data).toMatchObject({ category: "sop", tier: "general" });
+  });
+
+  describe("derived-field drift with identical text (hash fast-path)", () => {
+    // An SOP stored before SOPs were pinned to `general`: same title, same
+    // text, but the heuristic now derives a different tier. Without the
+    // fast-path landing it, the rule change never reaches the row.
+    const sopInput = { ...baseInput, title: "OPS-08 Medication Administration.docx", category: "sop" as const, state: null };
+    const storedSop = {
+      ...storedRow,
+      title: sopInput.title,
+      normalizedTitle: "ops 08 medication administration",
+      state: null,
+      tier: "safety_critical",
+      category: "sop",
+      contentHash: hashContent(sopInput.text),
+      status: "active",
+    };
+
+    it("lands the new tier WITHOUT re-indexing and re-runs supersession for the key", async () => {
+      prismaMock.knowledgeSource.findUnique.mockResolvedValue(storedSop);
+      const res = await upsertKnowledgeSource(sopInput);
+      expect(res).toEqual({ sourceId: "src-1", outcome: "updated" });
+      expect(prismaMock.knowledgeSource.update).toHaveBeenCalledTimes(1);
+      expect(prismaMock.knowledgeSource.update.mock.calls[0][0]).toEqual({
+        where: { id: "src-1" },
+        data: {
+          title: sopInput.title,
+          normalizedTitle: "ops 08 medication administration",
+          qualityArea: null,
+          version: null,
+          state: null,
+          tier: "general",
+          category: "sop",
+        },
+      });
+      expect(embedTextsWithUsage).not.toHaveBeenCalled();
+      expect(prismaMock.knowledgeChunk.createMany).not.toHaveBeenCalled();
+      // Same key → exactly one supersession pass.
+      expect(prismaMock.knowledgeSource.findMany).toHaveBeenCalledTimes(1);
+      expect(prismaMock.knowledgeSource.findMany.mock.calls[0][0].where).toMatchObject({
+        normalizedTitle: "ops 08 medication administration", state: null, serviceId: null,
+      });
+    });
+
+    it("lands a re-classified category the same way (an adapter moved the file between trees)", async () => {
+      prismaMock.knowledgeSource.findUnique.mockResolvedValue({ ...storedSop, tier: "general", category: "guide" });
+      const res = await upsertKnowledgeSource(sopInput);
+      expect(res.outcome).toBe("updated");
+      expect(prismaMock.knowledgeSource.update.mock.calls[0][0].data).toMatchObject({ category: "sop", tier: "general" });
+      expect(prismaMock.knowledgeChunk.createMany).not.toHaveBeenCalled();
+    });
+
+    it("is unchanged when the stored tier/category already match what is derived now", async () => {
+      prismaMock.knowledgeSource.findUnique.mockResolvedValue({ ...storedSop, tier: "general" });
+      expect((await upsertKnowledgeSource(sopInput)).outcome).toBe("unchanged");
+      expect(prismaMock.knowledgeSource.update).not.toHaveBeenCalled();
+      expect(prismaMock.knowledgeSource.findMany).not.toHaveBeenCalled();
+    });
   });
 
   it("re-activates an adapter-excluded source when its origin comes back (unchanged hash)", async () => {
@@ -460,6 +526,48 @@ describe("applySupersession", () => {
     expect(await applySupersession({ normalizedTitle: "x", state: null, serviceId: null })).toBeNull();
     expect(prismaMock.knowledgeSource.update).not.toHaveBeenCalled();
     expect(prismaMock.knowledgeSource.updateMany).not.toHaveBeenCalled();
+  });
+
+  describe("category precedence — a state policy/procedure always beats a company SOP", () => {
+    it("an SOP with a HIGHER version and a NEWER updatedAt still loses to a procedure in the same key", async () => {
+      prismaMock.knowledgeSource.findMany.mockResolvedValue([
+        { id: "sop", version: 9, category: "sop", status: "active", sourceKind: "sharepoint", updatedAt: new Date("2026-09-01") },
+        { id: "proc", version: 1, category: "procedure", status: "superseded", sourceKind: "sharepoint", updatedAt: new Date("2025-01-01") },
+      ]);
+      prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 1 });
+      expect(await applySupersession({ normalizedTitle: "x", state: null, serviceId: null })).toBe("proc");
+      expect(prismaMock.knowledgeSource.updateMany.mock.calls[0][0]).toEqual({
+        where: { id: { in: ["sop"] } }, data: { status: "superseded", supersededById: "proc" },
+      });
+      expect(prismaMock.knowledgeSource.update).toHaveBeenCalledWith({
+        where: { id: "proc" }, data: { status: "active", supersededById: null },
+      });
+    });
+
+    it("policy > procedure > sop > others; category sits BELOW kind (policy_upload SOP still beats a sharepoint policy)", async () => {
+      prismaMock.knowledgeSource.findMany.mockResolvedValue([
+        { id: "guide", version: 5, category: "guide", status: "active", sourceKind: "sharepoint", updatedAt: new Date("2026-09-01") },
+        { id: "sop", version: 5, category: "sop", status: "active", sourceKind: "sharepoint", updatedAt: new Date("2026-09-01") },
+        { id: "proc", version: 5, category: "procedure", status: "active", sourceKind: "sharepoint", updatedAt: new Date("2026-09-01") },
+        { id: "pol", version: 1, category: "policy", status: "active", sourceKind: "sharepoint", updatedAt: new Date("2026-01-01") },
+      ]);
+      prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 3 });
+      expect(await applySupersession({ normalizedTitle: "x", state: null, serviceId: null })).toBe("pol");
+
+      vi.clearAllMocks();
+      prismaMock.knowledgeSource.findMany.mockResolvedValue([
+        { id: "sp-policy", version: 9, category: "policy", status: "active", sourceKind: "sharepoint", updatedAt: new Date("2026-09-01") },
+        { id: "uploaded-sop", version: 1, category: "sop", status: "active", sourceKind: "policy_upload", updatedAt: new Date("2026-01-01") },
+      ]);
+      prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 1 });
+      expect(await applySupersession({ normalizedTitle: "x", state: null, serviceId: null })).toBe("uploaded-sop");
+    });
+
+    it("reads `category` for the sort", async () => {
+      prismaMock.knowledgeSource.findMany.mockResolvedValue([]);
+      await applySupersession({ normalizedTitle: "x", state: null, serviceId: null });
+      expect(prismaMock.knowledgeSource.findMany.mock.calls[0][0].select).toMatchObject({ category: true });
+    });
   });
 
   it("same kind, same version: the more recently updated row wins", async () => {

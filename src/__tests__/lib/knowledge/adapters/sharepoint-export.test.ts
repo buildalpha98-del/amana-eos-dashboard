@@ -317,6 +317,45 @@ describe("importExportDir", () => {
     );
   });
 
+  it("re-applies supersession to every dedupe key seen in the run (an 'unchanged' upsert never runs it, so a precedence change must be re-applied here)", async () => {
+    upsert.mockImplementation(async (i) => ({ sourceId: `src-${i.externalId}`, outcome: "unchanged" }));
+    const report = await importExportDir(FIX);
+    expect(report.counts.unchanged).toBe(FIXTURE_IMPORTABLE);
+    const passes = prismaMock.knowledgeSource.findMany.mock.calls
+      .map((c: [{ where: Record<string, unknown> }]) => c[0].where)
+      .filter((w: Record<string, unknown>) => typeof w.normalizedTitle === "string");
+    // 7 importable files across 4 distinct (normalizedTitle,state,serviceId) keys:
+    // Bushfire ×3 (one key), Rest Time V2 + V3 (one key — the version token is stripped), OPS-10, toilet (centre-scoped).
+    expect(passes).toHaveLength(4);
+    for (const w of passes) expect(w.status).toEqual({ in: ["active", "superseded"] });
+    expect(passes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ normalizedTitle: "qa2 rest time procedure", state: null, serviceId: null }),
+      expect.objectContaining({ serviceId: "s1" }),
+    ]));
+    const titles = new Set(passes.map((w: Record<string, unknown>) => `${w.normalizedTitle}|${w.state}|${w.serviceId}`));
+    expect(titles.size).toBe(4); // one pass per DISTINCT key, never one per file
+  });
+
+  it("the post-walk supersession pass promotes a policy/procedure the SOP had beaten before category precedence existed", async () => {
+    upsert.mockImplementation(async (i) => ({ sourceId: `src-${i.externalId}`, outcome: "unchanged" }));
+    prismaMock.knowledgeSource.findMany.mockImplementation(async ({ where }: { where: Record<string, unknown> }) =>
+      where.normalizedTitle === "qa2 rest time procedure"
+        ? [
+            { id: "sop-copy", version: 9, category: "sop", status: "active", sourceKind: "sharepoint", updatedAt: new Date("2026-09-01") },
+            { id: "proc-copy", version: 3, category: "procedure", status: "superseded", sourceKind: "sharepoint", updatedAt: new Date("2025-01-01") },
+          ]
+        : [],
+    );
+    prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 1 });
+    await importExportDir(FIX);
+    expect(prismaMock.knowledgeSource.update).toHaveBeenCalledWith({
+      where: { id: "proc-copy" }, data: { status: "active", supersededById: null },
+    });
+    expect(prismaMock.knowledgeSource.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ["sop-copy"] } }, data: { status: "superseded", supersededById: "proc-copy" },
+    });
+  });
+
   it("logs progress at the end of the walk (and every 25 files)", async () => {
     await importExportDir(FIX);
     const progress = loggerMock.info.mock.calls.filter((c) => c[0] === "Knowledge: export import progress");

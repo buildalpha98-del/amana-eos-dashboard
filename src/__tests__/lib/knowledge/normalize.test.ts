@@ -87,6 +87,27 @@ describe("inferTier", () => {
       inferTier({ qualityArea: null, title: "Safe Collection of Children Procedure" }),
     ).toBe("safety_critical");
   });
+
+  describe("a company SOP is never safety-critical (the Jayden SOP set is over a year stale)", () => {
+    it("OPS-08 Medical Administration as an SOP is general", () => {
+      expect(inferTier({ qualityArea: null, title: "OPS-08 Medical Administration", category: "sop" })).toBe("general");
+    });
+    it("the category beats a matching safety keyword AND the QA2 rule", () => {
+      // "Emergency Evacuation" matches the keyword list; as a procedure it is safety_critical, as an SOP it is not.
+      expect(inferTier({ qualityArea: null, title: "OPS-10 Emergency Evacuation Procedures", category: "sop" })).toBe("general");
+      expect(inferTier({ qualityArea: null, title: "OPS-10 Emergency Evacuation Procedures", category: "procedure" })).toBe("safety_critical");
+      expect(inferTier({ qualityArea: 2, title: "Medication Administration", category: "sop" })).toBe("general");
+    });
+    it("the state procedure that SHOULD answer a medication question stays safety_critical", () => {
+      expect(inferTier({ qualityArea: 2, title: "QA2 Managing Medical Conditions Procedure OSHC V3", category: "procedure" })).toBe("safety_critical");
+      expect(inferTier({ qualityArea: null, title: "Administration of First Aid Procedure", category: "procedure" })).toBe("safety_critical");
+    });
+    it("other categories (and no category) keep the title/QA heuristic", () => {
+      expect(inferTier({ qualityArea: null, title: "Medication Policy", category: "policy" })).toBe("safety_critical");
+      expect(inferTier({ qualityArea: null, title: "Medication Policy", category: null })).toBe("safety_critical");
+      expect(inferTier({ qualityArea: null, title: "Weekly Menu Template", category: "guide" })).toBe("general");
+    });
+  });
 });
 
 describe("hashContent", () => {

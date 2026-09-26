@@ -65,13 +65,22 @@ export function canonicalState(raw: string | null | undefined): string | null {
  * Spec §3.5 heuristic. QA2 (Children's Health & Safety) is always
  * safety-critical; otherwise the title decides. Admin `tierOverride`
  * beats this at query time.
+ *
+ * A company SOP (`category: "sop"`) is NEVER safety-critical, whatever its
+ * title says: the Jayden SOP set is over a year old and must not be quoted
+ * verbatim as the authority on anything the state policies / procedures
+ * cover — "OPS-08 Medical Administration" reads as `general`, so the
+ * safety-critical answer comes from "QA2 Managing Medical Conditions
+ * Procedure" instead. `tierOverride` still lets an admin promote one.
  */
 const SAFETY_TITLE = /child\s*protection|safeguard|medication|medical\s*condition|incident|injur|emergency|evacuat|lockdown|bushfire|safe\s*arrival|safe\s*collection|collection\s+of\s+children|missing\s*child|anaphylaxis|allerg|asthma|epilep|diabet|first\s*aid|infectious|illness|water\s*safety|sun\s*safe|excursion|safe\s*transport|transport(ing)?\s+(of\s+)?children/i;
 
 export function inferTier(input: {
   qualityArea: number | null;
   title: string;
+  category?: KnowledgeCategory | null;
 }): KnowledgeTier {
+  if (input.category === "sop") return "general";
   if (input.qualityArea === 2) return "safety_critical";
   return SAFETY_TITLE.test(input.title) ? "safety_critical" : "general";
 }

@@ -135,7 +135,8 @@ export const ASSISTANT_TOOLS: Anthropic.Messages.Tool[] = [
     description:
       "Search the Amana OSHC knowledge store — the FIRST tool for any 'how do I…', 'what's our policy on…', 'what's the procedure for…' question. " +
       "It holds: ALL QA1–QA7 policies and procedures, the company-wide SOPs, the Amana Way, the Employee Handbook, the Proven Process, staff help articles, published training modules, this user's centre fact sheet, and curated regulator references (Staying Healthy exclusion periods, ASCIA action plans, the Children's Services Award, first-aid guidance, NSW/VIC regulator pages) plus any ACECQA guides an admin has uploaded (NQS, National Regulations, MTOP). " +
-      "Search is hybrid (keyword + meaning) — describe the situation in plain words; if the first result set looks off, retry once with OSHC terminology (e.g. 'illness management', 'safe arrival', 'behaviour guidance').",
+      "Search is hybrid (keyword + meaning) — describe the situation in plain words; if the first result set looks off, retry once with OSHC terminology (e.g. 'illness management', 'safe arrival', 'behaviour guidance'). " +
+      "Results are labelled by category: for children's safety, compliance or regulatory questions answer from a policy/procedure result over an sop one (the company SOPs are older than the state policies); SOPs are for company-internal process (finance, HR admin, growth).",
     input_schema: {
       type: "object" as const,
       properties: {
