@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-26-amana-ai-second-brain-design.md` (§3.1–3.4, §3.2 retirement list, §5.1, §6, §7 slice 1, §8).
 
-**Deviation from spec §7 (deliberate):** the spec places RRF fusion, `buildKnowledgeScope` and the tier heuristic in slice 2. This plan builds all three in slice 1 because SQL-enforced scope *is* the "no longer dangerous" outcome — importing centre-specific and state-specific documents without scope would be a regression. Spec §7 is updated to match. Answer modes, citations UI and the admin "test a question" view remain slice 2.
+**Deviations from spec (deliberate, spec updated to match):** (1) §7 — the spec places RRF fusion, `buildKnowledgeScope` and the tier heuristic in slice 2. This plan builds all three in slice 1 because SQL-enforced scope *is* the "no longer dangerous" outcome — importing centre-specific and state-specific documents without scope would be a regression. Spec §7 is updated to match. Answer modes, citations UI and the admin "test a question" view remain slice 2. (2) §6 — the console shows the latest sync run's counts and the SharePoint conflict/unmapped lists (`LastSyncPanel`), but the full per-item report and "test a question" are slice 2. (3) §3.2 — `/api/settings/ai-knowledge/seed` runs the handbook adapter only; the full backfill is `/sync { adapter: "backfill" }`.
 
 **Branch:** work on `feat/amana-ai-slice-1` off `origin/main` (the spec branch `feat/amana-ai-second-brain-spec` merges separately). Confirm `git remote -v` shows `buildalpha98-del/amana-eos-dashboard` before any commit.
 
@@ -40,7 +40,7 @@
 - `src/app/api/cron/knowledge-regulator-refresh/route.ts`.
 - `scripts/import-sharepoint-knowledge.ts` — local-export importer.
 - `scripts/export-sharepoint-knowledge/README.md` — how the export directory is produced.
-- `src/__tests__/fixtures/knowledge-export/**` — six-file fixture tree.
+- `src/__tests__/fixtures/knowledge-export/**` — seven-file fixture tree (six import cases + one skip case).
 - `src/__tests__/lib/knowledge/*.test.ts`, `src/__tests__/api/ai-knowledge-*.test.ts`, `src/__tests__/api/ai-usage.test.ts`, `src/__tests__/lib/knowledge-guard.test.ts`.
 
 **Modify**
@@ -52,12 +52,14 @@
 - `src/app/api/assistant/chat/route.ts` — role-gate `buildDashboardContext()`; pass scope to the tool executor.
 - `src/app/api/settings/ai-knowledge/{route,upload,register,[id],seed}/route.ts` — re-point at `KnowledgeSource`.
 - `src/app/(dashboard)/settings/ai-knowledge/page.tsx` — new entry shape; Sync replaces Reindex/Dedupe/Backfill.
-- `src/app/api/documents/{route,bulk/route,[id]/route}.ts`, `src/app/api/audits/[id]/document/route.ts` — remove `indexDocument`.
+- `src/app/api/documents/{route,bulk/route,[id]/route}.ts` — remove `indexDocument` (the audits document route only mentions the indexer in a comment — no change).
 - `src/app/api/policies/route.ts`, `src/app/api/policies/[id]/versions/route.ts` — call `policy_upload` adapter.
 - `src/app/api/services/[id]/content/route.ts` — call `centre_facts` adapter.
 - `src/app/api/amana-handbook/content/route.ts`, `src/app/api/amana-way/content/route.ts` — call `handbook` adapter.
 - `src/app/api/knowledge-base/seed/route.ts` — call `help_article` adapter.
-- `src/app/api/lms/courses/[id]/route.ts`, `src/app/api/lms/courses/[id]/modules/route.ts`, `src/app/api/lms/modules/[moduleId]/route.ts` — call `lms_module` adapter.
+- `src/app/api/lms/courses/route.ts` (create), `src/app/api/lms/courses/[id]/route.ts` (PATCH + soft DELETE), `src/app/api/lms/courses/publish-readiness/route.ts` (bulk publish), `src/app/api/lms/courses/[id]/modules/route.ts`, `src/app/api/lms/modules/[moduleId]/route.ts` — call `lms_module` adapter.
+- `src/app/api/policies/[id]/route.ts` — title/category PATCH re-syncs the current version.
+- `src/components/settings/ai-knowledge/{KnowledgeSourceRow,EntryModal,LastSyncPanel}.tsx` — extracted from the console page (new).
 - `src/app/api/ai/usage/route.ts` — null-user "System" bucket.
 - `vercel.json` — monthly regulator cron.
 - `.github/workflows/test.yml` — pgvector-enabled Postgres image + `CREATE EXTENSION` before `db push` (both jobs).
@@ -2894,7 +2896,7 @@ vi.mock("@/lib/knowledge/adapters/backfill", () => ({
   runBackfill: vi.fn(async () => ({ handbook: [{ outcome: "created" }], helpArticles: [{ outcome: "unchanged" }], centreFacts: [], lmsCourses: [], policies: [{ outcome: "error", error: "x" }] })),
 }));
 vi.mock("@/lib/knowledge/adapters/regulator", () => ({
-  runRegulator: vi.fn(), syncRegulator: vi.fn(async () => ({ results: [{ outcome: "created" }], errors: [{ id: "gone", error: "HTTP 404" }] })),
+  syncRegulator: vi.fn(async () => ({ results: [{ outcome: "created" }], errors: [{ id: "gone", error: "HTTP 404" }] })),
 }));
 import { runAdapter } from "@/lib/knowledge/sync";
 
@@ -2941,6 +2943,7 @@ Expected: FAIL.
  * adapter is NOT runnable here in slice 1 (local export only — spec §5.1);
  * slice 2b adds it once Graph app-only access exists.
  */
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { runBackfill } from "./adapters/backfill";
@@ -2950,7 +2953,9 @@ import type { UpsertResult } from "./types";
 export const RUNNABLE_ADAPTERS = ["backfill", "regulator"] as const;
 export type RunnableAdapter = (typeof RUNNABLE_ADAPTERS)[number];
 
-export interface SyncCounts { created: number; updated: number; unchanged: number; errors: number }
+// `type`, not `interface`: Prisma's InputJsonValue rejects named interfaces
+// (no implicit index signature) — see parent/enrolment-draft/submit/route.ts:320.
+export type SyncCounts = { created: number; updated: number; unchanged: number; errors: number };
 
 export function countOutcomes(results: UpsertResult[]): SyncCounts {
   const c: SyncCounts = { created: 0, updated: 0, unchanged: 0, errors: 0 };
@@ -2987,7 +2992,11 @@ export async function runAdapter(adapter: RunnableAdapter, startedById: string |
     }
     return prisma.knowledgeSyncRun.update({
       where: { id: run.id },
-      data: { finishedAt: new Date(), counts, details },
+      data: {
+        finishedAt: new Date(),
+        counts: counts as Prisma.InputJsonValue,
+        details: details as Prisma.InputJsonValue,
+      },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -3026,13 +3035,14 @@ import { logger } from "@/lib/logger";
 void syncX(id).catch((err) => logger.warn("Knowledge: sync failed", { adapter: "x", id, err }));
 ```
 
-Existing route tests must keep passing; add `vi.mock("@/lib/knowledge/adapters/<name>", () => ({ syncX: vi.fn() }))` to any route test that now imports an adapter (`grep -l "policies/route\|versions/route\|content/route\|knowledge-base/seed\|lms/courses" src/__tests__/api/*.test.ts`).
+Existing route tests must keep passing; add `vi.mock("@/lib/knowledge/adapters/<name>", () => ({ syncX: vi.fn(), … }))` to every route test that now (transitively) imports an adapter. Find them with a RECURSIVE grep — `grep -rl "policies/route\|policies/\[id\]\|content/route\|knowledge-base/seed\|lms/courses\|lms/modules" src/__tests__/api` — which today yields at least: `src/__tests__/api/policy-documents.test.ts`, `src/__tests__/api/amana-way-content.test.ts`, `src/__tests__/api/lms/courses.test.ts`, `src/__tests__/api/lms/progress-quiz-gate.test.ts`.
 
-- [ ] **Step 1: Policies create + version + archive**
+- [ ] **Step 1: Policies create + version + archive + title edit**
 
-In `src/app/api/policies/route.ts` after the `activityLog.create` that follows the transaction in `POST`: `void syncPolicyVersion(result.version.id).catch(…)` (the transaction returns `{ doc, version }` — check the variable names at lines 130–155 and use the version id it returns).
-In `src/app/api/policies/[id]/versions/route.ts` after `activityLog.create`: `void syncPolicyVersion(result.id).catch(…)`.
-In `src/app/api/policies/[id]/archive/route.ts` after the update: if `parsed.data.isArchived` → `void excludePolicySources(id).catch(…)`; else → `void syncPolicyVersion(currentVersionId).catch(…)` (select `currentVersionId` in the existing `findUnique`).
+In `src/app/api/policies/route.ts` `POST`: the transaction returns `linked` — the `PolicyDocument` with `include: { currentVersion: true }` (lines 124–130). After the `activityLog.create` that follows it: `if (linked.currentVersion) void syncPolicyVersion(linked.currentVersion.id).catch(…)`.
+In `src/app/api/policies/[id]/versions/route.ts` after `activityLog.create`: `void syncPolicyVersion(result.id).catch(…)` (`result` is the created `PolicyDocumentVersion`).
+In `src/app/api/policies/[id]/archive/route.ts`: add `currentVersionId: true` to the existing `findUnique` select; after the update: if `parsed.data.isArchived` → `void excludePolicySources(id).catch(…)`; else → `if (existing.currentVersionId) void syncPolicyVersion(existing.currentVersionId).catch(…)` (`currentVersionId` is `String?`).
+In `src/app/api/policies/[id]/route.ts` `PATCH` (title/category edit, line ~76): select `currentVersionId` and after the update `if (currentVersionId) void syncPolicyVersion(currentVersionId).catch(…)` — otherwise the source title goes stale until the next version upload.
 
 - [ ] **Step 2: Service content**
 
@@ -3046,15 +3056,17 @@ In both content routes' `PATCH`, after `activityLog.create`: `void syncHandbook(
 
 In `src/app/api/knowledge-base/seed/route.ts` after `createMany`: `void syncHelpArticles().catch(…)`.
 
-- [ ] **Step 5: LMS**
+- [ ] **Step 5: LMS — every course-status and module write path**
 
-`src/app/api/lms/courses/[id]/route.ts` `PATCH`: after `prisma.lMSCourse.update`, `void syncLmsCourse(id).catch(…)` — this fires on every PATCH, which covers `status` transitions in both directions.
-`src/app/api/lms/courses/[id]/modules/route.ts` `POST`: after `lMSModule.create`, `void syncLmsCourse(id).catch(…)`.
+`src/app/api/lms/courses/route.ts` `POST` (create, may carry inline modules and `status: "published"`): after `prisma.lMSCourse.create` → `void syncLmsCourse(course.id).catch(…)`.
+`src/app/api/lms/courses/[id]/route.ts` `PATCH`: after `prisma.lMSCourse.update`, `void syncLmsCourse(id).catch(…)` — fires on every PATCH, covering `status` transitions both ways. `DELETE` (soft delete, `data: { deleted: true }` at ~line 150): after the update, `void syncLmsCourse(id).catch(…)` — the adapter sees `deleted` and excludes the course's sources (backfill queries `deleted: false`, so nothing else would ever revisit it).
+`src/app/api/lms/courses/publish-readiness/route.ts` `POST` (bulk publish via `publishCourses`, ~line 112): after a successful publish, `for (const courseId of courseIds) void syncLmsCourse(courseId).catch(…)` — this IS the "transition to published" spec §3.3(b) names.
+`src/app/api/lms/courses/[id]/modules/route.ts` `POST` (the param is bound as `const { id: courseId }`): after `lMSModule.create`, `void syncLmsCourse(courseId).catch(…)`.
 `src/app/api/lms/modules/[moduleId]/route.ts` `PATCH`: after update, `void syncLmsModule(moduleId).catch(…)`; `DELETE`: read `courseId` before deleting (`findUnique({ select: { courseId } })`), then after delete `void syncLmsCourse(courseId).catch(…)` — the adapter keys sources by `<courseId>:<moduleId>` and excludes everything under the course prefix that it didn't just index, so the deleted module's source is excluded without needing its id.
 
 - [ ] **Step 6: Run the affected route tests**
 
-Run: `npx vitest run src/__tests__/api/policies* src/__tests__/api/services* src/__tests__/api/lms* src/__tests__/api/knowledge-base* 2>/dev/null || npx vitest run src/__tests__/api`
+Run: `npx vitest run src/__tests__/api/policy-documents.test.ts src/__tests__/api/amana-way-content.test.ts src/__tests__/api/lms/ 2>&1 | tail -20`, then the full `npx vitest run src/__tests__/api`.
 Expected: PASS. Any failure is a missing adapter mock in that test file — add it, don't change the route.
 
 - [ ] **Step 7: Commit**
@@ -3154,7 +3166,7 @@ and
 ```
 with `import type { KnowledgeScope } from "@/lib/knowledge/types";` at the top. Remove the `@/lib/document-indexer` import.
 3. (Host allow-list already moved to `src/lib/reference-hosts.ts` in Task 15 — nothing to do here.)
-4. Update the `assistant/tool-calling` seed template text in `prisma/seed.ts` if it names `search_knowledge_base` (`grep -n search_knowledge_base prisma/seed.ts src -r`) — rename to `search_knowledge` everywhere.
+4. `prisma/seed.ts` does not mention `search_knowledge_base` (verified). The only other reference is a comment in `src/app/(dashboard)/settings/ai-knowledge/page.tsx:359`, which Task 21 removes with the auto-reindex effect.
 
 - [ ] **Step 4: Write the failing chat-route test**
 
@@ -3212,7 +3224,7 @@ describe("assistant chat — role gating", () => {
 });
 ```
 
-If `withApiAuth`'s user-active check reads a different model/method than `user.findUnique`, mirror whatever `src/__tests__/api/server-auth.test.ts` mocks.
+`withApiAuth` resolves the active check via `prisma.user.findUnique({ select: { active: true } })` (`src/lib/server-auth.ts:52`), so the `prismaMock.user.findUnique` mock above is the right one.
 
 - [ ] **Step 5: Run to verify it fails**
 
@@ -3295,7 +3307,7 @@ vi.mock("@/lib/storage", () => ({ deleteFile: vi.fn() }));
 
 import { GET, POST } from "@/app/api/settings/ai-knowledge/route";
 import { PATCH, DELETE } from "@/app/api/settings/ai-knowledge/[id]/route";
-import { POST as SYNC } from "@/app/api/settings/ai-knowledge/sync/route";
+import { POST as SYNC, GET as SYNC_RUNS } from "@/app/api/settings/ai-knowledge/sync/route";
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 
@@ -3361,6 +3373,17 @@ describe("/api/settings/ai-knowledge", () => {
     const res = await SYNC(createRequest("POST", "/x", { body: { adapter: "backfill" } }));
     expect(res.status).toBe(200);
     expect(runAdapter).toHaveBeenCalledWith("backfill", "u");
+  });
+
+  it("GET /sync returns the latest run per adapter", async () => {
+    mockSession({ id: "u", name: "O", role: "owner" });
+    prismaMock.knowledgeSyncRun.findMany.mockResolvedValue([
+      { id: "r3", adapter: "sharepoint", startedAt: new Date(3), finishedAt: new Date(3), counts: { imported: 5 }, details: { conflicts: [] }, error: null },
+      { id: "r2", adapter: "backfill", startedAt: new Date(2), finishedAt: new Date(2), counts: {}, details: {}, error: null },
+      { id: "r1", adapter: "sharepoint", startedAt: new Date(1), finishedAt: new Date(1), counts: {}, details: {}, error: null },
+    ]);
+    const json = await (await SYNC_RUNS(createRequest("GET", "/x"))).json();
+    expect(json.runs.map((r: { id: string }) => r.id)).toEqual(["r3", "r2"]);
   });
 });
 ```
@@ -3538,6 +3561,7 @@ export const DELETE = withApiAuth(
 // src/app/api/settings/ai-knowledge/sync/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
@@ -3545,6 +3569,21 @@ import { runAdapter, RUNNABLE_ADAPTERS } from "@/lib/knowledge/sync";
 
 export const maxDuration = 300;
 const schema = z.object({ adapter: z.enum(RUNNABLE_ADAPTERS) });
+
+/** Latest run per adapter (incl. the script-written `sharepoint` runs) — feeds LastSyncPanel. */
+export const GET = withApiAuth(
+  async () => {
+    const runs = await prisma.knowledgeSyncRun.findMany({
+      orderBy: { startedAt: "desc" },
+      take: 20,
+      select: { id: true, adapter: true, startedAt: true, finishedAt: true, counts: true, details: true, error: true },
+    });
+    const latestByAdapter = new Map<string, (typeof runs)[number]>();
+    for (const r of runs) if (!latestByAdapter.has(r.adapter)) latestByAdapter.set(r.adapter, r);
+    return NextResponse.json({ runs: [...latestByAdapter.values()] });
+  },
+  { roles: [...ADMIN_ROLES] },
+);
 
 export const POST = withApiAuth(
   async (req, session) => {
@@ -3602,12 +3641,14 @@ git rm -r src/app/api/settings/ai-knowledge/reindex src/app/api/settings/ai-know
 - [ ] **Step 9: Run the admin tests + lint**
 
 Run: `npx vitest run src/__tests__/api/ai-knowledge-admin.test.ts && npx eslint src/app/api/settings/ai-knowledge`
-Expected: PASS (7 tests); 0 errors.
+Expected: PASS (8 tests); 0 errors.
 
 - [ ] **Step 10: Commit**
 
 ```bash
 git add -A src/app/api/settings/ai-knowledge src/__tests__/api/ai-knowledge-admin.test.ts && git commit -m "feat(knowledge): admin routes over KnowledgeSource; sync + reindex; drop reindex/backfill/dedupe
+
+The console page still calls the deleted routes until Task 21 rewrites it (same PR).
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
@@ -3655,25 +3696,27 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ## Chunk 5: Console UI, SharePoint export/import, cron, guards, docs, first prod run
 
-### Task 21: Knowledge console page over the new shape
+### Task 21: Knowledge console over the new shape
 
 **Files:**
-- Modify: `src/app/(dashboard)/settings/ai-knowledge/page.tsx`
+- Modify: `src/app/(dashboard)/settings/ai-knowledge/page.tsx` (list + toolbar + filters only after this task)
+- Create: `src/components/settings/ai-knowledge/KnowledgeSourceRow.tsx`, `src/components/settings/ai-knowledge/EntryModal.tsx`, `src/components/settings/ai-knowledge/LastSyncPanel.tsx`, `src/components/settings/ai-knowledge/types.ts`
 
-The page keeps its structure (list + paste editor + upload + detail drawer). Only the data shape, the columns and the admin actions change. Work from the existing component; do not rewrite unrelated parts.
+The page is 944 lines and would pass 1,100 with the new row controls, so the row and the modal move out. `EntryModal` moves VERBATIM (then gets the two new fields); the row is new. Use `tsc --noEmit` as the guide for anything this task's list misses — every reference to the old `Document` shape must go.
 
-- [ ] **Step 1: Replace the two interfaces (lines 39–70)**
+- [ ] **Step 1: Shared types** (`src/components/settings/ai-knowledge/types.ts`)
 
 ```tsx
-type SourceKind = "sharepoint" | "policy_upload" | "help_article" | "handbook" | "lms_module" | "centre_facts" | "regulator" | "manual";
-type Tier = "safety_critical" | "general";
-type Status = "active" | "superseded" | "excluded";
+export type SourceKind = "sharepoint" | "policy_upload" | "help_article" | "handbook" | "lms_module" | "centre_facts" | "regulator" | "manual";
+export type Category = "policy" | "procedure" | "sop" | "guide" | "reference" | "centre";
+export type Tier = "safety_critical" | "general";
+export type Status = "active" | "superseded" | "excluded";
 
-interface KnowledgeEntrySummary {
+export interface KnowledgeEntrySummary {
   id: string;
   title: string;
   sourceKind: SourceKind;
-  category: "policy" | "procedure" | "sop" | "guide" | "reference" | "centre";
+  category: Category;
   tier: Tier;
   tierOverride: Tier | null;
   qualityArea: number | null;
@@ -3691,34 +3734,51 @@ interface KnowledgeEntrySummary {
   updatedAt: string;
 }
 
-interface KnowledgeEntryDetail extends KnowledgeEntrySummary {
+export interface KnowledgeEntryDetail extends KnowledgeEntrySummary {
   body: string;
 }
 
-/** Only `manual` rows are editable/deletable here; everything else changes at its origin. */
-const isManual = (e: { sourceKind: SourceKind }) => e.sourceKind === "manual";
+/** Only `manual` rows are editable/deletable in the console; everything else changes at its origin. */
+export const isManual = (e: { sourceKind: SourceKind }) => e.sourceKind === "manual";
 /** Uploaded files carry a Blob URL; pasted text does not. */
-const isFile = (e: { sourceKind: SourceKind; externalUrl: string | null }) => isManual(e) && Boolean(e.externalUrl);
+export const isFile = (e: { sourceKind: SourceKind; externalUrl: string | null }) => isManual(e) && Boolean(e.externalUrl);
 
-const KIND_LABEL: Record<SourceKind, string> = {
+export const KIND_LABEL: Record<SourceKind, string> = {
   sharepoint: "SharePoint", policy_upload: "Policy PDF", help_article: "Help article", handbook: "Handbook",
   lms_module: "Training module", centre_facts: "Centre facts", regulator: "Regulator", manual: "Manual",
 };
+
+export interface SyncRunSummary {
+  id: string;
+  adapter: string;
+  startedAt: string;
+  finishedAt: string | null;
+  counts: Record<string, number>;
+  details: {
+    conflicts?: { normalizedTitle: string; state: string | null; version: number | null; paths: string[] }[];
+    unmapped?: { path: string; centreFolder: string }[];
+    errors?: { path?: string; sourceId?: string; error: string }[];
+    fetchErrors?: { id: string; error: string }[];
+  };
+  error: string | null;
+}
 ```
 
-Every `e.kind === "file"` becomes `isFile(e)`; every `existing?.kind === "file"` becomes `existing && isFile(existing)`; `e.fileUrl` becomes `e.externalUrl`; `e.fileName` usages are removed (the title is the name).
+Delete the two old interfaces at `page.tsx:39–70` and `import` these instead. Replace every `e.kind === "file"` with `isFile(e)`, `existing?.kind === "file"` with `existing && isFile(existing)`, `e.fileUrl` with `e.externalUrl`; remove `e.fileName`/`existing.fileName` (modal copy at ~856/876 uses the title instead), `e.description` (~650 — drop the preview line), `e.indexed` (366, 402, 630 → `e.indexedAt !== null`), `e._count.chunks` (403, 662–663 → `e.chunkCount`).
 
-- [ ] **Step 2: Replace the Reindex / Dedupe / Backfill mutations (lines ~240–350) with one Sync mutation**
+- [ ] **Step 2: Remove the old mutations and the auto-reindex effect**
+
+Delete `reindexMut`, `dedupeMut`, `backfillMut` (~lines 270–350) and the `useEffect` at ~358–375 that auto-fires `/api/settings/ai-knowledge/reindex` (that route is gone; re-index is now a per-row action). Prune imports that become unused (`useEffect`, and any of `CheckCircle2`/`AlertTriangle`/`Sparkles` if nothing else uses them — `npm run lint` warns on unused imports; leave the step at 0 *errors*).
+
+Replace them with one Sync mutation and keep Upload + Seed:
 
 ```tsx
   const sync = useMutation({
     mutationFn: (adapter: "backfill" | "regulator") =>
-      mutateApi<{ id: string; counts: Record<string, number>; error: string | null }>(
-        "/api/settings/ai-knowledge/sync",
-        { method: "POST", body: { adapter } },
-      ),
+      mutateApi<SyncRunSummary>("/api/settings/ai-knowledge/sync", { method: "POST", body: { adapter } }),
     onSuccess: (run) => {
       qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
+      qc.invalidateQueries({ queryKey: ["ai-knowledge-sync-runs"] });
       const c = run.counts ?? {};
       toast({
         description: run.error
@@ -3733,39 +3793,229 @@ Every `e.kind === "file"` becomes `isFile(e)`; every `existing?.kind === "file"`
   });
 ```
 
-Toolbar buttons (replace the three old ones): `<Button variant="secondary" onClick={() => sync.mutate("backfill")} disabled={sync.isPending}>Sync from dashboard</Button>` and `<Button variant="secondary" onClick={() => sync.mutate("regulator")} disabled={sync.isPending}>Refresh regulator refs</Button>`, each with a `title` explaining what it syncs. Keep "Upload" and "Seed handbooks" (the seed route now runs the handbook adapter — relabel the button).
+`seedMut` (~247–267) currently counts `results` by `status: "created" | "skipped"`; the seed route now returns `{ results: { sourceId, outcome, error? }[] }` — count by `outcome` and word the toast `"${created} indexed, ${unchanged} unchanged, ${errors} failed"`. Relabel its button **"Re-index handbooks"**.
 
-- [ ] **Step 3: Row rendering**
+Toolbar buttons (`import { Button } from "@/components/ui/Button"` — the file currently hand-rolls `<button>`s; use `Button` for the three actions, `variant="secondary"`):
+- **Sync from dashboard** → `sync.mutate("backfill")`, `title="Re-index handbooks, help articles, centre facts, published training modules and current policy PDFs"`.
+- **Refresh regulator refs** → `sync.mutate("regulator")`.
+- **Upload** (existing behaviour).
+All `disabled={sync.isPending}` where relevant.
 
-Each row shows: title (linked to `externalUrl` when present, `target="_blank"`), a `KIND_LABEL` chip, category, `QA{n}` when set, `serviceName` or "Org-wide", `state` or "All states", `V{version}` when set, a tier chip (`safety_critical` → amber `bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200`, `general` → `bg-surface text-muted`; when `tierOverride` is set show it with a "(override)" suffix), status chip (`superseded`/`excluded` rows rendered with `opacity-60`; an excluded chip reads "Excluded (admin)" or "Excluded (origin unpublished)" from `excludedBy`), `chunkCount`, `indexedAt` via the existing `formatDate`, and `indexError` in `text-destructive` when present.
+- [ ] **Step 3: `KnowledgeSourceRow`** (`src/components/settings/ai-knowledge/KnowledgeSourceRow.tsx`)
 
-Row actions (icon buttons with `aria-label`):
-- **Tier override** — a `<select aria-label="Tier override">` with options `Auto (${tier})`, `Safety-critical`, `General` → `PATCH /api/settings/ai-knowledge/${id}` `{ tierOverride: null | "safety_critical" | "general" }`.
-- **Exclude / Restore** — `PATCH { status: "excluded" | "active" }` (hidden for `superseded`).
-- **Re-index** — `POST /api/settings/ai-knowledge/${id}/reindex`.
-- **Edit** (manual only) — opens the existing editor; **Delete** (manual only) — existing delete mutation.
+```tsx
+"use client";
 
-All four mutations follow the existing page pattern (`useMutation` + `invalidateQueries(["ai-knowledge"])` + `onError` destructive toast).
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ExternalLink, Pencil, RefreshCw, Trash2, EyeOff, Eye } from "lucide-react";
+import { mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/components/ui/use-toast";
+import { isManual, KIND_LABEL, type KnowledgeEntrySummary, type Tier } from "./types";
 
-- [ ] **Step 4: Filters**
+function formatDate(iso: string | null): string {
+  if (!iso) return "Never";
+  return new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
 
-Above the table, three `<select>`s (kind / tier / status) and the existing search box, all client-side over `entries`. Default status filter = `active`.
+const tierClass = (t: Tier) =>
+  t === "safety_critical"
+    ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200"
+    : "bg-surface text-muted";
 
-- [ ] **Step 5: Editor form fields**
+interface Props {
+  entry: KnowledgeEntrySummary;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}
 
-The paste editor gains `category` (select, default `guide`) and `tier` (select: Auto / Safety-critical / General; "Auto" sends nothing). Post body: `{ title, body, category, tier? }`.
+export function KnowledgeSourceRow({ entry: e, onEdit, onDelete }: Props) {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
+  const onError = (err: Error) => toast({ variant: "destructive", description: err.message || "Something went wrong" });
 
-- [ ] **Step 6: Verify in the browser**
+  const patch = useMutation({
+    mutationFn: (body: { tierOverride?: Tier | null; status?: "active" | "excluded" }) =>
+      mutateApi(`/api/settings/ai-knowledge/${e.id}`, { method: "PATCH", body }),
+    onSuccess: invalidate,
+    onError,
+  });
+  const reindex = useMutation({
+    mutationFn: () => mutateApi<{ ok: boolean; chunks?: number; error?: string }>(`/api/settings/ai-knowledge/${e.id}/reindex`, { method: "POST" }),
+    onSuccess: (r) => { invalidate(); toast({ description: r.ok ? `Re-indexed (${r.chunks} chunks)` : `Re-index failed: ${r.error}` }); },
+    onError,
+  });
 
-Run: `npm run dev`, open `/settings/ai-knowledge` as an owner. Click **Sync from dashboard** → toast with counts; rows appear with kind chips. Paste a test entry with tier Safety-critical → row shows amber chip. Change a tier override → chip updates with "(override)". Exclude → row dims and disappears under the default filter; switch status filter to "excluded" → visible; Restore. Open the browser console: no errors.
+  const effectiveTier = e.tierOverride ?? e.tier;
+  const dim = e.status !== "active" ? "opacity-60" : "";
+  const editable = isManual(e);
 
-- [ ] **Step 7: Lint + commit**
+  return (
+    <li
+      className={`flex flex-wrap items-center gap-2 px-3 py-2 border-b border-border ${dim} ${editable ? "cursor-pointer hover:bg-surface" : ""}`}
+      onClick={editable ? () => onEdit(e.id) : undefined}
+    >
+      <div className="flex-1 min-w-[16rem]">
+        <div className="flex items-center gap-2">
+          {e.externalUrl ? (
+            <a href={e.externalUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground hover:underline" onClick={(ev) => ev.stopPropagation()}>
+              {e.title} <ExternalLink className="inline h-3 w-3 text-muted" />
+            </a>
+          ) : (
+            <span className="font-medium text-foreground">{e.title}</span>
+          )}
+          <span className="text-2xs px-1.5 py-0.5 rounded bg-surface text-muted">{KIND_LABEL[e.sourceKind]}</span>
+          <span className="text-2xs text-muted">{e.category}</span>
+          {e.qualityArea && <span className="text-2xs text-muted">QA{e.qualityArea}</span>}
+          {e.version && <span className="text-2xs text-muted">V{e.version}</span>}
+        </div>
+        <div className="flex items-center gap-2 text-2xs text-muted mt-0.5">
+          <span>{e.serviceName ?? "Org-wide"}</span>
+          <span>·</span>
+          <span>{e.state ?? "All states"}</span>
+          <span>·</span>
+          <span>{e.chunkCount} chunks</span>
+          <span>·</span>
+          <span>Indexed {formatDate(e.indexedAt)}</span>
+          {e.indexError && <span className="text-destructive">{e.indexError}</span>}
+        </div>
+      </div>
 
-Run: `npx eslint "src/app/(dashboard)/settings/ai-knowledge"`
-Expected: 0 errors.
+      <span className={`text-2xs px-1.5 py-0.5 rounded ${tierClass(effectiveTier)}`}>
+        {effectiveTier === "safety_critical" ? "Safety-critical" : "General"}{e.tierOverride ? " (override)" : ""}
+      </span>
+      {e.status !== "active" && (
+        <span className="text-2xs px-1.5 py-0.5 rounded bg-surface text-muted">
+          {e.status === "superseded" ? "Superseded" : e.excludedBy === "admin" ? "Excluded (admin)" : "Excluded (origin unpublished)"}
+        </span>
+      )}
+
+      <div className="flex items-center gap-1" onClick={(ev) => ev.stopPropagation()}>
+        <select
+          aria-label="Tier override"
+          className="text-2xs rounded border border-border bg-card px-1 py-0.5"
+          value={e.tierOverride ?? "auto"}
+          onChange={(ev) => patch.mutate({ tierOverride: ev.target.value === "auto" ? null : (ev.target.value as Tier) })}
+          disabled={patch.isPending}
+        >
+          <option value="auto">Auto ({e.tier === "safety_critical" ? "safety" : "general"})</option>
+          <option value="safety_critical">Safety-critical</option>
+          <option value="general">General</option>
+        </select>
+        {e.status !== "superseded" && (
+          <button
+            type="button"
+            aria-label={e.status === "excluded" ? "Restore" : "Exclude"}
+            title={e.status === "excluded" ? "Restore to search" : "Exclude from search"}
+            className="p-1 rounded hover:bg-surface text-muted"
+            onClick={() => patch.mutate({ status: e.status === "excluded" ? "active" : "excluded" })}
+            disabled={patch.isPending}
+          >
+            {e.status === "excluded" ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+          </button>
+        )}
+        <button type="button" aria-label="Re-index" title="Re-chunk and re-embed" className="p-1 rounded hover:bg-surface text-muted" onClick={() => reindex.mutate()} disabled={reindex.isPending}>
+          <RefreshCw className={`h-3.5 w-3.5 ${reindex.isPending ? "animate-spin" : ""}`} />
+        </button>
+        {editable && (
+          <>
+            <button type="button" aria-label="Edit" className="p-1 rounded hover:bg-surface text-muted" onClick={() => onEdit(e.id)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" aria-label="Delete" className="p-1 rounded hover:bg-surface text-destructive" onClick={() => onDelete(e.id)}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </>
+        )}
+      </div>
+    </li>
+  );
+}
+```
+
+Adjust the `toast` import path to whatever the page already imports (`grep -n "toast" page.tsx | head -2`). The list in `page.tsx` becomes `<ul>{filtered.map((e) => <KnowledgeSourceRow key={e.id} entry={e} onEdit={(id) => setEditing({ mode: "edit", id })} onDelete={(id) => del.mutate(id)} />)}</ul>` — remove the old `<li>` block (~605–690) entirely.
+
+- [ ] **Step 4: `EntryModal`** — move the existing modal component (`page.tsx` ~740–900, the one holding `existing`, `save`, the title input and body textarea) verbatim into `src/components/settings/ai-knowledge/EntryModal.tsx` with `"use client"`, importing `KnowledgeEntryDetail`/`isFile` from `./types`. Then:
+- Add `category` (`<select>` over `Category`, default `guide`) and `tier` (`<select>`: Auto / Safety-critical / General; Auto sends nothing) to the create form. Create body: `{ title, body, category, tier? }`.
+- In `save`, when `mode === "edit"` and `existing && isFile(existing)`, send `{ title }` only — the route 400s on `body` for a file entry. Otherwise send `{ title, body }`.
+- The body textarea stays `readOnly`/`disabled` for file entries (existing behaviour, now keyed on `isFile`).
+
+- [ ] **Step 5: `LastSyncPanel`** (`src/components/settings/ai-knowledge/LastSyncPanel.tsx`)
+
+```tsx
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/fetch-api";
+import type { SyncRunSummary } from "./types";
+
+const LABEL: Record<string, string> = { backfill: "Dashboard sync", regulator: "Regulator refresh", sharepoint: "SharePoint import" };
+
+export function LastSyncPanel() {
+  const { data } = useQuery<{ runs: SyncRunSummary[] }>({
+    queryKey: ["ai-knowledge-sync-runs"],
+    queryFn: () => fetchApi("/api/settings/ai-knowledge/sync"),
+    retry: 2,
+    staleTime: 30_000,
+  });
+  const runs = data?.runs ?? [];
+  if (runs.length === 0) return null;
+  return (
+    <section className="rounded-lg border border-border bg-card p-3 space-y-3">
+      <h2 className="text-sm font-semibold text-foreground">Last sync</h2>
+      {runs.map((r) => {
+        const conflicts = r.details?.conflicts ?? [];
+        const unmapped = r.details?.unmapped ?? [];
+        return (
+          <div key={r.id} className="text-xs">
+            <div className="flex flex-wrap gap-x-3 text-muted">
+              <span className="text-foreground font-medium">{LABEL[r.adapter] ?? r.adapter}</span>
+              <span>{new Date(r.startedAt).toLocaleString("en-AU")}</span>
+              {Object.entries(r.counts ?? {}).map(([k, v]) => <span key={k}>{k} {v}</span>)}
+              {r.error && <span className="text-destructive">{r.error}</span>}
+            </div>
+            {conflicts.length > 0 && (
+              <details className="mt-1">
+                <summary className="cursor-pointer text-amber-800 dark:text-amber-200">{conflicts.length} conflicts — fix in SharePoint</summary>
+                <ul className="mt-1 space-y-1">
+                  {conflicts.map((c, i) => (
+                    <li key={i}>
+                      <span className="font-medium">{c.normalizedTitle}</span>{c.state ? ` (${c.state})` : ""}{c.version ? ` V${c.version}` : ""}
+                      <ul className="ml-3 text-muted">{c.paths.map((p) => <li key={p}>{p}</li>)}</ul>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+            {unmapped.length > 0 && (
+              <details className="mt-1">
+                <summary className="cursor-pointer text-amber-800 dark:text-amber-200">{unmapped.length} unmapped centre folders (excluded)</summary>
+                <ul className="mt-1 text-muted">{unmapped.map((u) => <li key={u.path}>{u.centreFolder} — {u.path}</li>)}</ul>
+              </details>
+            )}
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+```
+
+Render `<LastSyncPanel />` under the toolbar in `page.tsx`.
+
+- [ ] **Step 6: Filters**
+
+Above the list, three `<select>`s (kind / tier / status) plus the existing search box, all client-side over `entries`; default status filter `active`. `filtered` feeds the rows.
+
+- [ ] **Step 7: Verify in the browser**
+
+`npm run dev`, open `/settings/ai-knowledge` as an owner. **Sync from dashboard** → toast with counts, `LastSyncPanel` shows the run. Rows show kind chips. Paste a test entry with tier Safety-critical → amber chip; open it (row click) → modal with body. Change a tier override on a SharePoint/handbook row → chip shows "(override)"; row click on that row does nothing (not editable). Exclude → row dims and disappears under the default filter; status filter "excluded" → visible with "Excluded (admin)"; Restore. Browser console: no errors.
+
+- [ ] **Step 8: Type-check, lint, commit**
+
+Run: `npx tsc --noEmit -p tsconfig.json && npx eslint "src/app/(dashboard)/settings/ai-knowledge" src/components/settings/ai-knowledge` — Expected: 0 type errors, 0 lint errors (warnings acceptable).
 
 ```bash
-git add "src/app/(dashboard)/settings/ai-knowledge/page.tsx" && git commit -m "feat(knowledge): console over KnowledgeSource — kind/tier/status, sync, override, exclude, reindex
+git add "src/app/(dashboard)/settings/ai-knowledge/page.tsx" src/components/settings/ai-knowledge && git commit -m "feat(knowledge): console over KnowledgeSource — row/modal/last-sync components, sync, override, exclude, reindex
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
@@ -3774,7 +4024,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/lib/knowledge/adapters/sharepoint-export.ts`, `scripts/import-sharepoint-knowledge.ts`, `scripts/export-sharepoint-knowledge/README.md`
-- Create fixtures: `src/__tests__/fixtures/knowledge-export/…` (seven files, below)
+- Create fixtures: `src/__tests__/fixtures/knowledge-export/…` (seven files, below — six real cases + one audit-folder skip case)
 - Test: `src/__tests__/lib/knowledge/adapters/sharepoint-export.test.ts`
 
 **Export file format** (one `.md` per SharePoint document, path mirrors SharePoint):
@@ -3829,6 +4079,8 @@ describe("classifyPath", () => {
     expect(classifyPath("Shared Documents/SOPs/Amana OSHC AUDIT/QA 2/x.docx").skip).toBe(true);
     expect(classifyPath("Shared Documents/SOPs/Amana HR Management Review Audit/x.docx").skip).toBe(true);
     expect(classifyPath("NSW Schools/Amana OSHC - Foo/Employment Contract - J Smith.docx").skip).toBe(true);
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/WWCC - J Smith.pdf").skip).toBe(true);
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Contractor Induction Procedure.docx").skip).toBe(false); // \bcontracts?\b, not "contractor"
     expect(classifyPath("NSW Schools/Amana OSHC - Foo/menu.png").skip).toBe(true);
     expect(classifyPath("Random/other.docx").skip).toBe(true);
   });
@@ -3915,7 +4167,9 @@ export interface PathClass {
 }
 
 const SKIP_DIRS = [/\/Amana OSHC AUDIT\//i, /Amana HR Management Review Audit/i];
-const SKIP_FILES = /contract|payslip|\bTFN\b|candidate|resume|\bCV\b|\.(png|jpe?g|gif|xlsx?|csv|pptx?)$/i;
+// PII floor from spec §5 plus the staff-compliance scans centre folders hold.
+// Word-bounded so "Contractor Induction Procedure" is NOT skipped.
+const SKIP_FILES = /\bcontracts?\b|payslip|\bTFN\b|candidate|resume|\bCV\b|\bWWCC\b|passport|\bvisa\b|police\s*check|\.(png|jpe?g|gif|xlsx?|csv|pptx?)$/i;
 const CENTRE_ROOTS = ["NSW Schools/", "Melbourne Schools/"];
 const REG168_ROOT = "NSW Schools/Amana OSHC - NSW Service Approval - Reg 168 Policies and Procedures/";
 const STATE_ROOT = "Shared Documents/NSW & VIC state policies/";
@@ -3926,8 +4180,13 @@ export function classifyPath(p: string): PathClass {
   const skip = (): PathClass => ({ tree: null, category: "guide", centreFolder: null, skip: true });
   if (SKIP_DIRS.some((r) => r.test("/" + norm)) || SKIP_FILES.test(path.basename(norm))) return skip();
   const fileCat = parseFilenameMeta(path.basename(norm)).category;
-  if (norm.startsWith(REG168_ROOT)) return { tree: "reg168", category: fileCat, centreFolder: null, skip: false };
-  if (norm.startsWith(STATE_ROOT)) return { tree: "state", category: fileCat, centreFolder: null, skip: false };
+  // For the two policy libraries the {Policies,Procedures} subfolder is authoritative (spec §5); filename is the fallback.
+  const subfolderCat = (root: string): KnowledgeCategory => {
+    const seg = norm.slice(root.length).split("/")[0]?.toLowerCase();
+    return seg === "policies" ? "policy" : seg === "procedures" ? "procedure" : fileCat;
+  };
+  if (norm.startsWith(REG168_ROOT)) return { tree: "reg168", category: subfolderCat(REG168_ROOT), centreFolder: null, skip: false };
+  if (norm.startsWith(STATE_ROOT)) return { tree: "state", category: subfolderCat(STATE_ROOT), centreFolder: null, skip: false };
   if (norm.startsWith(SOP_ROOT)) return { tree: "sop", category: "sop", centreFolder: null, skip: false };
   for (const root of CENTRE_ROOTS) {
     if (norm.startsWith(root)) {
@@ -3982,6 +4241,7 @@ async function walk(dir: string): Promise<string[]> {
 }
 
 export interface ImportReport {
+  /** `superseded` is the store-wide total after the run, not a per-run delta. */
   counts: { imported: number; unchanged: number; superseded: number; conflicts: number; unmapped: number; skipped: number; errors: number };
   conflicts: { normalizedTitle: string; state: string | null; version: number | null; paths: string[] }[];
   unmapped: { path: string; centreFolder: string }[];
@@ -4053,7 +4313,9 @@ export async function importExportDir(dir: string): Promise<ImportReport> {
     }
   }
 
-  // superseded = sources this run left non-active in any touched key
+  // Total superseded SharePoint sources after this run (not "this run only" —
+  // supersession happens inside upsertKnowledgeSource per key; the V2-vs-V3
+  // and unchanged-hash behaviours are covered by the pipeline tests).
   const superseded = await prisma.knowledgeSource.findMany({ where: { sourceKind: "sharepoint", status: "superseded" }, select: { id: true } });
   report.counts.superseded = superseded.length;
   return report;
@@ -4072,15 +4334,17 @@ Expected: PASS (5 tests). If the fixture `path` frontmatter and the on-disk path
 /**
  * Import a local SharePoint export into the Amana AI knowledge store.
  *
- *   npx tsx scripts/import-sharepoint-knowledge.ts --from ./knowledge-export [--dry]
+ *   npx tsx --env-file=.env.local scripts/import-sharepoint-knowledge.ts --from ./knowledge-export [--dry]
  *
- * Targets DATABASE_URL. For production, export PROD_DATABASE_URL explicitly
- * (see .env.example) — nothing here touches prod by default. Writes one
+ * `--env-file` (not dotenv in-file) because ESM hoists imports: src/lib/prisma
+ * and src/lib/env evaluate before any config() call could run. Targets
+ * DATABASE_URL. For production, export PROD_DATABASE_URL explicitly (see
+ * .env.example) — nothing here touches prod by default. Writes one
  * KnowledgeSyncRun (adapter "sharepoint") with the full report.
+ *
+ * Imports use relative paths, not the `@/` alias — the same choice
+ * scripts/backfill-responsible-person.ts makes.
  */
-import { config } from "dotenv";
-config({ path: ".env.local" });
-
 import { prisma } from "../src/lib/prisma";
 import { importExportDir } from "../src/lib/knowledge/adapters/sharepoint-export";
 
@@ -4134,11 +4398,11 @@ async function main() {
 main().catch((err) => { console.error(err); process.exit(1); }).finally(() => prisma.$disconnect());
 ```
 
-`console.*` is acceptable in `scripts/` (not production code). Confirm `dotenv` is a dependency (`grep '"dotenv"' package.json`); if absent use `npx tsx --env-file=.env.local …` and drop the `config()` lines.
+`console.*` is acceptable in `scripts/` (not production code).
 
-- [ ] **Step 7: Write the export README**
+- [ ] **Step 7: Write the export README** (outer fence is `~~~` because the README itself contains ``` fences)
 
-```md
+~~~md
 # SharePoint knowledge export
 
 The slice-1 importer reads a LOCAL directory of `.md` files, one per SharePoint document,
@@ -4175,23 +4439,25 @@ The importer re-applies these rules, so an over-inclusive export is safe.
 ## Importing
 
 ```bash
-npx tsx scripts/import-sharepoint-knowledge.ts --from ./knowledge-export --dry   # classification tally only
-npx tsx scripts/import-sharepoint-knowledge.ts --from ./knowledge-export         # local dev DB
+npx tsx --env-file=.env.local scripts/import-sharepoint-knowledge.ts --from ./knowledge-export --dry   # classification tally only
+npx tsx --env-file=.env.local scripts/import-sharepoint-knowledge.ts --from ./knowledge-export         # local dev DB
 ```
 
-Production (explicit opt-in, per CLAUDE.md):
+Production (explicit opt-in, per CLAUDE.md — set DATABASE_URL in the shell, no --env-file):
 ```bash
 export DATABASE_URL="$(grep '^PROD_DATABASE_URL=' .env.local | cut -d= -f2- | tr -d '"')"
 ALLOW_PROD_DB=yes npx tsx scripts/import-sharepoint-knowledge.ts --from ./knowledge-export
 ```
 
 Re-runs are idempotent: unchanged content is a no-op; a new `V<n>` supersedes the old one;
-same-version-different-content shows up under CONFLICTS for Daniel to resolve in SharePoint.
-```
+same-version-different-content shows up under CONFLICTS for Daniel to resolve in SharePoint
+(also visible in Settings → AI knowledge → Last sync). `superseded` in the counts is the
+store-wide total, not this run's delta.
+~~~
 
 - [ ] **Step 8: Dry-run the script against the fixture dir**
 
-Run: `npx tsx scripts/import-sharepoint-knowledge.ts --from src/__tests__/fixtures/knowledge-export --dry`
+Run: `npx tsx --env-file=.env.local scripts/import-sharepoint-knowledge.ts --from src/__tests__/fixtures/knowledge-export --dry`
 Expected: a table with `reg168/procedure 1`, `state/procedure 1`, `state/policy 1`, `reg168/policy 1`, `sop/sop 1`, `centre/procedure 1`, `skip 1`.
 
 - [ ] **Step 9: Commit**
@@ -4216,10 +4482,15 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createRequest } from "../../helpers/request";
 vi.mock("@/lib/logger", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }, generateRequestId: () => "t" }));
+import { NextResponse } from "next/server";
 const complete = vi.fn(); const fail = vi.fn();
 const acquire = vi.fn(async () => ({ acquired: true, complete, fail }));
 vi.mock("@/lib/cron-guard", () => ({
-  verifyCronSecret: (req: Request) => req.headers.get("authorization") === "Bearer secret",
+  // Real contract: null = authorised, { error: NextResponse } = rejected.
+  verifyCronSecret: (req: Request) =>
+    req.headers.get("authorization") === "Bearer secret"
+      ? null
+      : { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) },
   acquireCronLock: (...a: unknown[]) => acquire(...a),
 }));
 const runAdapter = vi.fn(async () => ({ id: "run1", counts: { created: 2 }, error: null }));
@@ -4227,12 +4498,15 @@ vi.mock("@/lib/knowledge/sync", () => ({ runAdapter: (...a: unknown[]) => runAda
 import { GET } from "@/app/api/cron/knowledge-regulator-refresh/route";
 
 describe("GET /api/cron/knowledge-regulator-refresh", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    acquire.mockImplementation(async () => ({ acquired: true, complete, fail }));
+  });
   it("401 without the cron secret", async () => {
     expect((await GET(createRequest("GET", "/x"))).status).toBe(401);
   });
   it("skips when the lock is held", async () => {
-    acquire.mockResolvedValueOnce({ acquired: false, reason: "held", complete, fail });
+    acquire.mockImplementation(async () => ({ acquired: false, reason: "held", complete, fail }));
     const res = await GET(createRequest("GET", "/x", { headers: { authorization: "Bearer secret" } }));
     expect((await res.json()).skipped).toBe(true);
     expect(runAdapter).not.toHaveBeenCalled();
@@ -4254,14 +4528,17 @@ describe("GET /api/cron/knowledge-regulator-refresh", () => {
 import { NextResponse } from "next/server";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
-import { ApiError } from "@/lib/api-error";
 import { runAdapter } from "@/lib/knowledge/sync";
 
 export const maxDuration = 300;
 
 /** Monthly: re-fetch curated regulator pages; unchanged hashes are no-ops. */
 export const GET = withApiHandler(async (req) => {
-  if (!verifyCronSecret(req)) throw ApiError.unauthorized("Invalid cron secret");
+  // verifyCronSecret returns null when authorised, { error } otherwise
+  // (same as every other cron — see email-janitor/route.ts:47).
+  const authError = verifyCronSecret(req);
+  if (authError) return authError.error;
+
   const guard = await acquireCronLock("knowledge-regulator-refresh", "monthly");
   if (!guard.acquired) return NextResponse.json({ skipped: true, reason: guard.reason });
   try {
@@ -4269,13 +4546,13 @@ export const GET = withApiHandler(async (req) => {
     await guard.complete({ runId: run.id, counts: run.counts });
     return NextResponse.json({ runId: run.id, counts: run.counts, error: run.error });
   } catch (err) {
-    await guard.fail(err instanceof Error ? err.message : String(err));
+    await guard.fail(err);
     throw err;
   }
 });
 ```
 
-Match `guard.complete`/`guard.fail` argument shapes to `src/lib/cron-guard.ts` (`CronGuard` type) and `ApiError.unauthorized` to what `src/lib/api-error.ts` exports (use `new ApiError(401, …)` if there is no factory) — copy an existing cron such as `src/app/api/cron/email-janitor/route.ts` for the exact calls.
+`CronGuard.complete(details?: Record<string, unknown>)` and `fail(error: unknown)` — matches `src/lib/cron-guard.ts:34–36`.
 
 - [ ] **Step 3: Schedule it**
 
@@ -4284,7 +4561,7 @@ In `vercel.json` `crons`, add next to the other `"0 19 1 * *"` entry:
     { "path": "/api/cron/knowledge-regulator-refresh", "schedule": "30 19 1 * *" }
 ```
 
-- [ ] **Step 4: Write the failing usage-route test**
+- [ ] **Step 4: Usage-route test** (already created in Task 7 Step 5 with this exact case — if it exists and passes, skip to Step 6)
 
 ```ts
 // src/__tests__/api/ai-usage.test.ts
@@ -4315,9 +4592,7 @@ describe("GET /api/ai/usage", () => {
 });
 ```
 
-- [ ] **Step 5: Fix the usage route**
-
-At the `byUser` accumulation (`route.ts:50–55`): `const uid = r.userId ?? "system"; const name = r.user?.name ?? "System";` and use those two. Anywhere else the route reads `r.user.id`/`r.user.name` becomes `r.user?.…`.
+- [ ] **Step 5: Usage route** — already fixed in Task 7 Step 5 (`r.user?.id ?? "system"`, `r.user?.name ?? "System"`). Confirm with `grep -n "user?\." src/app/api/ai/usage/route.ts`; nothing else to do.
 
 - [ ] **Step 6: Run both tests**
 
@@ -4431,7 +4706,7 @@ npx tsc --noEmit -p tsconfig.json
 npm test
 npm run build
 ```
-Expected: 0 lint errors; 0 type errors; all tests pass (expect the count to be roughly the previous total − the deleted knowledge tests + ~45 new); build succeeds.
+Expected: 0 lint errors; 0 type errors; all tests pass — baseline on `origin/main` (f380e3db, 2026-09-26) was **669 files / 7,110 passed / 3 skipped**; expect ≈ 7,110 − (deleted `knowledge.test.ts` + indexer storage cases) + ~55 new; build succeeds.
 
 - [ ] **Step 2: Local end-to-end smoke**
 
@@ -4469,7 +4744,7 @@ This task is run by Jayden with Claude in an interactive session (the connector 
 
 - [ ] **Step 1: Export** — follow `scripts/export-sharepoint-knowledge/README.md` for the four trees. Expect ~600 files; the audit and HR folders are skipped by the importer even if exported.
 
-- [ ] **Step 2: Dry run** — `npx tsx scripts/import-sharepoint-knowledge.ts --from ./knowledge-export --dry`; sanity-check the tally (no `skip` count that looks like a whole tree; centre folders present).
+- [ ] **Step 2: Dry run** — `npx tsx --env-file=.env.local scripts/import-sharepoint-knowledge.ts --from ./knowledge-export --dry`; sanity-check the tally (no `skip` count that looks like a whole tree; centre folders present).
 
 - [ ] **Step 3: Import to the local dev DB first** — run without `--dry`; open `/settings/ai-knowledge`, check the conflict and unmapped lists, ask the bot two policy questions and one centre-specific question.
 

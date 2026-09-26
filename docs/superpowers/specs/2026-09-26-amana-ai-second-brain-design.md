@@ -131,8 +131,8 @@ Migration (hand-written SQL in the Prisma migration): `CREATE EXTENSION IF NOT E
 | `POST /api/knowledge/reindex`, `POST /api/knowledge/index`, `GET /api/knowledge/status` | **Deleted** |
 | `POST /api/knowledge/ask` (second all-roles assistant, unscoped) | **Deleted** — the chat route is the only assistant |
 | `searchChunks` / `formatChunksForPrompt` / `indexDocument` / `indexTextContent` in `document-indexer.ts` | **Deleted**; `extractText`/`extractTextFromBuffer` stay (used by contracts + the new adapters) |
-| `indexDocument` callers in `api/documents/*` and `audits/[id]/document` | **Removed** — general documents are no longer indexed |
-| `/api/settings/ai-knowledge` root (`GET` list, `POST` paste-create), `/upload`, `/register`, `/[id]`, `/seed` | **Kept, re-pointed**: the root `GET` lists `KnowledgeSource`; root `POST` (paste) and `/upload` + `/register` write `sourceKind: manual`; `/seed` becomes a `backfill` trigger — none touch `Document` or `indexTextContent` |
+| `indexDocument` callers in `api/documents/*` | **Removed** — general documents are no longer indexed (the audits document route only mentions the indexer in a comment) |
+| `/api/settings/ai-knowledge` root (`GET` list, `POST` paste-create), `/upload`, `/register`, `/[id]`, `/seed` | **Kept, re-pointed**: the root `GET` lists `KnowledgeSource`; root `POST` (paste) and `/upload` + `/register` write `sourceKind: manual`; `/seed` runs the `handbook` adapter (the full backfill is `/sync { adapter: "backfill" }`) — none touch `Document` or `indexTextContent` |
 | `/api/settings/ai-knowledge/reindex`, `/backfill`, `/dedupe` | **Replaced** by `/api/settings/ai-knowledge/sync` (runs an adapter → `KnowledgeSyncRun`) and `/[id]/reindex` |
 | `Document.indexed/indexedAt/indexError`, `DocumentChunk` | Left in place with **no writers** in slice 1; dropped in a later cleanup migration once prod is verified |
 | `ASSISTANT_TOOLS.search_knowledge_base` | Renamed `search_knowledge`, backed by `searchKnowledge()` |
