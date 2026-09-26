@@ -115,7 +115,7 @@ export const ASSISTANT_TOOLS: Anthropic.Messages.Tool[] = [
     name: "fetch_oshc_reference",
     description:
       "Fetch the text content of a page from a CURATED set of OSHC / Australian early-childhood regulatory sources when the answer isn't in the Amana knowledge base. Use AFTER search_knowledge_base returns nothing relevant — this is a fallback for industry-wide questions (NQF regulations, NQS standards, ACECQA guidance, Fair Work conditions, child safety law, etc.). " +
-      "Allowed hosts: acecqa.gov.au, nqaits.acecqa.gov.au, education.gov.au, education.nsw.gov.au, education.vic.gov.au, safeworkaustralia.gov.au, fairwork.gov.au, fwc.gov.au, legislation.gov.au, ochre.nsw.gov.au, esafety.gov.au, nhmrc.gov.au, allergy.org.au. Any other host will be rejected. " +
+      "Allowed hosts: acecqa.gov.au, nqaits.acecqa.gov.au, education.gov.au, education.nsw.gov.au, education.vic.gov.au, vic.gov.au, safeworkaustralia.gov.au, fairwork.gov.au, fwc.gov.au, legislation.gov.au, ochre.nsw.gov.au, esafety.gov.au, nhmrc.gov.au, allergy.org.au. Any other host will be rejected. " +
       "Pass a full https:// URL. If you don't know the exact URL, guess the most likely one based on the site's structure — e.g. https://www.acecqa.gov.au/nqf/national-law-regulations for NQF regs.",
     input_schema: {
       type: "object" as const,

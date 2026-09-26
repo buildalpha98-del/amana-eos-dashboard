@@ -28,6 +28,8 @@ export const ALLOWED_REFERENCE_HOSTS: ReadonlySet<string> = new Set([
   // 2026-09-27: the two safety references spec §3.3 names
   "nhmrc.gov.au", "www.nhmrc.gov.au",
   "allergy.org.au", "www.allergy.org.au",
+  // 2026-09-26: the VIC regulator page moved off education.vic.gov.au
+  "vic.gov.au", "www.vic.gov.au",
 ]);
 
 export function isAllowedReferenceHost(url: string): boolean {
