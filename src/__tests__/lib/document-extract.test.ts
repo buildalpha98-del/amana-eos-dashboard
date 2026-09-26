@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { prismaMock } from "../helpers/prisma-mock";
 
 // Mock unpdf (replaced pdf-parse 2026-06-17 — pdf-parse v2 needed
 // a worker file that isn't bundled in Vercel serverless).
@@ -13,17 +12,6 @@ vi.mock("unpdf", () => ({
 // Mock mammoth
 vi.mock("mammoth", () => ({
   default: { extractRawText: vi.fn() },
-}));
-
-// Mock logger
-vi.mock("@/lib/logger", () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    withRequestId: vi.fn().mockReturnThis(),
-  },
 }));
 
 // Mock global fetch
@@ -264,98 +252,6 @@ describe("document-indexer", () => {
       const chunks = chunkText(text);
 
       expect(chunks[0].tokenCount).toBe(Math.ceil(text.length / 4));
-    });
-  });
-
-  // ─── searchChunks ──────────────────────────────────────────
-
-  describe("searchChunks", () => {
-    it("returns ranked chunks grouped by document", async () => {
-      prismaMock.$queryRawUnsafe.mockResolvedValue([
-        {
-          id: "chunk-1",
-          documentId: "doc-1",
-          chunkIndex: 0,
-          content: "Relevant content about policies",
-          heading: "Policies",
-          tokenCount: 50,
-          rank: 0.8,
-          documentTitle: "Staff Handbook",
-          documentCategory: "policy",
-          fileName: "handbook.pdf",
-        },
-        {
-          id: "chunk-2",
-          documentId: "doc-1",
-          chunkIndex: 1,
-          content: "More policy details",
-          heading: "Policies",
-          tokenCount: 40,
-          rank: 0.6,
-          documentTitle: "Staff Handbook",
-          documentCategory: "policy",
-          fileName: "handbook.pdf",
-        },
-        {
-          id: "chunk-3",
-          documentId: "doc-2",
-          chunkIndex: 0,
-          content: "Another relevant doc",
-          heading: "Overview",
-          tokenCount: 30,
-          rank: 0.5,
-          documentTitle: "Procedures",
-          documentCategory: "procedure",
-          fileName: "procedures.pdf",
-        },
-      ]);
-
-      const { searchChunks } = await import("@/lib/document-indexer");
-      const results = await searchChunks("policy guidelines");
-
-      expect(results.length).toBe(2); // 2 documents
-      // First group should be doc-1 (higher rank)
-      expect(results[0].documentId).toBe("doc-1");
-      expect(results[0].chunks.length).toBe(2);
-      expect(results[1].documentId).toBe("doc-2");
-      expect(results[1].chunks.length).toBe(1);
-    });
-
-    it("returns empty array when no matches", async () => {
-      prismaMock.$queryRawUnsafe.mockResolvedValue([]);
-
-      const { searchChunks } = await import("@/lib/document-indexer");
-      const results = await searchChunks("nonexistent query");
-
-      expect(results).toEqual([]);
-    });
-
-    it("respects limit parameter", async () => {
-      prismaMock.$queryRawUnsafe.mockResolvedValue([
-        {
-          id: "chunk-1",
-          documentId: "doc-1",
-          chunkIndex: 0,
-          content: "First result",
-          heading: null,
-          tokenCount: 20,
-          rank: 0.9,
-          documentTitle: "Doc One",
-          documentCategory: "policy",
-          fileName: "one.pdf",
-        },
-      ]);
-
-      const { searchChunks } = await import("@/lib/document-indexer");
-      await searchChunks("test query", 3);
-
-      // Verify limit was passed to the raw query
-      const queryCall = prismaMock.$queryRawUnsafe.mock.calls[0];
-      // The limit should appear in the query or as a parameter
-      expect(queryCall).toBeDefined();
-      // The raw SQL should include the limit
-      const sql = queryCall[0] as string;
-      expect(sql).toContain("LIMIT");
     });
   });
 });

@@ -3,8 +3,6 @@ import { z } from "zod";
 import { DocumentCategory, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
-import { logger } from "@/lib/logger";
-import { indexDocument } from "@/lib/document-indexer";
 import { parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 const createDocumentSchema = z.object({
@@ -173,10 +171,6 @@ const body = await parseJsonBody(req);
       centre: { select: { id: true, name: true, code: true } },
       folder: { select: { id: true, name: true } },
     },
-  });
-
-  indexDocument(document.id).catch((err) => {
-    logger.warn("Auto-index failed", { documentId: document.id, error: err });
   });
 
   return NextResponse.json(document, { status: 201 });

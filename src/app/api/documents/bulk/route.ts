@@ -5,8 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage";
 import { withApiAuth } from "@/lib/server-auth";
 import { validateFileContent } from "@/lib/file-validation";
-import { logger } from "@/lib/logger";
-import { indexDocument } from "@/lib/document-indexer";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const ALLOWED_TYPES = [
@@ -189,12 +187,6 @@ const formData = await req.formData();
       }),
     ),
   );
-
-  for (const doc of created) {
-    indexDocument(doc.id).catch((err) => {
-      logger.warn("Auto-index failed", { documentId: doc.id, error: err });
-    });
-  }
 
   return NextResponse.json({
     created: created.length,
