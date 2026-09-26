@@ -6,9 +6,11 @@ vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 vi.mock("@/lib/embeddings", () => ({
-  embedTexts: vi.fn(async (texts: string[]) => texts.map(() => [0.1, 0.2])),
+  embedTextsWithUsage: vi.fn(async (texts: string[]) => ({
+    vectors: texts.map(() => [0.1, 0.2]),
+    usage: { totalTokens: 10 },
+  })),
   isEmbeddingsConfigured: vi.fn(() => true),
-  getLastEmbedUsage: vi.fn(() => ({ totalTokens: 10 })),
   toVectorLiteral: (v: number[]) => `[${v.join(",")}]`,
   EMBEDDING_MODEL: "voyage-3",
 }));

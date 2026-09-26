@@ -12,7 +12,7 @@ import { AUSTRALIAN_STATES } from "@/lib/service-scope";
  */
 export function normalizeTitle(raw: string): string {
   return raw
-    .replace(/\.[a-z0-9]{2,5}$/i, "")
+    .replace(/\.(docx?|pdf|pptx?|xlsx?|md|txt|html?)$/i, "")
     .replace(/\bV\s?\d+(?:\.\d+)?\b/gi, " ")
     // Standalone state tokens anywhere in the title. Also eats a bare
     // "SA"/"WA"/"NT"/"ACT" that isn't a state ("…National ACT…") — accepted:
@@ -39,6 +39,7 @@ export function parseFilenameMeta(filename: string): FilenameMeta {
   const st = filename.match(/\b(NSW|VIC|QLD|SA|WA|TAS|ACT|NT)\b/);
   const lower = filename.toLowerCase();
   let category: KnowledgeCategory = "guide";
+  // "policy" wins over "procedure" when a filename contains both (policies are the parent document); "guide" is the fallback.
   if (/\bpolic(y|ies)\b/.test(lower)) category = "policy";
   else if (/\bprocedures?\b/.test(lower)) category = "procedure";
   return {
@@ -65,7 +66,7 @@ export function canonicalState(raw: string | null | undefined): string | null {
  * safety-critical; otherwise the title decides. Admin `tierOverride`
  * beats this at query time.
  */
-const SAFETY_TITLE = /child\s*protection|safeguard|medication|medical\s*condition|incident|injur|emergency|evacuat|lockdown|bushfire|safe\s*arrival|collection|missing\s*child|anaphylaxis|allerg|asthma|epilep|diabet|first\s*aid|infectious|illness|water\s*safety|sun\s*safe|excursion|transport/i;
+const SAFETY_TITLE = /child\s*protection|safeguard|medication|medical\s*condition|incident|injur|emergency|evacuat|lockdown|bushfire|safe\s*arrival|safe\s*collection|collection\s+of\s+children|missing\s*child|anaphylaxis|allerg|asthma|epilep|diabet|first\s*aid|infectious|illness|water\s*safety|sun\s*safe|excursion|safe\s*transport|transport(ing)?\s+(of\s+)?children/i;
 
 export function inferTier(input: {
   qualityArea: number | null;

@@ -19,8 +19,7 @@ import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { chunkText } from "@/lib/document-indexer";
 import {
-  embedTexts,
-  getLastEmbedUsage,
+  embedTextsWithUsage,
   toVectorLiteral,
   EMBEDDING_MODEL,
 } from "@/lib/embeddings";
@@ -123,7 +122,8 @@ export async function indexSource(
     return { ok: false, error: "No text content extracted" };
   }
 
-  const vectors = await embedTexts(chunks.map((c) => c.content));
+  const embedded = await embedTextsWithUsage(chunks.map((c) => c.content));
+  const vectors = embedded?.vectors ?? null;
 
   try {
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -175,7 +175,7 @@ export async function indexSource(
   }
 
   if (vectors) {
-    const usage = getLastEmbedUsage();
+    const usage = embedded!.usage;
     prisma.aiUsage
       .create({
         data: {

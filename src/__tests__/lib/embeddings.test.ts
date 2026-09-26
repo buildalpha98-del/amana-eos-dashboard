@@ -34,11 +34,15 @@ describe("embeddings", () => {
         { status: 200 },
       );
     }) as unknown as typeof fetch;
-    const { embedTexts } = await import("@/lib/embeddings");
-    const out = await embedTexts(Array.from({ length: 200 }, (_, i) => `t${i}`));
+    const { embedTexts, embedTextsWithUsage } = await import("@/lib/embeddings");
+    const texts = Array.from({ length: 200 }, (_, i) => `t${i}`);
+    const out = await embedTexts(texts);
     expect(calls).toEqual([128, 72]);
     expect(out?.length).toBe(200);
     expect(out?.[129]).toEqual([1]); // second batch, index 1
+
+    const withUsage = await embedTextsWithUsage(texts);
+    expect(withUsage?.usage.totalTokens).toBe(200);
   });
 
   it("returns null (not throw) after retries on a 5xx", async () => {
@@ -46,5 +50,14 @@ describe("embeddings", () => {
     global.fetch = vi.fn(async () => new Response("boom", { status: 503 })) as unknown as typeof fetch;
     const { embedTexts } = await import("@/lib/embeddings");
     expect(await embedTexts(["x"], { retries: 1, retryDelayMs: 0 })).toBeNull();
+  });
+
+  it("returns [] fast for empty input without calling fetch", async () => {
+    process.env.VOYAGE_API_KEY = "test";
+    const fetchSpy = vi.fn();
+    global.fetch = fetchSpy as unknown as typeof fetch;
+    const { embedTexts } = await import("@/lib/embeddings");
+    expect(await embedTexts([])).toEqual([]);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

@@ -18,6 +18,10 @@ describe("normalizeTitle", () => {
     expect(normalizeTitle("QA2 Bushfire Policy NSW OSHC V11.docx")).toBe(
       "qa2 bushfire policy",
     );
+    // Extension allowlist: only a recognised document extension is stripped —
+    // a dotted non-extension token (e.g. a financial-year suffix) is not
+    // eaten, it just collapses to a space like any other punctuation.
+    expect(normalizeTitle("Budget Report FY23.24")).toBe("budget report fy23 24");
   });
   it("collapses punctuation and whitespace", () => {
     expect(normalizeTitle("  QA7 — Dealing with Complaints  Policy ")).toBe(
@@ -65,6 +69,23 @@ describe("inferTier", () => {
     expect(inferTier({ qualityArea: null, title: "OPS-10 Emergency Evacuation Procedures" })).toBe("safety_critical");
     expect(inferTier({ qualityArea: 7, title: "Governance Policy" })).toBe("general");
     expect(inferTier({ qualityArea: null, title: "Weekly Menu Template" })).toBe("general");
+  });
+
+  it("requires a child-safety context for 'collection' and 'transport', not the bare word", () => {
+    expect(inferTier({ qualityArea: null, title: "Data Collection Policy" })).toBe("general");
+  });
+  it("does not flag generic transport-related titles", () => {
+    expect(inferTier({ qualityArea: null, title: "Transport Allowance Policy" })).toBe("general");
+  });
+  it("is safety_critical for QA2 regardless of wording", () => {
+    expect(
+      inferTier({ qualityArea: 2, title: "QA2 Safe Transportation Procedure OSHC V1" }),
+    ).toBe("safety_critical");
+  });
+  it("is safety_critical for safe collection of children even outside QA2", () => {
+    expect(
+      inferTier({ qualityArea: null, title: "Safe Collection of Children Procedure" }),
+    ).toBe("safety_critical");
   });
 });
 

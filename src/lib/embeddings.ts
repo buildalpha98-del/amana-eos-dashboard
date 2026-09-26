@@ -14,6 +14,7 @@ import { logger } from "@/lib/logger";
 export const EMBEDDING_MODEL = "voyage-3";
 export const EMBEDDING_DIMENSIONS = 1024;
 const ENDPOINT = "https://api.voyageai.com/v1/embeddings";
+// Assumes callers chunk to ~500 tokens (128 × 500 ≈ 64k tokens/request, under Voyage's per-request cap); not enforced here.
 const BATCH_SIZE = 128;
 
 export function isEmbeddingsConfigured(): boolean {
@@ -31,19 +32,19 @@ export interface EmbedUsage {
   totalTokens: number;
 }
 
-let lastUsage: EmbedUsage = { totalTokens: 0 };
-/** Tokens consumed by the most recent embedTexts() call — for AiUsage logging. */
-export function getLastEmbedUsage(): EmbedUsage {
-  return lastUsage;
+export interface EmbedResult {
+  vectors: number[][];
+  usage: EmbedUsage;
 }
 
-export async function embedTexts(
+/** Like embedTexts but returns token usage for the SAME call — safe under concurrent adapters. */
+export async function embedTextsWithUsage(
   texts: string[],
   opts: EmbedOptions = {},
-): Promise<number[][] | null> {
+): Promise<EmbedResult | null> {
   const key = process.env.VOYAGE_API_KEY;
   if (!key) return null;
-  if (texts.length === 0) return [];
+  if (texts.length === 0) return { vectors: [], usage: { totalTokens: 0 } };
   const retries = opts.retries ?? 2;
   const delay = opts.retryDelayMs ?? 500;
   const out: number[][] = [];
@@ -82,15 +83,21 @@ export async function embedTexts(
             batchStart: start,
             err: err instanceof Error ? err.message : String(err),
           });
-          lastUsage = { totalTokens: tokens };
           return null;
         }
         await new Promise((r) => setTimeout(r, delay * attempt));
       }
     }
   }
-  lastUsage = { totalTokens: tokens };
-  return out;
+  return { vectors: out, usage: { totalTokens: tokens } };
+}
+
+export async function embedTexts(
+  texts: string[],
+  opts: EmbedOptions = {},
+): Promise<number[][] | null> {
+  const r = await embedTextsWithUsage(texts, opts);
+  return r ? r.vectors : null;
 }
 
 /** Postgres vector literal: "[0.1,0.2,…]" — used with `$1::vector`. */
