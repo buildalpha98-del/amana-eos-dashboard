@@ -8,6 +8,7 @@
 
 import { prisma } from "@/lib/prisma";
 import type Anthropic from "@anthropic-ai/sdk";
+import { ALLOWED_REFERENCE_HOSTS, isAllowedReferenceHost } from "@/lib/reference-hosts";
 
 // ── Tool Definitions ──────────────────────────────────────────
 
@@ -114,7 +115,7 @@ export const ASSISTANT_TOOLS: Anthropic.Messages.Tool[] = [
     name: "fetch_oshc_reference",
     description:
       "Fetch the text content of a page from a CURATED set of OSHC / Australian early-childhood regulatory sources when the answer isn't in the Amana knowledge base. Use AFTER search_knowledge_base returns nothing relevant — this is a fallback for industry-wide questions (NQF regulations, NQS standards, ACECQA guidance, Fair Work conditions, child safety law, etc.). " +
-      "Allowed hosts: acecqa.gov.au, nqaits.acecqa.gov.au, education.gov.au, education.nsw.gov.au, education.vic.gov.au, safeworkaustralia.gov.au, fairwork.gov.au, fwc.gov.au, legislation.gov.au, ochre.nsw.gov.au, esafety.gov.au. Any other host will be rejected. " +
+      "Allowed hosts: acecqa.gov.au, nqaits.acecqa.gov.au, education.gov.au, education.nsw.gov.au, education.vic.gov.au, safeworkaustralia.gov.au, fairwork.gov.au, fwc.gov.au, legislation.gov.au, ochre.nsw.gov.au, esafety.gov.au, nhmrc.gov.au, allergy.org.au. Any other host will be rejected. " +
       "Pass a full https:// URL. If you don't know the exact URL, guess the most likely one based on the site's structure — e.g. https://www.acecqa.gov.au/nqf/national-law-regulations for NQF regs.",
     input_schema: {
       type: "object" as const,
@@ -394,30 +395,6 @@ async function lookupEnquiryPipeline(stage?: string): Promise<string> {
 // cover a question — e.g. national-law specifics, ACECQA guidance,
 // Fair Work conditions. Only allowlisted hosts are accepted so the
 // tool can't be used to pull in arbitrary web content.
-const ALLOWED_HOSTS = new Set([
-  "acecqa.gov.au",
-  "www.acecqa.gov.au",
-  "nqaits.acecqa.gov.au",
-  "education.gov.au",
-  "www.education.gov.au",
-  "education.nsw.gov.au",
-  "www.education.nsw.gov.au",
-  "education.vic.gov.au",
-  "www.education.vic.gov.au",
-  "safeworkaustralia.gov.au",
-  "www.safeworkaustralia.gov.au",
-  "fairwork.gov.au",
-  "www.fairwork.gov.au",
-  "fwc.gov.au",
-  "www.fwc.gov.au",
-  "legislation.gov.au",
-  "www.legislation.gov.au",
-  "ochre.nsw.gov.au",
-  "www.ochre.nsw.gov.au",
-  "esafety.gov.au",
-  "www.esafety.gov.au",
-]);
-
 const MAX_FETCH_BYTES = 1_500_000; // 1.5 MB
 const MAX_RETURN_CHARS = 8000;
 
@@ -431,10 +408,10 @@ async function fetchOshcReference(rawUrl: string): Promise<string> {
   if (parsed.protocol !== "https:") {
     return JSON.stringify({ error: "Only https URLs are allowed" });
   }
-  if (!ALLOWED_HOSTS.has(parsed.hostname.toLowerCase())) {
+  if (!isAllowedReferenceHost(rawUrl)) {
     return JSON.stringify({
       error: `Host '${parsed.hostname}' is not in the allowlist`,
-      allowedHosts: Array.from(ALLOWED_HOSTS).filter((h) => !h.startsWith("www.")),
+      allowedHosts: Array.from(ALLOWED_REFERENCE_HOSTS).filter((h) => !h.startsWith("www.")),
     });
   }
 
