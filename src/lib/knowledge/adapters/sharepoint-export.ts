@@ -18,7 +18,7 @@ import { upsertKnowledgeSource, excludeSources, applySupersession } from "../pip
 import { hashContent, normalizeTitle, parseFilenameMeta, canonicalState, looksLikeCredential } from "../normalize";
 
 export interface PathClass {
-  tree: "reg168" | "state" | "sop" | "centre" | null;
+  tree: "state" | "sop" | "centre" | null;
   category: KnowledgeCategory;
   centreFolder: string | null;
   skip: boolean;
@@ -26,7 +26,18 @@ export interface PathClass {
 
 // Tested against "/" + the full normalised path, so a suffix ("Amana OSHC AUDIT 2026/") still skips.
 // "Formatted Versions/" holds PDF renders of the sibling .docx — same document, second format; the .docx is authoritative.
-const SKIP_DIRS = [/\/Amana OSHC AUDIT[^/]*\//i, /Amana HR Management Review Audit/i, /\/Formatted Versions\//i];
+// The Reg 168 service-approval tree is NOT imported (Jayden, 2026-09-27: "the NSW and VIC
+// state policies are the updated ones"). It is the stale submission copy of
+// `Shared Documents/NSW & VIC state policies/` — every title in it also exists there
+// (verified against the real export: 37/37 policies, 30/31 procedures), and importing both
+// produced 67 same-title-same-version conflicts. The one Reg 168-only file, "QA2 NSW Child
+// Protection Notification MRG Guide OSHC V1.docx", is being moved into the state tree by Daniel.
+const SKIP_DIRS = [
+  /\/Amana OSHC AUDIT[^/]*\//i,
+  /Amana HR Management Review Audit/i,
+  /\/Formatted Versions\//i,
+  /^\/NSW Schools\/Amana OSHC - NSW Service Approval - Reg 168 Policies and Procedures\//i,
+];
 // PII floor from spec §5 plus the staff-compliance scans centre folders hold.
 // Tested against the FULL path, not the basename: a folder named "Staff
 // Contracts" or "WWCC" holds PII whatever its files are called.
@@ -39,7 +50,6 @@ const PII_WORDS = /\bcontracts?\b|payslip|\bTFN\b|candidate|resume|\bCV\b|\bWWCC
 // decks) is not a knowledge document and skips.
 const IMPORTABLE_EXT = /\.(docx?|pdf)$/i;
 const CENTRE_ROOTS = ["NSW Schools/", "Melbourne Schools/"];
-const REG168_ROOT = "NSW Schools/Amana OSHC - NSW Service Approval - Reg 168 Policies and Procedures/";
 const STATE_ROOT = "Shared Documents/NSW & VIC state policies/";
 const SOP_ROOT = "Shared Documents/SOPs/Jayden full SOP/";
 
@@ -49,12 +59,11 @@ export function classifyPath(p: string): PathClass {
   const base = path.basename(norm);
   if (SKIP_DIRS.some((r) => r.test("/" + norm)) || PII_WORDS.test(norm) || !IMPORTABLE_EXT.test(base)) return skip();
   const fileCat = parseFilenameMeta(base).category;
-  // For the two policy libraries the {Policies,Procedures} subfolder is authoritative (spec §5); filename is the fallback.
+  // For the state policy library the {Policies,Procedures} subfolder is authoritative (spec §5); filename is the fallback.
   const subfolderCat = (root: string): KnowledgeCategory => {
     const seg = norm.slice(root.length).split("/")[0]?.toLowerCase();
     return seg === "policies" ? "policy" : seg === "procedures" ? "procedure" : fileCat;
   };
-  if (norm.startsWith(REG168_ROOT)) return { tree: "reg168", category: subfolderCat(REG168_ROOT), centreFolder: null, skip: false };
   if (norm.startsWith(STATE_ROOT)) return { tree: "state", category: subfolderCat(STATE_ROOT), centreFolder: null, skip: false };
   if (norm.startsWith(SOP_ROOT)) return { tree: "sop", category: "sop", centreFolder: null, skip: false };
   for (const root of CENTRE_ROOTS) {
@@ -262,8 +271,8 @@ export async function importExportDir(dir: string, opts: ImportOptions = {}): Pr
       });
       if (res.outcome === "error") { report.errors.push({ path: f.path, error: res.error ?? "unknown" }); report.counts.errors++; continue; }
       if (unmapped) {
-        // excludeSources' adapter variant touches ACTIVE rows only, so an
-        // admin exclusion is never overwritten. The pipeline self-heals: once
+        // excludeSources' adapter variant never touches an `excluded` row, so
+        // an admin exclusion is never overwritten. The pipeline self-heals: once
         // a Service exists that matches the folder, the next import's upsert
         // hits its reactivate branch (adapter-excluded → active); while the
         // folder is still unmapped, this branch re-excludes it on every run.
@@ -295,7 +304,9 @@ export async function importExportDir(dir: string, opts: ImportOptions = {}): Pr
   if (!dry) {
     // Re-apply supersession to every group seen this run (see seenKeys).
     for (const key of seenKeys.values()) await applySupersession(key);
-    // Retire what SharePoint no longer has. Guarded against an EMPTY walk: a
+    // Retire what SharePoint no longer has — `active` and `superseded` rows
+    // alike, because applySupersession would otherwise promote a stale
+    // superseded copy back to active the day its winner left. Guarded against an EMPTY walk: a
     // wrong `--from` directory must not exclude the entire SharePoint library
     // (an adapter exclusion is undone by the next real import, but the AI
     // would be dark meanwhile). A partial export is the dry run's job.

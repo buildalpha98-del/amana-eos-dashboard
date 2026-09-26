@@ -297,9 +297,16 @@ export async function indexSource(
 
 /**
  * The ONLY way to set status=excluded. `by` records who, so adapters can
- * undo their own. An adapter exclude touches ACTIVE rows only — it must
- * never overwrite an admin's `excludedBy: "admin"` (that row would later
- * look adapter-owned and get silently re-activated).
+ * undo their own. An adapter exclude touches `active` AND `superseded`
+ * rows but never an `excluded` one — it must not overwrite an admin's
+ * `excludedBy: "admin"` (that row would later look adapter-owned and get
+ * silently re-activated). Superseded rows are included because
+ * applySupersession still counts them as candidates: a document that left
+ * its origin while sitting `superseded` (the Reg 168 tree the SharePoint
+ * importer stopped importing on 2026-09-27 had 30 such rows, beaten by
+ * their state-tree twins) would otherwise be promoted back to `active`
+ * the day its winner left too — a stale copy resurfacing in AI answers
+ * precisely when it is least expected.
  *
  * Re-runs supersession for every dedupe group the exclusion touched, so a
  * group never loses its active winner. An excluded row that was `active`
@@ -318,7 +325,7 @@ export async function excludeSources(
 ): Promise<number> {
   const scoped: Prisma.KnowledgeSourceWhereInput = {
     ...where,
-    status: by === "adapter" ? "active" : { not: "superseded" },
+    status: by === "adapter" ? { in: ["active", "superseded"] } : { not: "superseded" },
   };
   const touched = await prisma.knowledgeSource.findMany({
     where: scoped,

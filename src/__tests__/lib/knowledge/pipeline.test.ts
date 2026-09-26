@@ -400,11 +400,11 @@ describe("excludeSources", () => {
     prismaMock.knowledgeSource.findMany.mockResolvedValue([]);
   });
 
-  it("adapter exclude touches active rows only (never an admin-excluded row)", async () => {
+  it("adapter exclude touches active AND superseded rows (a superseded row is still a supersession candidate) but never an admin-excluded row", async () => {
     prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 2 });
     await excludeSources({ sourceKind: "lms_module", externalId: { in: ["a", "b"] } }, "adapter");
     expect(prismaMock.knowledgeSource.updateMany.mock.calls[0][0]).toEqual({
-      where: { sourceKind: "lms_module", externalId: { in: ["a", "b"] }, status: "active" },
+      where: { sourceKind: "lms_module", externalId: { in: ["a", "b"] }, status: SUPERSESSION_STATUS },
       data: { status: "excluded", excludedBy: "adapter" },
     });
   });
@@ -436,11 +436,11 @@ describe("excludeSources", () => {
 
     // The key read and the flip use the SAME scoped where — the read must not drift wider or narrower.
     expect(prismaMock.knowledgeSource.findMany.mock.calls[0][0]).toEqual({
-      where: { ...where, status: "active" },
+      where: { ...where, status: SUPERSESSION_STATUS },
       select: { normalizedTitle: true, state: true, serviceId: true },
     });
     expect(prismaMock.knowledgeSource.updateMany.mock.calls[0][0]).toEqual({
-      where: { ...where, status: "active" },
+      where: { ...where, status: SUPERSESSION_STATUS },
       data: { status: "excluded", excludedBy: "adapter" },
     });
     // One supersession pass per DISTINCT key (group A appeared twice, runs once), each after the flip.
@@ -451,7 +451,7 @@ describe("excludeSources", () => {
     ]);
     const flipAt = prismaMock.knowledgeSource.updateMany.mock.invocationCallOrder[0];
     const readAt = prismaMock.knowledgeSource.findMany.mock.invocationCallOrder;
-    expect(readAt[0]).toBeLessThan(flipAt); // keys read while the rows are still `active`
+    expect(readAt[0]).toBeLessThan(flipAt); // keys read while the rows are still `active`/`superseded`
     expect(readAt[1]).toBeGreaterThan(flipAt); // passes see the rows as `excluded` and skip them
     // Group A's best superseded row is promoted back; group B was empty after the flip, so nothing to promote.
     expect(prismaMock.knowledgeSource.update).toHaveBeenCalledTimes(1);

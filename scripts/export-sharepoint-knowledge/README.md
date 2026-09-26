@@ -25,12 +25,18 @@ The frontmatter `path` is what the importer classifies on, so keep it identical 
 path minus the `.md` suffix.
 
 Trees to export:
-- `NSW Schools/Amana OSHC - NSW Service Approval - Reg 168 Policies and Procedures/{Policies,Procedures}`
-- `Shared Documents/NSW & VIC state policies/{Policies,Procedures}`
+- `Shared Documents/NSW & VIC state policies/{Policies,Procedures}` — the canonical policy library
+- `NSW Schools/Amana OSHC - NSW Service Approval - Reg 168 Policies and Procedures/**` is **NOT
+  imported** (Jayden, 2026-09-27: "the NSW and VIC state policies are the updated ones"). It is the
+  stale service-approval submission copy of the state tree — every title in it also exists there
+  (37/37 policies, 30/31 procedures), and importing both produced 67 same-title-same-version
+  conflicts. Export it or not; the importer skips the whole tree via `SKIP_DIRS`. The one
+  Reg 168-only file, `QA2 NSW Child Protection Notification MRG Guide OSHC V1.docx`, is being
+  moved into the state tree by Daniel and imports from there.
 - `Shared Documents/SOPs/Jayden full SOP/**`
 - `NSW Schools/<centre>/**` and `Melbourne Schools/<centre>/**` (centre-specific procedures)
 
-Skip: `Shared Documents/SOPs/Amana OSHC AUDIT*/**`, `Amana HR Management Review Audit/**`,
+Skip: the Reg 168 tree above, `Shared Documents/SOPs/Amana OSHC AUDIT*/**`, `Amana HR Management Review Audit/**`,
 `**/Formatted Versions/**` (PDF renders of the sibling `.docx` — same document, second format;
 the `.docx` is authoritative), and any path — folder OR file — containing contract / payslip / TFN / candidate / resume / CV /
 WWCC / passport / visa / police check / working with children / staff files / personnel /

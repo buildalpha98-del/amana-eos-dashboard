@@ -21,8 +21,9 @@ vi.mock("@/lib/knowledge/pipeline", async (importOriginal) => {
 import { classifyPath, matchServiceByFolder, parseExportFile, importExportDir, listExportFiles } from "@/lib/knowledge/adapters/sharepoint-export";
 
 const FIX = path.join(process.cwd(), "src/__tests__/fixtures/knowledge-export");
-// 8 fixture files: 7 importable (3 Bushfire copies, Rest Time V2 + V3, OPS-10, toilet) + 1 under AUDIT.
-const FIXTURE_IMPORTABLE = 7;
+// 7 fixture files: 6 importable (2 Bushfire copies — state + SOP, Rest Time V2 + V3, OPS-10, toilet) + 1 under AUDIT.
+// The Reg 168 tree is deliberately absent: the importer skips it outright (see classifyPath).
+const FIXTURE_IMPORTABLE = 6;
 const CLEAN_COUNTS = { imported: FIXTURE_IMPORTABLE, unchanged: 0, superseded: 0, conflicts: 1, unmapped: 0, skipped: 1, errors: 0, removed: 0 };
 /** The after-walk sweep: every stored SharePoint row whose id is NOT in the export is adapter-excluded. */
 const isSweep = (where: Record<string, unknown>) =>
@@ -30,7 +31,6 @@ const isSweep = (where: Record<string, unknown>) =>
 
 describe("classifyPath", () => {
   it("maps each tree to category + scope", () => {
-    expect(classifyPath("NSW Schools/Amana OSHC - NSW Service Approval - Reg 168 Policies and Procedures/Policies/x.docx")).toEqual({ tree: "reg168", category: "policy", centreFolder: null, skip: false });
     expect(classifyPath("Shared Documents/NSW & VIC state policies/Procedures/x.docx")).toEqual({ tree: "state", category: "procedure", centreFolder: null, skip: false });
     expect(classifyPath("Shared Documents/SOPs/Jayden full SOP/6. Centre Operations/OPS-10.docx")).toEqual({ tree: "sop", category: "sop", centreFolder: null, skip: false });
     expect(classifyPath("Melbourne Schools/Amana OSHC - Minaret Doveton/QA3/x.docx")).toEqual({ tree: "centre", category: "procedure", centreFolder: "Amana OSHC - Minaret Doveton", skip: false });
@@ -42,6 +42,19 @@ describe("classifyPath", () => {
     expect(classifyPath("NSW Schools/Amana OSHC - Foo/Contractor Induction Procedure.docx").skip).toBe(false); // \bcontracts?\b, not "contractor"
     expect(classifyPath("NSW Schools/Amana OSHC - Foo/menu.png").skip).toBe(true);
     expect(classifyPath("Random/other.docx").skip).toBe(true);
+  });
+
+  it("skips the Reg 168 service-approval tree outright — the NSW & VIC state policies are canonical (Jayden, 2026-09-27)", () => {
+    // Every title in the Reg 168 tree also exists in the state tree (37/37 policies, 30/31 procedures in the real
+    // export); importing both produced 67 same-title-same-version conflicts. Skipped whatever the subfolder or file.
+    expect(classifyPath("NSW Schools/Amana OSHC - NSW Service Approval - Reg 168 Policies and Procedures/Policies/QA2 Bushfire Policy NSW OSHC V11.docx").skip).toBe(true);
+    expect(classifyPath("NSW Schools/Amana OSHC - NSW Service Approval - Reg 168 Policies and Procedures/Procedures/QA2 Rest Time Procedure OSHC V3.docx").skip).toBe(true);
+    expect(classifyPath("NSW Schools/Amana OSHC - NSW Service Approval - Reg 168 Policies and Procedures/QA2 NSW Child Protection Notification MRG Guide OSHC V1.docx").skip).toBe(true);
+    // The same titles in the state tree still import, as policy/procedure by subfolder.
+    expect(classifyPath("Shared Documents/NSW & VIC state policies/Policies/QA2 Bushfire Policy NSW OSHC V11.docx")).toEqual({ tree: "state", category: "policy", centreFolder: null, skip: false });
+    expect(classifyPath("Shared Documents/NSW & VIC state policies/Procedures/QA2 Rest Time Procedure OSHC V3.docx")).toEqual({ tree: "state", category: "procedure", centreFolder: null, skip: false });
+    // A centre folder that merely mentions Reg 168 is not the service-approval tree.
+    expect(classifyPath("NSW Schools/Amana OSHC - Foo/Reg 168 Checklist.docx").skip).toBe(false);
   });
 
   it("tests PII words against the FULL path — a PII folder skips whatever its files are called", () => {
@@ -181,11 +194,12 @@ describe("importExportDir", () => {
     expect(report.skipped[0].path).toContain("Amana OSHC AUDIT");
     expect(report.warnings).toEqual([]);
     // No per-file exclusion (every centre folder mapped) — the ONLY updateMany is the after-walk
-    // sweep, scoped to sharepoint rows whose id is not among the 7 imported (active rows only).
+    // sweep, scoped to sharepoint rows whose id is not among the imported ids (active + superseded
+    // rows — a superseded row that left SharePoint must not linger as a supersession candidate).
     expect(prismaMock.knowledgeSource.updateMany).toHaveBeenCalledTimes(1);
     const sweep = prismaMock.knowledgeSource.updateMany.mock.calls[0][0];
     expect(sweep.data).toEqual({ status: "excluded", excludedBy: "adapter" });
-    expect(sweep.where.status).toBe("active");
+    expect(sweep.where.status).toEqual({ in: ["active", "superseded"] });
     expect(sweep.where.sourceKind).toBe("sharepoint");
     expect(sweep.where.externalId.notIn).toHaveLength(FIXTURE_IMPORTABLE);
     expect(sweep.where.externalId.notIn).toEqual(upsert.mock.calls.map((c) => c[0].externalId));
@@ -315,15 +329,14 @@ describe("importExportDir", () => {
     }
   });
 
-  it("reports ONE conflict per key listing every copy when three copies differ", async () => {
+  it("reports ONE conflict per key listing every copy that differs (the state and SOP Bushfire copies)", async () => {
     const report = await importExportDir(FIX);
     expect(report.counts.conflicts).toBe(1);
     expect(report.conflicts).toHaveLength(1);
     expect(report.conflicts[0]).toMatchObject({ normalizedTitle: "qa2 bushfire policy", state: "NSW", version: 11 });
-    expect(report.conflicts[0].paths).toHaveLength(3);
+    expect(report.conflicts[0].paths).toHaveLength(2);
     expect(report.conflicts[0].paths).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("Reg 168 Policies and Procedures/Policies/QA2 Bushfire"),
         expect.stringContaining("NSW & VIC state policies/Policies/QA2 Bushfire"),
         expect.stringContaining("Jayden full SOP/6. Centre Operations/QA2 Bushfire"),
       ]),
@@ -349,7 +362,7 @@ describe("importExportDir", () => {
     // The per-row exclusion during the walk, then the after-walk sweep.
     expect(prismaMock.knowledgeSource.updateMany).toHaveBeenCalledTimes(2);
     expect(prismaMock.knowledgeSource.updateMany).toHaveBeenNthCalledWith(1, {
-      where: { id: unmappedId, status: "active" },
+      where: { id: unmappedId, status: { in: ["active", "superseded"] } },
       data: { status: "excluded", excludedBy: "adapter" },
     });
     expect(isSweep(prismaMock.knowledgeSource.updateMany.mock.calls[1][0].where)).toBe(true);
@@ -402,8 +415,8 @@ describe("importExportDir", () => {
     const passes = prismaMock.knowledgeSource.findMany.mock.calls
       .map((c: [{ where: Record<string, unknown> }]) => c[0].where)
       .filter((w: Record<string, unknown>) => typeof w.normalizedTitle === "string");
-    // 7 importable files across 4 distinct (normalizedTitle,state,serviceId) keys:
-    // Bushfire ×3 (one key), Rest Time V2 + V3 (one key — the version token is stripped), OPS-10, toilet (centre-scoped).
+    // 6 importable files across 4 distinct (normalizedTitle,state,serviceId) keys:
+    // Bushfire ×2 (one key), Rest Time V2 + V3 (one key — the version token is stripped), OPS-10, toilet (centre-scoped).
     expect(passes).toHaveLength(4);
     for (const w of passes) expect(w.status).toEqual({ in: ["active", "superseded"] });
     expect(passes).toEqual(expect.arrayContaining([
@@ -447,7 +460,7 @@ describe("importExportDir", () => {
       const report = await importExportDir(FIX, { dry: true });
       expect(report.counts).toEqual({ ...CLEAN_COUNTS, unmapped: 1 });
       expect(report.files).toHaveLength(FIXTURE_IMPORTABLE);
-      expect(report.conflicts[0].paths).toHaveLength(3);
+      expect(report.conflicts[0].paths).toHaveLength(2);
       expect(report.unmapped[0]).toMatchObject({ centreFolder: "Amana OSHC - Minaret Doveton" });
       expect(upsert).not.toHaveBeenCalled();
       expect(prismaMock.knowledgeSource.updateMany).not.toHaveBeenCalled();
