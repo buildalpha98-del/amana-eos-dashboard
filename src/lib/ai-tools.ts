@@ -9,6 +9,7 @@
 import { prisma } from "@/lib/prisma";
 import type Anthropic from "@anthropic-ai/sdk";
 import { ALLOWED_REFERENCE_HOSTS, isAllowedReferenceHost } from "@/lib/reference-hosts";
+import type { KnowledgeScope } from "@/lib/knowledge/types";
 
 // ── Tool Definitions ──────────────────────────────────────────
 
@@ -114,7 +115,7 @@ export const ASSISTANT_TOOLS: Anthropic.Messages.Tool[] = [
   {
     name: "fetch_oshc_reference",
     description:
-      "Fetch the text content of a page from a CURATED set of OSHC / Australian early-childhood regulatory sources when the answer isn't in the Amana knowledge base. Use AFTER search_knowledge_base returns nothing relevant — this is a fallback for industry-wide questions (NQF regulations, NQS standards, ACECQA guidance, Fair Work conditions, child safety law, etc.). " +
+      "Fetch the text content of a page from a CURATED set of OSHC / Australian early-childhood regulatory sources when the answer isn't in the Amana knowledge base. Use AFTER search_knowledge returns nothing relevant — this is a fallback for industry-wide questions (NQF regulations, NQS standards, ACECQA guidance, Fair Work conditions, child safety law, etc.). " +
       "Allowed hosts: acecqa.gov.au, nqaits.acecqa.gov.au, education.gov.au, education.nsw.gov.au, education.vic.gov.au, vic.gov.au, safeworkaustralia.gov.au, fairwork.gov.au, fwc.gov.au, legislation.gov.au, ochre.nsw.gov.au, esafety.gov.au, nhmrc.gov.au, allergy.org.au. Any other host will be rejected. " +
       "Pass a full https:// URL. If you don't know the exact URL, guess the most likely one based on the site's structure — e.g. https://www.acecqa.gov.au/nqf/national-law-regulations for NQF regs.",
     input_schema: {
@@ -130,25 +131,15 @@ export const ASSISTANT_TOOLS: Anthropic.Messages.Tool[] = [
     },
   },
   {
-    name: "search_knowledge_base",
+    name: "search_knowledge",
     description:
-      "Full-text search across the Amana OSHC organisational knowledge base — this is the FIRST tool you should reach for on most staff questions. The base contains: " +
-      "(1) the Amana Way handbook (values, structure, how we work); " +
-      "(2) the Employee Handbook (conditions, leave, pay, performance, conduct); " +
-      "(3) the Proven Process (EOS-style operational playbook); " +
-      "(4) operational SOPs — OWNA procedures (posting to families, daily reports, attendance), incident & injury reporting, mandatory reporting, medication, behaviour guidance, roll-call, sign-in/out, excursions, vacation care; " +
-      "(5) compliance content — child protection, WHS, NQS, child-safe code of conduct, mandatory reporter training; " +
-      "(6) any other text the admin has loaded into /settings/ai-knowledge. " +
-      "Use it for ANY 'how do I…', 'what's our policy on…', 'where do I find…', 'what's the procedure for…' question. " +
-      "Search is keyword-based (PostgreSQL tsvector): if your first query returns nothing, RETRY with different wording before assuming the content isn't there.",
+      "Search the Amana OSHC knowledge store — the FIRST tool for any 'how do I…', 'what's our policy on…', 'what's the procedure for…' question. " +
+      "It holds: ALL QA1–QA7 policies and procedures, the company-wide SOPs, the Amana Way, the Employee Handbook, the Proven Process, staff help articles, published training modules, this user's centre fact sheet, and curated regulator references (NQS, National Regs, ratios, Fair Work award). " +
+      "Search is hybrid (keyword + meaning) — describe the situation in plain words; if the first result set looks off, retry once with OSHC terminology (e.g. 'illness management', 'safe arrival', 'behaviour guidance').",
     input_schema: {
       type: "object" as const,
       properties: {
-        query: {
-          type: "string",
-          description:
-            "Keywords to search. Use 3-6 specific words from the user's question PLUS likely synonyms / OSHC terminology. Example: user asks 'how do I post to families through OWNA' → search 'OWNA family communication post parent update'. If first search returns nothing, retry with different phrasing.",
-        },
+        query: { type: "string", description: "The user's question or situation, 3–20 words." },
       },
       required: ["query"],
     },
@@ -157,9 +148,14 @@ export const ASSISTANT_TOOLS: Anthropic.Messages.Tool[] = [
 
 // ── Tool Execution ──────────────────────────────────────────
 
+export interface ToolContext {
+  scope: KnowledgeScope;
+}
+
 export async function executeToolCall(
   name: string,
   input: Record<string, unknown>,
+  ctx: ToolContext,
 ): Promise<string> {
   try {
     switch (name) {
@@ -175,19 +171,16 @@ export async function executeToolCall(
         return await lookupRecentTodos(input.status as string | undefined, input.limit as number | undefined);
       case "lookup_enquiry_pipeline":
         return await lookupEnquiryPipeline(input.stage as string | undefined);
-      case "search_knowledge_base": {
-        const { searchChunks, formatChunksForPrompt } = await import(
-          "@/lib/document-indexer"
-        );
-        const results = await searchChunks(input.query as string, 8);
-        if (results.length === 0) {
+      case "search_knowledge": {
+        const { searchKnowledge, formatHitsForPrompt } = await import("@/lib/knowledge/search");
+        const hits = await searchKnowledge(String(input.query ?? ""), ctx.scope, 8);
+        if (hits.length === 0) {
           return JSON.stringify({
             message: "No matching documents found for this query.",
-            suggestion:
-              "The knowledge base may not have documents covering this topic yet.",
+            suggestion: "Retry once with OSHC terminology; if still nothing, say the library doesn't cover it.",
           });
         }
-        return formatChunksForPrompt(results);
+        return formatHitsForPrompt(hits);
       }
       case "fetch_oshc_reference":
         return await fetchOshcReference(input.url as string);

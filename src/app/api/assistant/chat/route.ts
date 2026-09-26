@@ -3,6 +3,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { getAI } from "@/lib/ai";
 import { buildDashboardContext } from "@/lib/ai-context";
 import { ASSISTANT_TOOLS, executeToolCall } from "@/lib/ai-tools";
+import { buildKnowledgeScope } from "@/lib/knowledge/scope";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
@@ -64,7 +65,7 @@ export const POST = withApiAuth(async (req, session) => {
     ? ASSISTANT_TOOLS
     : ASSISTANT_TOOLS.filter(
         (t) =>
-          t.name === "search_knowledge_base" ||
+          t.name === "search_knowledge" ||
           t.name === "fetch_oshc_reference",
       );
 
@@ -80,7 +81,10 @@ export const POST = withApiAuth(async (req, session) => {
   //   - When the knowledge base genuinely doesn't have the answer the
   //     bot says so plainly — no "ask your state manager / check
   //     training materials" boilerplate that masks a stale base.
-  const dashboardContext = await buildDashboardContext();
+  // 2026-09-27: financial/pipeline context is admin-only (spec §1 item 4).
+  // Every role used to get current-month revenue by centre in its prompt.
+  const dashboardContext = isAdmin ? await buildDashboardContext() : "";
+  const scope = await buildKnowledgeScope(session!);
   const pageContext = currentPage ? getPageContext(currentPage) : "";
   const systemPrompt = [
     AMANA_SYSTEM_PROMPT,
@@ -89,32 +93,20 @@ export const POST = withApiAuth(async (req, session) => {
     "",
     "You are the staff-facing operations + training assistant for Amana",
     "OSHC. Treat yourself as a state manager / training officer that",
-    "every educator can ask at any time. Your knowledge base contains",
-    "EVERY document the admin has uploaded — the Amana Way, Employee",
-    "Handbook, Proven Process, ALL QA1–QA7 policies, ALL QA1–QA7",
-    "procedures, parent handbook, parent resources, OWNA guides,",
-    "communication SOPs, and anything else. Do NOT assume a question",
-    "is unanswerable just because it isn't covered by the Amana Way or",
-    "Employee Handbook — search the FULL library.",
+    "every educator can ask at any time. Your knowledge store holds:",
+    "the Amana Way, Employee Handbook, Proven Process, ALL QA1–QA7",
+    "policies and procedures, company-wide SOPs, staff help articles,",
+    "published training modules, this user's centre fact sheet, and",
+    "curated regulator references. Do NOT assume a question is",
+    "unanswerable just because it isn't covered by the Amana Way or",
+    "Employee Handbook — search the full store.",
     "",
-    "### Knowledge-base search — the rule",
+    "### Knowledge search — the rule",
     "",
-    "BEFORE you say you don't know, you MUST call search_knowledge_base.",
-    "If the first search returns nothing or looks irrelevant, run AT",
-    "LEAST two more searches with different keywords. Try:",
-    "  - The user's wording (verbatim)",
-    "  - Common synonyms and OSHC / NQF / ACECQA terminology",
-    "  - The relevant QA area number (QA1 Educational, QA2 Health & Safety,",
-    "    QA3 Physical Environment, QA4 Staffing, QA5 Relationships,",
-    "    QA6 Partnerships, QA7 Governance) — many procedure/policy docs",
-    "    are named that way",
-    "  - Related concepts (e.g. 'posting to families' → also try",
-    "    'parent communication', 'family updates', 'OWNA Family App',",
-    "    'daily report', 'announcements')",
-    "",
-    "Only after 3+ searches return nothing relevant should you fall",
-    "back to fetch_oshc_reference (see below) or tell the user the",
-    "information isn't in the knowledge base.",
+    "BEFORE you say you don't know, you MUST call search_knowledge.",
+    "Search is hybrid (keyword + meaning). If the first result set is",
+    "off-topic, retry ONCE with OSHC terminology. After that, say",
+    "plainly the library doesn't cover it.",
     "",
     "### Falling back to public regulator sources",
     "",
@@ -161,9 +153,9 @@ export const POST = withApiAuth(async (req, session) => {
           "Tailor your responses to be relevant to what they're looking at.",
         ]
       : []),
-    "",
-    "## Dashboard overview (high-level — use tools for specifics)",
-    dashboardContext,
+    ...(dashboardContext
+      ? ["", "## Dashboard overview (high-level — use tools for specifics)", dashboardContext]
+      : []),
   ].join("\n");
 
   // Build Anthropic message format
@@ -220,6 +212,7 @@ export const POST = withApiAuth(async (req, session) => {
             const result = await executeToolCall(
               toolBlock.name,
               toolBlock.input as Record<string, unknown>,
+              { scope },
             );
             toolResults.push({
               type: "tool_result",
