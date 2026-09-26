@@ -3046,44 +3046,60 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ### Task 17: Wire the triggers (swallow-and-log, after the primary write)
 
 **Files:**
+- Create: `src/lib/knowledge/hooks.ts` (+ `src/__tests__/lib/knowledge/hooks.test.ts`)
 - Modify: `src/app/api/policies/route.ts`, `src/app/api/policies/[id]/route.ts`, `src/app/api/policies/[id]/versions/route.ts`, `src/app/api/policies/[id]/archive/route.ts`, `src/app/api/services/[id]/content/route.ts`, `src/app/api/amana-handbook/content/route.ts`, `src/app/api/amana-way/content/route.ts`, `src/app/api/knowledge-base/seed/route.ts`, `src/app/api/lms/courses/route.ts`, `src/app/api/lms/courses/[id]/route.ts`, `src/app/api/lms/courses/publish-readiness/route.ts`, `src/app/api/lms/courses/[id]/modules/route.ts`, `src/app/api/lms/modules/[moduleId]/route.ts`
 
-Every hook has the same shape — fire after the primary write succeeds, never block or fail the request:
+Every hook has the same shape — fire after the primary write succeeds, never block or fail the request, and survive the response being sent. On Vercel a bare `void promise` can be frozen once the response streams out; Next 16's `after()` (from `next/server`) schedules the work post-response and keeps the function alive for it. Put the helper in `src/lib/knowledge/hooks.ts` so every route uses one line:
 
 ```ts
+// src/lib/knowledge/hooks.ts
+import { after } from "next/server";
 import { logger } from "@/lib/logger";
-// …
-void syncX(id).catch((err) => logger.warn("Knowledge: sync failed", { adapter: "x", id, err }));
+
+/**
+ * Run a knowledge adapter after the response is sent. Swallow-and-log:
+ * a knowledge sync must never fail or slow the user's write.
+ */
+export function syncAfterResponse(label: string, run: () => Promise<unknown>): void {
+  after(async () => {
+    try {
+      await run();
+    } catch (err) {
+      logger.warn("Knowledge: sync failed", { adapter: label, err });
+    }
+  });
+}
 ```
+Route usage: `syncAfterResponse("policy_upload", () => syncPolicyVersion(versionId));`. Tests for the routes mock `@/lib/knowledge/hooks` (`syncAfterResponse: vi.fn()`) — and one unit test for `hooks.ts` mocks `next/server`'s `after` to invoke the callback immediately and asserts a rejected `run` is logged, not thrown. (If `after` proves unavailable in the test environment even when mocked, fall back to `void run().catch(...)` inside the helper with a comment — but try `after` first; it is the documented Next 16 API.)
 
 Existing route tests must keep passing; add `vi.mock("@/lib/knowledge/adapters/<name>", () => ({ syncX: vi.fn(), … }))` to every route test that now (transitively) imports an adapter. Find them with a RECURSIVE grep — `grep -rl "policies/route\|policies/\[id\]\|content/route\|knowledge-base/seed\|lms/courses\|lms/modules" src/__tests__/api` — which today yields at least: `src/__tests__/api/policy-documents.test.ts`, `src/__tests__/api/amana-way-content.test.ts`, `src/__tests__/api/lms/courses.test.ts`, `src/__tests__/api/lms/progress-quiz-gate.test.ts`.
 
 - [ ] **Step 1: Policies create + version + archive + title edit**
 
 In `src/app/api/policies/route.ts` `POST`: `const result = await prisma.$transaction(…)` (line ~128) — inside the callback the row is called `linked` (lines 149–155, `include: { currentVersion: true }`), but OUTSIDE it is `result`. After the `activityLog.create` that follows the transaction: `if (result.currentVersion) void syncPolicyVersion(result.currentVersion.id).catch(…)`.
-In `src/app/api/policies/[id]/versions/route.ts` after `activityLog.create`: `void syncPolicyVersion(result.id).catch(…)` (`result` is the created `PolicyDocumentVersion`).
-In `src/app/api/policies/[id]/archive/route.ts`: add `currentVersionId: true` to the existing `findUnique` select; after the update: if `parsed.data.isArchived` → `void excludePolicySources(id).catch(…)`; else → `if (existing.currentVersionId) void syncPolicyVersion(existing.currentVersionId).catch(…)` (`currentVersionId` is `String?`).
+In `src/app/api/policies/[id]/versions/route.ts` after `activityLog.create`: `syncAfterResponse("policy_upload", () => syncPolicyVersion(result.id).catch(…)` (`result` is the created `PolicyDocumentVersion`).
+In `src/app/api/policies/[id]/archive/route.ts`: add `currentVersionId: true` to the existing `findUnique` select; after the update: if `parsed.data.isArchived` → `syncAfterResponse("policy_upload", () => excludePolicySources(id))`; else → `if (existing.currentVersionId) void syncPolicyVersion(existing.currentVersionId).catch(…)` (`currentVersionId` is `String?`).
 In `src/app/api/policies/[id]/route.ts` `PATCH` (title/category edit, line ~76): select `currentVersionId` and after the update `if (currentVersionId) void syncPolicyVersion(currentVersionId).catch(…)` — otherwise the source title goes stale until the next version upload.
 
 - [ ] **Step 2: Service content**
 
-In `src/app/api/services/[id]/content/route.ts` `PATCH`, after `activityLog.create`: `void syncCentreFacts(serviceId).catch(…)`.
+In `src/app/api/services/[id]/content/route.ts` `PATCH`, after `activityLog.create`: `syncAfterResponse("centre_facts", () => syncCentreFacts(serviceId))`.
 
 - [ ] **Step 3: Handbook + Amana Way**
 
-In both content routes' `PATCH`, after `activityLog.create`: `void syncHandbook().catch(…)`.
+In both content routes' `PATCH`, after `activityLog.create`: `syncAfterResponse("handbook", () => syncHandbook())`.
 
 - [ ] **Step 4: Help articles**
 
-In `src/app/api/knowledge-base/seed/route.ts` after `createMany`: `void syncHelpArticles().catch(…)`.
+In `src/app/api/knowledge-base/seed/route.ts` after `createMany`: `syncAfterResponse("help_article", () => syncHelpArticles())`.
 
 - [ ] **Step 5: LMS — every course-status and module write path**
 
-`src/app/api/lms/courses/route.ts` `POST` (create, may carry inline modules and `status: "published"`): after `prisma.lMSCourse.create` → `void syncLmsCourse(course.id).catch(…)`.
-`src/app/api/lms/courses/[id]/route.ts` `PATCH`: after `prisma.lMSCourse.update`, `void syncLmsCourse(id).catch(…)` — fires on every PATCH, covering `status` transitions both ways. `DELETE` (soft delete, `data: { deleted: true }` at ~line 150): after the update, `void syncLmsCourse(id).catch(…)` — the adapter sees `deleted` and excludes the course's sources (backfill queries `deleted: false`, so nothing else would ever revisit it).
-`src/app/api/lms/courses/publish-readiness/route.ts` `POST` (bulk publish via `publishCourses`, ~line 112): after a successful publish, `for (const courseId of courseIds) void syncLmsCourse(courseId).catch(…)` — this IS the "transition to published" spec §3.3(b) names.
-`src/app/api/lms/courses/[id]/modules/route.ts` `POST` (the param is bound as `const { id: courseId }`): after `lMSModule.create`, `void syncLmsCourse(courseId).catch(…)`.
-`src/app/api/lms/modules/[moduleId]/route.ts` `PATCH`: after update, `void syncLmsModule(moduleId).catch(…)`; `DELETE`: read `courseId` before deleting (`findUnique({ select: { courseId } })`), then after delete `void syncLmsCourse(courseId).catch(…)` — the adapter keys sources by `<courseId>:<moduleId>` and excludes everything under the course prefix that it didn't just index, so the deleted module's source is excluded without needing its id.
+`src/app/api/lms/courses/route.ts` `POST` (create, may carry inline modules and `status: "published"`): after `prisma.lMSCourse.create` → `syncAfterResponse("lms_module", () => syncLmsCourse(course.id).catch(…)`.
+`src/app/api/lms/courses/[id]/route.ts` `PATCH`: after `prisma.lMSCourse.update`, `syncAfterResponse("lms_module", () => syncLmsCourse(id).catch(…)` — fires on every PATCH, covering `status` transitions both ways. `DELETE` (soft delete, `data: { deleted: true }` at ~line 150): after the update, `syncAfterResponse("lms_module", () => syncLmsCourse(id).catch(…)` — the adapter sees `deleted` and excludes the course's sources (backfill queries `deleted: false`, so nothing else would ever revisit it).
+`src/app/api/lms/courses/publish-readiness/route.ts` `POST` (bulk publish via `publishCourses`, ~line 112): after a successful publish, `syncAfterResponse("lms_module", async () => { for (const courseId of courseIds) await syncLmsCourse(courseId); })` — this IS the "transition to published" spec §3.3(b) names.
+`src/app/api/lms/courses/[id]/modules/route.ts` `POST` (the param is bound as `const { id: courseId }`): after `lMSModule.create`, `syncAfterResponse("lms_module", () => syncLmsCourse(courseId).catch(…)`.
+`src/app/api/lms/modules/[moduleId]/route.ts` `PATCH`: after update, `syncAfterResponse("lms_module", () => syncLmsModule(moduleId))`; `DELETE`: read `courseId` before deleting (`findUnique({ select: { courseId } })`), then after delete `syncAfterResponse("lms_module", () => syncLmsCourse(courseId).catch(…)` — the adapter keys sources by `<courseId>:<moduleId>` and excludes everything under the course prefix that it didn't just index, so the deleted module's source is excluded without needing its id.
 
 - [ ] **Step 6: Run the affected route tests**
 
