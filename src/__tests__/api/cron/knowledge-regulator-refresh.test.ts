@@ -12,7 +12,8 @@ vi.mock("@/lib/cron-guard", () => ({
       : { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) },
   acquireCronLock: (...a: unknown[]) => acquire(...a),
 }));
-const runAdapter = vi.fn(async (..._a: unknown[]) => ({ id: "run1", counts: { created: 2 }, error: null }));
+// `error` is widened here: the literal `null` would type the mock as never-erroring and reject the "boom" case below.
+const runAdapter = vi.fn(async (..._a: unknown[]) => ({ id: "run1", counts: { created: 2 }, error: null as string | null }));
 vi.mock("@/lib/knowledge/sync", () => ({ runAdapter: (...a: unknown[]) => runAdapter(...a) }));
 import { GET } from "@/app/api/cron/knowledge-regulator-refresh/route";
 

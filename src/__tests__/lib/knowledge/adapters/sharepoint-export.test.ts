@@ -188,15 +188,40 @@ describe("importExportDir", () => {
     );
   });
 
-  it("flags an unmapped centre folder and adapter-excludes its source via the active-only updateMany", async () => {
+  it("flags an unmapped centre folder, adapter-excludes its source via the active-only updateMany, and re-supersedes the org-wide group it had won", async () => {
     prismaMock.service.findMany.mockResolvedValue([]);
+    const unmappedId = "src-01KJARKPZIKJUMSP2DTFALRIYQ3ELYWK06";
+    // Unmapped ⇒ serviceId null ⇒ the centre copy shares the ORG-WIDE dedupe key. It won on
+    // updatedAt, so the org-wide document is sitting `superseded` behind it.
+    const orgWideKey = { normalizedTitle: "toilet supervision procedure", state: null, serviceId: null };
+    prismaMock.knowledgeSource.findMany.mockImplementation(async ({ where }: { where: Record<string, unknown> }) => {
+      if (where.id === unmappedId) return [orgWideKey]; // excludeSources' pre-flip key read
+      if (where.normalizedTitle === orgWideKey.normalizedTitle) {
+        return [{ id: "org-wide", version: null, status: "superseded", sourceKind: "sharepoint", updatedAt: new Date("2026-01-01") }];
+      }
+      return []; // the store-wide superseded total
+    });
     const report = await importExportDir(FIX);
     expect(report.counts.unmapped).toBe(1);
     expect(report.unmapped[0]).toMatchObject({ centreFolder: "Amana OSHC - Minaret Doveton" });
     expect(prismaMock.knowledgeSource.updateMany).toHaveBeenCalledTimes(1);
     expect(prismaMock.knowledgeSource.updateMany).toHaveBeenCalledWith({
-      where: { id: "src-01KJARKPZIKJUMSP2DTFALRIYQ3ELYWK06", status: "active" },
+      where: { id: unmappedId, status: "active" },
       data: { status: "excluded", excludedBy: "adapter" },
+    });
+    // After the flip, supersession is re-run for the null-service key the excluded row belonged to...
+    const passIdx = prismaMock.knowledgeSource.findMany.mock.calls.findIndex(
+      (c: [{ where: Record<string, unknown> }]) => c[0].where.normalizedTitle === orgWideKey.normalizedTitle,
+    );
+    expect(passIdx).toBeGreaterThan(-1);
+    expect(prismaMock.knowledgeSource.findMany.mock.calls[passIdx][0].where).toEqual({
+      ...orgWideKey, status: { in: ["active", "superseded"] },
+    });
+    expect(prismaMock.knowledgeSource.findMany.mock.invocationCallOrder[passIdx])
+      .toBeGreaterThan(prismaMock.knowledgeSource.updateMany.mock.invocationCallOrder[0]);
+    // ...and the org-wide document comes back as the group's active winner instead of staying dark.
+    expect(prismaMock.knowledgeSource.update).toHaveBeenCalledWith({
+      where: { id: "org-wide" }, data: { status: "active", supersededById: null },
     });
     // The single Service is gone, so no service-scoped key clashes: still one conflict
     expect(report.counts.conflicts).toBe(1);

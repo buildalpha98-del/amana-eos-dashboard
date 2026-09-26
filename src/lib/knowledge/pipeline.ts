@@ -237,15 +237,39 @@ export async function indexSource(
  * undo their own. An adapter exclude touches ACTIVE rows only — it must
  * never overwrite an admin's `excludedBy: "admin"` (that row would later
  * look adapter-owned and get silently re-activated).
+ *
+ * Re-runs supersession for every dedupe group the exclusion touched, so a
+ * group never loses its active winner. An excluded row that was `active`
+ * had superseded its siblings; without this pass the best of them stays
+ * `superseded` and the group answers nothing — an unmapped SharePoint
+ * centre copy (serviceId null, so the org-wide key) that won on updatedAt
+ * and was then excluded left the org-wide document dark; the same shape
+ * hits a policy_upload archived over its SharePoint copy and an LMS
+ * module or help article unpublished over an imported twin. The keys are
+ * read BEFORE the flip: after it the rows are `excluded`, which the
+ * scoped where no longer matches.
  */
 export async function excludeSources(
   where: Prisma.KnowledgeSourceWhereInput,
   by: "adapter" | "admin",
 ): Promise<number> {
+  const scoped: Prisma.KnowledgeSourceWhereInput = {
+    ...where,
+    status: by === "adapter" ? "active" : { not: "superseded" },
+  };
+  const touched = await prisma.knowledgeSource.findMany({
+    where: scoped,
+    select: { normalizedTitle: true, state: true, serviceId: true },
+  });
   const r = await prisma.knowledgeSource.updateMany({
-    where: { ...where, status: by === "adapter" ? "active" : { not: "superseded" } },
+    where: scoped,
     data: { status: "excluded", excludedBy: by },
   });
+  const keys = new Map<string, SupersessionKey>();
+  for (const row of touched) {
+    keys.set(JSON.stringify([row.normalizedTitle, row.state, row.serviceId]), row);
+  }
+  for (const key of keys.values()) await applySupersession(key);
   return r.count;
 }
 

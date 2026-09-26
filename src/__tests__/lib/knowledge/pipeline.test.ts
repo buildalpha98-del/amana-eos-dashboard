@@ -18,7 +18,7 @@ vi.mock("@/lib/embeddings", () => ({
   EMBEDDING_MODEL: "voyage-3",
 }));
 
-import { upsertKnowledgeSource, applySupersession } from "@/lib/knowledge/pipeline";
+import { upsertKnowledgeSource, applySupersession, excludeSources } from "@/lib/knowledge/pipeline";
 import { hashContent } from "@/lib/knowledge/normalize";
 
 const baseInput = {
@@ -240,11 +240,16 @@ describe("upsertKnowledgeSource", () => {
 });
 
 describe("excludeSources", () => {
-  beforeEach(() => vi.clearAllMocks());
+  const SUPERSESSION_STATUS = { in: ["active", "superseded"] };
+  type Where = Record<string, unknown>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.knowledgeSource.findMany.mockResolvedValue([]);
+  });
 
   it("adapter exclude touches active rows only (never an admin-excluded row)", async () => {
     prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 2 });
-    const { excludeSources } = await import("@/lib/knowledge/pipeline");
     await excludeSources({ sourceKind: "lms_module", externalId: { in: ["a", "b"] } }, "adapter");
     expect(prismaMock.knowledgeSource.updateMany.mock.calls[0][0]).toEqual({
       where: { sourceKind: "lms_module", externalId: { in: ["a", "b"] }, status: "active" },
@@ -253,12 +258,73 @@ describe("excludeSources", () => {
   });
   it("admin exclude may override an adapter exclusion but never a superseded row", async () => {
     prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 1 });
-    const { excludeSources } = await import("@/lib/knowledge/pipeline");
     await excludeSources({ id: "x" }, "admin");
     expect(prismaMock.knowledgeSource.updateMany.mock.calls[0][0]).toEqual({
       where: { id: "x", status: { not: "superseded" } },
       data: { status: "excluded", excludedBy: "admin" },
     });
+  });
+
+  it("re-runs supersession once per affected dedupe group, so a group never loses its active winner", async () => {
+    const where = { sourceKind: "lms_module" as const, externalId: { in: ["a1", "a2", "b"] } };
+    const keyA = { normalizedTitle: "a", state: null, serviceId: null };
+    const keyB = { normalizedTitle: "b", state: "NSW", serviceId: "s1" };
+    prismaMock.knowledgeSource.findMany.mockImplementation(async ({ where: w }: { where: Where }) => {
+      // The pre-flip key read: two rows share group A, one sits in group B.
+      if (w.sourceKind === "lms_module") return [keyA, keyA, keyB];
+      // applySupersession's read for group A: the sibling the excluded row had beaten.
+      if (w.normalizedTitle === "a") {
+        return [{ id: "a-old", version: 1, status: "superseded", sourceKind: "sharepoint", updatedAt: new Date("2026-01-01") }];
+      }
+      return [];
+    });
+    prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 3 });
+
+    expect(await excludeSources(where, "adapter")).toBe(3);
+
+    // The key read and the flip use the SAME scoped where — the read must not drift wider or narrower.
+    expect(prismaMock.knowledgeSource.findMany.mock.calls[0][0]).toEqual({
+      where: { ...where, status: "active" },
+      select: { normalizedTitle: true, state: true, serviceId: true },
+    });
+    expect(prismaMock.knowledgeSource.updateMany.mock.calls[0][0]).toEqual({
+      where: { ...where, status: "active" },
+      data: { status: "excluded", excludedBy: "adapter" },
+    });
+    // One supersession pass per DISTINCT key (group A appeared twice, runs once), each after the flip.
+    const passes = prismaMock.knowledgeSource.findMany.mock.calls.slice(1).map((c: [{ where: Where }]) => c[0].where);
+    expect(passes).toEqual([
+      { ...keyA, status: SUPERSESSION_STATUS },
+      { ...keyB, status: SUPERSESSION_STATUS },
+    ]);
+    const flipAt = prismaMock.knowledgeSource.updateMany.mock.invocationCallOrder[0];
+    const readAt = prismaMock.knowledgeSource.findMany.mock.invocationCallOrder;
+    expect(readAt[0]).toBeLessThan(flipAt); // keys read while the rows are still `active`
+    expect(readAt[1]).toBeGreaterThan(flipAt); // passes see the rows as `excluded` and skip them
+    // Group A's best superseded row is promoted back; group B was empty after the flip, so nothing to promote.
+    expect(prismaMock.knowledgeSource.update).toHaveBeenCalledTimes(1);
+    expect(prismaMock.knowledgeSource.update).toHaveBeenCalledWith({
+      where: { id: "a-old" }, data: { status: "active", supersededById: null },
+    });
+  });
+
+  it("admin exclude re-runs supersession for the row's group too", async () => {
+    const key = { normalizedTitle: "x", state: "VIC", serviceId: null };
+    prismaMock.knowledgeSource.findMany.mockImplementation(async ({ where: w }: { where: Where }) =>
+      w.id === "row" ? [key] : [],
+    );
+    prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 1 });
+    await excludeSources({ id: "row" }, "admin");
+    expect(prismaMock.knowledgeSource.findMany.mock.calls[0][0].where).toEqual({ id: "row", status: { not: "superseded" } });
+    expect(prismaMock.knowledgeSource.findMany.mock.calls[1][0].where).toEqual({ ...key, status: SUPERSESSION_STATUS });
+  });
+
+  it("zero matching rows: the flip still runs, but there is no supersession pass", async () => {
+    prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 0 });
+    expect(await excludeSources({ sourceKind: "help_article", externalId: "gone" }, "adapter")).toBe(0);
+    expect(prismaMock.knowledgeSource.findMany).toHaveBeenCalledTimes(1); // the key read only
+    expect(prismaMock.knowledgeSource.updateMany).toHaveBeenCalledTimes(1);
+    expect(prismaMock.knowledgeSource.update).not.toHaveBeenCalled();
   });
 });
 
