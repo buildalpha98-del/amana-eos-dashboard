@@ -13,13 +13,31 @@ export interface ManualSourceInput {
   state?: string | null;
   /** Blob URL for uploaded files; null for pasted text */
   externalUrl?: string | null;
+  /**
+   * Stable identity for the row. Defaults to a fresh `manual:<uuid>` (a
+   * paste is always a new entry). Uploads pass `uploadExternalId(blobUrl)`
+   * so `(sourceKind, externalId)` is the real idempotency key — the client
+   * `register` call and the Blob `onUploadCompleted` webhook both land on
+   * the same row, and the second one is a hash-fast-path "unchanged".
+   */
+  externalId?: string;
 }
 
-/** Admin paste/upload from /settings/ai-knowledge. externalId is minted here. */
+/**
+ * Deterministic externalId for an uploaded blob. BOTH the register route
+ * and the upload webhook must derive the identical string for one blob, so
+ * it is built from the URL pathname (Vercel's `blob.pathname` has no
+ * leading slash; `new URL().pathname` always does — always go via URL).
+ */
+export function uploadExternalId(blobUrl: string): string {
+  return `manual:upload:${new URL(blobUrl).pathname}`;
+}
+
+/** Admin paste/upload from /settings/ai-knowledge. externalId is minted here unless supplied. */
 export async function createManualSource(input: ManualSourceInput): Promise<UpsertResult> {
   return upsertKnowledgeSource({
     sourceKind: "manual",
-    externalId: `manual:${randomUUID()}`,
+    externalId: input.externalId ?? `manual:${randomUUID()}`,
     title: input.title,
     category: input.category ?? "guide",
     tier: input.tier,
@@ -34,12 +52,9 @@ export async function createManualSource(input: ManualSourceInput): Promise<Upse
  * Inline edit of a pasted entry. Routed entirely through
  * upsertKnowledgeSource — never write title/text on the row directly —
  * so normalizedTitle, contentHash, the tier heuristic, and supersession
- * all re-derive from the edited value instead of drifting from it.
- *
- * Known follow-up: renaming does not revisit the OLD dedupe group (see
- * the note above applySupersession in ../pipeline.ts) — an edited entry
- * that changes normalizedTitle can leave a stale `superseded` row behind
- * in its previous group.
+ * all re-derive from the edited value instead of drifting from it. A
+ * rename with unchanged text takes the pipeline's hash fast-path (title
+ * fields written, no re-embed) and revisits both the old and new group.
  */
 export async function updateManualSource(
   id: string,

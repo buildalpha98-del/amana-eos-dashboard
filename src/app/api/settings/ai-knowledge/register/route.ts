@@ -12,27 +12,37 @@
  * the dashboard"). The client knows authoritatively when its upload
  * finished, so having it ping us directly removes the unreliability.
  *
- * Idempotent — upserts the KnowledgeSource by externalUrl so a slow
- * webhook arriving after this register call won't create a duplicate.
+ * Idempotent: the row's externalId is `uploadExternalId(blobUrl)` —
+ * the SAME string the webhook derives — so whichever of the two lands
+ * second hits the pipeline's hash fast-path and reports "unchanged"
+ * instead of creating a duplicate or re-embedding identical text.
+ *
+ * Zips are the webhook's: it unzips and registers one source PER
+ * ENTRY. Registering the zip here as well would flatten it into a
+ * second, combined source, so `.zip` short-circuits without fetching.
  */
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { extractText } from "@/lib/document-indexer";
-import { indexSource } from "@/lib/knowledge/pipeline";
-import { createManualSource } from "@/lib/knowledge/adapters/manual";
+import { createManualSource, uploadExternalId } from "@/lib/knowledge/adapters/manual";
 import { logger } from "@/lib/logger";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { safeAttachmentUrl } from "@/lib/schemas/message-attachments";
 import type { KnowledgeCategory } from "@prisma/client";
 
+const ZIP_MIMES = new Set(["application/zip", "application/x-zip-compressed", "multipart/x-zip"]);
+
 const schema = z.object({
-  blobUrl: z.string().url(),
+  // Blob-host allow-list: the URL is fetched server-side AND stored as the
+  // entry's citation link, so an arbitrary https URL is never accepted.
+  blobUrl: safeAttachmentUrl,
   fileName: z.string().min(1),
   title: z.string().min(1),
   mimeType: z.string().min(1),
+  /** Advisory only — the console sends it; nothing here reads it. */
   fileSize: z.number().int().min(0).optional(),
 });
 
@@ -41,7 +51,7 @@ const schema = z.object({
 export const maxDuration = 120;
 
 export const POST = withApiAuth(
-  async (req) => {
+  async (req, session) => {
     const body = await parseJsonBody(req);
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
@@ -52,64 +62,58 @@ export const POST = withApiAuth(
     }
     const { blobUrl, fileName, title, mimeType } = parsed.data;
 
+    if (isZip(blobUrl, mimeType)) {
+      logger.info("AI knowledge register: zip left to the upload webhook", { blobUrl, actorId: session!.user.id });
+      return NextResponse.json({
+        id: null,
+        outcome: "unchanged",
+        error: null,
+        reason: "zip entries are registered by the upload webhook",
+      });
+    }
+
     // Auto-categorise from the filename — Daniel's library is full of
     // "QA2 X Policy / Procedure" + "Y Handbook / Guide" files, so a
     // simple keyword sniff puts them in the right console tab without
     // a manual edit later.
-    const category = mapCategory(inferDocumentCategory(fileName, title));
+    const category = inferCategory(fileName, title);
 
     const text = await extractText(blobUrl, mimeType);
 
-    // Upsert by blobUrl so a slow onUploadCompleted webhook arriving
-    // after this register call is a no-op rather than a duplicate.
-    const existing = await prisma.knowledgeSource.findFirst({
-      where: { sourceKind: "manual", externalUrl: blobUrl },
-      select: { id: true },
+    const r = await createManualSource({
+      title,
+      text,
+      externalUrl: blobUrl,
+      externalId: uploadExternalId(blobUrl),
+      category,
     });
-
-    if (existing) {
-      const r = await indexSource(existing.id, text);
-      return NextResponse.json({
-        id: existing.id,
-        outcome: r.ok ? "updated" : "error",
-        error: r.ok ? undefined : r.error,
-      });
-    }
-
-    const r = await createManualSource({ title, text, externalUrl: blobUrl, category });
     if (r.outcome === "error") {
       logger.error("AI knowledge register: indexing failed", {
         sourceId: r.sourceId,
+        actorId: session!.user.id,
         err: r.error,
       });
     }
-    return NextResponse.json({ id: r.sourceId, outcome: r.outcome, error: r.error });
+    return NextResponse.json({ id: r.sourceId, outcome: r.outcome, error: r.error ?? null });
   },
-  { roles: [...ADMIN_ROLES] },
+  // withApiAuth races the handler against a 55s default — a few seconds under
+  // maxDuration so the wrapper, not the platform, reports the timeout.
+  { roles: [...ADMIN_ROLES], timeoutMs: 110_000 },
 );
 
+/** Zip by extension (case-insensitive) or by the content type the console sent. */
+function isZip(blobUrl: string, mimeType: string): boolean {
+  return ZIP_MIMES.has(mimeType) || new URL(blobUrl).pathname.toLowerCase().endsWith(".zip");
+}
+
 /**
- * Pick the best category for a freshly-uploaded file from its filename
- * + title. Falls back to "other" when nothing matches. Order matters:
- * "Policy" wins over generic words like "OSHC".
+ * Pick the best KnowledgeCategory for a freshly-uploaded file from its
+ * filename + title. Order matters: "Policy" wins over generic words like
+ * "OSHC". Anything unrecognised is a "guide".
  */
-function inferDocumentCategory(
-  fileName: string,
-  title: string,
-): "policy" | "procedure" | "guide" | "compliance" | "other" {
+function inferCategory(fileName: string, title: string): KnowledgeCategory {
   const haystack = `${fileName} ${title}`.toLowerCase();
   if (/\bpolicy\b|\bpolicies\b/.test(haystack)) return "policy";
   if (/\bprocedure\b|\bprocedures\b/.test(haystack)) return "procedure";
-  if (/\bguide\b|\bhandbook\b|\bmanual\b/.test(haystack)) return "guide";
-  if (/\bcompliance\b|\baudit\b/.test(haystack)) return "compliance";
-  return "other";
-}
-
-/** Maps the legacy Document category inference onto KnowledgeCategory. */
-function mapCategory(
-  inferred: "policy" | "procedure" | "guide" | "compliance" | "other",
-): KnowledgeCategory {
-  if (inferred === "policy") return "policy";
-  if (inferred === "procedure") return "procedure";
   return "guide";
 }

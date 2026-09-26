@@ -5,7 +5,7 @@ const { upsert } = vi.hoisted(() => ({
   upsert: vi.fn(async (_input?: unknown) => ({ sourceId: "s", outcome: "created" })),
 }));
 vi.mock("@/lib/knowledge/pipeline", () => ({ upsertKnowledgeSource: (i: unknown) => upsert(i) }));
-import { createManualSource, updateManualSource } from "@/lib/knowledge/adapters/manual";
+import { createManualSource, updateManualSource, uploadExternalId } from "@/lib/knowledge/adapters/manual";
 
 describe("manual adapter", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -16,6 +16,18 @@ describe("manual adapter", () => {
     const call = upsert.mock.calls[0][0] as Record<string, unknown>;
     expect(call).toMatchObject({ sourceKind: "manual", title: "Staff notice", text: "Body", category: "guide" });
     expect(call.externalId).toMatch(/^manual:[0-9a-f-]{36}$/);
+  });
+
+  it("createManualSource uses a supplied externalId verbatim (the upload idempotency key)", async () => {
+    await createManualSource({ title: "Policy", text: "Body", externalId: "manual:upload:/ai-knowledge/policy-abc.pdf" });
+    expect(upsert.mock.calls[0][0]).toMatchObject({ sourceKind: "manual", externalId: "manual:upload:/ai-knowledge/policy-abc.pdf" });
+  });
+
+  it("uploadExternalId is deterministic per blob and identical for the pathname-vs-URL forms", () => {
+    const url = "https://abc123.public.blob.vercel-storage.com/ai-knowledge/QA2%20Policy-XyZ.pdf?download=1";
+    expect(uploadExternalId(url)).toBe("manual:upload:/ai-knowledge/QA2%20Policy-XyZ.pdf");
+    expect(uploadExternalId(url)).toBe(uploadExternalId(url.replace("?download=1", "")));
+    expect(uploadExternalId(url)).not.toBe(uploadExternalId(url.replace("XyZ", "AbC")));
   });
 
   it("updateManualSource re-derives via upsert using the existing externalId + joined chunk text", async () => {

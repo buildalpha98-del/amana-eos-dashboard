@@ -26,5 +26,7 @@ export const POST = withApiAuth(
     const result = await indexSource(id, row.chunks.map((c) => c.content).join("\n\n"));
     return NextResponse.json(result);
   },
-  { roles: [...ADMIN_ROLES] },
+  // withApiAuth races the handler against a 55s default — a few seconds under
+  // maxDuration so the wrapper, not the platform, reports the timeout.
+  { roles: [...ADMIN_ROLES], timeoutMs: 110_000 },
 );

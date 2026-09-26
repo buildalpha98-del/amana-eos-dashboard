@@ -3,7 +3,9 @@
  *
  *   upsertKnowledgeSource(input)
  *     → find by (sourceKind, externalId)
- *     → hash unchanged? "unchanged" (no re-chunk, no re-embed)
+ *     → hash unchanged? "unchanged" (no re-chunk, no re-embed) — unless the
+ *       title changed, which lands title/normalizedTitle + the title-derived
+ *       fields and re-runs supersession for the old AND new key
  *     → create/update the source row with derived fields
  *     → indexSource(): chunk → embed → replace chunks in a transaction,
  *       set searchVector via to_tsvector (explicit UPDATE, no trigger)
@@ -57,23 +59,42 @@ export async function upsertKnowledgeSource(
         externalId: input.externalId,
       },
     },
-    select: { id: true, contentHash: true, status: true, excludedBy: true, indexError: true },
+    select: {
+      id: true, contentHash: true, status: true, excludedBy: true, indexError: true,
+      title: true, normalizedTitle: true, state: true, serviceId: true,
+    },
   });
 
   // An adapter-excluded row whose origin has come back (republished course,
   // unarchived policy) is re-activated. Admin exclusions are never reverted.
   const reactivate = existing?.status === "excluded" && existing.excludedBy === "adapter";
 
+  // A rename can move the row to a different dedupe group. The OLD group
+  // must be revisited too, or its `superseded` rows are left with no winner.
+  const newKey: SupersessionKey = { normalizedTitle, state, serviceId: input.serviceId ?? null };
+  const oldKey: SupersessionKey | null = existing
+    ? { normalizedTitle: existing.normalizedTitle, state: existing.state, serviceId: existing.serviceId }
+    : null;
+  const keyChanged = oldKey !== null && !sameKey(oldKey, newKey);
+
   // A row with a matching hash but a stale indexError means the LAST attempt
   // never actually indexed anything — re-running with an unchanged hash
   // would report "unchanged" forever and leave the chunks stale/absent.
   if (existing && existing.contentHash === contentHash && existing.indexError == null) {
-    if (!reactivate) return { sourceId: existing.id, outcome: "unchanged" };
+    // hashContent() covers the TEXT only — a rename with identical text
+    // must still land title/normalizedTitle (+ the title-derived fields)
+    // without paying for a re-chunk/re-embed.
+    const renamed = input.title !== existing.title;
+    if (!reactivate && !renamed) return { sourceId: existing.id, outcome: "unchanged" };
     await prisma.knowledgeSource.update({
       where: { id: existing.id },
-      data: { status: "active", excludedBy: null },
+      data: {
+        ...(renamed ? { title: input.title, normalizedTitle, qualityArea, version, state, tier } : {}),
+        ...(reactivate ? { status: "active" as const, excludedBy: null } : {}),
+      },
     });
-    await applySupersession({ normalizedTitle, state, serviceId: input.serviceId ?? null });
+    if (keyChanged && oldKey) await applySupersession(oldKey);
+    await applySupersession(newKey);
     return { sourceId: existing.id, outcome: "updated" };
   }
 
@@ -98,18 +119,28 @@ export async function upsertKnowledgeSource(
     ? await prisma.knowledgeSource.update({ where: { id: existing.id }, data })
     : await prisma.knowledgeSource.create({ data });
 
+  // The row has left its old group the moment the update lands — pick that
+  // group's new winner now, whether or not the re-index below succeeds.
+  if (keyChanged && oldKey) await applySupersession(oldKey);
+
   const indexed = await indexSource(row.id, input.text);
   if (!indexed.ok) {
     return { sourceId: row.id, outcome: "error", error: indexed.error };
   }
 
-  await applySupersession({
-    normalizedTitle,
-    state,
-    serviceId: input.serviceId ?? null,
-  });
+  await applySupersession(newKey);
 
   return { sourceId: row.id, outcome: existing ? "updated" : "created" };
+}
+
+interface SupersessionKey {
+  normalizedTitle: string;
+  state: string | null;
+  serviceId: string | null;
+}
+
+function sameKey(a: SupersessionKey, b: SupersessionKey): boolean {
+  return a.normalizedTitle === b.normalizedTitle && a.state === b.state && a.serviceId === b.serviceId;
 }
 
 export async function indexSource(
@@ -220,20 +251,19 @@ export async function excludeSources(
 
 /**
  * Within one dedupe key, exactly one source is `active`:
- * (Keyed on the NEW title. A renamed source leaves its old group
- * unrevisited — a stale `superseded` row can remain the group's only
- * member. Follow-up: on title change, re-run for the old key too.)
  *   1. highest KIND_PRIORITY (policy_upload > manual > sharepoint > others)
  *   2. then highest version (null = 0)
  *   3. then most recently updated
  * Everything else → superseded with supersededById. `excluded` rows are
  * never touched. Returns the winner's id (or null if the key is empty).
+ *
+ * Safe to re-run after a member leaves the group (deleted, excluded, or
+ * renamed into another key): a group left with only `superseded` rows
+ * promotes its best one back to `active`. upsertKnowledgeSource re-runs it
+ * for BOTH the old and new key on a rename; the admin status/delete routes
+ * re-run it for the row's key.
  */
-export async function applySupersession(key: {
-  normalizedTitle: string;
-  state: string | null;
-  serviceId: string | null;
-}): Promise<string | null> {
+export async function applySupersession(key: SupersessionKey): Promise<string | null> {
   const rows = await prisma.knowledgeSource.findMany({
     where: {
       normalizedTitle: key.normalizedTitle,

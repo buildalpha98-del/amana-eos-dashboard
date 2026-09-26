@@ -28,6 +28,9 @@ export const GET = withApiAuth(
   async () => {
     const rows = await prisma.knowledgeSource.findMany({
       select: ENTRY_SELECT,
+      // Postgres sorts an enum by its DECLARATION order, not alphabetically:
+      // KnowledgeStatus is `active, superseded, excluded`, so `status asc`
+      // puts the live rows first — which is what the console wants.
       orderBy: [{ status: "asc" }, { title: "asc" }],
     });
     return NextResponse.json({ entries: rows.map(toEntry) });
@@ -43,9 +46,24 @@ export const POST = withApiAuth(
     if (Buffer.byteLength(body, "utf-8") > MAX_BODY_BYTES) {
       throw ApiError.badRequest(`Body too large (max ${MAX_BODY_BYTES.toLocaleString()} bytes).`);
     }
+    if (serviceId) {
+      const service = await prisma.service.findUnique({ where: { id: serviceId }, select: { id: true } });
+      if (!service) throw ApiError.badRequest("Unknown serviceId");
+    }
     const result = await createManualSource({ title: title.trim(), text: body, category, tier, serviceId, state });
-    logger.info("AI knowledge: manual source created", { sourceId: result.sourceId, actorId: session!.user.id });
-    return NextResponse.json({ id: result.sourceId, outcome: result.outcome }, { status: 201 });
+    if (result.outcome === "error") {
+      // The row exists (so the admin can retry via reindex) but nothing is
+      // searchable yet — say so instead of a silent 201.
+      logger.warn("AI knowledge: manual source created but not indexed", {
+        sourceId: result.sourceId, actorId: session!.user.id, err: result.error,
+      });
+    } else {
+      logger.info("AI knowledge: manual source created", { sourceId: result.sourceId, actorId: session!.user.id });
+    }
+    return NextResponse.json(
+      { id: result.sourceId, outcome: result.outcome, error: result.error ?? null },
+      { status: 201 },
+    );
   },
   { roles: [...ADMIN_ROLES] },
 );

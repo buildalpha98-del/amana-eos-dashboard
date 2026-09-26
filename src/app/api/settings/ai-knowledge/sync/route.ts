@@ -16,17 +16,20 @@ import { runAdapter, RUNNABLE_ADAPTERS } from "@/lib/knowledge/sync";
 export const maxDuration = 300;
 const schema = z.object({ adapter: z.enum(RUNNABLE_ADAPTERS) });
 
-/** Latest run per adapter (incl. the script-written `sharepoint` runs) — feeds the console's Last-sync panel. */
+/**
+ * Latest run per adapter (incl. the script-written `sharepoint` runs) — feeds
+ * the console's Last-sync panel. `distinct` + `orderBy` compiles to Postgres
+ * DISTINCT ON, which keeps the first (newest) row per adapter — a burst of
+ * backfill runs can't push another adapter off the panel.
+ */
 export const GET = withApiAuth(
   async () => {
     const runs = await prisma.knowledgeSyncRun.findMany({
+      distinct: ["adapter"],
       orderBy: { startedAt: "desc" },
-      take: 20,
       select: { id: true, adapter: true, startedAt: true, finishedAt: true, counts: true, details: true, error: true },
     });
-    const latestByAdapter = new Map<string, (typeof runs)[number]>();
-    for (const r of runs) if (!latestByAdapter.has(r.adapter)) latestByAdapter.set(r.adapter, r);
-    return NextResponse.json({ runs: [...latestByAdapter.values()] });
+    return NextResponse.json({ runs });
   },
   { roles: [...ADMIN_ROLES] },
 );
@@ -38,5 +41,7 @@ export const POST = withApiAuth(
     const run = await runAdapter(parsed.data.adapter, session!.user.id);
     return NextResponse.json(run);
   },
-  { roles: [...ADMIN_ROLES], rateLimit: { max: 5, windowMs: 60_000 } },
+  // withApiAuth races the handler against a 55s default — a few seconds under
+  // maxDuration so the wrapper, not the platform, reports the timeout.
+  { roles: [...ADMIN_ROLES], rateLimit: { max: 5, windowMs: 60_000 }, timeoutMs: 290_000 },
 );

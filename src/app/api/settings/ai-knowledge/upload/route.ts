@@ -11,10 +11,13 @@
  *      content type + size cap, mints a single-use upload token for
  *      the client.
  *   2. `onUploadCompleted` — receives a Vercel webhook AFTER the
- *      client has finished uploading to Blob. Creates the manual
- *      KnowledgeSource row pointing at the new blob URL and runs
- *      `extractText()` + `createManualSource()` to extract, chunk and
- *      index it.
+ *      client has finished uploading to Blob. For a single file it runs
+ *      `extractText()` + `createManualSource()` with the deterministic
+ *      `uploadExternalId(blob.url)` — the SAME id the client's follow-up
+ *      call to /register derives — so whichever of the two lands second
+ *      is a hash-fast-path "unchanged", never a duplicate. For a `.zip`
+ *      it is the ONLY ingest path: `processZipUpload` registers one
+ *      manual source per supported entry (register short-circuits zips).
  *
  * The client never POSTs the file bytes through this route, so we
  * can comfortably accept 50 MB+ files. The pattern is documented in
@@ -30,9 +33,9 @@
 import { NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { withApiAuth } from "@/lib/server-auth";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { extractText, extractTextFromBuffer } from "@/lib/document-indexer";
-import { createManualSource } from "@/lib/knowledge/adapters/manual";
+import { createManualSource, uploadExternalId } from "@/lib/knowledge/adapters/manual";
 import { logger } from "@/lib/logger";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 
@@ -74,10 +77,13 @@ export const maxDuration = 300;
 
 export const POST = withApiAuth(
   async (req, session) => {
-    const body = (await req.json().catch(() => null)) as HandleUploadBody | null;
-    if (!body) {
+    const raw = await parseJsonBody(req);
+    if (!raw || typeof raw !== "object") {
       throw ApiError.badRequest("Missing upload payload");
     }
+    // handleUpload validates the envelope's `type`/`payload` itself and
+    // throws on anything malformed — caught below and surfaced as a 400.
+    const body = raw as HandleUploadBody;
 
     try {
       const jsonResponse = await handleUpload({
@@ -146,6 +152,8 @@ export const POST = withApiAuth(
               title: meta.title || fileName,
               text,
               externalUrl: blob.url,
+              // Same id the client's /register call derives — see header.
+              externalId: uploadExternalId(blob.url),
             });
 
             logger.info("AI knowledge file uploaded + indexed", {
@@ -154,12 +162,13 @@ export const POST = withApiAuth(
               blobUrl: blob.url,
               contentType: blob.contentType,
               outcome: result.outcome,
+              uploadedById: meta.uploadedById,
             });
           } catch (err) {
             // onUploadCompleted runs as a webhook — if we throw here
-            // the upload still succeeded but the Document row never
-            // got created, leaving an orphan blob. Log loud so we can
-            // tell.
+            // the upload still succeeded but the KnowledgeSource row
+            // never got created, leaving an orphan blob. Log loud so
+            // we can tell.
             logger.error("AI knowledge: onUploadCompleted failed", {
               blobUrl: blob.url,
               err: err instanceof Error ? err.message : String(err),
@@ -181,7 +190,9 @@ export const POST = withApiAuth(
       throw ApiError.badRequest(message);
     }
   },
-  { roles: [...ADMIN_ROLES] },
+  // withApiAuth races the handler against a 55s default — a few seconds under
+  // maxDuration so the wrapper, not the platform, reports the timeout.
+  { roles: [...ADMIN_ROLES], timeoutMs: 290_000 },
 );
 
 /**
@@ -202,7 +213,7 @@ export const POST = withApiAuth(
  * one slow PDF doesn't block the rest. Errors per entry are caught
  * + logged so a single bad file doesn't drop the whole batch.
  */
-async function processZipUpload(zipUrl: string, _uploadedById: string | undefined) {
+async function processZipUpload(zipUrl: string, uploadedById: string | undefined) {
   const JSZip = (await import("jszip")).default;
   const buf = await fetch(zipUrl).then((r) => r.arrayBuffer());
   const zip = await JSZip.loadAsync(buf);
@@ -223,6 +234,7 @@ async function processZipUpload(zipUrl: string, _uploadedById: string | undefine
   logger.info("AI knowledge: unzipped", {
     zipUrl,
     entryCount: entries.length,
+    uploadedById,
   });
 
   // Concurrency cap — embedding API + DB writes shouldn't be fanned
