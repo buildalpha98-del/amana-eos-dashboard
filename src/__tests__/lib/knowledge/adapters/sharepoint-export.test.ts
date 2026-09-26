@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import path from "node:path";
+import os from "node:os";
+import { promises as fs } from "node:fs";
 import { prismaMock } from "../../../helpers/prisma-mock";
 import type { UpsertResult } from "@/lib/knowledge/types";
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
@@ -21,6 +23,10 @@ import { classifyPath, matchServiceByFolder, parseExportFile, importExportDir, l
 const FIX = path.join(process.cwd(), "src/__tests__/fixtures/knowledge-export");
 // 8 fixture files: 7 importable (3 Bushfire copies, Rest Time V2 + V3, OPS-10, toilet) + 1 under AUDIT.
 const FIXTURE_IMPORTABLE = 7;
+const CLEAN_COUNTS = { imported: FIXTURE_IMPORTABLE, unchanged: 0, superseded: 0, conflicts: 1, unmapped: 0, skipped: 1, errors: 0, removed: 0 };
+/** The after-walk sweep: every stored SharePoint row whose id is NOT in the export is adapter-excluded. */
+const isSweep = (where: Record<string, unknown>) =>
+  where.sourceKind === "sharepoint" && typeof where.externalId === "object" && where.externalId !== null && "notIn" in where.externalId;
 
 describe("classifyPath", () => {
   it("maps each tree to category + scope", () => {
@@ -149,12 +155,12 @@ describe("importExportDir", () => {
     upsert.mockImplementation(upsertCreated);
     prismaMock.service.findMany.mockResolvedValue([{ id: "s1", name: "Amana OSHC Minaret Doveton" }]);
     prismaMock.knowledgeSource.findMany.mockResolvedValue([]);
-    prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.knowledgeSource.updateMany.mockResolvedValue({ count: 0 });
   });
 
   it("imports the fixture tree with dedupe, conflict and skip outcomes", async () => {
     const report = await importExportDir(FIX);
-    expect(report.counts).toEqual({ imported: FIXTURE_IMPORTABLE, unchanged: 0, superseded: 0, conflicts: 1, unmapped: 0, skipped: 1, errors: 0 });
+    expect(report.counts).toEqual(CLEAN_COUNTS);
     expect(upsert).toHaveBeenCalledTimes(FIXTURE_IMPORTABLE);
     const inputs = upsert.mock.calls.map((c) => c[0] as Record<string, unknown>);
     const rest3 = inputs.find((i) => String(i.title).includes("V3"));
@@ -167,10 +173,61 @@ describe("importExportDir", () => {
     expect(report.files.find((f) => f.path.includes("toilet"))).toMatchObject({ tree: "centre", category: "procedure", serviceId: "s1", serviceName: "Amana OSHC Minaret Doveton" });
     expect(report.skipped[0].path).toContain("Amana OSHC AUDIT");
     expect(report.warnings).toEqual([]);
-    // Nothing was excluded: every non-skipped file mapped cleanly
-    expect(prismaMock.knowledgeSource.updateMany).not.toHaveBeenCalled();
+    // No per-file exclusion (every centre folder mapped) — the ONLY updateMany is the after-walk
+    // sweep, scoped to sharepoint rows whose id is not among the 7 imported (active rows only).
+    expect(prismaMock.knowledgeSource.updateMany).toHaveBeenCalledTimes(1);
+    const sweep = prismaMock.knowledgeSource.updateMany.mock.calls[0][0];
+    expect(sweep.data).toEqual({ status: "excluded", excludedBy: "adapter" });
+    expect(sweep.where.status).toBe("active");
+    expect(sweep.where.sourceKind).toBe("sharepoint");
+    expect(sweep.where.externalId.notIn).toHaveLength(FIXTURE_IMPORTABLE);
+    expect(sweep.where.externalId.notIn).toEqual(upsert.mock.calls.map((c) => c[0].externalId));
     // Frontmatter paths match the on-disk paths, so no drift warning
     expect(loggerMock.warn).not.toHaveBeenCalled();
+  });
+
+  it("retires documents deleted in SharePoint: the sweep's count is reported as `removed` and its groups are re-superseded", async () => {
+    const goneKey = { normalizedTitle: "old sun policy", state: "VIC", serviceId: null };
+    prismaMock.knowledgeSource.findMany.mockImplementation(async ({ where }: { where: Record<string, unknown> }) => {
+      if (isSweep(where)) return [goneKey]; // excludeSources' pre-flip key read
+      if (where.normalizedTitle === goneKey.normalizedTitle) {
+        return [{ id: "gone-v1", version: 1, status: "superseded", sourceKind: "sharepoint", updatedAt: new Date("2026-01-01") }];
+      }
+      return [];
+    });
+    prismaMock.knowledgeSource.updateMany.mockImplementation(async ({ where }: { where: Record<string, unknown> }) =>
+      isSweep(where) ? { count: 1 } : { count: 0 },
+    );
+    const report = await importExportDir(FIX);
+    expect(report.counts.removed).toBe(1);
+    // The sibling the departed row had beaten comes back as its group's active winner.
+    expect(prismaMock.knowledgeSource.update).toHaveBeenCalledWith({
+      where: { id: "gone-v1" }, data: { status: "active", supersededById: null },
+    });
+  });
+
+  it("a file that failed to index is still 'seen' — it is in SharePoint, so the sweep must not retire its row", async () => {
+    upsert.mockImplementation(async (i) =>
+      i.externalId.endsWith("05")
+        ? { sourceId: `src-${i.externalId}`, outcome: "error", error: "embed failed" }
+        : { sourceId: `src-${i.externalId}`, outcome: "created" },
+    );
+    await importExportDir(FIX);
+    const sweep = prismaMock.knowledgeSource.updateMany.mock.calls.find((c: [{ where: Record<string, unknown> }]) => isSweep(c[0].where))!;
+    expect(sweep[0].where.externalId.notIn).toEqual(expect.arrayContaining([expect.stringMatching(/05$/)]));
+    expect(sweep[0].where.externalId.notIn).toHaveLength(FIXTURE_IMPORTABLE);
+  });
+
+  it("an export with NO importable files skips the sweep with a warning — a wrong --from must not blank the library", async () => {
+    const empty = await fs.mkdtemp(path.join(os.tmpdir(), "knowledge-export-empty-"));
+    try {
+      const report = await importExportDir(empty);
+      expect(report.counts).toEqual({ ...CLEAN_COUNTS, imported: 0, conflicts: 0, skipped: 0 });
+      expect(prismaMock.knowledgeSource.updateMany).not.toHaveBeenCalled();
+      expect(report.warnings).toEqual(["No importable files in the export — skipped retiring documents missing from it."]);
+    } finally {
+      await fs.rm(empty, { recursive: true, force: true });
+    }
   });
 
   it("reports ONE conflict per key listing every copy when three copies differ", async () => {
@@ -204,11 +261,13 @@ describe("importExportDir", () => {
     const report = await importExportDir(FIX);
     expect(report.counts.unmapped).toBe(1);
     expect(report.unmapped[0]).toMatchObject({ centreFolder: "Amana OSHC - Minaret Doveton" });
-    expect(prismaMock.knowledgeSource.updateMany).toHaveBeenCalledTimes(1);
-    expect(prismaMock.knowledgeSource.updateMany).toHaveBeenCalledWith({
+    // The per-row exclusion during the walk, then the after-walk sweep.
+    expect(prismaMock.knowledgeSource.updateMany).toHaveBeenCalledTimes(2);
+    expect(prismaMock.knowledgeSource.updateMany).toHaveBeenNthCalledWith(1, {
       where: { id: unmappedId, status: "active" },
       data: { status: "excluded", excludedBy: "adapter" },
     });
+    expect(isSweep(prismaMock.knowledgeSource.updateMany.mock.calls[1][0].where)).toBe(true);
     // After the flip, supersession is re-run for the null-service key the excluded row belonged to...
     const passIdx = prismaMock.knowledgeSource.findMany.mock.calls.findIndex(
       (c: [{ where: Record<string, unknown> }]) => c[0].where.normalizedTitle === orgWideKey.normalizedTitle,
@@ -241,7 +300,9 @@ describe("importExportDir", () => {
   });
 
   it("reports the store-wide superseded total after the run", async () => {
-    prismaMock.knowledgeSource.findMany.mockResolvedValue([{ id: "a" }, { id: "b" }]);
+    prismaMock.knowledgeSource.findMany.mockImplementation(async ({ where }: { where: Record<string, unknown> }) =>
+      where.status === "superseded" ? [{ id: "a" }, { id: "b" }] : [],
+    );
     const report = await importExportDir(FIX);
     expect(report.counts.superseded).toBe(2);
     expect(prismaMock.knowledgeSource.findMany).toHaveBeenCalledWith(
@@ -260,7 +321,7 @@ describe("importExportDir", () => {
     it("computes the same tally, conflicts and unmapped with NO upsert, exclusion or superseded query", async () => {
       prismaMock.service.findMany.mockResolvedValue([]);
       const report = await importExportDir(FIX, { dry: true });
-      expect(report.counts).toEqual({ imported: FIXTURE_IMPORTABLE, unchanged: 0, superseded: 0, conflicts: 1, unmapped: 1, skipped: 1, errors: 0 });
+      expect(report.counts).toEqual({ ...CLEAN_COUNTS, unmapped: 1 });
       expect(report.files).toHaveLength(FIXTURE_IMPORTABLE);
       expect(report.conflicts[0].paths).toHaveLength(3);
       expect(report.unmapped[0]).toMatchObject({ centreFolder: "Amana OSHC - Minaret Doveton" });

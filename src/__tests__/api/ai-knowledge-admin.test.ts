@@ -337,10 +337,24 @@ describe("/api/settings/ai-knowledge", () => {
 
   it("POST /sync runs a runnable adapter and rejects others", async () => {
     asOwner();
+    prismaMock.knowledgeSyncRun.findFirst.mockResolvedValue(null);
     expect((await SYNC(createRequest("POST", "/x", { body: { adapter: "sharepoint" } }))).status).toBe(400);
     const res = await SYNC(createRequest("POST", "/x", { body: { adapter: "backfill" } }));
     expect(res.status).toBe(200);
     expect(runAdapter).toHaveBeenCalledWith("backfill", "u");
+    // The open-run check is per adapter and ignores runs older than an hour (janitor closes those).
+    const where = prismaMock.knowledgeSyncRun.findFirst.mock.calls[0][0].where;
+    expect(where).toMatchObject({ adapter: "backfill", finishedAt: null });
+    expect(Date.now() - where.startedAt.gt.getTime()).toBeGreaterThanOrEqual(60 * 60 * 1000 - 1000);
+  });
+
+  it("POST /sync 409s while a run for that adapter is still open (concurrent clicks) and never starts a second one", async () => {
+    asOwner();
+    prismaMock.knowledgeSyncRun.findFirst.mockResolvedValue({ id: "open1", startedAt: new Date("2026-09-27T01:00:00Z") });
+    const res = await SYNC(createRequest("POST", "/x", { body: { adapter: "regulator" } }));
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toMatch(/regulator sync started at 2026-09-27T01:00:00\.000Z is still running/);
+    expect(runAdapter).not.toHaveBeenCalled();
   });
 
   it("GET /sync dedupes to the newest run per adapter (Prisma distinct, pruned by the janitor) rather than trimming a recent-N slice", async () => {

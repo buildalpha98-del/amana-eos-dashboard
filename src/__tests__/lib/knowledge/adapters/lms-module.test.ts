@@ -26,6 +26,8 @@ describe("lms_module adapter", () => {
       sourceKind: "lms_module", externalId: "c1:m1", title: "Child Protection — Reading", category: "guide",
       externalUrl: "/my-training", serviceId: null,
     });
+    // No forced tier: inferTier reads the title, so "Child Protection — Reading" lands safety_critical.
+    expect(upsert.mock.calls[0][0]).not.toHaveProperty("tier");
     // everything under this course that was NOT just indexed (quiz, empty, and any DELETED module) → adapter-excluded
     expect(exclude).toHaveBeenCalledWith(
       { sourceKind: "lms_module", externalId: { startsWith: "c1:", notIn: ["c1:m1"] } },

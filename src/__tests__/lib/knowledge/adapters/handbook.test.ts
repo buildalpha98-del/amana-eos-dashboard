@@ -25,5 +25,7 @@ describe("syncHandbook", () => {
     expect(amanaWay.text).toContain("mission: Custom mission");
     expect(amanaWay.category).toBe("guide");
     expect(amanaWay.sourceKind).toBe("handbook");
+    // No forced tier — the heuristic column is always inferTier's.
+    for (const c of upsert.mock.calls) expect(c[0]).not.toHaveProperty("tier");
   });
 });

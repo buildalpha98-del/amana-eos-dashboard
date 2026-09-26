@@ -43,7 +43,6 @@ export async function syncHandbook(): Promise<UpsertResult[]> {
         externalId: id,
         title: seed.title,
         category: "guide",
-        tier: "general",
         text: seed.body + (overrides[id] ?? ""),
         externalUrl: id === "employee-handbook" ? "/handbook" : id === "the-amana-way" ? "/amana-way" : null,
       }),

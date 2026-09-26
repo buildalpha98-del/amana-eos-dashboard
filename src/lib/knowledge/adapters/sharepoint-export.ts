@@ -126,17 +126,18 @@ export async function listExportFiles(dir: string): Promise<string[]> {
 export interface ImportReport {
   /**
    * `superseded` is the store-wide total after the run, not a per-run delta
-   * (0 in dry mode — nothing was written). In dry mode `imported` counts
-   * "would import".
+   * (0 in dry mode — nothing was written). `removed` = stored SharePoint
+   * rows adapter-excluded because their id was not in this export (0 in dry
+   * mode). In dry mode `imported` counts "would import".
    */
-  counts: { imported: number; unchanged: number; superseded: number; conflicts: number; unmapped: number; skipped: number; errors: number };
+  counts: { imported: number; unchanged: number; superseded: number; conflicts: number; unmapped: number; skipped: number; errors: number; removed: number };
   /** Every non-skipped file that parsed, in walk order — the dry-run eyeball list. */
   files: { path: string; tree: NonNullable<PathClass["tree"]>; category: KnowledgeCategory; serviceId: string | null; serviceName: string | null }[];
   conflicts: { normalizedTitle: string; state: string | null; version: number | null; paths: string[] }[];
   unmapped: { path: string; centreFolder: string }[];
   skipped: { path: string; reason: string }[];
   errors: { path: string; error: string }[];
-  /** Dry-mode degradations the operator must read (e.g. the Service lookup failed). */
+  /** Degradations the operator must read (the Service lookup failed in dry mode; an empty export skipped the removed sweep). */
   warnings: string[];
 }
 
@@ -163,7 +164,7 @@ function briefError(err: unknown): string {
 export async function importExportDir(dir: string, opts: ImportOptions = {}): Promise<ImportReport> {
   const dry = opts.dry === true;
   const report: ImportReport = {
-    counts: { imported: 0, unchanged: 0, superseded: 0, conflicts: 0, unmapped: 0, skipped: 0, errors: 0 },
+    counts: { imported: 0, unchanged: 0, superseded: 0, conflicts: 0, unmapped: 0, skipped: 0, errors: 0, removed: 0 },
     files: [], conflicts: [], unmapped: [], skipped: [], errors: [], warnings: [],
   };
   let services: { id: string; name: string }[] = [];
@@ -185,6 +186,13 @@ export async function importExportDir(dir: string, opts: ImportOptions = {}): Pr
   // three, not one per extra copy.
   const byKey = new Map<string, { normalizedTitle: string; state: string | null; version: number | null; hashes: Map<string, string[]> }>();
 
+  // Every SharePoint item id the export still carries — after the walk,
+  // stored rows NOT in this set are documents deleted (or moved out of the
+  // imported trees) in SharePoint and are adapter-excluded, the same way
+  // the regulator / help-article adapters retire sources that left their
+  // list. An id is "seen" once it reached the upsert, whatever the outcome:
+  // a file that failed to index this run is still in SharePoint.
+  const seenIds: string[] = [];
   let done = 0;
   for (const full of files) {
     const rel = path.relative(dir, full).replace(/\\/g, "/").replace(/\.md$/, "");
@@ -219,6 +227,7 @@ export async function importExportDir(dir: string, opts: ImportOptions = {}): Pr
 
       if (dry) { report.counts.imported++; continue; }
 
+      seenIds.push(f.id);
       const res = await upsertKnowledgeSource({
         sourceKind: "sharepoint",
         externalId: f.id,
@@ -263,10 +272,23 @@ export async function importExportDir(dir: string, opts: ImportOptions = {}): Pr
     report.counts.conflicts++;
   }
 
-  // Total superseded SharePoint sources after this run (not "this run only" —
-  // supersession happens inside upsertKnowledgeSource per key; the V2-vs-V3
-  // and unchanged-hash behaviours are covered by the pipeline tests).
   if (!dry) {
+    // Retire what SharePoint no longer has. Guarded against an EMPTY walk: a
+    // wrong `--from` directory must not exclude the entire SharePoint library
+    // (an adapter exclusion is undone by the next real import, but the AI
+    // would be dark meanwhile). A partial export is the dry run's job.
+    if (seenIds.length > 0) {
+      report.counts.removed = await excludeSources(
+        { sourceKind: "sharepoint", externalId: { notIn: seenIds } },
+        "adapter",
+      );
+    } else {
+      report.warnings.push("No importable files in the export — skipped retiring documents missing from it.");
+      logger.warn("Knowledge: export import saw no importable files — removed-documents sweep skipped", { dir });
+    }
+    // Total superseded SharePoint sources after this run (not "this run only" —
+    // supersession happens inside upsertKnowledgeSource per key; the V2-vs-V3
+    // and unchanged-hash behaviours are covered by the pipeline tests).
     const superseded = await prisma.knowledgeSource.findMany({ where: { sourceKind: "sharepoint", status: "superseded" }, select: { id: true } });
     report.counts.superseded = superseded.length;
   }

@@ -30,6 +30,48 @@ describe("policy_upload adapter", () => {
     });
   });
 
+  it("bounds the Blob fetch with a 30 s timeout signal", async () => {
+    await syncPolicyVersion("v1");
+    const [url, init] = (global.fetch as unknown as { mock: { calls: [string, RequestInit][] } }).mock.calls[0];
+    expect(url).toBe("https://blob/x.pdf");
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("a fetch that throws (timeout / socket reset) fails THIS policy, never the whole backfill", async () => {
+    global.fetch = vi.fn(async () => { throw new DOMException("The operation was aborted due to timeout", "TimeoutError"); }) as unknown as typeof fetch;
+    const result = await syncPolicyVersion("v1");
+    expect(result).toEqual({
+      sourceId: "",
+      outcome: "error",
+      error: "download failed: The operation was aborted due to timeout — QA2 Medical Conditions Policy (version 4)",
+    });
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it("refuses a PDF whose declared Content-Length exceeds the cap without reading the body", async () => {
+    const arrayBuffer = vi.fn();
+    global.fetch = vi.fn(async () => ({
+      ok: true, status: 200,
+      headers: new Headers({ "content-length": String(26 * 1024 * 1024) }),
+      arrayBuffer,
+    })) as unknown as typeof fetch;
+    const result = await syncPolicyVersion("v1");
+    expect(result).toMatchObject({ outcome: "error", error: expect.stringMatching(/^too large \(declared 27262976 bytes\)/) });
+    expect(arrayBuffer).not.toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it("refuses a body that turns out larger than the cap when Content-Length was missing", async () => {
+    global.fetch = vi.fn(async () => ({
+      ok: true, status: 200,
+      headers: new Headers(),
+      arrayBuffer: async () => new ArrayBuffer(25 * 1024 * 1024 + 1),
+    })) as unknown as typeof fetch;
+    const result = await syncPolicyVersion("v1");
+    expect(result).toMatchObject({ outcome: "error", error: expect.stringMatching(/^too large \(26214401 bytes\)/) });
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
   it("download failure returns an identifiable error (title + version)", async () => {
     global.fetch = vi.fn(async () => new Response(null, { status: 500 })) as unknown as typeof fetch;
     const result = await syncPolicyVersion("v1");

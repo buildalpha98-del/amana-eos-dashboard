@@ -29,7 +29,7 @@ describe("centre_facts adapter", () => {
     expect(md).not.toContain("PARENT COPY");
   });
 
-  it("upserts scoped to the service with its canonical state", async () => {
+  it("upserts scoped to the service with its canonical state and an EXPLICIT general tier (a fact sheet is never a procedure)", async () => {
     await syncCentreFacts("svc1");
     expect(upsert.mock.calls[0][0]).toMatchObject({
       sourceKind: "centre_facts", externalId: "service:svc1", serviceId: "svc1",

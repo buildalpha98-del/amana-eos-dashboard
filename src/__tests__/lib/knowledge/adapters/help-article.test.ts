@@ -19,8 +19,10 @@ describe("syncHelpArticles", () => {
     const input = upsert.mock.calls[0][0] as Record<string, unknown>;
     expect(input).toMatchObject({
       sourceKind: "help_article", externalId: "a1", category: "guide",
-      audienceRoles: ["staff"], externalUrl: "/help", tier: "general",
+      audienceRoles: ["staff"], externalUrl: "/help",
     });
+    // No forced tier: the pipeline's inferTier reads the title ("Medication …" → safety_critical).
+    expect(input).not.toHaveProperty("tier");
     // unpublished/deleted articles are adapter-excluded (re-activated by upsert if republished)
     expect(exclude).toHaveBeenCalledWith(
       { sourceKind: "help_article", externalId: { notIn: ["a1"] } },

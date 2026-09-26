@@ -101,8 +101,10 @@ export interface SyncRunSummary {
   details: {
     conflicts?: { normalizedTitle: string; state: string | null; version: number | null; paths: string[] }[];
     unmapped?: { path: string; centreFolder: string }[];
-    errors?: { path?: string; sourceId?: string; error: string }[];
+    errors?: { path?: string; sourceId?: string; error?: string }[];
     fetchErrors?: { id: string; error: string }[];
+    /** backfill only: pending policy PDFs not reached by this run's batch of 25. */
+    policiesRemaining?: number;
   };
   error: string | null;
 }

@@ -41,7 +41,6 @@ export async function syncLmsCourse(courseId: string): Promise<UpsertResult[]> {
         externalId,
         title: `${course.title} — ${m.title}`,
         category: "guide",
-        tier: "general",
         text: `# ${course.title} — ${m.title}\n\n${m.content}`,
         externalUrl: "/my-training",
         serviceId: course.serviceId ?? null,

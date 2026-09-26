@@ -20,7 +20,6 @@ export async function syncHelpArticles(): Promise<UpsertResult[]> {
         externalId: a.id,
         title: a.title,
         category: "guide",
-        tier: "general",
         text: `# ${a.title}\n\n${a.body}`,
         externalUrl: "/help",
         audienceRoles: a.audienceRoles,

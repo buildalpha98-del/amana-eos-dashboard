@@ -28,6 +28,11 @@ import { sendMeetingDigestSafe } from "@/lib/meeting-digest";
  * (f) KnowledgeSyncRun retention: the AI-knowledge console only shows the
  *     latest run per adapter, and Prisma's `distinct` dedupes in memory, so
  *     the table must stay small — runs older than 90 days are deleted.
+ * (g) Orphaned KnowledgeSyncRun rows: `runAdapter` finalises every run it
+ *     can, but a platform timeout kills the process before its catch — the
+ *     row stays open forever, the console shows "running…" and the sync
+ *     route's concurrency guard 409s for an hour. Runs still open after 1h
+ *     are closed with `error: "timed out"`.
  *
  * Idempotent: `acquireCronLock("email-janitor", "daily")` guards double-runs,
  * and every sweep is safe to repeat (deleteBrevoList treats 404 as success).
@@ -275,6 +280,12 @@ export const GET = withApiHandler(async (req) => {
       where: { startedAt: { lt: new Date(now - SYNC_RUN_RETENTION_DAYS * DAY_MS) } },
     });
 
+    // ── (g) Orphaned KnowledgeSyncRun rows → "timed out" ──────────
+    const { count: syncRunsTimedOut } = await prisma.knowledgeSyncRun.updateMany({
+      where: { finishedAt: null, startedAt: { lt: new Date(now - HOUR_MS) } },
+      data: { finishedAt: new Date(now), error: "timed out" },
+    });
+
     await guard.complete({
       stranded,
       trackedCleaned,
@@ -284,6 +295,7 @@ export const GET = withApiHandler(async (req) => {
       reviewsRetried,
       audioSwept,
       syncRunsPruned,
+      syncRunsTimedOut,
     });
     return NextResponse.json({
       ok: true,
@@ -295,6 +307,7 @@ export const GET = withApiHandler(async (req) => {
       reviewsRetried,
       audioSwept,
       syncRunsPruned,
+      syncRunsTimedOut,
     });
   } catch (err) {
     await guard.fail(err);

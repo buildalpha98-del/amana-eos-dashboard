@@ -85,21 +85,17 @@ export async function upsertKnowledgeSource(
     : null;
   const keyChanged = oldKey !== null && !sameKey(oldKey, newKey);
 
-  // "Current" = the stored text is this text AND the last index of it
-  // succeeded (`indexedAt` set, no `indexError`) AND it is embedded — or
-  // there is no embeddings key, in which case a keyword-only row is as good
-  // as it can get and must NOT be re-chunked on every sync. A matching hash
-  // with `indexedAt: null` means the pre-index write landed but the index
-  // never finished (crash, timeout) — re-running would otherwise report
-  // "unchanged" forever and leave the chunks stale/absent.
+  // "Current" = the stored text is this text AND the row does not need an
+  // index pass (see sourceNeedsIndex). A matching hash with `indexedAt:
+  // null` means the pre-index write landed but the index never finished
+  // (crash, timeout) — re-running would otherwise report "unchanged"
+  // forever and leave the chunks stale/absent.
   const current =
     existing !== null &&
     existing.contentHash === contentHash &&
-    existing.indexedAt != null &&
-    existing.indexError == null &&
     // Legacy rows from before `text` was persisted: re-index so the column is populated.
     existing.text !== "" &&
-    (existing.embedded || !isEmbeddingsConfigured());
+    !sourceNeedsIndex(existing);
   if (existing && current) {
     // hashContent() covers the TEXT only — a rename with identical text
     // must still land title/normalizedTitle (+ the title-derived fields)
@@ -157,6 +153,23 @@ export async function upsertKnowledgeSource(
   await applySupersession(newKey);
 
   return { sourceId: row.id, outcome: existing ? "updated" : "created" };
+}
+
+/**
+ * Does this row need an index pass regardless of its content? True when
+ * the last index never finished or failed (`indexedAt` null / `indexError`
+ * set) or when it is keyword-only AND an embeddings key now exists. A
+ * keyword-only row with NO key is as good as it can get and must not be
+ * re-chunked on every sync. Shared by the upsert fast-path and the backfill
+ * adapter's policy batching so the two can never disagree.
+ */
+export function sourceNeedsIndex(row: {
+  indexedAt: Date | null;
+  indexError: string | null;
+  embedded: boolean;
+}): boolean {
+  if (row.indexedAt == null || row.indexError != null) return true;
+  return !row.embedded && isEmbeddingsConfigured();
 }
 
 interface SupersessionKey {

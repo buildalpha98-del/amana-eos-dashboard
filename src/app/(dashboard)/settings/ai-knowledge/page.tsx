@@ -299,8 +299,10 @@ export default function AiKnowledgePage() {
       toast({ variant: "destructive", description: err.message || "Re-index failed" }),
   });
 
-  // Server-runnable adapters. `backfill` walks every dashboard-owned source;
-  // `regulator` re-fetches the ACECQA / state-regulator reference pages.
+  // Server-runnable adapters. `backfill` walks every dashboard-owned source
+  // (policy PDFs in batches of 25 — the toast says when to run it again);
+  // `regulator` re-fetches the curated state-regulator / federal reference
+  // pages (ACECQA is excluded — Cloudflare challenge; its PDFs are uploaded).
   const sync = useMutation({
     mutationFn: (adapter: "backfill" | "regulator") =>
       mutateApi<SyncRunSummary>("/api/settings/ai-knowledge/sync", {
@@ -311,10 +313,13 @@ export default function AiKnowledgePage() {
       qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
       qc.invalidateQueries({ queryKey: ["ai-knowledge-sync-runs"] });
       const c = run.counts ?? {};
+      const tally = `${c.created ?? 0} new, ${c.updated ?? 0} updated, ${c.unchanged ?? 0} unchanged, ${c.errors ?? 0} errors`;
+      const remaining = run.details?.policiesRemaining ?? 0;
+      const again = remaining > 0 ? ` ${remaining} polic${remaining === 1 ? "y" : "ies"} remaining — run Sync again.` : "";
       toast({
         description: run.error
-          ? `Sync failed: ${run.error}`
-          : `Sync done — ${c.created ?? 0} new, ${c.updated ?? 0} updated, ${c.unchanged ?? 0} unchanged, ${c.errors ?? 0} errors.`,
+          ? `Sync finished with errors — ${run.error} (${tally}; see Last sync).${again}`
+          : `Sync done — ${tally}.${again}`,
         ...(run.error ? { variant: "destructive" as const } : {}),
       });
     },
@@ -521,7 +526,7 @@ export default function AiKnowledgePage() {
           loading={syncingRegulator}
           disabled={sync.isPending}
           iconLeft={<Globe className="w-4 h-4" />}
-          title="Re-fetch the regulator reference pages (ACECQA, state regulators)"
+          title="Re-fetch the curated regulator reference pages (state regulators, federal bodies — ACECQA is excluded; upload its PDFs)"
         >
           {syncingRegulator ? "Refreshing…" : "Refresh regulator refs"}
         </Button>

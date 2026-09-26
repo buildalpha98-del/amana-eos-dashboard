@@ -2,6 +2,15 @@
  * Run a server-side adapter under a KnowledgeSyncRun row. The SharePoint
  * adapter is NOT runnable here in slice 1 (local export only — spec §5.1);
  * slice 2b adds it once Graph app-only access exists.
+ *
+ * `run.error` is set whenever ANY source failed (`counts.errors > 0`, which
+ * for the regulator includes per-URL fetch errors) — "3 sources failed" —
+ * so the monthly cron fails its CronRun and the console's Last-sync panel
+ * shows the same thing; the per-source detail is in `details.errors` /
+ * `details.fetchErrors`. A thrown adapter sets `error` to the message. The
+ * row is finalised (`finishedAt`) on every path this function controls; a
+ * platform timeout that kills the process cannot reach the catch, which is
+ * why email-janitor closes runs still open after an hour as "timed out".
  */
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -37,12 +46,13 @@ export async function runAdapter(adapter: RunnableAdapter, startedById: string |
     let counts: SyncCounts;
     let details: Record<string, unknown>;
     if (adapter === "backfill") {
-      const r = await runBackfill();
-      const all = [...r.handbook, ...r.helpArticles, ...r.centreFacts, ...r.lmsCourses, ...r.policies];
+      const { policiesRemaining, ...perAdapter } = await runBackfill();
+      const all = Object.values(perAdapter).flat();
       counts = countOutcomes(all);
       details = {
-        perAdapter: Object.fromEntries(Object.entries(r).map(([k, v]) => [k, countOutcomes(v)])),
+        perAdapter: Object.fromEntries(Object.entries(perAdapter).map(([k, v]) => [k, countOutcomes(v)])),
         errors: all.filter((x) => x.outcome === "error").map((x) => ({ sourceId: x.sourceId, error: x.error })),
+        policiesRemaining,
       };
     } else {
       const r = await syncRegulator();
@@ -50,12 +60,14 @@ export async function runAdapter(adapter: RunnableAdapter, startedById: string |
       counts.errors += r.errors.length;
       details = { fetchErrors: r.errors };
     }
+    const error = counts.errors > 0 ? `${counts.errors} source${counts.errors === 1 ? "" : "s"} failed` : null;
     return prisma.knowledgeSyncRun.update({
       where: { id: run.id },
       data: {
         finishedAt: new Date(),
         counts: counts as Prisma.InputJsonValue,
         details: details as Prisma.InputJsonValue,
+        error,
       },
     });
   } catch (err) {

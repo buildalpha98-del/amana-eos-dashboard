@@ -29,6 +29,9 @@ export function LastSyncPanel() {
       {runs.map((r) => {
         const conflicts = r.details?.conflicts ?? [];
         const unmapped = r.details?.unmapped ?? [];
+        const fetchErrors = r.details?.fetchErrors ?? [];
+        const errors = r.details?.errors ?? [];
+        const remaining = r.details?.policiesRemaining ?? 0;
         return (
           <div key={r.id} className="text-xs">
             <div className="flex flex-wrap gap-x-3 text-muted">
@@ -41,7 +44,40 @@ export function LastSyncPanel() {
                 </span>
               ))}
               {r.error && <span className="text-danger">{r.error}</span>}
+              {remaining > 0 && (
+                <span className="text-warning">{remaining} policies remaining — run Sync again</span>
+              )}
             </div>
+            {fetchErrors.length > 0 && (
+              <details className="mt-1">
+                <summary className="cursor-pointer text-danger">
+                  {fetchErrors.length} source{fetchErrors.length === 1 ? "" : "s"} failed to fetch
+                </summary>
+                <ul className="mt-1 text-muted">
+                  {fetchErrors.map((f) => (
+                    <li key={f.id}>
+                      <span className="font-medium text-foreground">{f.id}</span> — {f.error}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+            {errors.length > 0 && (
+              <details className="mt-1">
+                <summary className="cursor-pointer text-danger">
+                  {errors.length} source{errors.length === 1 ? "" : "s"} failed to index
+                </summary>
+                <ul className="mt-1 text-muted">
+                  {errors.map((e, i) => (
+                    <li key={e.path ?? e.sourceId ?? i}>
+                      <span className="font-medium text-foreground">{e.path ?? e.sourceId ?? "(unknown)"}</span>
+                      {" — "}
+                      {e.error ?? "unknown error"}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
             {conflicts.length > 0 && (
               <details className="mt-1">
                 <summary className="cursor-pointer text-amber-800 dark:text-amber-200">

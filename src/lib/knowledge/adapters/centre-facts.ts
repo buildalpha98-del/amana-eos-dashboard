@@ -51,6 +51,7 @@ export async function syncCentreFacts(serviceId: string): Promise<UpsertResult |
     externalId: `service:${s.id}`,
     title: `${s.name} — centre facts`,
     category: "centre",
+    // Explicit: a fact sheet is never a procedure, whatever its centre is called ("… Emergency Services Primary").
     tier: "general",
     text: renderCentreFacts(s),
     serviceId: s.id,
