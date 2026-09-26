@@ -178,15 +178,29 @@ export function mergeServiceContent(
   };
 }
 
-export type ParentServiceContent = Omit<ServiceContent, "staffNotes">;
+/**
+ * Fields that must never reach a parent-facing surface. The single source
+ * of truth `toParentContent` strips from — add a new staff-only field HERE
+ * and it is removed everywhere that function is called, with no per-caller
+ * omit to forget.
+ */
+export const STAFF_ONLY_FIELDS = ["staffNotes"] as const;
+
+export type ParentServiceContent = Omit<
+  ServiceContent,
+  (typeof STAFF_ONLY_FIELDS)[number]
+>;
 
 /**
- * The parent-portal view of a centre's content. `staffNotes` (gate/alarm
- * codes, evacuation points) is staff-only and is removed HERE, not by
- * convention at the call site. Any future staff-only field joins this omit.
+ * The parent-portal view of a centre's content. Fields in
+ * `STAFF_ONLY_FIELDS` (gate/alarm codes, evacuation points, …) are
+ * staff-only and are removed HERE, not by convention at the call site.
+ * Any future staff-only field joins that list.
  */
 export function toParentContent(content: ServiceContent): ParentServiceContent {
-  const { staffNotes: _staffOnly, ...parent } = content;
-  void _staffOnly;
-  return parent;
+  const parent: Partial<ServiceContent> = { ...content };
+  for (const key of STAFF_ONLY_FIELDS) {
+    delete parent[key];
+  }
+  return parent as ParentServiceContent;
 }

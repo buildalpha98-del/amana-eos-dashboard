@@ -10,8 +10,33 @@ import {
   mergeServiceContent,
   serviceContentSchema,
   SERVICE_CONTENT_DEFAULTS,
+  STAFF_ONLY_FIELDS,
   toParentContent,
 } from "@/lib/service-content-shared";
+
+/**
+ * Literal, not derived from SERVICE_CONTENT_DEFAULTS — a schema field added
+ * without updating this list (and STAFF_ONLY_FIELDS, if staff-only) must
+ * fail this test rather than silently passing because both sides moved
+ * together.
+ */
+const PARENT_VISIBLE_FIELDS = [
+  "about",
+  "tagline",
+  "heroImage",
+  "contacts",
+  "dailyRoutine",
+  "foodProvider",
+  "parentOnboarding",
+  "locationWithinSchool",
+  "meetingPoints",
+  "vision",
+  "serviceMapUrl",
+  "serviceMapName",
+  "policyDocumentIds",
+  "enrolmentThankYou",
+  "sharepointUrl",
+].sort();
 
 describe("service content — the My Centre fields", () => {
   it("defaults every new field so an unedited centre still renders", () => {
@@ -138,10 +163,10 @@ describe("service content staffNotes", () => {
   it("toParentContent strips staffNotes and nothing else", () => {
     const merged = mergeServiceContent({ ...SERVICE_CONTENT_DEFAULTS, about: "Hi", staffNotes: "Gate 1234" });
     const parent = toParentContent(merged);
-    expect("staffNotes" in parent).toBe(false);
     expect(parent.about).toBe("Hi");
-    expect(Object.keys(parent).sort()).toEqual(
-      Object.keys(SERVICE_CONTENT_DEFAULTS).filter((k) => k !== "staffNotes").sort(),
-    );
+    expect(Object.keys(parent).sort()).toEqual(PARENT_VISIBLE_FIELDS);
+    for (const key of STAFF_ONLY_FIELDS) {
+      expect(key in parent).toBe(false);
+    }
   });
 });
