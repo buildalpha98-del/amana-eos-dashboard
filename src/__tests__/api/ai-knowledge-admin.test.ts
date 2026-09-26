@@ -70,12 +70,15 @@ describe("/api/settings/ai-knowledge", () => {
     prismaMock.knowledgeSource.findMany.mockResolvedValue([{
       id: "k1", title: "T", sourceKind: "manual", category: "guide", tier: "general", tierOverride: null, qualityArea: null,
       serviceId: "s1", service: { name: "Doveton" }, state: null, version: null, status: "active", excludedBy: null, externalUrl: null,
-      indexedAt: null, indexError: null, createdAt: new Date(), updatedAt: new Date(), _count: { chunks: 3 },
+      indexedAt: null, indexError: null, embedded: false, createdAt: new Date(), updatedAt: new Date(), _count: { chunks: 3 },
     }]);
     const res = await GET(createRequest("GET", "/api/settings/ai-knowledge"));
     const json = await res.json();
     expect(res.status).toBe(200);
-    expect(json.entries[0]).toMatchObject({ id: "k1", chunkCount: 3, serviceName: "Doveton" });
+    expect(json.entries[0]).toMatchObject({ id: "k1", chunkCount: 3, serviceName: "Doveton", embedded: false });
+    expect(prismaMock.knowledgeSource.findMany.mock.calls[0][0].select).toMatchObject({ embedded: true, indexError: true });
+    // The list never ships the full text.
+    expect(prismaMock.knowledgeSource.findMany.mock.calls[0][0].select).not.toHaveProperty("text");
     expect(prismaMock.knowledgeSource.findMany.mock.calls[0][0].where).toBeUndefined();
   });
 
@@ -142,20 +145,23 @@ describe("/api/settings/ai-knowledge", () => {
     });
   });
 
-  it("GET [id] returns the entry with its chunk text joined as body; 404 unknown", async () => {
+  it("GET [id] returns the entry with its PERSISTED text as body (never rejoined chunks); 404 unknown", async () => {
     asOwner();
     prismaMock.knowledgeSource.findUnique.mockResolvedValue({
       id: "k1", title: "T", sourceKind: "manual", category: "guide", tier: "general", tierOverride: null, qualityArea: null,
       serviceId: null, service: null, state: null, version: null, status: "active", excludedBy: null, externalUrl: null,
-      indexedAt: null, indexError: null, createdAt: new Date(), updatedAt: new Date(), _count: { chunks: 2 },
-      chunks: [{ content: "Para one" }, { content: "Para two" }],
+      indexedAt: null, indexError: null, embedded: false, createdAt: new Date(), updatedAt: new Date(), _count: { chunks: 2 },
+      text: "# Heading\n\nPara one\n\nPara two",
     });
     const res = await GET_ONE(createRequest("GET", "/x"), ctx("k1"));
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json).toMatchObject({ id: "k1", chunkCount: 2, serviceName: null, body: "Para one\n\nPara two" });
+    expect(json).toMatchObject({ id: "k1", chunkCount: 2, serviceName: null, embedded: false, body: "# Heading\n\nPara one\n\nPara two" });
+    expect(json.text).toBeUndefined();
     expect(json.chunks).toBeUndefined();
-    expect(prismaMock.knowledgeSource.findUnique.mock.calls[0][0].select.chunks).toEqual({ orderBy: { chunkIndex: "asc" }, select: { content: true } });
+    const select = prismaMock.knowledgeSource.findUnique.mock.calls[0][0].select;
+    expect(select.text).toBe(true);
+    expect(select).not.toHaveProperty("chunks");
 
     prismaMock.knowledgeSource.findUnique.mockResolvedValue(null);
     expect((await GET_ONE(createRequest("GET", "/x"), ctx("nope"))).status).toBe(404);
@@ -253,13 +259,14 @@ describe("/api/settings/ai-knowledge", () => {
     });
   });
 
-  it("POST [id]/reindex re-indexes from the stored chunk text; 404 unknown", async () => {
+  it("POST [id]/reindex re-indexes from the PERSISTED text (never rejoined chunks); 404 unknown", async () => {
     asOwner();
-    prismaMock.knowledgeSource.findUnique.mockResolvedValue({ id: "k1", chunks: [{ content: "One" }, { content: "Two" }] });
+    prismaMock.knowledgeSource.findUnique.mockResolvedValue({ id: "k1", text: "# One\n\nTwo" });
     const res = await REINDEX(createRequest("POST", "/x"), ctx("k1"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, chunks: 2 });
-    expect(indexSource).toHaveBeenCalledWith("k1", "One\n\nTwo");
+    expect(indexSource).toHaveBeenCalledWith("k1", "# One\n\nTwo");
+    expect(prismaMock.knowledgeSource.findUnique.mock.calls[0][0].select).toEqual({ id: true, text: true });
 
     prismaMock.knowledgeSource.findUnique.mockResolvedValue(null);
     expect((await REINDEX(createRequest("POST", "/x"), ctx("nope"))).status).toBe(404);
@@ -347,5 +354,20 @@ describe("/api/settings/ai-knowledge", () => {
     const q = prismaMock.knowledgeSyncRun.findMany.mock.calls[0][0];
     expect(q).toMatchObject({ distinct: ["adapter"], orderBy: { startedAt: "desc" } });
     expect(q.take).toBeUndefined();
+  });
+
+  it("GET /sync reports whether embeddings are configured (the console's keyword-only banner)", async () => {
+    asOwner();
+    prismaMock.knowledgeSyncRun.findMany.mockResolvedValue([]);
+    const prev = process.env.VOYAGE_API_KEY;
+    try {
+      delete process.env.VOYAGE_API_KEY;
+      expect(await (await SYNC_RUNS(createRequest("GET", "/x"))).json()).toEqual({ runs: [], embeddingsConfigured: false });
+      process.env.VOYAGE_API_KEY = "pa-test";
+      expect((await (await SYNC_RUNS(createRequest("GET", "/x"))).json()).embeddingsConfigured).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env.VOYAGE_API_KEY;
+      else process.env.VOYAGE_API_KEY = prev;
+    }
   });
 });

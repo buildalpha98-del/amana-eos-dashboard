@@ -78,6 +78,14 @@ export function KnowledgeSourceRow({ entry: e, onEdit, onDelete, onPatch, onRein
           <span>·</span>
           <span>Indexed {formatDate(e.indexedAt)}</span>
           {e.indexError && <span className="text-danger">{e.indexError}</span>}
+          {e.indexedAt && !e.embedded && (
+            <span
+              className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200"
+              title="Indexed for keyword search only — no embeddings. Set VOYAGE_API_KEY and Sync (or re-index) to embed."
+            >
+              Keyword-only
+            </span>
+          )}
         </div>
       </div>
       <span className={`text-2xs px-1.5 py-0.5 rounded ${tierClass(effectiveTier)}`}>

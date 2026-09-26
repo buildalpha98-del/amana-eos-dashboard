@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
-import type { SyncRunSummary } from "./types";
+import type { SyncRunsResponse } from "./types";
 
 const LABEL: Record<string, string> = {
   backfill: "Dashboard sync",
@@ -15,7 +15,7 @@ const LABEL: Record<string, string> = {
  * run with no `finishedAt` is still in flight (a backfill can take minutes).
  */
 export function LastSyncPanel() {
-  const { data } = useQuery<{ runs: SyncRunSummary[] }>({
+  const { data } = useQuery<SyncRunsResponse>({
     queryKey: ["ai-knowledge-sync-runs"],
     queryFn: () => fetchApi("/api/settings/ai-knowledge/sync"),
     retry: 2,

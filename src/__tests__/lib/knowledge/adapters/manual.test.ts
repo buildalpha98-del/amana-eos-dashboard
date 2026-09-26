@@ -30,7 +30,7 @@ describe("manual adapter", () => {
     expect(uploadExternalId(url)).not.toBe(uploadExternalId(url.replace("XyZ", "AbC")));
   });
 
-  it("updateManualSource re-derives via upsert using the existing externalId + joined chunk text", async () => {
+  it("updateManualSource (rename only) re-derives via upsert from the existing externalId + PERSISTED text — never rejoined chunks", async () => {
     prismaMock.knowledgeSource.findUnique.mockResolvedValue({
       sourceKind: "manual",
       externalId: "manual:abc123",
@@ -39,23 +39,18 @@ describe("manual adapter", () => {
       serviceId: null,
       state: null,
       externalUrl: null,
-      chunks: [{ content: "Para one" }, { content: "Para two" }],
+      text: "# Heading\n\nPara one\n\nPara two",
     });
     await updateManualSource("k1", { title: "New" });
-    expect(prismaMock.knowledgeSource.findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: "k1" },
-        select: expect.objectContaining({
-          chunks: expect.objectContaining({ orderBy: { chunkIndex: "asc" } }),
-        }),
-      }),
-    );
+    const select = prismaMock.knowledgeSource.findUnique.mock.calls[0][0].select;
+    expect(select.text).toBe(true);
+    expect(select).not.toHaveProperty("chunks");
     expect(upsert).toHaveBeenCalledTimes(1);
     expect(upsert.mock.calls[0][0]).toMatchObject({
       sourceKind: "manual",
       externalId: "manual:abc123",
       title: "New",
-      text: "Para one\n\nPara two",
+      text: "# Heading\n\nPara one\n\nPara two",
     });
     // No tier is forwarded: the heuristic re-derives in the pipeline and the
     // admin's tierOverride is not part of the upsert's write set.
@@ -97,7 +92,7 @@ describe("manual adapter", () => {
       serviceId: null,
       state: null,
       externalUrl: null,
-      chunks: [],
+      text: "Body",
     });
     await expect(updateManualSource("k1", { title: "New" })).rejects.toThrow(/Not a manual/);
     expect(upsert).not.toHaveBeenCalled();

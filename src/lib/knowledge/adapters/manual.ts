@@ -89,14 +89,16 @@ export async function updateManualSource(
     where: { id },
     select: {
       sourceKind: true, externalId: true, title: true, category: true,
-      serviceId: true, state: true, externalUrl: true,
-      chunks: { orderBy: { chunkIndex: "asc" }, select: { content: true } },
+      serviceId: true, state: true, externalUrl: true, text: true,
     },
   });
   if (!existing || existing.sourceKind !== "manual") {
     throw new Error("Not a manual knowledge source");
   }
-  const text = patch.text ?? existing.chunks.map((c) => c.content).join("\n\n");
+  // `text` is the canonical source text — never rejoin chunks (chunking
+  // drops headings into their own column, so a rejoin is lossy and the
+  // rejoined hash would differ from the stored one on every rename).
+  const text = patch.text ?? existing.text;
   // Re-runs the whole derivation (normalizedTitle, contentHash, tier heuristic,
   // supersession) so an edited entry can never drift from its own key.
   return upsertKnowledgeSource({

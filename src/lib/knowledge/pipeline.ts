@@ -3,15 +3,21 @@
  *
  *   upsertKnowledgeSource(input)
  *     → find by (sourceKind, externalId)
- *     → hash unchanged? "unchanged" (no re-chunk, no re-embed) — unless the
- *       title changed, which lands title/normalizedTitle + the title-derived
- *       fields and re-runs supersession for the old AND new key
- *     → create/update the source row with derived fields
+ *     → row current? (hash unchanged AND the last index SUCCEEDED AND it is
+ *       embedded — or there is no embeddings key to embed with) → "unchanged"
+ *       (no re-chunk, no re-embed) — unless the title changed, which lands
+ *       title/normalizedTitle + the title-derived fields and re-runs
+ *       supersession for the old AND new key
+ *     → create/update the source row with derived fields + the canonical
+ *       `text`, `indexedAt: null`, `embedded: false` — the hash alone never
+ *       marks a row current; only a successful indexSource does
  *     → indexSource(): chunk → embed → replace chunks in a transaction,
  *       set searchVector via to_tsvector (explicit UPDATE, no trigger)
  *       and embedding via $1::vector. Both UPDATEs go through
  *       $queryRawUnsafe (as document-indexer did) — the test prisma mock
- *       supports $queryRawUnsafe but not $executeRawUnsafe.
+ *       supports $queryRawUnsafe but not $executeRawUnsafe. Success stamps
+ *       `indexedAt` + `embedded` and clears `indexError`; tsvector-only (no
+ *       key / Voyage outage) is DEGRADED (`embedded=false`), not an error.
  *     → applySupersession() for the source's dedupe key
  *
  * Nothing here reads Document/DocumentChunk — guard-tested.
@@ -22,6 +28,7 @@ import { logger } from "@/lib/logger";
 import { chunkText } from "@/lib/document-indexer";
 import {
   embedTextsWithUsage,
+  isEmbeddingsConfigured,
   toVectorLiteral,
   EMBEDDING_MODEL,
 } from "@/lib/embeddings";
@@ -61,6 +68,7 @@ export async function upsertKnowledgeSource(
     },
     select: {
       id: true, contentHash: true, status: true, excludedBy: true, indexError: true,
+      indexedAt: true, embedded: true, text: true,
       title: true, normalizedTitle: true, state: true, serviceId: true,
     },
   });
@@ -77,10 +85,22 @@ export async function upsertKnowledgeSource(
     : null;
   const keyChanged = oldKey !== null && !sameKey(oldKey, newKey);
 
-  // A row with a matching hash but a stale indexError means the LAST attempt
-  // never actually indexed anything — re-running with an unchanged hash
-  // would report "unchanged" forever and leave the chunks stale/absent.
-  if (existing && existing.contentHash === contentHash && existing.indexError == null) {
+  // "Current" = the stored text is this text AND the last index of it
+  // succeeded (`indexedAt` set, no `indexError`) AND it is embedded — or
+  // there is no embeddings key, in which case a keyword-only row is as good
+  // as it can get and must NOT be re-chunked on every sync. A matching hash
+  // with `indexedAt: null` means the pre-index write landed but the index
+  // never finished (crash, timeout) — re-running would otherwise report
+  // "unchanged" forever and leave the chunks stale/absent.
+  const current =
+    existing !== null &&
+    existing.contentHash === contentHash &&
+    existing.indexedAt != null &&
+    existing.indexError == null &&
+    // Legacy rows from before `text` was persisted: re-index so the column is populated.
+    existing.text !== "" &&
+    (existing.embedded || !isEmbeddingsConfigured());
+  if (existing && current) {
     // hashContent() covers the TEXT only — a rename with identical text
     // must still land title/normalizedTitle (+ the title-derived fields)
     // without paying for a re-chunk/re-embed.
@@ -111,7 +131,13 @@ export async function upsertKnowledgeSource(
     version,
     externalId: input.externalId,
     externalUrl: input.externalUrl ?? null,
+    // The canonical text lands BEFORE indexing with `indexedAt: null`, so a
+    // crash between here and indexSource leaves a row that the next sync
+    // re-indexes rather than one whose hash says "done".
+    text: input.text,
     contentHash,
+    indexedAt: null,
+    embedded: false,
     ...(reactivate ? { status: "active" as const, excludedBy: null } : {}),
   };
 
@@ -151,13 +177,17 @@ export async function indexSource(
   if (chunks.length === 0) {
     await prisma.knowledgeSource.update({
       where: { id: sourceId },
-      data: { indexError: "No text content extracted", indexedAt: null },
+      data: { indexError: "No text content extracted", indexedAt: null, embedded: false },
     });
     return { ok: false, error: "No text content extracted" };
   }
 
-  const embedded = await embedTextsWithUsage(chunks.map((c) => c.content));
-  const vectors = embedded?.vectors ?? null;
+  const embedResult = await embedTextsWithUsage(chunks.map((c) => c.content));
+  const vectors = embedResult?.vectors ?? null;
+  // Every chunk got a vector. null = no key / Voyage down → tsvector-only,
+  // which is a degraded index, not a failed one: the row is searchable by
+  // keyword now and the next sync retries the embedding once a key exists.
+  const fullyEmbedded = vectors !== null && vectors.length === chunks.length;
 
   try {
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -195,7 +225,7 @@ export async function indexSource(
       }
       await tx.knowledgeSource.update({
         where: { id: sourceId },
-        data: { indexedAt: new Date(), indexError: vectors ? null : "Embeddings unavailable — tsvector only" },
+        data: { indexedAt: new Date(), embedded: fullyEmbedded, indexError: null },
       });
       // Large SOP docs can be 100–200 chunks, one round trip per chunk for
       // the embedding UPDATE — well past Prisma's 5s interactive-transaction
@@ -207,19 +237,19 @@ export async function indexSource(
     logger.error("Knowledge: index failed", { sourceId, err: message });
     await prisma.knowledgeSource.update({
       where: { id: sourceId },
-      data: { indexError: message },
+      data: { indexError: message, indexedAt: null, embedded: false },
     });
     return { ok: false, error: message };
   }
 
-  if (embedded) {
+  if (embedResult) {
     prisma.aiUsage
       .create({
         data: {
           userId: null,
           templateSlug: null,
           model: EMBEDDING_MODEL,
-          inputTokens: embedded.usage.totalTokens,
+          inputTokens: embedResult.usage.totalTokens,
           outputTokens: 0,
           durationMs: 0,
           section: "knowledge-index",

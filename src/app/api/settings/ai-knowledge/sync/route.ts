@@ -1,5 +1,6 @@
 /**
  * GET  /api/settings/ai-knowledge/sync — latest KnowledgeSyncRun per adapter
+ *      + `embeddingsConfigured` (the console banners when it is false)
  * POST /api/settings/ai-knowledge/sync — kick a server-runnable adapter
  *
  * Only adapters in RUNNABLE_ADAPTERS can be triggered from here (SharePoint
@@ -12,6 +13,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { runAdapter, RUNNABLE_ADAPTERS } from "@/lib/knowledge/sync";
+import { isEmbeddingsConfigured } from "@/lib/embeddings";
 
 export const maxDuration = 300;
 const schema = z.object({ adapter: z.enum(RUNNABLE_ADAPTERS) });
@@ -31,7 +33,7 @@ export const GET = withApiAuth(
       orderBy: { startedAt: "desc" },
       select: { id: true, adapter: true, startedAt: true, finishedAt: true, counts: true, details: true, error: true },
     });
-    return NextResponse.json({ runs });
+    return NextResponse.json({ runs, embeddingsConfigured: isEmbeddingsConfigured() });
   },
   { roles: [...ADMIN_ROLES] },
 );

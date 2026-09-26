@@ -38,6 +38,7 @@ import {
   type KnowledgePatchBody,
   type SourceKind,
   type Status,
+  type SyncRunsResponse,
   type SyncRunSummary,
   type Tier,
 } from "@/components/settings/ai-knowledge/types";
@@ -73,6 +74,16 @@ export default function AiKnowledgePage() {
 
   const entries = useMemo(() => data?.entries ?? [], [data]);
 
+  // Same query (and cache entry) LastSyncPanel reads — the page only needs
+  // the `embeddingsConfigured` flag for the keyword-only banner.
+  const { data: syncRuns } = useQuery<SyncRunsResponse, ApiResponseError>({
+    queryKey: ["ai-knowledge-sync-runs"],
+    queryFn: () => fetchApi("/api/settings/ai-knowledge/sync"),
+    retry: 2,
+    staleTime: 30_000,
+  });
+  const embeddingsConfigured = syncRuns?.embeddingsConfigured ?? true;
+
   // ── Filters (client-side over the full list) ─────────────────
   const [search, setSearch] = useState("");
   const [kindFilter, setKindFilter] = useState<SourceKind | "all">("all");
@@ -98,14 +109,17 @@ export default function AiKnowledgePage() {
   // Library size — confirms sources + chunks are actually there. Quick sanity
   // check when the bot says it "can't find" something the user just uploaded.
   // Memoised over `entries` so a keystroke in the search box doesn't recount.
+  // "Errors" counts FAILED indexes (`indexError`) only — a keyword-only row
+  // (`embedded: false`, no error) is degraded, not broken, and shows as a chip.
   const stats = useMemo(() => {
     const active = entries.filter((e) => e.status === "active");
     return {
       total: entries.length,
       active: active.length,
       indexed: active.filter((e) => e.indexedAt !== null).length,
+      keywordOnly: active.filter((e) => e.indexedAt !== null && !e.embedded).length,
       chunks: active.reduce((sum, e) => sum + e.chunkCount, 0),
-      errored: entries.filter((e) => e.indexError).length,
+      errored: entries.filter((e) => e.indexError !== null).length,
     };
   }, [entries]);
 
@@ -380,6 +394,15 @@ export default function AiKnowledgePage() {
         </p>
       </div>
 
+      {!embeddingsConfigured && (
+        <div
+          role="status"
+          className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-800 dark:text-amber-200"
+        >
+          <span className="font-semibold">VOYAGE_API_KEY not set</span> — search is keyword-only; set it and Sync to embed.
+        </div>
+      )}
+
       {!isLoading && stats.total > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-card rounded-lg border border-border p-3">
@@ -399,6 +422,9 @@ export default function AiKnowledgePage() {
             )}>
               {stats.indexed}/{stats.active}
             </p>
+            {stats.keywordOnly > 0 && (
+              <p className="text-2xs text-muted">{stats.keywordOnly} keyword-only</p>
+            )}
           </div>
           <div className="bg-card rounded-lg border border-border p-3">
             <p className="text-2xs uppercase tracking-wide text-muted">Chunks</p>

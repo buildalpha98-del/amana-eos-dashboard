@@ -2,7 +2,7 @@
 export const ENTRY_SELECT = {
   id: true, title: true, sourceKind: true, category: true, tier: true, tierOverride: true, qualityArea: true,
   serviceId: true, service: { select: { name: true } }, state: true, version: true, status: true, excludedBy: true, externalUrl: true,
-  indexedAt: true, indexError: true, createdAt: true, updatedAt: true, _count: { select: { chunks: true } },
+  indexedAt: true, indexError: true, embedded: true, createdAt: true, updatedAt: true, _count: { select: { chunks: true } },
 } as const;
 
 export function toEntry<T extends { service: { name: string } | null; _count: { chunks: number } }>(row: T) {

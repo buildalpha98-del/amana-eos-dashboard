@@ -56,7 +56,10 @@ export interface KnowledgeEntrySummary {
   excludedBy: "adapter" | "admin" | null;
   externalUrl: string | null;
   indexedAt: string | null;
+  /** A FAILED index (set) — a tsvector-only index is `embedded: false` with this null. */
   indexError: string | null;
+  /** true when every chunk has a vector; false = keyword-only (degraded, not an error). */
+  embedded: boolean;
   chunkCount: number;
   createdAt: string;
   updatedAt: string;
@@ -102,4 +105,11 @@ export interface SyncRunSummary {
     fetchErrors?: { id: string; error: string }[];
   };
   error: string | null;
+}
+
+/** `GET /api/settings/ai-knowledge/sync` — latest run per adapter + whether Voyage is configured. */
+export interface SyncRunsResponse {
+  runs: SyncRunSummary[];
+  /** false = `VOYAGE_API_KEY` unset: every index is keyword-only until it is set and a Sync runs. */
+  embeddingsConfigured: boolean;
 }

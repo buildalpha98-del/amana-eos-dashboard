@@ -1,7 +1,9 @@
 /**
  * POST /api/settings/ai-knowledge/[id]/reindex — re-chunk + re-embed a
- * single source from its already-stored chunk text (e.g. after enabling
- * embeddings, or to retry a source that failed indexing).
+ * single source from its persisted `text` (e.g. after enabling embeddings,
+ * or to retry a source that failed indexing). Uploads persisted their
+ * extracted text at register/webhook time, so this never re-fetches Blob
+ * and never rejoins chunks.
  */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -20,10 +22,10 @@ export const POST = withApiAuth(
     const { id } = await (context as unknown as RouteContext).params;
     const row = await prisma.knowledgeSource.findUnique({
       where: { id },
-      select: { id: true, chunks: { orderBy: { chunkIndex: "asc" }, select: { content: true } } },
+      select: { id: true, text: true },
     });
     if (!row) throw ApiError.notFound("Knowledge source not found");
-    const result = await indexSource(id, row.chunks.map((c) => c.content).join("\n\n"));
+    const result = await indexSource(id, row.text);
     return NextResponse.json(result);
   },
   // withApiAuth races the handler against a 55s default — a few seconds under

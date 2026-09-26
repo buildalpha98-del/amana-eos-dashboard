@@ -12,7 +12,6 @@
 import { logger } from "@/lib/logger";
 
 export const EMBEDDING_MODEL = "voyage-3";
-export const EMBEDDING_DIMENSIONS = 1024;
 const ENDPOINT = "https://api.voyageai.com/v1/embeddings";
 // Assumes callers chunk to ~500 tokens (128 × 500 ≈ 64k tokens/request, under Voyage's per-request cap); not enforced here.
 const BATCH_SIZE = 128;

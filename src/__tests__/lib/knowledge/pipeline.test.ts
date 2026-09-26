@@ -5,15 +5,16 @@ vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
-const { embedTextsWithUsage } = vi.hoisted(() => ({
-  embedTextsWithUsage: vi.fn(async (texts: string[]) => ({
+const { embedTextsWithUsage, isEmbeddingsConfigured } = vi.hoisted(() => ({
+  embedTextsWithUsage: vi.fn(async (texts: string[]): Promise<{ vectors: number[][]; usage: { totalTokens: number } } | null> => ({
     vectors: texts.map(() => [0.1, 0.2]),
     usage: { totalTokens: 10 },
   })),
+  isEmbeddingsConfigured: vi.fn(() => true),
 }));
 vi.mock("@/lib/embeddings", () => ({
   embedTextsWithUsage: (texts: string[]) => embedTextsWithUsage(texts),
-  isEmbeddingsConfigured: vi.fn(() => true),
+  isEmbeddingsConfigured: () => isEmbeddingsConfigured(),
   toVectorLiteral: (v: number[]) => `[${v.join(",")}]`,
   EMBEDDING_MODEL: "voyage-3",
 }));
@@ -30,7 +31,7 @@ const baseInput = {
   state: "New South Wales",
 };
 
-/** What the DB already holds for baseInput — same title, same key. */
+/** What the DB already holds for baseInput — same title, same key, fully indexed + embedded. */
 const storedRow = {
   id: "src-1",
   title: baseInput.title,
@@ -39,11 +40,22 @@ const storedRow = {
   serviceId: null,
   excludedBy: null,
   indexError: null,
+  indexedAt: new Date("2026-01-01"),
+  embedded: true,
+  text: baseInput.text,
 };
+
+/** The pipeline's stamp on the source row inside the indexing transaction. */
+function indexStamp() {
+  return prismaMock.knowledgeSource.update.mock.calls
+    .map((c: [{ data: Record<string, unknown> }]) => c[0].data)
+    .find((d: Record<string, unknown>) => "indexedAt" in d && "embedded" in d && !("text" in d));
+}
 
 describe("upsertKnowledgeSource", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    isEmbeddingsConfigured.mockReturnValue(true);
     prismaMock.knowledgeSource.findUnique.mockResolvedValue(null);
     prismaMock.knowledgeSource.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ id: "src-1", ...data }));
     prismaMock.knowledgeSource.update.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ id: "src-1", ...data }));
@@ -65,7 +77,11 @@ describe("upsertKnowledgeSource", () => {
     expect(data.version).toBe(3);
     expect(data.tier).toBe("safety_critical");
     expect(data.contentHash).toBe(hashContent(baseInput.text));
+    // The canonical text is persisted BEFORE indexing, with the row marked not-yet-indexed.
+    expect(data).toMatchObject({ text: baseInput.text, indexedAt: null, embedded: false });
     expect(prismaMock.knowledgeChunk.createMany).toHaveBeenCalled();
+    // Success stamps indexedAt + embedded and clears any stale error.
+    expect(indexStamp()).toEqual({ indexedAt: expect.any(Date), embedded: true, indexError: null });
     // tsvector + embedding writes
     const sql = prismaMock.$queryRawUnsafe.mock.calls.map((c: unknown[]) => String(c[0]));
     expect(sql.some((s: string) => s.includes("to_tsvector"))).toBe(true);
@@ -193,6 +209,76 @@ describe("upsertKnowledgeSource", () => {
       (c: unknown[]) => (c[0] as { data: { indexError?: string } }).data.indexError,
     );
     expect(upd).toBeTruthy();
+    expect(upd![0].data).toEqual({ indexError: "No text content extracted", indexedAt: null, embedded: false });
+  });
+
+  it("tsvector-only (no vectors) is DEGRADED, not failed: indexedAt set, embedded false, indexError null", async () => {
+    embedTextsWithUsage.mockResolvedValueOnce(null);
+    const res = await upsertKnowledgeSource(baseInput);
+    expect(res.outcome).toBe("created");
+    expect(indexStamp()).toEqual({ indexedAt: expect.any(Date), embedded: false, indexError: null });
+    // No embedding UPDATE was attempted, the tsvector one was.
+    const sql = prismaMock.$queryRawUnsafe.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(sql.some((s: string) => s.includes("to_tsvector"))).toBe(true);
+    expect(sql.some((s: string) => s.includes("::vector"))).toBe(false);
+    expect(prismaMock.aiUsage.create).not.toHaveBeenCalled();
+  });
+
+  it("a failed indexing transaction keeps indexError set and indexedAt null", async () => {
+    prismaMock.knowledgeChunk.createMany.mockRejectedValueOnce(new Error("disk full"));
+    const res = await upsertKnowledgeSource(baseInput);
+    expect(res).toEqual({ sourceId: "src-1", outcome: "error", error: "disk full" });
+    const last = prismaMock.knowledgeSource.update.mock.calls.at(-1)![0];
+    expect(last).toEqual({ where: { id: "src-1" }, data: { indexError: "disk full", indexedAt: null, embedded: false } });
+  });
+
+  describe("fast-path matrix (hash matches, title unchanged)", () => {
+    const stored = { ...storedRow, contentHash: hashContent(baseInput.text), status: "active" };
+
+    it("indexedAt null (pre-index write landed, index never finished) → re-index", async () => {
+      prismaMock.knowledgeSource.findUnique.mockResolvedValue({ ...stored, indexedAt: null, embedded: false });
+      expect((await upsertKnowledgeSource(baseInput)).outcome).toBe("updated");
+      expect(prismaMock.knowledgeChunk.createMany).toHaveBeenCalled();
+      expect(prismaMock.knowledgeSource.update.mock.calls[0][0].data).toMatchObject({ text: baseInput.text, indexedAt: null, embedded: false });
+    });
+
+    it("embedded false + key configured → re-index (retry the embedding)", async () => {
+      prismaMock.knowledgeSource.findUnique.mockResolvedValue({ ...stored, embedded: false });
+      expect((await upsertKnowledgeSource(baseInput)).outcome).toBe("updated");
+      expect(embedTextsWithUsage).toHaveBeenCalled();
+      expect(prismaMock.knowledgeChunk.createMany).toHaveBeenCalled();
+    });
+
+    it("embedded false + NO key → unchanged (never re-chunked on every sync while there is nothing to embed with)", async () => {
+      isEmbeddingsConfigured.mockReturnValue(false);
+      prismaMock.knowledgeSource.findUnique.mockResolvedValue({ ...stored, embedded: false });
+      expect((await upsertKnowledgeSource(baseInput)).outcome).toBe("unchanged");
+      expect(prismaMock.knowledgeSource.update).not.toHaveBeenCalled();
+      expect(prismaMock.knowledgeChunk.createMany).not.toHaveBeenCalled();
+      expect(embedTextsWithUsage).not.toHaveBeenCalled();
+    });
+
+    it("embedded true + key configured → unchanged", async () => {
+      prismaMock.knowledgeSource.findUnique.mockResolvedValue(stored);
+      expect((await upsertKnowledgeSource(baseInput)).outcome).toBe("unchanged");
+      expect(prismaMock.knowledgeChunk.createMany).not.toHaveBeenCalled();
+    });
+
+    it("legacy row with empty persisted text → re-index so the column is populated", async () => {
+      prismaMock.knowledgeSource.findUnique.mockResolvedValue({ ...stored, text: "" });
+      expect((await upsertKnowledgeSource(baseInput)).outcome).toBe("updated");
+      expect(prismaMock.knowledgeSource.update.mock.calls[0][0].data).toMatchObject({ text: baseInput.text });
+      expect(prismaMock.knowledgeChunk.createMany).toHaveBeenCalled();
+    });
+
+    it("a rename of a keyword-only row with no key still takes the title fast-path (no re-chunk)", async () => {
+      isEmbeddingsConfigured.mockReturnValue(false);
+      prismaMock.knowledgeSource.findUnique.mockResolvedValue({ ...stored, embedded: false });
+      const res = await upsertKnowledgeSource({ ...baseInput, title: "QA2 Rest Time Procedure OSHC V5.docx" });
+      expect(res.outcome).toBe("updated");
+      expect(prismaMock.knowledgeSource.update.mock.calls[0][0].data).not.toHaveProperty("text");
+      expect(prismaMock.knowledgeChunk.createMany).not.toHaveBeenCalled();
+    });
   });
 
   it("honours an explicit tier from the adapter", async () => {

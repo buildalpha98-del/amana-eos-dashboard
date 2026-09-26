@@ -10998,6 +10998,9 @@ model KnowledgeSource {
   /// SharePoint item id | PolicyDocumentVersion.id | article id | `service:<id>` | URL | manual id
   externalId      String
   externalUrl     String?
+  /// canonical source text (routes cap at 500KB) — chunks are derived from it, never rejoined into it.
+  /// Default "" only so the column can be added to a populated table; the pipeline treats "" as "needs re-index".
+  text            String              @default("") @db.Text
   contentHash     String
   status          KnowledgeStatus     @default(active)
   /// who set status=excluded: "adapter" (origin unpublished/archived — the adapter
@@ -11007,6 +11010,8 @@ model KnowledgeSource {
   supersededById  String?
   indexedAt       DateTime?
   indexError      String?
+  /// true when every chunk got a vector; false = tsvector-only (degraded, not an error)
+  embedded        Boolean             @default(false)
   chunks          KnowledgeChunk[]
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt

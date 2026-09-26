@@ -43,11 +43,11 @@ export const GET = withApiAuth(
     const { id } = await (context as unknown as RouteContext).params;
     const row = await prisma.knowledgeSource.findUnique({
       where: { id },
-      select: { ...ENTRY_SELECT, chunks: { orderBy: { chunkIndex: "asc" }, select: { content: true } } },
+      select: { ...ENTRY_SELECT, text: true },
     });
     if (!row) throw ApiError.notFound("Knowledge source not found");
-    const { chunks, ...rest } = row;
-    return NextResponse.json({ ...toEntry(rest), body: chunks.map((c) => c.content).join("\n\n") });
+    const { text, ...rest } = row;
+    return NextResponse.json({ ...toEntry(rest), body: text });
   },
   { roles: [...ADMIN_ROLES] },
 );
