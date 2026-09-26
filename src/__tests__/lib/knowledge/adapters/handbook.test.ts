@@ -3,7 +3,7 @@ import { prismaMock } from "../../../helpers/prisma-mock";
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/lib/logger", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
-const { upsert } = vi.hoisted(() => ({ upsert: vi.fn(async () => ({ sourceId: "s", outcome: "created" })) }));
+const { upsert } = vi.hoisted(() => ({ upsert: vi.fn(async (_input?: unknown) => ({ sourceId: "s", outcome: "created" })) }));
 vi.mock("@/lib/knowledge/pipeline", () => ({ upsertKnowledgeSource: (i: unknown) => upsert(i) }));
 
 import { syncHandbook } from "@/lib/knowledge/adapters/handbook";

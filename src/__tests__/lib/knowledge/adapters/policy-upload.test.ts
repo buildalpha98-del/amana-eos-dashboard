@@ -3,8 +3,8 @@ import { prismaMock } from "../../../helpers/prisma-mock";
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/lib/logger", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 const { upsert, exclude } = vi.hoisted(() => ({
-  upsert: vi.fn(async () => ({ sourceId: "s", outcome: "created" })),
-  exclude: vi.fn(async () => 0),
+  upsert: vi.fn(async (_input?: unknown) => ({ sourceId: "s", outcome: "created" })),
+  exclude: vi.fn(async (..._args: unknown[]) => 0),
 }));
 vi.mock("@/lib/knowledge/pipeline", () => ({ upsertKnowledgeSource: (i: unknown) => upsert(i), excludeSources: (...a: unknown[]) => exclude(...a) }));
 vi.mock("@/lib/document-indexer", () => ({ extractTextFromBuffer: vi.fn(async () => "# Policy\n\nText") }));

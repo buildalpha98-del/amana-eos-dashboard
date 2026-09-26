@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prismaMock } from "../../../helpers/prisma-mock";
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 const { upsert, exclude } = vi.hoisted(() => ({
-  upsert: vi.fn(async () => ({ sourceId: "s", outcome: "created" })),
-  exclude: vi.fn(async () => 0),
+  upsert: vi.fn(async (_input?: unknown) => ({ sourceId: "s", outcome: "created" })),
+  exclude: vi.fn(async (..._args: unknown[]) => 0),
 }));
 vi.mock("@/lib/knowledge/pipeline", () => ({ upsertKnowledgeSource: (i: unknown) => upsert(i), excludeSources: (...a: unknown[]) => exclude(...a) }));
 import { syncHelpArticles } from "@/lib/knowledge/adapters/help-article";
