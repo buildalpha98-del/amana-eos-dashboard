@@ -27,7 +27,8 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { extractText } from "@/lib/document-indexer";
-import { createManualSource, inferCategory, uploadExternalId } from "@/lib/knowledge/adapters/manual";
+import { inferCategory, uploadExternalId } from "@/lib/knowledge/adapters/manual";
+import { createManualSourceOrCleanBlob } from "../_lib/create-or-clean";
 import { logger } from "@/lib/logger";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { safeAttachmentUrl } from "@/lib/schemas/message-attachments";
@@ -77,13 +78,19 @@ export const POST = withApiAuth(
 
     const text = await extractText(blobUrl, mimeType);
 
-    const r = await createManualSource({
-      title,
-      text,
-      externalUrl: blobUrl,
-      externalId: uploadExternalId(blobUrl),
-      category,
-    });
+    // If createManualSource throws (the credential guard, or anything else),
+    // the blob it was created for never became a row — clean it up rather
+    // than orphaning it in Blob storage. See create-or-clean.ts.
+    const r = await createManualSourceOrCleanBlob(
+      {
+        title,
+        text,
+        externalUrl: blobUrl,
+        externalId: uploadExternalId(blobUrl),
+        category,
+      },
+      blobUrl,
+    );
     if (r.outcome === "error") {
       logger.error("AI knowledge register: indexing failed", {
         sourceId: r.sourceId,

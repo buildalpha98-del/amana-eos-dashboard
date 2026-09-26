@@ -3,6 +3,7 @@ import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession, mockNoSession } from "../helpers/auth-mock";
 import { createRequest } from "../helpers/request";
 import { _clearUserActiveCache } from "@/lib/server-auth";
+import { ApiError } from "@/lib/api-error";
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn(async () => ({ limited: false, remaining: 59, resetIn: 60000 })) }));
@@ -332,6 +333,36 @@ describe("/api/settings/ai-knowledge", () => {
       const res = await REGISTER(createRequest("POST", "/x", { body }));
       expect(await res.json()).toEqual({ id: "k1", outcome: "error", error: "No text content extracted" });
       expect(logger.error).toHaveBeenCalledWith("AI knowledge register: indexing failed", expect.objectContaining({ sourceId: "k1" }));
+    });
+
+    it("when createManualSource throws (e.g. the credential guard), deletes the orphaned blob and still 400s with the message", async () => {
+      asOwner();
+      createManual.mockRejectedValueOnce(ApiError.badRequest("This document appears to contain a password or key — remove it before adding it to the knowledge store"));
+      const res = await REGISTER(createRequest("POST", "/x", { body }));
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toMatch(/password or key/i);
+      expect(deleteFile).toHaveBeenCalledWith(BLOB);
+    });
+
+    it("a NON-credential throw (e.g. a DB error) still cleans up the blob — any throw orphans it, not just the credential guard", async () => {
+      asOwner();
+      createManual.mockRejectedValueOnce(new Error("db down"));
+      const res = await REGISTER(createRequest("POST", "/x", { body }));
+      expect(res.status).toBe(500);
+      expect(deleteFile).toHaveBeenCalledWith(BLOB);
+    });
+
+    it("still 400s with the original error even when the blob deletion itself fails", async () => {
+      asOwner();
+      createManual.mockRejectedValueOnce(ApiError.badRequest("This document appears to contain a password or key — remove it before adding it to the knowledge store"));
+      deleteFile.mockRejectedValueOnce(new Error("blob gone"));
+      const res = await REGISTER(createRequest("POST", "/x", { body }));
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toMatch(/password or key/i);
+      expect(logger.warn).toHaveBeenCalledWith(
+        "AI knowledge: blob cleanup failed after rejected upload",
+        expect.objectContaining({ blobUrl: BLOB, err: "blob gone" }),
+      );
     });
   });
 

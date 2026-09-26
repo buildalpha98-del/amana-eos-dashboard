@@ -225,6 +225,84 @@ describe("importExportDir", () => {
     expect(sweep[0].where.externalId.notIn).toHaveLength(FIXTURE_IMPORTABLE);
   });
 
+  it("skips a file whose body embeds a credential, WITHOUT upserting it, and the after-walk sweep adapter-excludes a stored row for that id (it is no longer 'seen')", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "knowledge-export-credential-"));
+    try {
+      // A normal file alongside the credential one, so `seenIds` is non-empty
+      // and the sweep actually runs (an all-skipped export instead takes the
+      // "no importable files" guard and skips the sweep entirely — a
+      // separate, deliberate safety rule, not what this test is checking).
+      await fs.writeFile(
+        path.join(dir, "clean.md"),
+        [
+          "---",
+          "id: clean-id-01",
+          "name: Sun Safety Procedure.docx",
+          "webUrl: https://x/Sun Safety Procedure.docx",
+          "path: Shared Documents/NSW & VIC state policies/Procedures/Sun Safety Procedure.docx",
+          "lastModified: 2026-01-01T00:00:00.000Z",
+          "---",
+          "# Sun Safety",
+          "",
+          "Apply sunscreen before outdoor play.",
+        ].join("\n"),
+      );
+      await fs.writeFile(
+        path.join(dir, "leaked.md"),
+        [
+          "---",
+          "id: credential-id-01",
+          "name: HR-01 Talent Acquisition.docx",
+          "webUrl: https://x/HR-01 Talent Acquisition.docx",
+          "path: Shared Documents/SOPs/Jayden full SOP/HR-01 Talent Acquisition.docx",
+          "lastModified: 2026-01-01T00:00:00.000Z",
+          "---",
+          "# Talent Acquisition",
+          "",
+          "Log in with Password: hunter22 to open the portal.",
+        ].join("\n"),
+      );
+      const report = await importExportDir(dir);
+      expect(report.counts.skipped).toBe(1);
+      expect(report.skipped).toEqual([{ path: "Shared Documents/SOPs/Jayden full SOP/HR-01 Talent Acquisition.docx", reason: "credential-like content" }]);
+      expect(report.counts.imported).toBe(1);
+      expect(upsert).toHaveBeenCalledTimes(1);
+      expect(upsert.mock.calls[0][0]).toMatchObject({ externalId: "clean-id-01" });
+      // The credential file's id never reached `seenIds`, so the after-walk
+      // sweep excludes a previously-imported row for that id, the same way
+      // a document deleted from SharePoint is retired.
+      const sweep = prismaMock.knowledgeSource.updateMany.mock.calls.find((c: [{ where: Record<string, unknown> }]) => isSweep(c[0].where))!;
+      expect(sweep[0].where.externalId.notIn).toEqual(["clean-id-01"]);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("still reports credential-like content under SKIPPED in dry mode, with no upsert", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "knowledge-export-credential-dry-"));
+    try {
+      await fs.writeFile(
+        path.join(dir, "leaked.md"),
+        [
+          "---",
+          "id: credential-id-02",
+          "name: OPS-08.docx",
+          "webUrl: https://x/OPS-08.docx",
+          "path: OPS-08.docx",
+          "lastModified: 2026-01-01T00:00:00.000Z",
+          "---",
+          "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+        ].join("\n"),
+      );
+      const report = await importExportDir(dir, { dry: true });
+      expect(report.skipped).toEqual([{ path: "OPS-08.docx", reason: "credential-like content" }]);
+      expect(report.counts.imported).toBe(0);
+      expect(upsert).not.toHaveBeenCalled();
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("an export with NO importable files skips the sweep with a warning — a wrong --from must not blank the library", async () => {
     const empty = await fs.mkdtemp(path.join(os.tmpdir(), "knowledge-export-empty-"));
     try {

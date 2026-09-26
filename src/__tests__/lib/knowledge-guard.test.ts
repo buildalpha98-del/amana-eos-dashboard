@@ -97,6 +97,18 @@ describe("knowledge store guard", () => {
     }
   });
 
+  it("the credential guard is wired into both the SharePoint importer and the manual adapter", () => {
+    // looksLikeCredential (src/lib/knowledge/normalize.ts) is the ONLY
+    // content-level PII guard the store has — the SharePoint PII floor
+    // above is path/filename-only. This is a source-text grep, not a
+    // behaviour test, so someone can't silently drop the call while
+    // leaving the exported function (and its unit tests) in place.
+    const sharepoint = readFileSync(path.join(ROOT, "src/lib/knowledge/adapters/sharepoint-export.ts"), "utf8");
+    const manual = readFileSync(path.join(ROOT, "src/lib/knowledge/adapters/manual.ts"), "utf8");
+    expect(sharepoint).toMatch(/looksLikeCredential/);
+    expect(manual).toMatch(/looksLikeCredential/);
+  });
+
   it('only pipeline.ts writes `status: "excluded"` in the knowledge lib and admin routes', () => {
     // Allow-list, by design:
     //   - src/lib/knowledge/pipeline.ts: `excludeSources()` is THE writer. It

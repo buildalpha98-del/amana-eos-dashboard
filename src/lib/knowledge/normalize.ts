@@ -89,3 +89,84 @@ export function inferTier(input: {
 export function hashContent(text: string): string {
   return createHash("sha256").update(text.trim()).digest("hex");
 }
+
+/**
+ * Words that follow a `password`/`pwd` LABEL in ordinary policy prose, never
+ * in front of a real value — "Password: must be at least 8 characters",
+ * "Password: minimum eight characters". A genuine secret never opens with
+ * one of these, so excluding them (rather than relying only on the
+ * value-shape check below) is what keeps short stopwords like "at"/"a" out
+ * even though they'd otherwise be too short to need it.
+ */
+const PASSWORD_PROSE_CONTINUATION =
+  "(?:must|should|shall|is|are|will|minimum|maximum|at|to|the|a|an)\\b";
+
+/**
+ * `password`/`pwd`/`passwd` followed by a value that looks like a secret,
+ * not prose: excludes the continuation words above; the value-shape check
+ * (a digit or symbol INSIDE the value, ignoring trailing sentence
+ * punctuation) lives in `passwordValueLooksSecret` below, so "reset your
+ * password before your first shift" and "Password: required." don't trip it
+ * just for being long enough. Global so every labelled occurrence in a
+ * document is checked, not only the first.
+ */
+const CREDENTIAL_PASSWORD_RE = new RegExp(
+  `\\b(?:password|pwd|passwd)\\s*[:=]\\s*(?!${PASSWORD_PROSE_CONTINUATION})(\\S{4,})`,
+  "gi",
+);
+
+/**
+ * The value-shape check for password-style labels, applied in code rather
+ * than as a lookahead: sentence punctuation glued to the end of a plain word
+ * ("Password: required." / "Password: mandatory!") is not a symbol IN the
+ * value, so it is stripped before asking "does this contain a digit or
+ * symbol?". A real secret that happens to end a sentence ("Password:
+ * hunter22.") still passes because the digit sits inside the value.
+ */
+function passwordValueLooksSecret(raw: string): boolean {
+  const value = raw.replace(/[.,!?;:]+$/, "");
+  return value.length >= 4 && /[^A-Za-z]/.test(value);
+}
+
+/**
+ * `api_key`/`secret`/`access_token`/`token` followed by a value 12+ chars
+ * long that has BOTH a letter and a digit-or-symbol (`0-9`/`_`/`-`/`.`) —
+ * an all-digit value like "Token: 12345678" is a reference number, not a
+ * credential, and an all-letter value under this length is too easily a
+ * plain word. Real keys/tokens (provider-style keys, JWT segments, etc.) always
+ * mix character classes.
+ */
+const CREDENTIAL_TOKEN_RE =
+  /\b(?:api[_ -]?key|secret|access[_ -]?token|token)\s*[:=]\s*(?=\S*[A-Za-z])(?=\S*[0-9_.-])\S{12,}/i;
+
+/** `Bearer <16+ char token>` — unchanged; a bearer token is never prose. */
+const CREDENTIAL_BEARER_RE = /\bBearer\s+[A-Za-z0-9._-]{16,}/;
+
+/**
+ * Content-level credential guard for the knowledge store (2026-09-27). A
+ * SharePoint export or a pasted/uploaded document can embed a live
+ * `Password: hunter22`-style secret inside a walkthrough step — the
+ * SharePoint importer's PII floor (`classifyPath`) only looks at the
+ * path/filename, so body text like this had no guard at all before an
+ * export agent caught one by judgement.
+ *
+ * Deliberately narrow: only a labelled `word [:=] value` shape matches, and
+ * the value itself must look secret-shaped (a digit/symbol for
+ * password-style labels; a length + mixed-character-class value for
+ * key/token-style labels) — so "password policy" / "reset your password
+ * before your first shift" / "token of appreciation" / "Password: must be
+ * at least 8 characters" / "Token: 12345678" (a reference number) never
+ * trip it. The label alone, or the label followed by prose, is common; the
+ * label followed by a secret-shaped value is what a real credential dump
+ * looks like.
+ *
+ * Never log the text this matched against — the whole point is that it may
+ * be a live secret. Callers should only report that content was rejected /
+ * skipped, never the matched substring.
+ */
+export function looksLikeCredential(text: string): boolean {
+  for (const m of text.matchAll(CREDENTIAL_PASSWORD_RE)) {
+    if (passwordValueLooksSecret(m[1])) return true;
+  }
+  return CREDENTIAL_TOKEN_RE.test(text) || CREDENTIAL_BEARER_RE.test(text);
+}

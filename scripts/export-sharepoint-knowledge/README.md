@@ -38,7 +38,11 @@ employee records. Only `.doc`, `.docx` and `.pdf` are importable; everything els
 `.txt`, images, spreadsheets, decks) skips. The importer re-applies these rules (`SKIP_DIRS`,
 `PII_WORDS` on the full path, `IMPORTABLE_EXT` on the basename in `sharepoint-export.ts`), so an
 over-inclusive export is safe — an over-inclusive IMPORT is not, which is why the words are
-deliberately broad ("Resume play after…" skips too; do not narrow them).
+deliberately broad ("Resume play after…" skips too; do not narrow them). A file whose BODY
+embeds a live credential (a password, API key, token or `Bearer` header caught by
+`looksLikeCredential()` in `normalize.ts`) is skipped too, whatever its path — the path/filename
+rules above have no view into the text — and is reported under SKIPPED with reason
+`credential-like content`.
 
 `knowledge-export/` at the repo root is git-ignored — the export holds full policy text and
 must never be committed.

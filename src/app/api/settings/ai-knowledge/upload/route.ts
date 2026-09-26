@@ -36,6 +36,9 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { extractText, extractTextFromBuffer } from "@/lib/document-indexer";
 import { createManualSource, inferCategory, uploadExternalId } from "@/lib/knowledge/adapters/manual";
+import { createManualSourceOrCleanBlob } from "../_lib/create-or-clean";
+import { deleteFile } from "@/lib/storage";
+import { looksLikeCredential } from "@/lib/knowledge/normalize";
 import { logger } from "@/lib/logger";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 
@@ -148,16 +151,22 @@ export const POST = withApiAuth(
 
             const fileName = blob.pathname.split("/").pop() ?? blob.pathname;
             const text = await extractText(blob.url, blob.contentType ?? "application/octet-stream");
-            const result = await createManualSource({
-              title: meta.title || fileName,
-              text,
-              externalUrl: blob.url,
-              // Same id the client's /register call derives — see header.
-              externalId: uploadExternalId(blob.url),
-              // Same category sniff as /register: the two land on ONE row and
-              // the first writer wins, so they must not disagree.
-              category: inferCategory(fileName, meta.title),
-            });
+            // If createManualSource throws (the credential guard, or
+            // anything else), the blob it was created for never became a
+            // row — clean it up rather than orphaning it in Blob storage.
+            const result = await createManualSourceOrCleanBlob(
+              {
+                title: meta.title || fileName,
+                text,
+                externalUrl: blob.url,
+                // Same id the client's /register call derives — see header.
+                externalId: uploadExternalId(blob.url),
+                // Same category sniff as /register: the two land on ONE row and
+                // the first writer wins, so they must not disagree.
+                category: inferCategory(fileName, meta.title),
+              },
+              blob.url,
+            );
 
             logger.info("AI knowledge file uploaded + indexed", {
               id: result.sourceId,
@@ -215,6 +224,12 @@ export const POST = withApiAuth(
  * → create manual source → index) runs in a batched Promise.all so
  * one slow PDF doesn't block the rest. Errors per entry are caught
  * + logged so a single bad file doesn't drop the whole batch.
+ *
+ * The blob here is the WHOLE archive, not one entry — there's nothing
+ * per-entry to delete. If any entry is rejected for credential-like
+ * content, the archive blob is deleted once, AFTER every entry has been
+ * processed (so the good entries still land as their own sources), and
+ * the rejected entries are recorded in the log line that triggers it.
  */
 async function processZipUpload(zipUrl: string, uploadedById: string | undefined) {
   const JSZip = (await import("jszip")).default;
@@ -240,6 +255,8 @@ async function processZipUpload(zipUrl: string, uploadedById: string | undefined
     uploadedById,
   });
 
+  const rejectedEntries: string[] = [];
+
   // Concurrency cap — embedding API + DB writes shouldn't be fanned
   // out unbounded.
   const BATCH = 4;
@@ -249,6 +266,17 @@ async function processZipUpload(zipUrl: string, uploadedById: string | undefined
       slice.map(async (entry) => {
         try {
           const text = await extractTextFromBuffer(entry.bytes, entry.mime, entry.name);
+          // Checked explicitly (mirrors the SharePoint importer) so a
+          // credential-shaped entry is recorded as REJECTED — never
+          // reaching createManualSource — rather than surfacing as a
+          // generic "zip entry failed" error below.
+          if (looksLikeCredential(text)) {
+            rejectedEntries.push(entry.name);
+            logger.warn("AI knowledge: zip entry rejected — credential-like content", {
+              entry: entry.name,
+            });
+            return;
+          }
           const result = await createManualSource({
             title: entry.name.replace(/\.[^.]+$/, ""),
             text,
@@ -268,5 +296,20 @@ async function processZipUpload(zipUrl: string, uploadedById: string | undefined
         }
       }),
     );
+  }
+
+  if (rejectedEntries.length > 0) {
+    logger.warn("AI knowledge: deleting zip archive blob — it contained rejected entries", {
+      zipUrl,
+      rejectedEntries,
+    });
+    try {
+      await deleteFile(zipUrl);
+    } catch (delErr) {
+      logger.warn("AI knowledge: blob cleanup failed after rejected zip entries", {
+        zipUrl,
+        err: delErr instanceof Error ? delErr.message : String(delErr),
+      });
+    }
   }
 }

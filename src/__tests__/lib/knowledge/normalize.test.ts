@@ -5,6 +5,7 @@ import {
   canonicalState,
   inferTier,
   hashContent,
+  looksLikeCredential,
 } from "@/lib/knowledge/normalize";
 
 describe("normalizeTitle", () => {
@@ -115,5 +116,64 @@ describe("hashContent", () => {
     expect(hashContent("abc\n")).toBe(hashContent("abc"));
     expect(hashContent("abc")).not.toBe(hashContent("abd"));
     expect(hashContent("abc")).toMatch(/^[a-f0-9]{64}$/);
+  });
+});
+
+describe("looksLikeCredential", () => {
+  it("matches a labelled password/key/token value", () => {
+    expect(looksLikeCredential("Step 3: login with Password: hunter22")).toBe(true);
+    expect(looksLikeCredential("api_key=abc123456789")).toBe(true);
+    expect(looksLikeCredential("Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9")).toBe(true);
+    expect(looksLikeCredential("secret: amana_abcdefgh12")).toBe(true);
+    expect(looksLikeCredential("access_token=abcdef123456")).toBe(true);
+    expect(looksLikeCredential("pwd: hunter22")).toBe(true);
+  });
+
+  it("is case-insensitive on the label", () => {
+    expect(looksLikeCredential("PASSWORD: hunter22")).toBe(true);
+    expect(looksLikeCredential("Token = abcdef123456")).toBe(true);
+  });
+
+  it("does not match the label alone, or ordinary prose that mentions it", () => {
+    expect(looksLikeCredential("Password policy")).toBe(false);
+    expect(looksLikeCredential("Please reset your password before your first shift")).toBe(false);
+    expect(looksLikeCredential("Staff receive a token of appreciation each term")).toBe(false);
+    expect(looksLikeCredential("Enter your secret santa pick below")).toBe(false);
+    expect(looksLikeCredential("Bearer bonds mature next quarter")).toBe(false);
+  });
+
+  it("requires a long-enough value, not just the label and a separator", () => {
+    expect(looksLikeCredential("Password: ab")).toBe(false); // < 4 chars
+    expect(looksLikeCredential("token: short")).toBe(false); // < 12 chars for the key/token/secret group
+    expect(looksLikeCredential("Bearer short")).toBe(false); // < 16 chars
+  });
+
+  it("ignores policy prose that labels a field without giving it a secret-shaped value (2026-09-27 false positives)", () => {
+    // A plain-word continuation after the label, not a value.
+    expect(looksLikeCredential("Password: must be at least 8 characters")).toBe(false);
+    expect(looksLikeCredential("Password: minimum eight characters")).toBe(false);
+    // A reference number, not a secret: the key/token/secret group requires
+    // a letter AND a digit/symbol, so an all-digit value doesn't count.
+    expect(looksLikeCredential("Token: 12345678")).toBe(false);
+    // A record-number-shaped label the guard was never meant to catch.
+    expect(looksLikeCredential("CRN: 123456789A")).toBe(false);
+  });
+
+  it("ignores sentence punctuation glued to a plain-word value (the symbol must be INSIDE the value)", () => {
+    expect(looksLikeCredential("Password: required.")).toBe(false);
+    expect(looksLikeCredential("Password: mandatory!")).toBe(false);
+    expect(looksLikeCredential("Password: confidential.")).toBe(false);
+    expect(looksLikeCredential("Password: required, thanks.")).toBe(false);
+    // …but a real secret that happens to end a sentence still matches.
+    expect(looksLikeCredential("Password: hunter22.")).toBe(true);
+    // Every labelled occurrence is checked, not only the first.
+    expect(looksLikeCredential("Password: required. Later: Password: hunter22")).toBe(true);
+  });
+
+  it("still matches real credential shapes", () => {
+    expect(looksLikeCredential("Password: hunter22")).toBe(true);
+    expect(looksLikeCredential("password=Summer2026!")).toBe(true);
+    expect(looksLikeCredential("api_key=amana_4eC39HqLyjWDarjtT1zdp7dc")).toBe(true);
+    expect(looksLikeCredential("Bearer eyJhbGciOiJIUzI1NiJ9.abc.def")).toBe(true);
   });
 });

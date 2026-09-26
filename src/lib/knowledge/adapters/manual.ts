@@ -1,8 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { upsertKnowledgeSource } from "../pipeline";
+import { looksLikeCredential } from "../normalize";
+import { ApiError } from "@/lib/api-error";
 import type { KnowledgeCategory } from "@prisma/client";
 import type { UpsertResult } from "../types";
+
+/** Shared by createManualSource + updateManualSource — never log the text this rejected. */
+const CREDENTIAL_MESSAGE =
+  "This document appears to contain a password or key — remove it before adding it to the knowledge store";
 
 /**
  * A manual source never carries a `tier` — the pipeline's `inferTier`
@@ -57,8 +63,15 @@ export function inferCategory(fileName: string, title = ""): KnowledgeCategory {
   return "guide";
 }
 
-/** Admin paste/upload from /settings/ai-knowledge. externalId is minted here unless supplied. */
+/**
+ * Admin paste/upload from /settings/ai-knowledge. externalId is minted here
+ * unless supplied. Every caller — the paste route, the upload webhook and
+ * the client-driven register route — flows through here, so this is the
+ * ONE place a credential-shaped body is rejected before it reaches the
+ * store.
+ */
 export async function createManualSource(input: ManualSourceInput): Promise<UpsertResult> {
+  if (looksLikeCredential(input.text)) throw ApiError.badRequest(CREDENTIAL_MESSAGE);
   return upsertKnowledgeSource({
     sourceKind: "manual",
     externalId: input.externalId ?? `manual:${randomUUID()}`,
@@ -99,6 +112,10 @@ export async function updateManualSource(
   // drops headings into their own column, so a rejoin is lossy and the
   // rejoined hash would differ from the stored one on every rename).
   const text = patch.text ?? existing.text;
+  // Only gate on an ACTUAL text edit — a title-only rename must not start
+  // failing because a row created before this guard existed already holds
+  // credential-shaped text.
+  if (patch.text !== undefined && looksLikeCredential(patch.text)) throw ApiError.badRequest(CREDENTIAL_MESSAGE);
   // Re-runs the whole derivation (normalizedTitle, contentHash, tier heuristic,
   // supersession) so an edited entry can never drift from its own key.
   return upsertKnowledgeSource({

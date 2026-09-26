@@ -81,6 +81,35 @@ describe("manual adapter", () => {
     });
   });
 
+  it("createManualSource rejects credential-shaped body text without ever reaching the pipeline", async () => {
+    const p = createManualSource({ title: "Leaked notes", text: "Password: hunter22" });
+    await expect(p).rejects.toThrow(/password or key/);
+    await expect(p).rejects.toMatchObject({ status: 400 });
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it("updateManualSource rejects a text edit that introduces a credential, but a title-only rename of an already-stored row is unaffected", async () => {
+    prismaMock.knowledgeSource.findUnique.mockResolvedValue({
+      sourceKind: "manual",
+      externalId: "manual:abc123",
+      title: "Old title",
+      category: "guide",
+      serviceId: null,
+      state: null,
+      externalUrl: null,
+      text: "Some pre-existing body",
+    });
+    const p = updateManualSource("k1", { text: "api_key=abc123456789" });
+    await expect(p).rejects.toThrow(/password or key/);
+    await expect(p).rejects.toMatchObject({ status: 400 });
+    expect(upsert).not.toHaveBeenCalled();
+
+    // Renaming only (no `text` in the patch) never re-checks the PERSISTED
+    // text — a row created before this guard existed must still be renamable.
+    await updateManualSource("k1", { title: "New title" });
+    expect(upsert).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects updating a non-manual source", async () => {
     prismaMock.knowledgeSource.findUnique.mockResolvedValue({
       sourceKind: "policy_upload",

@@ -15,7 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import type { KnowledgeCategory } from "@prisma/client";
 import { upsertKnowledgeSource, excludeSources, applySupersession } from "../pipeline";
-import { hashContent, normalizeTitle, parseFilenameMeta, canonicalState } from "../normalize";
+import { hashContent, normalizeTitle, parseFilenameMeta, canonicalState, looksLikeCredential } from "../normalize";
 
 export interface PathClass {
   tree: "reg168" | "state" | "sop" | "centre" | null;
@@ -210,6 +210,18 @@ export async function importExportDir(dir: string, opts: ImportOptions = {}): Pr
       // frontmatter and flag drift rather than silently picking one.
       if (f.path.replace(/\\/g, "/") !== rel) {
         logger.warn("Knowledge: export frontmatter path differs from on-disk path", { file: rel, path: f.path });
+      }
+      // Content-level credential guard (spec 2026-09-27): the path/filename
+      // PII floor below has no view into body text. A file that now embeds a
+      // live credential is skipped WITHOUT ever reaching `seenIds` — so a row
+      // previously imported for this id is treated as no longer in SharePoint
+      // and the after-walk sweep adapter-excludes it, the same way a deleted
+      // document is retired. Checked before classification so it applies
+      // whatever tree the file is in, and in both dry and real runs.
+      if (looksLikeCredential(f.text)) {
+        report.skipped.push({ path: f.path, reason: "credential-like content" });
+        report.counts.skipped++;
+        continue;
       }
       const cls = classifyPath(f.path);
       if (cls.skip || !cls.tree) { report.skipped.push({ path: f.path, reason: "skip rule" }); report.counts.skipped++; continue; }
