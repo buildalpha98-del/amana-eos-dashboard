@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { syncAfterResponse } from "@/lib/knowledge/hooks";
+import { syncLmsCourse } from "@/lib/knowledge/adapters/lms-module";
 const createModuleSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -76,6 +78,8 @@ const { id: courseId } = await context!.params!;
       details: { title: createdModule.title, courseId },
     },
   });
+
+  syncAfterResponse("lms_module", () => syncLmsCourse(courseId));
 
   return NextResponse.json(createdModule, { status: 201 });
 }, { roles: [...ADMIN_ROLES] });

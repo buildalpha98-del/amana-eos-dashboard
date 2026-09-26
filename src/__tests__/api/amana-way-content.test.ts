@@ -10,6 +10,10 @@ vi.mock("@/lib/rate-limit", () => ({
   ),
 }));
 
+vi.mock("@/lib/knowledge/hooks", () => ({
+  syncAfterResponse: vi.fn(),
+}));
+
 vi.mock("@/lib/logger", () => ({
   logger: {
     debug: vi.fn(),

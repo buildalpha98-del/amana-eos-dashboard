@@ -4,6 +4,8 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { saveUploadedBuffer } from "@/app/api/_lib/upload";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { syncAfterResponse } from "@/lib/knowledge/hooks";
+import { syncPolicyVersion } from "@/lib/knowledge/adapters/policy-upload";
 
 
 // POST /api/policies/[id]/versions — upload a new PDF version of an existing
@@ -85,6 +87,8 @@ export const POST = withApiAuth(
         details: { title: doc.title, versionNumber: result.versionNumber },
       },
     });
+
+    syncAfterResponse("policy_upload", () => syncPolicyVersion(result.id));
 
     return NextResponse.json(result, { status: 201 });
   },

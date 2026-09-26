@@ -4,7 +4,7 @@
  * Client-driven post-upload registration. The browser uploads file
  * bytes directly to Vercel Blob via @vercel/blob/client.upload(),
  * then immediately calls THIS endpoint with the resulting blob URL
- * so the Document row is created + indexed synchronously.
+ * so the KnowledgeSource row is created + indexed synchronously.
  *
  * Why this exists alongside the onUploadCompleted webhook on the
  * /upload route: the webhook can drop or delay under bulk fan-out
@@ -12,24 +12,37 @@
  * the dashboard"). The client knows authoritatively when its upload
  * finished, so having it ping us directly removes the unreliability.
  *
- * Idempotent — upserts the Document by fileUrl so a slow webhook
- * arriving after this register call won't create a duplicate.
+ * Idempotent: the row's externalId is `uploadExternalId(blobUrl)` —
+ * the SAME string the webhook derives — so whichever of the two lands
+ * second hits the pipeline's hash fast-path and reports "unchanged"
+ * instead of creating a duplicate or re-embedding identical text.
+ *
+ * Zips are the webhook's: it unzips and registers one source PER
+ * ENTRY. Registering the zip here as well would flatten it into a
+ * second, combined source, so `.zip` short-circuits without fetching.
  */
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-import { indexDocument } from "@/lib/document-indexer";
+import { extractText } from "@/lib/document-indexer";
+import { inferCategory, uploadExternalId } from "@/lib/knowledge/adapters/manual";
+import { createManualSourceOrCleanBlob } from "../_lib/create-or-clean";
 import { logger } from "@/lib/logger";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { safeAttachmentUrl } from "@/lib/schemas/message-attachments";
+
+const ZIP_MIMES = new Set(["application/zip", "application/x-zip-compressed", "multipart/x-zip"]);
 
 const schema = z.object({
-  blobUrl: z.string().url(),
+  // Blob-host allow-list: the URL is fetched server-side AND stored as the
+  // entry's citation link, so an arbitrary https URL is never accepted.
+  blobUrl: safeAttachmentUrl,
   fileName: z.string().min(1),
   title: z.string().min(1),
   mimeType: z.string().min(1),
+  /** Advisory only — the console sends it; nothing here reads it. */
   fileSize: z.number().int().min(0).optional(),
 });
 
@@ -47,91 +60,52 @@ export const POST = withApiAuth(
         parsed.error.flatten().fieldErrors,
       );
     }
-    const { blobUrl, fileName, title, mimeType, fileSize } = parsed.data;
+    const { blobUrl, fileName, title, mimeType } = parsed.data;
 
-    // Auto-categorise from the filename — Daniel's library is full of
-    // "QA2 X Policy / Procedure" + "Y Handbook / Guide" files, so a
-    // simple keyword sniff puts them in the right Documents tab
-    // without a manual edit later.
-    const category = inferDocumentCategory(fileName, title);
-
-    // Upsert by fileUrl so the webhook arriving after us is a no-op.
-    const existing = await prisma.document.findFirst({
-      where: { fileUrl: blobUrl },
-      select: { id: true },
-    });
-
-    const documentId = existing
-      ? existing.id
-      : (
-          await prisma.document.create({
-            data: {
-              title,
-              description: null,
-              category,
-              fileName,
-              fileUrl: blobUrl,
-              fileSize: fileSize ?? 0,
-              mimeType,
-              uploadedById: session.user.id,
-            },
-            select: { id: true },
-          })
-        ).id;
-
-    // Index inline so the client gets accurate feedback. If the
-    // extractor errors, indexDocument writes indexError on the row
-    // (we DON'T rethrow — the Document still exists, the user can
-    // see the error inline and decide what to do).
-    try {
-      await indexDocument(documentId);
-      const firstChunk = await prisma.documentChunk.findFirst({
-        where: { documentId },
-        orderBy: { chunkIndex: "asc" },
-        select: { content: true },
+    if (isZip(blobUrl, mimeType)) {
+      logger.info("AI knowledge register: zip left to the upload webhook", { blobUrl, actorId: session!.user.id });
+      return NextResponse.json({
+        id: null,
+        outcome: "unchanged",
+        error: null,
+        reason: "zip entries are registered by the upload webhook",
       });
-      if (firstChunk) {
-        await prisma.document.update({
-          where: { id: documentId },
-          data: { description: firstChunk.content.slice(0, 280) },
-        });
-      }
-    } catch (err) {
-      logger.error("AI knowledge register: indexing failed", {
-        documentId,
-        err: err instanceof Error ? err.message : String(err),
-      });
-      // Swallow — the row exists with indexError set by indexDocument.
     }
 
-    const final = await prisma.document.findUnique({
-      where: { id: documentId },
-      select: { id: true, indexed: true, indexError: true, _count: { select: { chunks: true } } },
-    });
+    // Auto-categorise from the filename — the SAME sniff the upload webhook
+    // runs, so whichever of the two lands first sets the same category.
+    const category = inferCategory(fileName, title);
 
-    return NextResponse.json({
-      id: documentId,
-      indexed: final?.indexed ?? false,
-      indexError: final?.indexError ?? null,
-      chunkCount: final?._count.chunks ?? 0,
-    });
+    const text = await extractText(blobUrl, mimeType);
+
+    // If createManualSource throws (the credential guard, or anything else),
+    // the blob it was created for never became a row — clean it up rather
+    // than orphaning it in Blob storage. See create-or-clean.ts.
+    const r = await createManualSourceOrCleanBlob(
+      {
+        title,
+        text,
+        externalUrl: blobUrl,
+        externalId: uploadExternalId(blobUrl),
+        category,
+      },
+      blobUrl,
+    );
+    if (r.outcome === "error") {
+      logger.error("AI knowledge register: indexing failed", {
+        sourceId: r.sourceId,
+        actorId: session!.user.id,
+        err: r.error,
+      });
+    }
+    return NextResponse.json({ id: r.sourceId, outcome: r.outcome, error: r.error ?? null });
   },
-  { roles: [...ADMIN_ROLES] },
+  // withApiAuth races the handler against a 55s default — a few seconds under
+  // maxDuration so the wrapper, not the platform, reports the timeout.
+  { roles: [...ADMIN_ROLES], timeoutMs: 110_000 },
 );
 
-/**
- * Pick the best Document category for a freshly-uploaded file from
- * its filename + title. Falls back to "other" when nothing matches.
- * Order matters: "Policy" wins over generic words like "OSHC".
- */
-function inferDocumentCategory(
-  fileName: string,
-  title: string,
-): "policy" | "procedure" | "guide" | "compliance" | "other" {
-  const haystack = `${fileName} ${title}`.toLowerCase();
-  if (/\bpolicy\b|\bpolicies\b/.test(haystack)) return "policy";
-  if (/\bprocedure\b|\bprocedures\b/.test(haystack)) return "procedure";
-  if (/\bguide\b|\bhandbook\b|\bmanual\b/.test(haystack)) return "guide";
-  if (/\bcompliance\b|\baudit\b/.test(haystack)) return "compliance";
-  return "other";
+/** Zip by extension (case-insensitive) or by the content type the console sent. */
+function isZip(blobUrl: string, mimeType: string): boolean {
+  return ZIP_MIMES.has(mimeType) || new URL(blobUrl).pathname.toLowerCase().endsWith(".zip");
 }

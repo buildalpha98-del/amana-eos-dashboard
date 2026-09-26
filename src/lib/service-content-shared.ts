@@ -90,6 +90,15 @@ export const serviceContentSchema = z.object({
    * Empty means the button is hidden rather than a dead link.
    */
   sharepointUrl: z.string().max(2_048),
+
+  /**
+   * 2026-09-27: staff-only operational notes for this centre — gate/alarm
+   * codes, evacuation point, school office contact, key people. Indexed
+   * into the Amana AI knowledge store scoped to THIS service (adapter
+   * `centre_facts`); never shown to parents. Coordinator-editable via the
+   * same PATCH as the rest of the content tab.
+   */
+  staffNotes: z.string().max(4_000).default(""),
 });
 
 export type ServiceContent = z.infer<typeof serviceContentSchema>;
@@ -110,6 +119,7 @@ export const SERVICE_CONTENT_DEFAULTS: ServiceContent = {
   policyDocumentIds: [],
   enrolmentThankYou: "",
   sharepointUrl: "",
+  staffNotes: "",
 };
 
 /**
@@ -164,5 +174,33 @@ export function mergeServiceContent(
     policyDocumentIds,
     enrolmentThankYou: str("enrolmentThankYou"),
     sharepointUrl: str("sharepointUrl"),
+    staffNotes: str("staffNotes"),
   };
+}
+
+/**
+ * Fields that must never reach a parent-facing surface. The single source
+ * of truth `toParentContent` strips from — add a new staff-only field HERE
+ * and it is removed everywhere that function is called, with no per-caller
+ * omit to forget.
+ */
+export const STAFF_ONLY_FIELDS = ["staffNotes"] as const;
+
+export type ParentServiceContent = Omit<
+  ServiceContent,
+  (typeof STAFF_ONLY_FIELDS)[number]
+>;
+
+/**
+ * The parent-portal view of a centre's content. Fields in
+ * `STAFF_ONLY_FIELDS` (gate/alarm codes, evacuation points, …) are
+ * staff-only and are removed HERE, not by convention at the call site.
+ * Any future staff-only field joins that list.
+ */
+export function toParentContent(content: ServiceContent): ParentServiceContent {
+  const parent: Partial<ServiceContent> = { ...content };
+  for (const key of STAFF_ONLY_FIELDS) {
+    delete parent[key];
+  }
+  return parent as ParentServiceContent;
 }

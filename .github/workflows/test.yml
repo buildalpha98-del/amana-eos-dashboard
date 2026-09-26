@@ -93,7 +93,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
@@ -123,6 +123,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Enable pgvector
+        run: echo 'CREATE EXTENSION IF NOT EXISTS vector;' | npx prisma db execute --stdin --url "$DATABASE_URL"
+
       - name: Generate Prisma client & push schema
         run: |
           npx prisma generate
@@ -144,7 +147,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
@@ -183,6 +186,9 @@ jobs:
           cache: "npm"
 
       - run: npm ci
+
+      - name: Enable pgvector
+        run: echo 'CREATE EXTENSION IF NOT EXISTS vector;' | npx prisma db execute --stdin --url "$DATABASE_URL"
 
       - name: Generate Prisma client & push schema
         run: |

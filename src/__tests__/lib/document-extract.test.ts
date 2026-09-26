@@ -1,0 +1,257 @@
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+// Mock unpdf (replaced pdf-parse 2026-06-17 — pdf-parse v2 needed
+// a worker file that isn't bundled in Vercel serverless).
+const mockExtractText = vi.fn();
+const mockGetDocumentProxy = vi.fn();
+vi.mock("unpdf", () => ({
+  extractText: mockExtractText,
+  getDocumentProxy: mockGetDocumentProxy,
+}));
+
+// Mock mammoth
+vi.mock("mammoth", () => ({
+  default: { extractRawText: vi.fn() },
+}));
+
+// Mock global fetch
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
+
+describe("document-extract", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // ─── extractText ────────────────────────────────────────────
+
+  describe("extractText", () => {
+    it("extracts text from PDF via unpdf", async () => {
+      const pdfBuffer = Buffer.from("fake-pdf-content");
+      mockFetch.mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => pdfBuffer.buffer,
+      });
+
+      const fakeProxy = { _stub: true };
+      mockGetDocumentProxy.mockResolvedValue(fakeProxy);
+      mockExtractText.mockResolvedValue({ text: "Hello from PDF" });
+
+      const { extractText } = await import("@/lib/document-indexer");
+      const result = await extractText(
+        "https://example.com/doc.pdf",
+        "application/pdf",
+      );
+
+      expect(result).toBe("Hello from PDF");
+      expect(mockGetDocumentProxy).toHaveBeenCalled();
+      expect(mockExtractText).toHaveBeenCalledWith(fakeProxy, {
+        mergePages: true,
+      });
+    });
+
+    it("extracts text from DOCX via mammoth", async () => {
+      const docxBuffer = Buffer.from("fake-docx-content");
+      mockFetch.mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => docxBuffer.buffer,
+      });
+
+      const mammoth = (await import("mammoth")).default;
+      (mammoth.extractRawText as ReturnType<typeof vi.fn>).mockResolvedValue({
+        value: "Hello from DOCX",
+      });
+
+      const { extractText } = await import("@/lib/document-indexer");
+      const result = await extractText(
+        "https://example.com/doc.docx",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      );
+
+      expect(result).toBe("Hello from DOCX");
+      expect(mammoth.extractRawText).toHaveBeenCalled();
+    });
+
+    it("extracts plain text directly", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        // extractText reads the body as a buffer for every MIME type
+        arrayBuffer: async () => new TextEncoder().encode("Plain text content here").buffer,
+        text: async () => "Plain text content here",
+      });
+
+      const { extractText } = await import("@/lib/document-indexer");
+      const result = await extractText(
+        "https://example.com/doc.txt",
+        "text/plain",
+      );
+
+      expect(result).toBe("Plain text content here");
+    });
+
+    it("extracts markdown text directly", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        // extractText reads the body as a buffer for every MIME type
+        arrayBuffer: async () => new TextEncoder().encode("# Heading\n\nSome markdown").buffer,
+        text: async () => "# Heading\n\nSome markdown",
+      });
+
+      const { extractText } = await import("@/lib/document-indexer");
+      const result = await extractText(
+        "https://example.com/doc.md",
+        "text/markdown",
+      );
+
+      expect(result).toBe("# Heading\n\nSome markdown");
+    });
+
+    it("extracts CSV text directly", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        // extractText reads the body as a buffer for every MIME type
+        arrayBuffer: async () => new TextEncoder().encode("name,age\nAlice,30").buffer,
+        text: async () => "name,age\nAlice,30",
+      });
+
+      const { extractText } = await import("@/lib/document-indexer");
+      const result = await extractText(
+        "https://example.com/data.csv",
+        "text/csv",
+      );
+
+      expect(result).toBe("name,age\nAlice,30");
+    });
+
+    it("throws for unsupported MIME type", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => new TextEncoder().encode("binary").buffer,
+      });
+      const { extractText } = await import("@/lib/document-indexer");
+
+      await expect(
+        extractText("https://example.com/img.png", "image/png"),
+      ).rejects.toThrow(/unsupported/i);
+    });
+
+    it("throws when download fails", async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: "Not Found",
+      });
+
+      const { extractText } = await import("@/lib/document-indexer");
+
+      await expect(
+        extractText("https://example.com/missing.pdf", "application/pdf"),
+      ).rejects.toThrow();
+    });
+  });
+
+  // ─── chunkText ──────────────────────────────────────────────
+
+  describe("chunkText", () => {
+    it("returns empty array for empty text", async () => {
+      const { chunkText } = await import("@/lib/document-indexer");
+      expect(chunkText("")).toEqual([]);
+    });
+
+    it("returns empty array for whitespace-only text", async () => {
+      const { chunkText } = await import("@/lib/document-indexer");
+      expect(chunkText("   \n\n   ")).toEqual([]);
+    });
+
+    it("chunks at heading boundaries", async () => {
+      const { chunkText } = await import("@/lib/document-indexer");
+      const text = [
+        "# Introduction",
+        "This is the intro paragraph.",
+        "",
+        "## Details",
+        "Here are the details.",
+      ].join("\n");
+
+      const chunks = chunkText(text);
+
+      expect(chunks.length).toBeGreaterThanOrEqual(2);
+      expect(chunks[0].heading).toBe("Introduction");
+      expect(chunks[0].content).toContain("intro paragraph");
+      expect(chunks[1].heading).toBe("Details");
+      expect(chunks[1].content).toContain("details");
+    });
+
+    it("respects ~500 token limit per chunk", async () => {
+      const { chunkText } = await import("@/lib/document-indexer");
+      // Create text that exceeds 500 tokens (~2000 chars)
+      const longParagraph = "This is a sentence with several words. ".repeat(
+        150,
+      );
+      const text = `# Section\n${longParagraph}`;
+
+      const chunks = chunkText(text);
+
+      for (const chunk of chunks) {
+        // Each chunk should be roughly 500 tokens or less (with some tolerance)
+        expect(chunk.tokenCount).toBeLessThanOrEqual(600);
+      }
+      expect(chunks.length).toBeGreaterThan(1);
+    });
+
+    it("includes overlap between chunks", async () => {
+      const { chunkText } = await import("@/lib/document-indexer");
+      // Create text long enough to split into multiple chunks
+      const longText = "Word ".repeat(2500); // ~2500 words = ~625 tokens
+
+      const chunks = chunkText(longText);
+
+      if (chunks.length >= 2) {
+        // The end of chunk 0 should overlap with the start of chunk 1
+        const chunk0End = chunks[0].content.slice(-100);
+        const chunk1Start = chunks[1].content.slice(0, 200);
+        // Some text from end of chunk 0 should appear in the start of chunk 1
+        const overlapWords = chunk0End.trim().split(/\s+/).slice(-5).join(" ");
+        expect(chunk1Start).toContain(overlapWords);
+      }
+    });
+
+    it("handles text with no headings", async () => {
+      const { chunkText } = await import("@/lib/document-indexer");
+      const text = "Just some plain text without any headings at all.";
+
+      const chunks = chunkText(text);
+
+      expect(chunks.length).toBe(1);
+      expect(chunks[0].heading).toBeNull();
+      expect(chunks[0].content).toContain("plain text");
+    });
+
+    it("produces sequential chunk indexes", async () => {
+      const { chunkText } = await import("@/lib/document-indexer");
+      const text = [
+        "# First",
+        "Content one.",
+        "# Second",
+        "Content two.",
+        "# Third",
+        "Content three.",
+      ].join("\n");
+
+      const chunks = chunkText(text);
+
+      for (let i = 0; i < chunks.length; i++) {
+        expect(chunks[i].chunkIndex).toBe(i);
+      }
+    });
+
+    it("estimates token count as ceil(chars / 4)", async () => {
+      const { chunkText } = await import("@/lib/document-indexer");
+      const text = "Hello world"; // 11 chars => ceil(11/4) = 3
+
+      const chunks = chunkText(text);
+
+      expect(chunks[0].tokenCount).toBe(Math.ceil(text.length / 4));
+    });
+  });
+});

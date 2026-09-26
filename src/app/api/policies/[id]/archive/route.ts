@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { syncAfterResponse } from "@/lib/knowledge/hooks";
+import { syncPolicyVersion, excludePolicySources } from "@/lib/knowledge/adapters/policy-upload";
 
 
 const archiveSchema = z.object({
@@ -18,7 +20,7 @@ export const PATCH = withApiAuth(
 
     const existing = await prisma.policyDocument.findUnique({
       where: { id },
-      select: { id: true, title: true, isArchived: true },
+      select: { id: true, title: true, isArchived: true, currentVersionId: true },
     });
     if (!existing) throw ApiError.notFound("Policy not found");
 
@@ -47,6 +49,13 @@ export const PATCH = withApiAuth(
         details: { title: updated.title },
       },
     });
+
+    if (parsed.data.isArchived) {
+      syncAfterResponse("policy_upload", () => excludePolicySources(id));
+    } else {
+      const vid = existing.currentVersionId;
+      if (vid) syncAfterResponse("policy_upload", () => syncPolicyVersion(vid));
+    }
 
     return NextResponse.json(updated);
   },

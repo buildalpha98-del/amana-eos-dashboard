@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
-import { logger } from "@/lib/logger";
-import { indexDocument } from "@/lib/document-indexer";
 
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
@@ -53,12 +51,6 @@ export const PATCH = withApiAuth(async (req, session, context) => {
       folder: { select: { id: true, name: true } },
     },
   });
-
-  if (parsed.data.fileUrl) {
-    indexDocument(document.id).catch((err) => {
-      logger.warn("Re-index after file update failed", { documentId: document.id, error: err });
-    });
-  }
 
   return NextResponse.json(document);
 }, { roles: [...ADMIN_ROLES] });
