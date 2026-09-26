@@ -3068,11 +3068,10 @@ model Service {
   childRecords     Child[]            @relation("ServiceChildren")
 
   // ── Parent Portal Relations ──────────────────────
-  bookings         Booking[]         @relation("ServiceBookings_Portal")
-  absences         Absence[]         @relation("ServiceAbsences")
-  statements       Statement[]       @relation("ServiceStatements")
-  knowledgeSources KnowledgeSource[] @relation("ServiceKnowledgeSources")
-  parentPosts      ParentPost[]      @relation("ServiceParentPosts")
+  bookings    Booking[]    @relation("ServiceBookings_Portal")
+  absences    Absence[]    @relation("ServiceAbsences")
+  statements  Statement[]  @relation("ServiceStatements")
+  parentPosts ParentPost[] @relation("ServiceParentPosts")
 
   // ── Cowork Reports ──────────────────────────────
   coworkReports CoworkReport[] @relation("CoworkReportService")
@@ -3081,6 +3080,7 @@ model Service {
   sentimentScores     SentimentScore[]    @relation("SentimentScoreService")
   attendanceAnomalies AttendanceAnomaly[] @relation("AttendanceAnomalyService")
   trendInsights       TrendInsight[]      @relation("TrendInsightService")
+  knowledgeSources    KnowledgeSource[]   @relation("ServiceKnowledgeSources")
 
   // ── Daily Checklists ──────────────────────────────
   dailyChecklists DailyChecklist[]
