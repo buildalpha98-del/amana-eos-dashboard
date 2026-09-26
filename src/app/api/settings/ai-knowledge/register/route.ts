@@ -27,11 +27,10 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { extractText } from "@/lib/document-indexer";
-import { createManualSource, uploadExternalId } from "@/lib/knowledge/adapters/manual";
+import { createManualSource, inferCategory, uploadExternalId } from "@/lib/knowledge/adapters/manual";
 import { logger } from "@/lib/logger";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { safeAttachmentUrl } from "@/lib/schemas/message-attachments";
-import type { KnowledgeCategory } from "@prisma/client";
 
 const ZIP_MIMES = new Set(["application/zip", "application/x-zip-compressed", "multipart/x-zip"]);
 
@@ -72,10 +71,8 @@ export const POST = withApiAuth(
       });
     }
 
-    // Auto-categorise from the filename — Daniel's library is full of
-    // "QA2 X Policy / Procedure" + "Y Handbook / Guide" files, so a
-    // simple keyword sniff puts them in the right console tab without
-    // a manual edit later.
+    // Auto-categorise from the filename — the SAME sniff the upload webhook
+    // runs, so whichever of the two lands first sets the same category.
     const category = inferCategory(fileName, title);
 
     const text = await extractText(blobUrl, mimeType);
@@ -104,16 +101,4 @@ export const POST = withApiAuth(
 /** Zip by extension (case-insensitive) or by the content type the console sent. */
 function isZip(blobUrl: string, mimeType: string): boolean {
   return ZIP_MIMES.has(mimeType) || new URL(blobUrl).pathname.toLowerCase().endsWith(".zip");
-}
-
-/**
- * Pick the best KnowledgeCategory for a freshly-uploaded file from its
- * filename + title. Order matters: "Policy" wins over generic words like
- * "OSHC". Anything unrecognised is a "guide".
- */
-function inferCategory(fileName: string, title: string): KnowledgeCategory {
-  const haystack = `${fileName} ${title}`.toLowerCase();
-  if (/\bpolicy\b|\bpolicies\b/.test(haystack)) return "policy";
-  if (/\bprocedure\b|\bprocedures\b/.test(haystack)) return "procedure";
-  return "guide";
 }

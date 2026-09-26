@@ -50,7 +50,13 @@ export const POST = withApiAuth(
       const service = await prisma.service.findUnique({ where: { id: serviceId }, select: { id: true } });
       if (!service) throw ApiError.badRequest("Unknown serviceId");
     }
-    const result = await createManualSource({ title: title.trim(), text: body, category, tier, serviceId, state });
+    // An explicit tier is admin intent: it belongs in `tierOverride` (the same
+    // slot the row's PATCH writes), not the heuristic `tier` column — otherwise
+    // the next edit's re-derivation would silently overwrite it.
+    const result = await createManualSource({ title: title.trim(), text: body, category, serviceId, state });
+    if (tier) {
+      await prisma.knowledgeSource.update({ where: { id: result.sourceId }, data: { tierOverride: tier } });
+    }
     if (result.outcome === "error") {
       // The row exists (so the admin can retry via reindex) but nothing is
       // searchable yet — say so instead of a silent 201.

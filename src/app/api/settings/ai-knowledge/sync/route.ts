@@ -18,9 +18,11 @@ const schema = z.object({ adapter: z.enum(RUNNABLE_ADAPTERS) });
 
 /**
  * Latest run per adapter (incl. the script-written `sharepoint` runs) — feeds
- * the console's Last-sync panel. `distinct` + `orderBy` compiles to Postgres
- * DISTINCT ON, which keeps the first (newest) row per adapter — a burst of
- * backfill runs can't push another adapter off the panel.
+ * the console's Last-sync panel. `distinct` + `orderBy` keeps the first
+ * (newest) row per adapter, so a burst of backfill runs can't push another
+ * adapter off the panel. Prisma dedupes in memory (no `nativeDistinct`), so
+ * the query reads the whole table; it stays small because the email-janitor
+ * cron prunes runs older than 90 days.
  */
 export const GET = withApiAuth(
   async () => {

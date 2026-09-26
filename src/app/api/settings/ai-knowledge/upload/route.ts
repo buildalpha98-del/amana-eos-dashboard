@@ -35,7 +35,7 @@ import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { extractText, extractTextFromBuffer } from "@/lib/document-indexer";
-import { createManualSource, uploadExternalId } from "@/lib/knowledge/adapters/manual";
+import { createManualSource, inferCategory, uploadExternalId } from "@/lib/knowledge/adapters/manual";
 import { logger } from "@/lib/logger";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 
@@ -154,6 +154,9 @@ export const POST = withApiAuth(
               externalUrl: blob.url,
               // Same id the client's /register call derives — see header.
               externalId: uploadExternalId(blob.url),
+              // Same category sniff as /register: the two land on ONE row and
+              // the first writer wins, so they must not disagree.
+              category: inferCategory(fileName, meta.title),
             });
 
             logger.info("AI knowledge file uploaded + indexed", {
@@ -250,6 +253,7 @@ async function processZipUpload(zipUrl: string, uploadedById: string | undefined
             title: entry.name.replace(/\.[^.]+$/, ""),
             text,
             externalUrl: null,
+            category: inferCategory(entry.name),
           });
           logger.info("AI knowledge: zip entry indexed", {
             id: result.sourceId,

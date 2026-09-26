@@ -18,7 +18,7 @@ vi.mock("mammoth", () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
-describe("document-indexer", () => {
+describe("document-extract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

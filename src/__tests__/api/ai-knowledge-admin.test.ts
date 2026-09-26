@@ -83,11 +83,21 @@ describe("/api/settings/ai-knowledge", () => {
     it("validates and creates a manual source", async () => {
       asOwner();
       expect((await POST(createRequest("POST", "/api/settings/ai-knowledge", { body: { title: "" } }))).status).toBe(400);
-      const res = await POST(createRequest("POST", "/api/settings/ai-knowledge", { body: { title: "Roll call", body: "# Roll call\n…", category: "sop", tier: "safety_critical" } }));
+      const res = await POST(createRequest("POST", "/api/settings/ai-knowledge", { body: { title: "Roll call", body: "# Roll call\n…", category: "sop" } }));
       expect(res.status).toBe(201);
       expect(await res.json()).toEqual({ id: "k1", outcome: "created", error: null });
-      expect(createManual.mock.calls[0][0]).toMatchObject({ title: "Roll call", text: "# Roll call\n…", category: "sop", tier: "safety_critical" });
+      expect(createManual.mock.calls[0][0]).toMatchObject({ title: "Roll call", text: "# Roll call\n…", category: "sop" });
+      expect(createManual.mock.calls[0][0]).not.toHaveProperty("tier");
+      expect(prismaMock.knowledgeSource.update).not.toHaveBeenCalled();
       expect(prismaMock.service.findUnique).not.toHaveBeenCalled();
+    });
+
+    it("an explicit tier is admin intent — lands in tierOverride, never the heuristic tier column", async () => {
+      asOwner();
+      const res = await POST(createRequest("POST", "/api/settings/ai-knowledge", { body: { title: "Roll call", body: "# Roll call\n…", tier: "safety_critical" } }));
+      expect(res.status).toBe(201);
+      expect(createManual.mock.calls[0][0]).not.toHaveProperty("tier");
+      expect(prismaMock.knowledgeSource.update).toHaveBeenCalledWith({ where: { id: "k1" }, data: { tierOverride: "safety_critical" } });
     });
 
     it("surfaces an indexing error in the body and warns, instead of a silent 201", async () => {
@@ -311,7 +321,7 @@ describe("/api/settings/ai-knowledge", () => {
     expect(runAdapter).toHaveBeenCalledWith("backfill", "u");
   });
 
-  it("GET /sync asks Postgres for the newest run per adapter (DISTINCT ON) rather than trimming a recent-N slice", async () => {
+  it("GET /sync dedupes to the newest run per adapter (Prisma distinct, pruned by the janitor) rather than trimming a recent-N slice", async () => {
     asOwner();
     prismaMock.knowledgeSyncRun.findMany.mockResolvedValue([
       { id: "r3", adapter: "sharepoint", startedAt: new Date(3), finishedAt: new Date(3), counts: { imported: 5 }, details: { conflicts: [] }, error: null },

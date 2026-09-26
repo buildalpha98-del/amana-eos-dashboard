@@ -5,7 +5,7 @@ const { upsert } = vi.hoisted(() => ({
   upsert: vi.fn(async (_input?: unknown) => ({ sourceId: "s", outcome: "created" })),
 }));
 vi.mock("@/lib/knowledge/pipeline", () => ({ upsertKnowledgeSource: (i: unknown) => upsert(i) }));
-import { createManualSource, updateManualSource, uploadExternalId } from "@/lib/knowledge/adapters/manual";
+import { createManualSource, inferCategory, updateManualSource, uploadExternalId } from "@/lib/knowledge/adapters/manual";
 
 describe("manual adapter", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -36,8 +36,6 @@ describe("manual adapter", () => {
       externalId: "manual:abc123",
       title: "Old title",
       category: "guide",
-      tier: "general",
-      tierOverride: null,
       serviceId: null,
       state: null,
       externalUrl: null,
@@ -58,6 +56,29 @@ describe("manual adapter", () => {
       externalId: "manual:abc123",
       title: "New",
       text: "Para one\n\nPara two",
+    });
+    // No tier is forwarded: the heuristic re-derives in the pipeline and the
+    // admin's tierOverride is not part of the upsert's write set.
+    expect(upsert.mock.calls[0][0]).not.toHaveProperty("tier");
+  });
+
+  describe("inferCategory", () => {
+    it("sniffs policy / procedure from the filename, whole words only", () => {
+      expect(inferCategory("QA2 Sun Safety Policy.pdf")).toBe("policy");
+      expect(inferCategory("qa7 governance policies v3.docx")).toBe("policy");
+      expect(inferCategory("Medication Procedure.pdf")).toBe("procedure");
+      expect(inferCategory("Emergency procedures.docx")).toBe("procedure");
+      expect(inferCategory("Policyholder notes.pdf")).toBe("guide");
+    });
+
+    it("also reads the admin's title, with policy beating procedure", () => {
+      expect(inferCategory("scan-0042.pdf", "Sun Safety Policy")).toBe("policy");
+      expect(inferCategory("Handwashing procedure.pdf", "Hygiene Policy")).toBe("policy");
+    });
+
+    it("falls back to guide", () => {
+      expect(inferCategory("Employee Handbook.pdf")).toBe("guide");
+      expect(inferCategory("notes.txt", "")).toBe("guide");
     });
   });
 

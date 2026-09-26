@@ -1,14 +1,18 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { upsertKnowledgeSource } from "../pipeline";
-import type { KnowledgeCategory, KnowledgeTier } from "@prisma/client";
+import type { KnowledgeCategory } from "@prisma/client";
 import type { UpsertResult } from "../types";
 
+/**
+ * A manual source never carries a `tier` — the pipeline's `inferTier`
+ * derives the heuristic column, and admin intent lives in `tierOverride`
+ * (written by the console's POST / PATCH routes, untouched by the upsert).
+ */
 export interface ManualSourceInput {
   title: string;
   text: string;
   category?: KnowledgeCategory;
-  tier?: KnowledgeTier;
   serviceId?: string | null;
   state?: string | null;
   /** Blob URL for uploaded files; null for pasted text */
@@ -33,6 +37,26 @@ export function uploadExternalId(blobUrl: string): string {
   return `manual:upload:${new URL(blobUrl).pathname}`;
 }
 
+/**
+ * Pick the KnowledgeCategory for an uploaded file from its filename (+ the
+ * title the admin typed, when there is one). Daniel's library is full of
+ * "QA2 X Policy / Procedure" + "Y Handbook / Guide" files, so a keyword
+ * sniff puts them in the right console tab without a manual edit later.
+ * Order matters: "Policy" wins over generic words like "OSHC". Anything
+ * unrecognised is a "guide".
+ *
+ * ONE implementation, shared by the client-driven `register` route and the
+ * Blob `onUploadCompleted` webhook: both land on the same row (see
+ * `uploadExternalId`), and whichever arrives first sets the category — so
+ * they must agree, or the winner is whichever was faster.
+ */
+export function inferCategory(fileName: string, title = ""): KnowledgeCategory {
+  const haystack = `${fileName} ${title}`.toLowerCase();
+  if (/\bpolicy\b|\bpolicies\b/.test(haystack)) return "policy";
+  if (/\bprocedure\b|\bprocedures\b/.test(haystack)) return "procedure";
+  return "guide";
+}
+
 /** Admin paste/upload from /settings/ai-knowledge. externalId is minted here unless supplied. */
 export async function createManualSource(input: ManualSourceInput): Promise<UpsertResult> {
   return upsertKnowledgeSource({
@@ -40,7 +64,6 @@ export async function createManualSource(input: ManualSourceInput): Promise<Upse
     externalId: input.externalId ?? `manual:${randomUUID()}`,
     title: input.title,
     category: input.category ?? "guide",
-    tier: input.tier,
     text: input.text,
     serviceId: input.serviceId ?? null,
     state: input.state ?? null,
@@ -55,6 +78,8 @@ export async function createManualSource(input: ManualSourceInput): Promise<Upse
  * all re-derive from the edited value instead of drifting from it. A
  * rename with unchanged text takes the pipeline's hash fast-path (title
  * fields written, no re-embed) and revisits both the old and new group.
+ * No `tier` is passed: the heuristic re-derives from the new title, and
+ * the row's `tierOverride` is not part of the upsert's write set.
  */
 export async function updateManualSource(
   id: string,
@@ -63,7 +88,7 @@ export async function updateManualSource(
   const existing = await prisma.knowledgeSource.findUnique({
     where: { id },
     select: {
-      sourceKind: true, externalId: true, title: true, category: true, tier: true, tierOverride: true,
+      sourceKind: true, externalId: true, title: true, category: true,
       serviceId: true, state: true, externalUrl: true,
       chunks: { orderBy: { chunkIndex: "asc" }, select: { content: true } },
     },
@@ -79,7 +104,6 @@ export async function updateManualSource(
     externalId: existing.externalId,
     title: patch.title ?? existing.title,
     category: existing.category,
-    tier: existing.tierOverride ?? existing.tier,
     text,
     serviceId: existing.serviceId,
     state: existing.state,

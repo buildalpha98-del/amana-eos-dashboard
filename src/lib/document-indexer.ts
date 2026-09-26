@@ -4,38 +4,6 @@
  * touches the database.
  */
 
-// ─── pdfjs-dist Node polyfills ────────────────────────────────
-//
-// pdfjs-dist (which pdf-parse wraps) sniffs for browser globals at
-// import time and throws "DOMMatrix is not defined" in Vercel's
-// serverless Node runtime. We only need the text layer, not real
-// canvas rendering, so empty-class stubs are enough to get past the
-// sniff. Runs once per worker — guarded by undefined check.
-let pdfPolyfillApplied = false;
-function polyfillPdfjsGlobals(): void {
-  if (pdfPolyfillApplied) return;
-  pdfPolyfillApplied = true;
-  const g = globalThis as Record<string, unknown>;
-  if (typeof g.DOMMatrix === "undefined") {
-    g.DOMMatrix = class {
-      constructor(_init?: unknown) {}
-    };
-  }
-  if (typeof g.Path2D === "undefined") {
-    g.Path2D = class {
-      constructor(_init?: unknown) {}
-    };
-  }
-  if (typeof g.ImageData === "undefined") {
-    g.ImageData = class {
-      width = 0;
-      height = 0;
-      data: Uint8ClampedArray = new Uint8ClampedArray();
-      constructor(_w?: unknown, _h?: unknown) {}
-    };
-  }
-}
-
 // ─── Types ────────────────────────────────────────────────────
 
 export interface DocumentChunkData {
