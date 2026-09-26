@@ -22,7 +22,14 @@ function walk(dir: string): string[] {
 }
 
 const ROOT = process.cwd();
-const GUARDED = ["src/lib/knowledge", "src/app/api/settings/ai-knowledge", "src/lib/embeddings.ts"];
+// The SharePoint importer script writes KnowledgeSyncRun directly and drives
+// the PII-boundary adapter — it must never grow a Document read either.
+const GUARDED = [
+  "src/lib/knowledge",
+  "src/app/api/settings/ai-knowledge",
+  "src/lib/embeddings.ts",
+  "scripts/import-sharepoint-knowledge.ts",
+];
 
 function guardedFiles(): string[] {
   return GUARDED.flatMap((rel) => {
