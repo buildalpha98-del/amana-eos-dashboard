@@ -11,9 +11,10 @@
  *      content type + size cap, mints a single-use upload token for
  *      the client.
  *   2. `onUploadCompleted` — receives a Vercel webhook AFTER the
- *      client has finished uploading to Blob. Creates the Document
- *      row pointing at the new blob URL and runs the existing
- *      `indexDocument()` pipeline to extract text + chunk + index.
+ *      client has finished uploading to Blob. Creates the manual
+ *      KnowledgeSource row pointing at the new blob URL and runs
+ *      `extractText()` + `createManualSource()` to extract, chunk and
+ *      index it.
  *
  * The client never POSTs the file bytes through this route, so we
  * can comfortably accept 50 MB+ files. The pattern is documented in
@@ -28,11 +29,10 @@
 
 import { NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
-import { put } from "@vercel/blob";
-import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
-import { indexDocument } from "@/lib/document-indexer";
+import { extractText, extractTextFromBuffer } from "@/lib/document-indexer";
+import { createManualSource } from "@/lib/knowledge/adapters/manual";
 import { logger } from "@/lib/logger";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 
@@ -116,11 +116,11 @@ export const POST = withApiAuth(
             }),
           };
         },
-        // Phase 2: the post-upload webhook from Vercel Blob. Creates
-        // the Document row and runs the existing extraction +
-        // chunking pipeline. When the uploaded blob is a zip, unzip
-        // it on the server and process each supported entry
-        // individually so 30+ policies land from a single drop.
+        // Phase 2: the post-upload webhook from Vercel Blob. Creates a
+        // manual KnowledgeSource pointing at the blob and indexes it.
+        // When the uploaded blob is a zip, unzip it on the server and
+        // process each supported entry individually so 30+ policies
+        // land from a single drop.
         onUploadCompleted: async ({ blob, tokenPayload }) => {
           try {
             const meta = tokenPayload
@@ -141,40 +141,19 @@ export const POST = withApiAuth(
             }
 
             const fileName = blob.pathname.split("/").pop() ?? blob.pathname;
-            const created = await prisma.document.create({
-              data: {
-                title: meta.title || fileName,
-                description: null, // populated post-extraction
-                category: "other",
-                fileName,
-                fileUrl: blob.url,
-                fileSize: 0, // blob doesn't expose size at this stage; refreshed by indexer
-                mimeType: blob.contentType ?? "application/octet-stream",
-                uploadedById: meta.uploadedById ?? null,
-              },
+            const text = await extractText(blob.url, blob.contentType ?? "application/octet-stream");
+            const result = await createManualSource({
+              title: meta.title || fileName,
+              text,
+              externalUrl: blob.url,
             });
-
-            await indexDocument(created.id);
-
-            // Backfill the description preview from the first chunk
-            // (post-extraction) so the list card has something to show.
-            const firstChunk = await prisma.documentChunk.findFirst({
-              where: { documentId: created.id },
-              orderBy: { chunkIndex: "asc" },
-              select: { content: true, tokenCount: true },
-            });
-            if (firstChunk) {
-              await prisma.document.update({
-                where: { id: created.id },
-                data: { description: firstChunk.content.slice(0, 280) },
-              });
-            }
 
             logger.info("AI knowledge file uploaded + indexed", {
-              id: created.id,
+              id: result.sourceId,
               title: meta.title,
               blobUrl: blob.url,
               contentType: blob.contentType,
+              outcome: result.outcome,
             });
           } catch (err) {
             // onUploadCompleted runs as a webhook — if we throw here
@@ -207,8 +186,10 @@ export const POST = withApiAuth(
 
 /**
  * Unzip an uploaded archive and ingest each supported entry. Entries
- * land in Vercel Blob as individual files, get their own Document
- * row, and are indexed in parallel (capped concurrency).
+ * become their own manual KnowledgeSource, indexed in parallel (capped
+ * concurrency). Entries are extracted in-memory and never re-uploaded
+ * to Blob individually — they land as pasted-text-style manual sources
+ * (`externalUrl: null`), inline-editable like any other paste.
  *
  * Skips:
  *  - directories
@@ -216,20 +197,17 @@ export const POST = withApiAuth(
  *  - any extension not in EXT_TO_MIME (so a stray .keynote in a zip
  *    doesn't end up as opaque junk in the knowledge base)
  *
- * Fire-and-forget per-entry: each entry's full lifecycle (upload to
- * blob → create Document → index) runs in a batched Promise.all so
+ * Fire-and-forget per-entry: each entry's full lifecycle (extract text
+ * → create manual source → index) runs in a batched Promise.all so
  * one slow PDF doesn't block the rest. Errors per entry are caught
  * + logged so a single bad file doesn't drop the whole batch.
  */
-async function processZipUpload(
-  zipUrl: string,
-  uploadedById: string | undefined,
-) {
+async function processZipUpload(zipUrl: string, _uploadedById: string | undefined) {
   const JSZip = (await import("jszip")).default;
   const buf = await fetch(zipUrl).then((r) => r.arrayBuffer());
   const zip = await JSZip.loadAsync(buf);
 
-  const entries: { name: string; mime: string; bytes: ArrayBuffer }[] = [];
+  const entries: { name: string; mime: string; bytes: Buffer }[] = [];
   for (const [path, entry] of Object.entries(zip.files)) {
     if (entry.dir) continue;
     if (path.startsWith("__MACOSX/")) continue;
@@ -238,7 +216,7 @@ async function processZipUpload(
     const ext = base.split(".").pop()?.toLowerCase() ?? "";
     const mime = EXT_TO_MIME[ext];
     if (!mime) continue;
-    const bytes = await entry.async("arraybuffer");
+    const bytes = Buffer.from(await entry.async("arraybuffer"));
     entries.push({ name: base, mime, bytes });
   }
 
@@ -255,38 +233,16 @@ async function processZipUpload(
     await Promise.all(
       slice.map(async (entry) => {
         try {
-          const innerBlob = await put(
-            `ai-knowledge/${entry.name}`,
-            entry.bytes,
-            { access: "public", contentType: entry.mime, addRandomSuffix: true },
-          );
-          const created = await prisma.document.create({
-            data: {
-              title: entry.name.replace(/\.[^.]+$/, ""),
-              description: null,
-              category: "other",
-              fileName: entry.name,
-              fileUrl: innerBlob.url,
-              fileSize: entry.bytes.byteLength,
-              mimeType: entry.mime,
-              uploadedById: uploadedById ?? null,
-            },
+          const text = await extractTextFromBuffer(entry.bytes, entry.mime, entry.name);
+          const result = await createManualSource({
+            title: entry.name.replace(/\.[^.]+$/, ""),
+            text,
+            externalUrl: null,
           });
-          await indexDocument(created.id);
-          const firstChunk = await prisma.documentChunk.findFirst({
-            where: { documentId: created.id },
-            orderBy: { chunkIndex: "asc" },
-            select: { content: true },
-          });
-          if (firstChunk) {
-            await prisma.document.update({
-              where: { id: created.id },
-              data: { description: firstChunk.content.slice(0, 280) },
-            });
-          }
           logger.info("AI knowledge: zip entry indexed", {
-            id: created.id,
+            id: result.sourceId,
             entry: entry.name,
+            outcome: result.outcome,
           });
         } catch (err) {
           logger.error("AI knowledge: zip entry failed", {

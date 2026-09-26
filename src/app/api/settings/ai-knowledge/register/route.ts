@@ -4,7 +4,7 @@
  * Client-driven post-upload registration. The browser uploads file
  * bytes directly to Vercel Blob via @vercel/blob/client.upload(),
  * then immediately calls THIS endpoint with the resulting blob URL
- * so the Document row is created + indexed synchronously.
+ * so the KnowledgeSource row is created + indexed synchronously.
  *
  * Why this exists alongside the onUploadCompleted webhook on the
  * /upload route: the webhook can drop or delay under bulk fan-out
@@ -12,8 +12,8 @@
  * the dashboard"). The client knows authoritatively when its upload
  * finished, so having it ping us directly removes the unreliability.
  *
- * Idempotent — upserts the Document by fileUrl so a slow webhook
- * arriving after this register call won't create a duplicate.
+ * Idempotent — upserts the KnowledgeSource by externalUrl so a slow
+ * webhook arriving after this register call won't create a duplicate.
  */
 
 import { NextResponse } from "next/server";
@@ -21,9 +21,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-import { indexDocument } from "@/lib/document-indexer";
+import { extractText } from "@/lib/document-indexer";
+import { indexSource } from "@/lib/knowledge/pipeline";
+import { createManualSource } from "@/lib/knowledge/adapters/manual";
 import { logger } from "@/lib/logger";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import type { KnowledgeCategory } from "@prisma/client";
 
 const schema = z.object({
   blobUrl: z.string().url(),
@@ -38,7 +41,7 @@ const schema = z.object({
 export const maxDuration = 120;
 
 export const POST = withApiAuth(
-  async (req, session) => {
+  async (req) => {
     const body = await parseJsonBody(req);
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
@@ -47,82 +50,48 @@ export const POST = withApiAuth(
         parsed.error.flatten().fieldErrors,
       );
     }
-    const { blobUrl, fileName, title, mimeType, fileSize } = parsed.data;
+    const { blobUrl, fileName, title, mimeType } = parsed.data;
 
     // Auto-categorise from the filename — Daniel's library is full of
     // "QA2 X Policy / Procedure" + "Y Handbook / Guide" files, so a
-    // simple keyword sniff puts them in the right Documents tab
-    // without a manual edit later.
-    const category = inferDocumentCategory(fileName, title);
+    // simple keyword sniff puts them in the right console tab without
+    // a manual edit later.
+    const category = mapCategory(inferDocumentCategory(fileName, title));
 
-    // Upsert by fileUrl so the webhook arriving after us is a no-op.
-    const existing = await prisma.document.findFirst({
-      where: { fileUrl: blobUrl },
+    const text = await extractText(blobUrl, mimeType);
+
+    // Upsert by blobUrl so a slow onUploadCompleted webhook arriving
+    // after this register call is a no-op rather than a duplicate.
+    const existing = await prisma.knowledgeSource.findFirst({
+      where: { sourceKind: "manual", externalUrl: blobUrl },
       select: { id: true },
     });
 
-    const documentId = existing
-      ? existing.id
-      : (
-          await prisma.document.create({
-            data: {
-              title,
-              description: null,
-              category,
-              fileName,
-              fileUrl: blobUrl,
-              fileSize: fileSize ?? 0,
-              mimeType,
-              uploadedById: session.user.id,
-            },
-            select: { id: true },
-          })
-        ).id;
-
-    // Index inline so the client gets accurate feedback. If the
-    // extractor errors, indexDocument writes indexError on the row
-    // (we DON'T rethrow — the Document still exists, the user can
-    // see the error inline and decide what to do).
-    try {
-      await indexDocument(documentId);
-      const firstChunk = await prisma.documentChunk.findFirst({
-        where: { documentId },
-        orderBy: { chunkIndex: "asc" },
-        select: { content: true },
+    if (existing) {
+      const r = await indexSource(existing.id, text);
+      return NextResponse.json({
+        id: existing.id,
+        outcome: r.ok ? "updated" : "error",
+        error: r.ok ? undefined : r.error,
       });
-      if (firstChunk) {
-        await prisma.document.update({
-          where: { id: documentId },
-          data: { description: firstChunk.content.slice(0, 280) },
-        });
-      }
-    } catch (err) {
-      logger.error("AI knowledge register: indexing failed", {
-        documentId,
-        err: err instanceof Error ? err.message : String(err),
-      });
-      // Swallow — the row exists with indexError set by indexDocument.
     }
 
-    const final = await prisma.document.findUnique({
-      where: { id: documentId },
-      select: { id: true, indexed: true, indexError: true, _count: { select: { chunks: true } } },
-    });
-
-    return NextResponse.json({
-      id: documentId,
-      indexed: final?.indexed ?? false,
-      indexError: final?.indexError ?? null,
-      chunkCount: final?._count.chunks ?? 0,
-    });
+    const r = await createManualSource({ title, text, externalUrl: blobUrl, category });
+    if (r.outcome === "error") {
+      logger.error("AI knowledge register: indexing failed", {
+        sourceId: r.sourceId,
+        err: r.error,
+      });
+    }
+    return NextResponse.json({ id: r.sourceId, outcome: r.outcome, error: r.error });
   },
   { roles: [...ADMIN_ROLES] },
 );
 
 /**
- * Pick the best Document category for a freshly-uploaded file from
- * its filename + title. Falls back to "other" when nothing matches.
- * Order matters: "Policy" wins over generic words like "OSHC".
+ * Pick the best category for a freshly-uploaded file from its filename
+ * + title. Falls back to "other" when nothing matches. Order matters:
+ * "Policy" wins over generic words like "OSHC".
  */
 function inferDocumentCategory(
   fileName: string,
@@ -134,4 +103,13 @@ function inferDocumentCategory(
   if (/\bguide\b|\bhandbook\b|\bmanual\b/.test(haystack)) return "guide";
   if (/\bcompliance\b|\baudit\b/.test(haystack)) return "compliance";
   return "other";
+}
+
+/** Maps the legacy Document category inference onto KnowledgeCategory. */
+function mapCategory(
+  inferred: "policy" | "procedure" | "guide" | "compliance" | "other",
+): KnowledgeCategory {
+  if (inferred === "policy") return "policy";
+  if (inferred === "procedure") return "procedure";
+  return "guide";
 }
