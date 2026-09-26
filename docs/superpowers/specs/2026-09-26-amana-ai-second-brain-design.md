@@ -207,7 +207,7 @@ Mode, chunk ids, tool calls and tokens are written to `AssistantTurn`.
 
 **Citations** carry `externalUrl` and stream as a **new** SSE `sources` event on the chat route (`{ sources: [{ sourceId, title, heading, url, tier }] }`) — today the chat stream has only `text`/`error`/`[DONE]`; the only `sources` event lives in `/api/knowledge/ask`, which is deleted. `useAssistant` gains a handler. Rendered as tappable chips.
 
-**Version honesty:** `superseded` and `excluded` are excluded in SQL; one `(normalizedTitle, state, serviceId)`, one active source.
+**Version honesty:** `superseded` and `excluded` are excluded in SQL; one `(normalizedTitle, state, serviceId)`, one active source. Precedence within a key (`applySupersession`): `policy_upload` > `manual` > `sharepoint` > others, then highest `version`, then most recently updated. `manual` outranking `sharepoint` is deliberate — an admin paste that collides with an imported title is a correction, and the console shows the superseded row so it is never silent. A source whose indexing FAILED keeps its `indexError` and is retried on the next upsert even when the content hash matches (the hash alone never marks a row current).
 
 ### 3.6 Tools — one scaffold
 
