@@ -45,13 +45,37 @@ const SCOPE_WHERE = `
     AND ($3::text IS NULL OR s.state IS NULL OR s.state = $3)
     AND (cardinality(s."audienceRoles") = 0 OR $4 = ANY(s."audienceRoles"))`;
 
-function tsQuery(fn: "plainto_tsquery" | "websearch_to_tsquery"): string {
+/**
+ * The text leg's tsquery, in two strengths built from the SAME normalised
+ * lexemes. "strict" is plainto_tsquery's AND of every lexeme
+ * ('amana' & 'way' & 'core' & 'valu'); "any" rewrites that query's text to
+ * an OR ('amana' | 'way' | 'core' | 'valu'). The textual rewrite is safe
+ * because plainto_tsquery emits only quoted lexemes joined by " & " for
+ * plain input — never prefixes (:*), phrases (<->) or parentheses.
+ *
+ * websearch_to_tsquery is NOT a looser alternative: for plain words it
+ * produces the identical AND query (it only ORs when the user literally
+ * types "or"), so a retry through it can never widen the match.
+ */
+type TsMode = "strict" | "any";
+const TS_QUERY: Record<TsMode, string> = {
+  strict: `plainto_tsquery('english', $1)`,
+  any: `replace(plainto_tsquery('english', $1)::text, ' & ', ' | ')::tsquery`,
+};
+
+function tsQuery(mode: TsMode): string {
+  const q = TS_QUERY[mode];
+  // The OR retry only exists to widen a multi-lexeme AND. numnode() counts
+  // lexemes + operators: 0 = all stopwords (an empty tsquery matches nothing
+  // either way), 1 = a single lexeme whose OR form IS the strict form that
+  // just returned nothing. Both are a one-time filter that skips the scan.
+  const guard = mode === "any" ? `numnode(plainto_tsquery('english', $1)) > 1 AND ` : "";
   return `${SELECT},
-    ts_rank(c."searchVector", ${fn}('english', $1)) AS "tsRank",
+    ts_rank(c."searchVector", ${q}) AS "tsRank",
     NULL::float8 AS "cosineDistance"
   FROM "KnowledgeChunk" c
   JOIN "KnowledgeSource" s ON s.id = c."sourceId"
-  WHERE c."searchVector" @@ ${fn}('english', $1)
+  WHERE ${guard}c."searchVector" @@ ${q}
     AND ${SCOPE_WHERE}
   ORDER BY "tsRank" DESC
   LIMIT ${VECTOR_CANDIDATES}`;
@@ -80,15 +104,20 @@ export async function searchKnowledge(
   const params: unknown[] = [scope.serviceIds, scope.state, scope.role];
 
   const textLeg = (async (): Promise<Row[]> => {
+    // AND every lexeme first — when all of them occur in one chunk that is
+    // the precise answer and ts_rank orders it well.
     const strict = await prisma.$queryRawUnsafe<Row[]>(
-      tsQuery("plainto_tsquery"), query, ...params,
+      tsQuery("strict"), query, ...params,
     );
     if (strict.length > 0) return strict;
-    // plainto_tsquery ANDs every term together — one off-vocabulary word
-    // (typo, jargon) blanks the whole leg. websearch_to_tsquery tolerates
-    // that (OR-ish phrase handling), so retry before giving up on text.
+    // Zero rows: one off-vocabulary word (typo, jargon, "core" in a question
+    // about "our values") has blanked the whole AND. Retry with the same
+    // lexemes ORed so the text leg still contributes the chunks that carry
+    // the rest of the query; in tsvector-only mode (no embeddings, or the
+    // vector leg failing) this is the only recall there is. The vector leg
+    // carries semantic recall when embeddings exist.
     return prisma.$queryRawUnsafe<Row[]>(
-      tsQuery("websearch_to_tsquery"), query, ...params,
+      tsQuery("any"), query, ...params,
     );
   })();
 
