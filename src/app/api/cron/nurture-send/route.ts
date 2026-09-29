@@ -3,28 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { verifyCronSecret } from "@/lib/cron-guard";
 import { getResend, sendEmail } from "@/lib/email";
 import {
-  nurtureWelcomeEmail,
-  nurtureHowToEnrolEmail,
-  nurtureWhatToBringEmail,
-  nurtureAppSetupEmail,
-  nurtureFirstWeekEmail,
-  nurtureNpsSurveyEmail,
-  nurtureCcsAssistEmail,
-  nurtureNudge1Email,
-  nurtureFormSupportEmail,
-  nurtureNudge2Email,
-  nurtureFinalNudgeEmail,
-  nurtureDay1CheckinEmail,
-  nurtureDay3CheckinEmail,
-  nurtureWeek2FeedbackEmail,
-  nurtureMonth1ReferralEmail,
-  nurtureSessionReminderEmail,
-  centreWebsiteUrl,
-  retentionCasualReengageEmail,
-  retentionDayChangeReminderEmail,
-  retentionWithdrawalInterceptEmail,
-  nurtureFormAbandonmentEmail,
-} from "@/lib/email-templates";
+  getSequenceLayoutOptions,
+  renderSequenceStepEmail,
+} from "@/lib/sequence-email-render";
 import { appendUnsubscribeFooter } from "@/lib/email-templates/base";
 import { withApiHandler } from "@/lib/api-handler";
 import { acquireCronLock } from "@/lib/cron-guard";
@@ -60,38 +41,6 @@ function buildSmsBody(templateKey: string, firstName: string, centreName: string
   }
   return null;
 }
-
-/**
- * Maps a step's `templateKey` to its hardcoded default template. Used when a
- * SequenceStep has no custom EmailTemplate override. `session_reminder` is
- * handled separately (it needs the service address + orientation video).
- */
-const TEMPLATE_MAP: Record<
-  string,
-  (firstName: string, centreName: string, enrolUrl?: string, feedbackUrl?: string) =>
-    | { subject: string; html: string }
-    | Promise<{ subject: string; html: string }>
-> = {
-  welcome: nurtureWelcomeEmail,
-  how_to_enrol: nurtureHowToEnrolEmail,
-  what_to_bring: nurtureWhatToBringEmail,
-  app_setup: nurtureAppSetupEmail,
-  first_week: nurtureFirstWeekEmail,
-  nps_survey: nurtureNpsSurveyEmail,
-  ccs_assist: nurtureCcsAssistEmail,
-  nudge_1: nurtureNudge1Email,
-  form_support: nurtureFormSupportEmail,
-  nudge_2: nurtureNudge2Email,
-  final_nudge: nurtureFinalNudgeEmail,
-  day1_checkin: nurtureDay1CheckinEmail,
-  day3_checkin: nurtureDay3CheckinEmail,
-  week2_feedback: nurtureWeek2FeedbackEmail,
-  month1_referral: nurtureMonth1ReferralEmail,
-  casual_reengage: retentionCasualReengageEmail,
-  day_change_reminder: retentionDayChangeReminderEmail,
-  withdrawal_intercept: retentionWithdrawalInterceptEmail,
-  form_abandonment: nurtureFormAbandonmentEmail,
-};
 
 const BATCH_SIZE = 15;
 /** Failed sends are retried until this many attempts, then marked terminally failed. */
@@ -179,17 +128,8 @@ async function processSequenceExecutions(now: Date) {
   let skipped = 0;
   let failed = 0;
 
-  // Pre-import email layout + branding once
-  const { renderBlocksToHtml, marketingLayout } = await import("@/lib/email-marketing-layout");
-  const { getEmailBranding } = await import("@/lib/email-branding");
-  const branding = await getEmailBranding();
-  const layoutOpts = {
-    headerText: branding.name,
-    footerText: branding.name,
-    headerColor: branding.primaryColor,
-    footerUrl: branding.websiteUrl,
-    footerUrlLabel: branding.websiteUrlLabel,
-  };
+  // Branding resolved once per run, not per email.
+  const layoutOpts = await getSequenceLayoutOptions();
 
   /** Process a single SequenceStepExecution. Throws on send failure (handled by the batch loop). */
   async function processSequenceExec(exec: (typeof pending)[number]): Promise<"sent" | "skipped"> {
@@ -222,64 +162,49 @@ async function processSequenceExecutions(now: Date) {
     // Centre name must be the service name — NOT the sequence name.
     const centreName = isParent ? svc?.name || exec.enrolment.sequence.name : exec.enrolment.sequence.name;
 
-    let subject: string;
-    let html: string;
+    // Prefilled per-enquiry enrolment link: the parent's details carry
+    // over and submission auto-advances their pipeline card to enrolled.
+    const enrolUrl = isParent && exec.enrolment.enquiryId
+      ? `${BASE_URL}/enrol/${exec.enrolment.enquiryId}`
+      : `${BASE_URL}/enrol`;
+    // Per-service quick-feedback form, prefilled with the parent's
+    // identity so responses land attributed in the Feedback Hub and the
+    // Monday sentiment-analysis report.
+    const feedbackParams = new URLSearchParams();
+    if (name) feedbackParams.set("name", name);
+    if (email) feedbackParams.set("email", email);
+    const feedbackUrl = isParent && svc?.id
+      ? `${BASE_URL}/survey/feedback/${svc.id}?${feedbackParams.toString()}`
+      : `${BASE_URL}/survey/feedback`;
 
-    if (exec.step.emailTemplate?.blocks) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const blocks = exec.step.emailTemplate.blocks as any;
-      html = renderBlocksToHtml(blocks, {
-        firstName: name,
-        parentName: name,
-        contactName: name,
-        schoolName: lead?.schoolName || "",
-        centreName,
-      }, layoutOpts);
-      subject = exec.step.emailTemplate.subject || exec.step.name;
-    } else if (exec.step.emailTemplate?.htmlContent) {
-      html = marketingLayout(exec.step.emailTemplate.htmlContent, layoutOpts);
-      subject = exec.step.emailTemplate.subject || exec.step.name;
-    } else if (isParent && exec.step.templateKey === "session_reminder") {
-      // Dedicated template: needs service address + orientation video.
-      const serviceAddress = [svc?.address, svc?.suburb, svc?.state].filter(Boolean).join(", ");
-      ({ subject, html } = nurtureSessionReminderEmail(
-        name,
-        centreName,
-        serviceAddress || undefined,
-        svc?.orientationVideoUrl || undefined,
-        centreWebsiteUrl(svc?.code),
-      ));
-    } else {
-      const templateFn = TEMPLATE_MAP[exec.step.templateKey];
-      if (!templateFn) {
-        // No template configured — log loudly rather than silently shipping a stub.
-        logger.error("nurture-send: no template for key", {
-          execId: exec.id,
-          templateKey: exec.step.templateKey,
-        });
-        subject = exec.step.name;
-        html = marketingLayout(
-          `<p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">${exec.step.name} — this email template has not been configured yet.</p>`,
-          layoutOpts,
-        );
-      } else {
-        // Prefilled per-enquiry enrolment link: the parent's details carry
-        // over and submission auto-advances their pipeline card to enrolled.
-        const enrolUrl = isParent && exec.enrolment.enquiryId
-          ? `${BASE_URL}/enrol/${exec.enrolment.enquiryId}`
-          : `${BASE_URL}/enrol`;
-        // Per-service quick-feedback form, prefilled with the parent's
-        // identity so responses land attributed in the Feedback Hub and the
-        // Monday sentiment-analysis report.
-        const feedbackParams = new URLSearchParams();
-        if (name) feedbackParams.set("name", name);
-        if (email) feedbackParams.set("email", email);
-        const feedbackUrl = isParent && svc?.id
-          ? `${BASE_URL}/survey/feedback/${svc.id}?${feedbackParams.toString()}`
-          : `${BASE_URL}/survey/feedback`;
-        ({ subject, html } = await templateFn(name, centreName, enrolUrl, feedbackUrl));
-      }
+    const rendered = await renderSequenceStepEmail(exec.step, {
+      sequenceType: exec.step.sequence.type,
+      name,
+      centreName,
+      schoolName: lead?.schoolName || "",
+      enrolUrl,
+      feedbackUrl,
+      service: isParent ? svc : null,
+      layoutOpts,
+    });
+
+    // No custom template and no hardcoded default: never mail a real family
+    // or school a "this template has not been configured yet" placeholder.
+    // The step shows as "Not configured" in CRM → Email flows until fixed.
+    if (rendered.source === "missing") {
+      logger.error("nurture-send: no template for key", {
+        execId: exec.id,
+        templateKey: exec.step.templateKey,
+      });
+      await prisma.sequenceStepExecution.update({
+        where: { id: exec.id },
+        data: { status: "cancelled", error: "Template not configured" },
+      });
+      return "skipped";
     }
+
+    const { subject } = rendered;
+    let { html } = rendered;
 
     // Marketing unsubscribe footer for parent emails (Spam Act 2003).
     if (isParent && exec.enrolment.contactId) {

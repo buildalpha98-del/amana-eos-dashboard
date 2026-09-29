@@ -398,4 +398,22 @@ describe("POST /api/cron/nurture-send — sequence sender (post-cutover)", () =>
     expect(entries).toEqual([{ email: "Principal@School.edu.au", contactId: undefined }]);
     expect(meta).toEqual({ source: "nurture" });
   });
+
+  // ── Unconfigured templates ──
+  it("never mails the 'not configured' placeholder — cancels the step instead", async () => {
+    prismaMock.sequenceStepExecution.findMany.mockResolvedValue([
+      makeExec({ templateKey: "not_a_real_template" }),
+    ]);
+
+    const res = await run();
+    const body = await res.json();
+
+    expect(sendEmailMock).not.toHaveBeenCalled();
+    expect(mockedRecordMarketingSends).not.toHaveBeenCalled();
+    expect(body).toMatchObject({ sent: 0, skipped: 1 });
+    const cancel = prismaMock.sequenceStepExecution.update.mock.calls.find(
+      (c: unknown[]) => (c[0] as { data: { status: string } }).data.status === "cancelled",
+    );
+    expect((cancel?.[0] as { data: { error: string } }).data.error).toBe("Template not configured");
+  });
 });

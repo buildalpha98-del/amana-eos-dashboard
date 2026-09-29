@@ -34,7 +34,7 @@ import { ConversionsContent } from "@/components/crm/ConversionsContent";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Download } from "lucide-react";
+import { Download, Workflow } from "lucide-react";
 
 const AU_STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 
@@ -133,6 +133,11 @@ export default function CrmPage() {
         description="Sales pipeline & lead management"
         primaryAction={{ label: "New Lead", icon: Plus, onClick: () => setShowCreate(true) }}
         secondaryActions={[
+          {
+            label: "Email flows",
+            icon: Workflow,
+            onClick: () => router.push("/crm/flows"),
+          },
           {
             label: "Templates",
             icon: Mail,
