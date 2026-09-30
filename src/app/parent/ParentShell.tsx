@@ -24,6 +24,8 @@ import {
   FileSignature,
   LogOut,
   UserPlus,
+  Construction,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -191,6 +193,109 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   // Not authenticated — auth provider will redirect, but render nothing in the meantime
   if (!isAuthenticated) {
     return null;
+  }
+
+  // ── TEMPORARY LOCKDOWN ──────────────────────────────────────
+  // The parent portal is not in use yet — parents use OWNA for bookings,
+  // invoices and fees. Show a full-screen notice on every authenticated
+  // page except My Centre (centre info) and Account (so they can sign out).
+  const allowedWhileLocked =
+    pathname === "/parent/my-centre" ||
+    pathname.startsWith("/parent/account") ||
+    pathname === ENROL_PATH;
+
+  if (!allowedWhileLocked) {
+    return (
+      <div data-v2="parent" className="parent-portal min-h-screen bg-parent-bg">
+        <header
+          className="bg-brand flex items-center justify-between px-4 shadow-md"
+          style={{
+            paddingTop: "env(safe-area-inset-top, 0px)",
+            height: "calc(3.5rem + env(safe-area-inset-top, 0px))",
+          }}
+        >
+          <span className="text-white font-heading font-semibold">
+            Amana OSHC
+          </span>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/parent/my-centre"
+              className="text-xs text-white/70 hover:text-white underline underline-offset-2"
+            >
+              My Centre
+            </Link>
+            <button
+              onClick={logout}
+              className="text-xs text-white/70 hover:text-white underline underline-offset-2"
+            >
+              Sign out
+            </button>
+          </div>
+        </header>
+
+        <main className="flex items-center justify-center px-4 py-12">
+          <div className="w-full max-w-lg">
+            <div className="bg-card rounded-2xl shadow-2xl p-8 sm:p-10 text-center space-y-6">
+              <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
+                <Construction className="h-10 w-10 text-amber-600" />
+              </div>
+
+              <div>
+                <h1 className="text-2xl font-heading font-bold text-foreground mb-2">
+                  App Coming Soon!
+                </h1>
+                <p className="text-muted text-sm leading-relaxed">
+                  Assalamu Alaikum! Thank you for being part of the Amana OSHC family.
+                </p>
+              </div>
+
+              <div className="bg-red-50 border-2 border-red-300 rounded-xl p-5 text-left">
+                <p className="text-base font-bold text-red-800 mb-2">
+                  Important: This app is not active yet
+                </p>
+                <p className="text-sm text-red-700 leading-relaxed">
+                  We are currently <strong>not using the Amana parent app</strong> for
+                  bookings or billing. Please <strong>do not</strong> use this app to
+                  manage your bookings.
+                </p>
+              </div>
+
+              <div className="bg-brand/5 border border-brand/20 rounded-xl p-5 text-left">
+                <p className="text-sm font-bold text-foreground mb-2">
+                  Use OWNA instead
+                </p>
+                <p className="text-sm text-muted leading-relaxed mb-3">
+                  Your OWNA login details have been sent to your email.
+                  OWNA is where you manage:
+                </p>
+                <ul className="text-sm text-muted space-y-1.5 ml-4 list-disc">
+                  <li><strong>All bookings</strong> — permanent and casual</li>
+                  <li><strong>Invoices and fees</strong></li>
+                  <li><strong>Family details</strong></li>
+                </ul>
+              </div>
+
+              <div className="border-t border-border pt-5">
+                <p className="text-sm text-muted mb-3">
+                  Questions? Contact our enrolment team:
+                </p>
+                <a
+                  href="mailto:enrolment@amanaoshc.com.au"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-xl text-sm font-medium hover:bg-brand-hover transition-colors"
+                >
+                  <Mail className="h-4 w-4" />
+                  enrolment@amanaoshc.com.au
+                </a>
+              </div>
+
+              <p className="text-xs text-muted">
+                We look forward to launching this app for you soon, inshallah!
+              </p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   // Gated into the enrolment form: render it bare, with no nav. Showing
