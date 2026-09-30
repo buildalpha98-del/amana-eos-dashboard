@@ -30,6 +30,7 @@ export interface ParentDetails {
   state: string;
   postcode: string;
   relationship: string;
+  preferredLanguage: string;
   occupation: string;
   workplace: string;
   workPhone: string;
@@ -192,6 +193,7 @@ export const EMPTY_PARENT: ParentDetails = {
   state: "",
   postcode: "",
   relationship: "",
+  preferredLanguage: "",
   occupation: "",
   workplace: "",
   workPhone: "",
@@ -345,6 +347,7 @@ export const KNOWN_SCHOOLS: { name: string; campuses: string[] }[] = [
   { name: "Minarah College", campuses: [] },
   { name: "AIA KKCC", campuses: [] },
   { name: "Al-Taqwa College", campuses: [] },
+  { name: "Irfan College", campuses: [] },
 ];
 
 /** Flat list of "School Campus" strings the picker offers. Derived so
@@ -362,6 +365,22 @@ export const RELATIONSHIP_OPTIONS = [
   "Grandparent",
   "Other Relative",
   "Guardian",
+  "Other",
+] as const;
+
+export const PREFERRED_LANGUAGES = [
+  "English",
+  "Arabic",
+  "Urdu",
+  "Turkish",
+  "Bangla",
+  "Hindi",
+  "Indonesian",
+  "Vietnamese",
+  "Chinese (Mandarin)",
+  "Chinese (Cantonese)",
+  "Filipino (Tagalog)",
+  "Samoan",
   "Other",
 ] as const;
 
@@ -552,20 +571,10 @@ export function validateStep(step: number, data: EnrolmentFormData): string[] {
       });
       break;
 
-    case 6: // Payment
-      if (!data.payment.method) errors.push("Payment method is required");
-      if (data.payment.method === "credit_card") {
-        if (!data.payment.cardName.trim()) errors.push("Name on card is required");
-        if (!data.payment.cardNumber.trim() || data.payment.cardNumber.length < 13) errors.push("Valid card number is required");
-        if (!data.payment.cardExpiryMonth) errors.push("Card expiry month is required");
-        if (!data.payment.cardExpiryYear) errors.push("Card expiry year is required");
-        if (!data.payment.cardCcv.trim()) errors.push("CCV is required");
-      }
-      if (data.payment.method === "bank_account") {
-        if (!data.payment.bankAccountName.trim()) errors.push("Account name is required");
-        if (!data.payment.bankBsb.trim() || data.payment.bankBsb.length < 6) errors.push("Valid BSB is required (6 digits)");
-        if (!data.payment.bankAccountNumber.trim()) errors.push("Account number is required");
-      }
+    case 6: // Payment — bank account only (credit card removed 2026-09-30)
+      if (!data.payment.bankAccountName.trim()) errors.push("Account name is required");
+      if (!data.payment.bankBsb.trim() || data.payment.bankBsb.length < 6) errors.push("Valid BSB is required (6 digits)");
+      if (!data.payment.bankAccountNumber.trim()) errors.push("Account number is required");
       if (!data.debitAgreement) errors.push("Direct debit service agreement must be accepted");
       break;
 

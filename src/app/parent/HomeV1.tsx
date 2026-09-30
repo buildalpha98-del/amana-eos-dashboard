@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import {
+  Construction,
+  BookOpen,
+  Receipt,
+  UserCog,
+  Mail,
 } from "lucide-react";
 import {
   useParentProfile,
@@ -36,65 +41,79 @@ export default function ParentHomeV1() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Temporary: we're still on OWNA day to day. Remove when the
-          portal goes fully live. */}
-      <OwnaTransitionNotice />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-brand/95 to-brand-dark/95 p-4 overflow-y-auto">
+      <div className="w-full max-w-lg mx-auto my-8">
+        <div className="bg-card rounded-2xl shadow-2xl p-8 sm:p-10 text-center space-y-6">
+          {/* Icon */}
+          <div className="w-20 h-20 bg-brand/10 rounded-full flex items-center justify-center mx-auto">
+            <Construction className="h-10 w-10 text-brand" />
+          </div>
 
-      {/* Greeting */}
-      <div>
-        <h1 className="text-2xl font-heading font-bold text-foreground">
-          Welcome back, {profile.firstName}{" "}
-          <span aria-hidden="true">&#128075;</span>
-        </h1>
+          {/* Heading */}
+          <div>
+            <h1 className="text-2xl font-heading font-bold text-foreground mb-2">
+              We&apos;re Working On Something Special!
+            </h1>
+            <p className="text-muted text-sm leading-relaxed">
+              Assalamu Alaikum{profile.firstName ? `, ${profile.firstName}` : ""}! Thank you for completing your enrolment with Amana OSHC.
+            </p>
+          </div>
+
+          {/* OWNA notice */}
+          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-left">
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">
+              Our parent app is currently under development, inshallah.
+            </p>
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              In the meantime, you will receive your OWNA login details via email within 24 hours.
+            </p>
+          </div>
+
+          {/* OWNA features */}
+          <div className="text-left space-y-3">
+            <p className="text-sm font-semibold text-foreground">With OWNA, you can:</p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+                  <BookOpen className="h-4.5 w-4.5 text-brand" />
+                </div>
+                <p className="text-sm text-muted">Manage your bookings</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+                  <Receipt className="h-4.5 w-4.5 text-brand" />
+                </div>
+                <p className="text-sm text-muted">View invoices and fees</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+                  <UserCog className="h-4.5 w-4.5 text-brand" />
+                </div>
+                <p className="text-sm text-muted">Update your family details</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact */}
+          <div className="border-t border-border pt-5">
+            <p className="text-sm text-muted mb-3">
+              If you need any assistance, please contact us:
+            </p>
+            <a
+              href="mailto:enrolment@amanaoshc.com.au"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-xl text-sm font-medium hover:bg-brand-hover transition-colors"
+            >
+              <Mail className="h-4 w-4" />
+              enrolment@amanaoshc.com.au
+            </a>
+          </div>
+
+          {/* Closing */}
+          <p className="text-xs text-muted">
+            We look forward to launching our app for you soon, inshallah!
+          </p>
+        </div>
       </div>
-
-      {/*
-        2026-08-04: Home was carrying six blocks a family never acted on —
-        two separate copies of the centre's About content, a setup
-        checklist whose items we could do ourselves, a sibling-enrolment
-        CTA, a week-of-green-dots that repeated the Children tab, and a
-        messages preview that repeated the Messages tab. All removed. The
-        centre content now lives on its own My Centre tab, which is where
-        someone looks for it.
-
-        What's left is the two things a parent opens the app FOR: getting
-        it onto their home screen, and what's on this week.
-      */}
-      <AddToPhoneCard />
-
-      {/* Where each child is right now — signed in, picked up, by whom.
-          Above the sessions list because it answers today before the
-          week. Hidden on days with nothing to report. */}
-      <TodayStrip />
-
-      <UpcomingSessionsWidget />
-
-      {/*
-        Every post from the family's centre, tagged or not.
-
-        Back on Home per Daniel (2026-08-04) after a brief move to My
-        Centre. My Centre keeps the ANNOUNCEMENTS — the notices you go
-        looking for — so the two lists have different jobs rather than
-        being the same feed rendered twice, which is what Home was doing
-        before (ParentFeed and the old TimelineWidget both read the same
-        endpoint).
-      */}
-      <ParentFeed />
-
-
-      {/* Today's menu and programme. */}
-      <DailyInfoWidgets />
-
-      {/* Only renders when the family has an application in flight. */}
-      <EnrolmentApplicationsWidget />
-
-      {/*
-        Quick actions and the tiles under them are gone (2026-08-04).
-        Update Details, View Attendance and Messages were three taps to
-        places already one tap away in the tab bar — a shortcut to
-        somewhere adjacent is just a second door.
-      */}
     </div>
   );
 }
