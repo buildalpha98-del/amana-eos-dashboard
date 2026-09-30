@@ -347,6 +347,7 @@ export const KNOWN_SCHOOLS: { name: string; campuses: string[] }[] = [
   { name: "Minarah College", campuses: [] },
   { name: "AIA KKCC", campuses: [] },
   { name: "Al-Taqwa College", campuses: [] },
+  { name: "Irfan College", campuses: [] },
 ];
 
 /** Flat list of "School Campus" strings the picker offers. Derived so
