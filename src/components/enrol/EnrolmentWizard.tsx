@@ -326,19 +326,19 @@ export function EnrolmentWizard({
       {
         icon: FileText,
         title: "Under Review",
-        description: "Our team will review your details within 1-2 business days.",
+        description: "Our team will review your details and contact you within 24 hours to finalise everything.",
         status: "current" as const,
       },
       {
         icon: Phone,
         title: "We'll Be in Touch",
-        description: "A coordinator will contact you to confirm booking details and answer any questions.",
+        description: "A coordinator will call or email you to confirm booking details and answer any questions.",
         status: "upcoming" as const,
       },
       {
-        icon: Clock,
-        title: "First Session",
-        description: "We'll send you a 'What to Bring' guide before your child's first day.",
+        icon: Globe,
+        title: "OWNA Login Details",
+        description: "You'll receive your OWNA login details via email within 24 hours. OWNA is where you'll manage bookings, view invoices, and check fees.",
         status: "upcoming" as const,
       },
     ];
@@ -400,6 +400,19 @@ export function EnrolmentWizard({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* OWNA info banner */}
+        <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-xl p-6">
+          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">Important Information</p>
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              We are currently not using the Amana dashboard app for parent bookings. You will be sent
+              login details for <strong>OWNA</strong> within 24 hours. OWNA is where you&apos;ll manage all
+              bookings, view invoices, and check your fees. If you have any questions, please contact us
+              at <a href="mailto:enrolment@amanaoshc.com.au" className="font-medium underline">enrolment@amanaoshc.com.au</a>.
+            </p>
           </div>
         </div>
 

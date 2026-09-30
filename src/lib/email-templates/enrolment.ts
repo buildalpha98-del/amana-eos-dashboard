@@ -24,11 +24,15 @@ const ENROLMENT_CONFIRMATION_DEFAULT_BODY = `
     </p>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
       Thank you for completing the enrolment form for <strong>{{childNames}}</strong>.
-      Our team will review your submission and be in touch within 1-2 business days
-      to confirm your enrolment details.
+      Someone from our team will be in touch within 24 hours to finalise everything.
+    </p>
+    <p style="margin:0 0 16px;color:#111827;font-size:14px;line-height:1.6;background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;padding:12px 14px;">
+      <strong>Please note:</strong> We are currently not using the Amana dashboard app for parent bookings.
+      You will receive your OWNA login details via email within 24 hours. OWNA is where you'll manage
+      all your bookings, view invoices, and check your fees.
     </p>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      If you have any questions in the meantime, please contact us at <a href="mailto:contact@amanaoshc.com.au" style="color:#004E64;font-weight:600;">contact@amanaoshc.com.au</a>.
+      If you have any questions in the meantime, please contact us at <a href="mailto:enrolment@amanaoshc.com.au" style="color:#004E64;font-weight:600;">enrolment@amanaoshc.com.au</a>.
     </p>
     <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
       Warm regards,<br/>

@@ -7,6 +7,7 @@ import {
   ParentDetails,
   AUSTRALIAN_STATES,
   RELATIONSHIP_OPTIONS,
+  PREFERRED_LANGUAGES,
   secondaryParentStarted,
 } from "../types";
 import { stateFromPostcode } from "@/lib/au-postcodes";
@@ -116,6 +117,22 @@ function ParentSection({
             ))}
           </select>
         </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground/80 mb-1">
+            Preferred Language
+            {required && <span className="text-red-500 ml-0.5">*</span>}
+          </label>
+          <select
+            value={parent.preferredLanguage}
+            onChange={(e) => onChange("preferredLanguage", e.target.value)}
+            className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-card"
+          >
+            <option value="">Select...</option>
+            {PREFERRED_LANGUAGES.map((l) => (
+              <option key={l} value={l}>{l}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="flex items-center justify-between mt-6 mb-3">
@@ -201,7 +218,12 @@ function ParentSection({
         <Input label="Occupation" value={parent.occupation} onChange={(v) => onChange("occupation", v)} />
         <Input label="Workplace" value={parent.workplace} onChange={(v) => onChange("workplace", v)} />
         <Input label="Work Phone" value={parent.workPhone} onChange={(v) => onChange("workPhone", v)} type="tel" />
-        <Input label="CRN (Customer Reference Number)" value={parent.crn} onChange={(v) => onChange("crn", v)} required={required} />
+        <div>
+          <Input label="CRN (Customer Reference Number)" value={parent.crn} onChange={(v) => onChange("crn", v)} required={required} />
+          <p className="text-xs text-muted mt-1">
+            Don&apos;t have a CRN? Enter <span className="font-mono font-medium">999999999X</span> to continue.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -320,6 +342,9 @@ export function ParentDetailsStep({ data, updateData }: Props) {
                   placeholder="CRN"
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
                 />
+                <p className="text-xs text-muted mt-1">
+                  Don&apos;t have a CRN? Enter <span className="font-mono font-medium">999999999X</span> to continue.
+                </p>
               </div>
             ))}
           </div>
