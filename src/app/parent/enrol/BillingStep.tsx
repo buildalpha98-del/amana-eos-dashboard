@@ -19,7 +19,6 @@
 
 import { ShieldCheck } from "lucide-react";
 import {
-  CREDIT_CARD_FEE,
   DIRECT_DEBIT_FEE,
   dishonourDescription,
   feeDescription,
@@ -47,7 +46,7 @@ export interface PaymentEntry {
 }
 
 export const EMPTY_PAYMENT: PaymentEntry = {
-  method: "",
+  method: "bank_account",
   cardName: "",
   cardNumber: "",
   cardExpiryMonth: "",
@@ -60,15 +59,6 @@ export const EMPTY_PAYMENT: PaymentEntry = {
 
 /** Enough to submit — full validation happens bank-side on first debit. */
 export function paymentEntered(p: PaymentEntry): boolean {
-  if (p.method === "credit_card") {
-    return (
-      p.cardName.trim().length > 0 &&
-      p.cardNumber.replace(/\s/g, "").length >= 13 &&
-      p.cardExpiryMonth.length > 0 &&
-      p.cardExpiryYear.length > 0 &&
-      p.cardCcv.length >= 3
-    );
-  }
   if (p.method === "bank_account") {
     return (
       p.bankAccountName.trim().length > 0 &&
@@ -241,185 +231,72 @@ export function BillingStep({
           </p>
         </div>
 
-        <Field id="p-method" label="Payment method" required>
-          <select
-            id="p-method"
-            className={field}
-            value={payment.method}
-            onChange={(e) => {
-              const method = e.target.value as PaymentEntry["method"];
-              onPaymentChange({ method });
-              onChange({ method });
-            }}
+        <p className="text-sm font-medium text-foreground mb-1">
+          Payment — Direct Debit <span className="text-red-500">*</span>
+        </p>
+
+        <div className="rounded-lg border border-border bg-surface p-3 space-y-1 mb-4">
+          <p className="text-xs font-semibold text-foreground">
+            Direct debit fees
+          </p>
+          <p className="text-xs text-muted leading-relaxed">
+            A processing fee of{" "}
+            <strong className="text-foreground">
+              {feeDescription(DIRECT_DEBIT_FEE)}
+            </strong>{" "}
+            applies.{" "}
+            {feeExample(DIRECT_DEBIT_FEE)}{" "}
+            We also charge{" "}
+            <strong className="text-foreground">
+              {dishonourDescription(DIRECT_DEBIT_FEE)}
+            </strong>
+            , so please make sure there are enough funds available on your
+            payment day.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field
+            id="p-accname"
+            label="Account name"
+            required
+            className="sm:col-span-2"
           >
-            <option value="">Select…</option>
-            <option value="bank_account">Bank account (direct debit)</option>
-            <option value="credit_card">Credit or debit card</option>
-          </select>
-        </Field>
-
-        {payment.method && (
-          <div className="rounded-lg border border-border bg-surface p-3 space-y-1">
-            <p className="text-xs font-semibold text-foreground">
-              {payment.method === "bank_account"
-                ? "Direct debit fees"
-                : "Card payment fees"}
-            </p>
-            <p className="text-xs text-muted leading-relaxed">
-              A processing fee of{" "}
-              <strong className="text-foreground">
-                {feeDescription(
-                  payment.method === "bank_account"
-                    ? DIRECT_DEBIT_FEE
-                    : CREDIT_CARD_FEE,
-                )}
-              </strong>{" "}
-              applies.{" "}
-              {payment.method === "bank_account" &&
-                feeExample(DIRECT_DEBIT_FEE)}{" "}
-              We also charge{" "}
-              <strong className="text-foreground">
-                {dishonourDescription(
-                  payment.method === "bank_account"
-                    ? DIRECT_DEBIT_FEE
-                    : CREDIT_CARD_FEE,
-                )}
-              </strong>
-              , so please make sure there are enough funds available on your
-              payment day.
-            </p>
-          </div>
-        )}
-
-        {payment.method === "bank_account" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field
+            <input
               id="p-accname"
-              label="Account name"
-              required
-              className="sm:col-span-2"
-            >
-              <input
-                id="p-accname"
-                className={field}
-                value={payment.bankAccountName}
-                onChange={(e) =>
-                  onPaymentChange({ bankAccountName: e.target.value })
-                }
-                autoComplete="off"
-              />
-            </Field>
-            <Field id="p-bsb" label="BSB" required>
-              <input
-                id="p-bsb"
-                inputMode="numeric"
-                maxLength={7}
-                placeholder="000-000"
-                className={field}
-                value={payment.bankBsb}
-                onChange={(e) => onPaymentChange({ bankBsb: e.target.value })}
-                autoComplete="off"
-              />
-            </Field>
-            <Field id="p-accnum" label="Account number" required>
-              <input
-                id="p-accnum"
-                inputMode="numeric"
-                className={field}
-                value={payment.bankAccountNumber}
-                onChange={(e) =>
-                  onPaymentChange({ bankAccountNumber: e.target.value })
-                }
-                autoComplete="off"
-              />
-            </Field>
-          </div>
-        )}
-
-        {payment.method === "credit_card" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field
-              id="p-cardname"
-              label="Name on card"
-              required
-              className="sm:col-span-2"
-            >
-              <input
-                id="p-cardname"
-                className={field}
-                value={payment.cardName}
-                onChange={(e) => onPaymentChange({ cardName: e.target.value })}
-                autoComplete="off"
-              />
-            </Field>
-            <Field
-              id="p-cardnum"
-              label="Card number"
-              required
-              className="sm:col-span-2"
-            >
-              <input
-                id="p-cardnum"
-                inputMode="numeric"
-                className={field}
-                value={payment.cardNumber}
-                onChange={(e) => onPaymentChange({ cardNumber: e.target.value })}
-                autoComplete="off"
-              />
-            </Field>
-            <div className="grid grid-cols-3 gap-3 sm:col-span-2">
-              <Field id="p-mm" label="Month" required>
-                <select
-                  id="p-mm"
-                  className={field}
-                  value={payment.cardExpiryMonth}
-                  onChange={(e) =>
-                    onPaymentChange({ cardExpiryMonth: e.target.value })
-                  }
-                >
-                  <option value="">MM</option>
-                  {Array.from({ length: 12 }, (_, i) =>
-                    String(i + 1).padStart(2, "0"),
-                  ).map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field id="p-yy" label="Year" required>
-                <select
-                  id="p-yy"
-                  className={field}
-                  value={payment.cardExpiryYear}
-                  onChange={(e) =>
-                    onPaymentChange({ cardExpiryYear: e.target.value })
-                  }
-                >
-                  <option value="">YYYY</option>
-                  {Array.from({ length: 12 }, (_, i) => String(thisYear + i)).map(
-                    (y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ),
-                  )}
-                </select>
-              </Field>
-              <Field id="p-ccv" label="CCV" required>
-                <input
-                  id="p-ccv"
-                  inputMode="numeric"
-                  maxLength={4}
-                  className={field}
-                  value={payment.cardCcv}
-                  onChange={(e) => onPaymentChange({ cardCcv: e.target.value })}
-                  autoComplete="off"
-                />
-              </Field>
-            </div>
-          </div>
-        )}
+              className={field}
+              value={payment.bankAccountName}
+              onChange={(e) =>
+                onPaymentChange({ bankAccountName: e.target.value })
+              }
+              autoComplete="off"
+            />
+          </Field>
+          <Field id="p-bsb" label="BSB" required>
+            <input
+              id="p-bsb"
+              inputMode="numeric"
+              maxLength={7}
+              placeholder="000-000"
+              className={field}
+              value={payment.bankBsb}
+              onChange={(e) => onPaymentChange({ bankBsb: e.target.value })}
+              autoComplete="off"
+            />
+          </Field>
+          <Field id="p-accnum" label="Account number" required>
+            <input
+              id="p-accnum"
+              inputMode="numeric"
+              className={field}
+              value={payment.bankAccountNumber}
+              onChange={(e) =>
+                onPaymentChange({ bankAccountNumber: e.target.value })
+              }
+              autoComplete="off"
+            />
+          </Field>
+        </div>
       </div>
     </div>
   );

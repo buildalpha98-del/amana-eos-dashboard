@@ -3,13 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import {
-  Construction,
-  BookOpen,
-  Receipt,
-  UserCog,
-  Mail,
-} from "lucide-react";
-import {
   useParentProfile,
   useParentBookings,
   type BookingRecord,
@@ -41,79 +34,31 @@ export default function ParentHomeV1() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-brand/95 to-brand-dark/95 p-4 overflow-y-auto">
-      <div className="w-full max-w-lg mx-auto my-8">
-        <div className="bg-card rounded-2xl shadow-2xl p-8 sm:p-10 text-center space-y-6">
-          {/* Icon */}
-          <div className="w-20 h-20 bg-brand/10 rounded-full flex items-center justify-center mx-auto">
-            <Construction className="h-10 w-10 text-brand" />
-          </div>
+    <div className="space-y-5">
+      <OwnaTransitionNotice />
 
-          {/* Heading */}
-          <div>
-            <h1 className="text-2xl font-heading font-bold text-foreground mb-2">
-              We&apos;re Working On Something Special!
-            </h1>
-            <p className="text-muted text-sm leading-relaxed">
-              Assalamu Alaikum{profile.firstName ? `, ${profile.firstName}` : ""}! Thank you for completing your enrolment with Amana OSHC.
-            </p>
-          </div>
-
-          {/* OWNA notice */}
-          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-left">
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">
-              Our parent app is currently under development, inshallah.
-            </p>
-            <p className="text-sm text-amber-700 dark:text-amber-300">
-              In the meantime, you will receive your OWNA login details via email within 24 hours.
-            </p>
-          </div>
-
-          {/* OWNA features */}
-          <div className="text-left space-y-3">
-            <p className="text-sm font-semibold text-foreground">With OWNA, you can:</p>
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
-                  <BookOpen className="h-4.5 w-4.5 text-brand" />
-                </div>
-                <p className="text-sm text-muted">Manage your bookings</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
-                  <Receipt className="h-4.5 w-4.5 text-brand" />
-                </div>
-                <p className="text-sm text-muted">View invoices and fees</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
-                  <UserCog className="h-4.5 w-4.5 text-brand" />
-                </div>
-                <p className="text-sm text-muted">Update your family details</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Contact */}
-          <div className="border-t border-border pt-5">
-            <p className="text-sm text-muted mb-3">
-              If you need any assistance, please contact us:
-            </p>
-            <a
-              href="mailto:enrolment@amanaoshc.com.au"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-xl text-sm font-medium hover:bg-brand-hover transition-colors"
-            >
-              <Mail className="h-4 w-4" />
-              enrolment@amanaoshc.com.au
-            </a>
-          </div>
-
-          {/* Closing */}
-          <p className="text-xs text-muted">
-            We look forward to launching our app for you soon, inshallah!
-          </p>
-        </div>
+      <div>
+        <h1 className="text-xl font-heading font-semibold text-foreground">
+          Welcome back, {profile.firstName} 👋
+        </h1>
       </div>
+
+      <AddToPhoneCard />
+
+      <TodayStrip />
+
+      <UpcomingSessionsWidget />
+
+      <section aria-label="Centre updates">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3">
+          Latest from your centre
+        </h2>
+        <ParentFeed />
+      </section>
+
+      <DailyInfoWidgets />
+
+      <EnrolmentApplicationsWidget />
     </div>
   );
 }

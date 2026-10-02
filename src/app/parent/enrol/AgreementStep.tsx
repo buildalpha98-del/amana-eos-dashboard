@@ -11,7 +11,6 @@
 import { field, Field, SectionHeading, YesNo } from "./ui";
 import { ENROLMENTS_EMAIL, type DraftAgreement } from "@/lib/enrol-draft";
 import {
-  CREDIT_CARD_FEE,
   DIRECT_DEBIT_FEE,
   dishonourDescription,
   feeDescription,
@@ -233,7 +232,7 @@ export function AgreementStep({
             I authorise Amana OSHC to debit the account I&apos;ve provided
             for fees as they fall due, and I accept the processing fees set
             out on the Billing step — {feeDescription(DIRECT_DEBIT_FEE)} for
-            direct debit or {feeDescription(CREDIT_CARD_FEE)} by card, plus{" "}
+            direct debit, plus{" "}
             {dishonourDescription(DIRECT_DEBIT_FEE)}.
           </span>
         </label>
