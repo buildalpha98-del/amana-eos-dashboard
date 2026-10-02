@@ -257,3 +257,60 @@ export function useResumeEnrolment() {
 export function useCancelEnrolment() {
   return useEnrolmentAction("cancel");
 }
+
+// ---------------------------------------------------------------------------
+// Email flow previews (CRM → Email flows)
+// ---------------------------------------------------------------------------
+
+export interface FlowStepPreview {
+  id: string;
+  stepNumber: number;
+  name: string;
+  delayHours: number;
+  templateKey: string;
+  subject: string;
+  html: string;
+  source: "custom" | "default" | "missing";
+}
+
+export interface FlowPreview {
+  id: string;
+  name: string;
+  type: "parent_nurture" | "crm_outreach";
+  triggerStage: string | null;
+  isActive: boolean;
+  activeEnrolments: number;
+  steps: FlowStepPreview[];
+}
+
+export function useFlowPreviews() {
+  return useQuery<{ flows: FlowPreview[]; sampleCentre: string }>({
+    queryKey: ["sequence-previews"],
+    queryFn: () => fetchApi("/api/sequences/preview"),
+    staleTime: 60_000,
+    retry: 2,
+  });
+}
+
+export interface SendFlowPreviewsResult {
+  to: string;
+  total: number;
+  sent: number;
+  failed: { label: string; error: string }[];
+  suppressed: boolean;
+}
+
+export function useSendFlowPreviews() {
+  return useMutation({
+    mutationFn: (body: { to: string; sequenceIds?: string[] }) =>
+      mutateApi<SendFlowPreviewsResult>("/api/sequences/preview/send", {
+        method: "POST",
+        body,
+        // ~30 throttled sends can take a while.
+        timeoutMs: 60_000,
+      }),
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}

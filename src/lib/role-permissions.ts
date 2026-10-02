@@ -146,6 +146,7 @@ export const allPages = [
   "/profile",
   "/crm",
   "/crm/templates",
+  "/crm/flows",
   // Strategy
   "/scenarios",
   "/data-room",
@@ -290,6 +291,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/communication",
     "/communication/whatsapp-compliance",
     "/crm",
+    "/crm/flows",
     "/enquiries",
     "/contact-centre",
     "/conversions",

@@ -51,6 +51,7 @@ import {
   Brain,
   Palette,
   Bell,
+  Workflow,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
@@ -260,6 +261,9 @@ export const navItems: NavItem[] = [
   // rolePageAccess for /ambassadors, and a nav item they can't open is a
   // dead link.
   { href: "/ambassadors", label: "Ambassadors", icon: Trophy, section: "Growth", tooltip: "Educator enrolment incentive pilot — referrals, verification & payouts", roles: ["head_office", "admin", "member", "staff"], core: ["owner", "head_office", "admin", "member", "staff"] },
+  // 2026-09-29: read-only view of every automated email flow (nurture +
+  // CRM outreach), rendered exactly as sent, with send-to-a-colleague.
+  { href: "/crm/flows", label: "Email Flows", icon: Workflow, section: "Growth", tooltip: "Every automated email families and schools receive, in order", roles: ["owner", "head_office", "admin", "marketing"], core: ["marketing"] },
   { href: "/crm/templates", label: "CRM Templates", icon: Mail, section: "Growth", tooltip: "Email templates behind automated CRM touchpoints", roles: ["owner", "head_office", "admin", "marketing"] },
   // 2026-08-08: admin surface for the public parent help centre at /support.
   { href: "/help-centre", label: "Help Centre", icon: LifeBuoy, section: "Growth", tooltip: "Manage the public parent help centre — FAQ categories, articles and the contact form", roles: ["owner", "head_office", "admin"] },
