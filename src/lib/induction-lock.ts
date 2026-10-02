@@ -34,6 +34,12 @@ export const INDUCTION_ALLOWED_PREFIXES = [
   "/handbook",
   "/policies",
   "/compliance",
+  "/my-portal",
+  "/my-pay",
+  "/my-leave",
+  "/my-day",
+  "/my-expenses",
+  "/notifications",
 ] as const;
 
 /**
