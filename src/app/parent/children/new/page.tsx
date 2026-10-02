@@ -60,6 +60,7 @@ export default function NewChildPage() {
     crn: "",
     soleCustody: null,
     livesWithPrimary: false,
+    preferredLanguage: "",
   };
 
   const handleComplete = (result: { token: string; childNames: string }) => {
