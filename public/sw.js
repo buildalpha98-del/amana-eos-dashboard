@@ -3,7 +3,11 @@
 // This is intentionally minimal — the app requires API access so full offline
 // mode is not supported.
 
-const CACHE_NAME = "amana-v2";
+// Cache version — bump on every deploy to evict stale HTML/JS. Without this,
+// phones running the PWA serve a cached /dashboard HTML that references JS
+// chunks that no longer exist after a deploy, silently breaking every button.
+// The activate handler deletes all caches that don't match the current name.
+const CACHE_NAME = "amana-v3";
 
 // App shell assets to cache on install
 const APP_SHELL = ["/dashboard", "/icons/icon-192.png", "/icons/icon-512.png"];
