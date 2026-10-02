@@ -134,6 +134,10 @@
       "schedule": "0 19 1 * *"
     },
     {
+      "path": "/api/cron/knowledge-regulator-refresh",
+      "schedule": "30 19 1 * *"
+    },
+    {
       "path": "/api/cron/audit-followup",
       "schedule": "15 20 * * *"
     },

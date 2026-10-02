@@ -9,7 +9,7 @@ import { generateMeetingReview } from "@/lib/meeting-review";
 import { sendMeetingDigestSafe } from "@/lib/meeting-digest";
 
 /**
- * Daily email janitor — four sweeps:
+ * Daily email janitor — the daily retention sweeps:
  *
  * (a) Stranded sends: `sending` DeliveryLog rows are pre-created by the
  *     campaign send route and terminated in the same request — a crash
@@ -24,6 +24,15 @@ import { sendMeetingDigestSafe } from "@/lib/meeting-digest";
  * (d) Frequency-cap ledger retention: MarketingSendRecipient rows only feed
  *     the rolling 7-day cap window — anything older than 30 days is dead
  *     weight (email addresses = PII; keep the table lean).
+ * (e) Stuck meeting recordings — see the inline notes.
+ * (f) KnowledgeSyncRun retention: the AI-knowledge console only shows the
+ *     latest run per adapter, and Prisma's `distinct` dedupes in memory, so
+ *     the table must stay small — runs older than 90 days are deleted.
+ * (g) Orphaned KnowledgeSyncRun rows: `runAdapter` finalises every run it
+ *     can, but a platform timeout kills the process before its catch — the
+ *     row stays open forever, the console shows "running…" and the sync
+ *     route's concurrency guard 409s for an hour. Runs still open after 1h
+ *     are closed with `error: "timed out"`.
  *
  * Idempotent: `acquireCronLock("email-janitor", "daily")` guards double-runs,
  * and every sweep is safe to repeat (deleteBrevoList treats 404 as success).
@@ -38,6 +47,8 @@ const CANDIDATE_CAP = 500;
 const LEGACY_PAGE_SIZE = 50;
 /** Hard page ceiling for the legacy sweep (50 lists/page → 500 lists max). */
 const LEGACY_MAX_PAGES = 10;
+/** KnowledgeSyncRun rows older than this are deleted (sweep f). */
+const SYNC_RUN_RETENTION_DAYS = 90;
 
 function payloadOf(row: { payload: unknown }): Record<string, unknown> {
   return (row.payload ?? {}) as Record<string, unknown>;
@@ -264,6 +275,17 @@ export const GET = withApiHandler(async (req) => {
       }
     }
 
+    // ── (f) KnowledgeSyncRun retention ────────────────────────────
+    const { count: syncRunsPruned } = await prisma.knowledgeSyncRun.deleteMany({
+      where: { startedAt: { lt: new Date(now - SYNC_RUN_RETENTION_DAYS * DAY_MS) } },
+    });
+
+    // ── (g) Orphaned KnowledgeSyncRun rows → "timed out" ──────────
+    const { count: syncRunsTimedOut } = await prisma.knowledgeSyncRun.updateMany({
+      where: { finishedAt: null, startedAt: { lt: new Date(now - HOUR_MS) } },
+      data: { finishedAt: new Date(now), error: "timed out" },
+    });
+
     await guard.complete({
       stranded,
       trackedCleaned,
@@ -272,6 +294,8 @@ export const GET = withApiHandler(async (req) => {
       recordingsFailed,
       reviewsRetried,
       audioSwept,
+      syncRunsPruned,
+      syncRunsTimedOut,
     });
     return NextResponse.json({
       ok: true,
@@ -282,6 +306,8 @@ export const GET = withApiHandler(async (req) => {
       recordingsFailed,
       reviewsRetried,
       audioSwept,
+      syncRunsPruned,
+      syncRunsTimedOut,
     });
   } catch (err) {
     await guard.fail(err);

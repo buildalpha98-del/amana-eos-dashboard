@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { syncAfterResponse } from "@/lib/knowledge/hooks";
+import { syncLmsModule, syncLmsCourse } from "@/lib/knowledge/adapters/lms-module";
 const updateModuleSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
@@ -31,6 +33,8 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     data: parsed.data,
   });
 
+  syncAfterResponse("lms_module", () => syncLmsModule(moduleId));
+
   return NextResponse.json(updatedModule);
 }, { roles: [...ADMIN_ROLES] });
 
@@ -38,9 +42,16 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 export const DELETE = withApiAuth(async (req, session, context) => {
   const { moduleId } = await context!.params!;
 
+  const m = await prisma.lMSModule.findUnique({
+    where: { id: moduleId },
+    select: { courseId: true },
+  });
+
   await prisma.lMSModule.delete({
     where: { id: moduleId },
   });
+
+  if (m) syncAfterResponse("lms_module", () => syncLmsCourse(m.courseId));
 
   return NextResponse.json({ success: true });
 }, { roles: [...ADMIN_ROLES] });

@@ -25,6 +25,11 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { assessTrackDrafts, publishCourses } from "@/lib/course-publish";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { syncAfterResponse } from "@/lib/knowledge/hooks";
+import { syncLmsCourse } from "@/lib/knowledge/adapters/lms-module";
+import { logger } from "@/lib/logger";
+
+export const maxDuration = 300;
 
 const TRACKS = ["essential", "monthly", "library"] as const;
 type Track = (typeof TRACKS)[number];
@@ -129,6 +134,20 @@ export const POST = withApiAuth(
         { status: 409 },
       );
     }
+
+    syncAfterResponse("lms_module", async () => {
+      const CONCURRENCY = 5;
+      let ok = 0, failed = 0;
+      for (let i = 0; i < courseIds.length; i += CONCURRENCY) {
+        const batch = courseIds.slice(i, i + CONCURRENCY);
+        const results = await Promise.allSettled(batch.map((id) => syncLmsCourse(id)));
+        for (const r of results) {
+          if (r.status === "fulfilled") ok++;
+          else failed++;
+        }
+      }
+      logger.info("Knowledge: bulk publish sync", { ok, failed, total: courseIds.length });
+    });
 
     return NextResponse.json(outcome.result);
   },

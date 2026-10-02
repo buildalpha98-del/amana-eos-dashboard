@@ -18,10 +18,6 @@ vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn(() => ({ limited: false })),
 }));
 
-vi.mock("@/lib/document-indexer", () => ({
-  indexDocument: vi.fn(() => Promise.resolve()),
-}));
-
 import { GET, POST } from "@/app/api/documents/route";
 import { PATCH } from "@/app/api/documents/[id]/route";
 import { _clearUserActiveCache } from "@/lib/server-auth";

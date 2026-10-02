@@ -232,11 +232,12 @@ export const navItems: NavItem[] = [
   // itself stays reachable by URL.
   // 2026-09-17: core for coordinators. Holiday Quest is a vacation-care
   // PLANNER, and the coordinator is the person who runs vacation care at their
-  // centre — it was classed as a marketing surface and kept from them. The
-  // Knowledge Base was reachable but buried in the "+N more" overflow, which
-  // for a day-to-day reference is the same as missing.
+  // centre — it was classed as a marketing surface and kept from them.
   { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator", core: ["member"] },
-  { href: "/knowledge", label: "Knowledge Base", icon: BookOpen, section: "Operations", tooltip: "Ask questions about your policies, procedures and documents", core: ["member"] },
+  // 2026-09-27: the "Knowledge Base" item (/knowledge) is gone — the page is
+  // a bare redirect to /assistant since the legacy Document store was
+  // retired, and /assistant already has its own nav entry. The route and its
+  // role-permissions entry stay so bookmarks still resolve.
 
   // ── Growth — pipeline, parents & outreach ─────────────────
   { href: "/contact-centre", label: "Contact Centre", icon: Inbox, section: "Growth", tooltip: "Enquiries, support tickets, and VAPI call logs in one place", roles: ALL_NON_MARKETING , core: true },

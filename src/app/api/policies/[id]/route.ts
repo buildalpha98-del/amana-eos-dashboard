@@ -5,6 +5,8 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import type { PolicyDocumentCategory } from "@prisma/client";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { syncAfterResponse } from "@/lib/knowledge/hooks";
+import { syncPolicyVersion } from "@/lib/knowledge/adapters/policy-upload";
 
 const POLICY_CATEGORIES = ["policy", "procedure", "other"] as const;
 
@@ -79,7 +81,7 @@ export const PATCH = withApiAuth(
 
     const existing = await prisma.policyDocument.findUnique({
       where: { id },
-      select: { id: true, title: true },
+      select: { id: true, title: true, currentVersionId: true },
     });
     if (!existing) throw ApiError.notFound("Policy not found");
 
@@ -126,6 +128,9 @@ export const PATCH = withApiAuth(
         details: { fields: Object.keys(data) },
       },
     });
+
+    const vid = existing.currentVersionId;
+    if (vid) syncAfterResponse("policy_upload", () => syncPolicyVersion(vid));
 
     return NextResponse.json(updated);
   },
