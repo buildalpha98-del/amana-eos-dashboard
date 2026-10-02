@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { publicVacancyWhere } from "@/lib/recruitment/public-vacancy";
 
 /**
  * /careers — public index of open, website-published vacancies.
@@ -31,7 +32,7 @@ const EMPLOYMENT_LABELS: Record<string, string> = {
 
 export default async function CareersIndexPage() {
   const vacancies = await prisma.recruitmentVacancy.findMany({
-    where: { deleted: false, status: "open", postedChannels: { has: "website" } },
+    where: publicVacancyWhere(),
     include: { service: { select: { name: true, suburb: true, state: true } } },
     orderBy: { createdAt: "desc" },
   });
