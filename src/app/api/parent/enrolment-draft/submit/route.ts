@@ -9,7 +9,7 @@
  * courtesy, not a control — this endpoint is reachable directly.
  *
  * Payment arrives in the request body rather than from the draft, because
- * card and bank numbers are deliberately never autosaved. See the header
+ * bank numbers are deliberately never autosaved. See the header
  * comment in src/app/parent/enrol/BillingStep.tsx.
  */
 import { NextResponse } from "next/server";
@@ -40,29 +40,33 @@ import {
   type EnrolDraft,
 } from "@/lib/enrol-draft";
 
+/**
+ * Direct debit ONLY (2026-10-02, c6d62fa removed cards from the form).
+ *
+ * The schema used to still accept `credit_card` with a number and CCV, and
+ * would encrypt and store the CCV — the UI no longer offers it, but this
+ * endpoint is reachable directly, and storing a CCV is a PCI breach however
+ * it arrives. It is also REQUIRED: bank details are mandatory in the form,
+ * so a submission without them can only be a bypass.
+ */
 const paymentSchema = z.object({
-  method: z.enum(["credit_card", "bank_account"]),
-  cardName: z.string().optional(),
-  cardNumber: z.string().optional(),
-  cardExpiryMonth: z.string().optional(),
-  cardExpiryYear: z.string().optional(),
-  cardCcv: z.string().optional(),
-  bankAccountName: z.string().optional(),
-  bankBsb: z.string().optional(),
-  bankAccountNumber: z.string().optional(),
+  method: z.literal("bank_account"),
+  bankAccountName: z.string().trim().min(1),
+  // Same rules as paymentEntered() in BillingStep — digits only, so
+  // "062-000" and "062 000" both pass, exactly as they do in the form.
+  bankBsb: z
+    .string()
+    .transform((v) => v.replace(/\D/g, ""))
+    .pipe(z.string().length(6)),
+  bankAccountNumber: z
+    .string()
+    .transform((v) => v.replace(/\D/g, ""))
+    .pipe(z.string().min(5).max(10)),
 });
 
-const bodySchema = z.object({ payment: paymentSchema.optional() });
+const bodySchema = z.object({ payment: paymentSchema });
 
 const STEP_LABELS = ["About you", "Your child", "Contacts", "Billing", "Agreement"];
-
-function detectCardType(number: string): string {
-  const n = number.replace(/\D/g, "");
-  if (/^4/.test(n)) return "Visa";
-  if (/^5[1-5]/.test(n)) return "Mastercard";
-  if (/^3[47]/.test(n)) return "Amex";
-  return "Card";
-}
 
 export const POST = withParentAuth(async (req, ctx) => {
   const accountId = ctx.parent.accountId;
@@ -73,7 +77,11 @@ export const POST = withParentAuth(async (req, ctx) => {
   }
 
   const body = bodySchema.safeParse(await parseJsonBody(req));
-  if (!body.success) throw ApiError.badRequest("Invalid submission.");
+  if (!body.success) {
+    throw ApiError.badRequest(
+      "Please check your bank details on the Billing step — account name, a 6-digit BSB and your account number.",
+    );
+  }
 
   const draftRow = await prisma.enrolmentDraft.findUnique({
     where: { accountId },
@@ -103,45 +111,25 @@ export const POST = withParentAuth(async (req, ctx) => {
 
   // ── Payment: mask for storage, encrypt the full value for the OWNA port.
   const payment = body.data.payment;
-  let maskedPayment: Record<string, unknown> | null = null;
+  const maskedPayment: Record<string, unknown> = {
+    bsbLastThree: payment.bankBsb.slice(-3),
+    accountLastFour: payment.bankAccountNumber.slice(-4),
+  };
   let encryptedRaw: string | null = null;
-
-  if (payment?.method === "credit_card" && payment.cardNumber) {
-    maskedPayment = {
-      lastFour: payment.cardNumber.replace(/\D/g, "").slice(-4),
-      cardType: detectCardType(payment.cardNumber),
-      // Readable expiry so the card-expiry reminder job can find cards
-      // about to lapse without decrypting anyone's number.
-      expiryMonth: payment.cardExpiryMonth ?? null,
-      expiryYear: payment.cardExpiryYear ?? null,
-    };
-  } else if (payment?.method === "bank_account" && payment.bankAccountNumber) {
-    maskedPayment = {
-      bsbLastThree: (payment.bankBsb ?? "").replace(/\D/g, "").slice(-3),
-      accountLastFour: payment.bankAccountNumber.replace(/\D/g, "").slice(-4),
-    };
-  }
 
   try {
     // Canonical field names, matching the public form and what
     // /api/enrolments/[id]/payment expects. Storing the raw request shape
     // here is what produced two incompatible encrypted formats and a
     // reveal that rendered blank.
-    if (payment) {
-      encryptedRaw = encryptField(
-        JSON.stringify({
-          method: payment.method,
-          accountName: payment.bankAccountName,
-          bsb: payment.bankBsb,
-          accountNumber: payment.bankAccountNumber,
-          cardName: payment.cardName,
-          cardNumber: payment.cardNumber,
-          expiryMonth: payment.cardExpiryMonth,
-          expiryYear: payment.cardExpiryYear,
-          ccv: payment.cardCcv,
-        }),
-      );
-    }
+    encryptedRaw = encryptField(
+      JSON.stringify({
+        method: payment.method,
+        accountName: payment.bankAccountName,
+        bsb: payment.bankBsb,
+        accountNumber: payment.bankAccountNumber,
+      }),
+    );
   } catch (err) {
     // Degrade exactly as the public form does: masked data is always
     // stored, the encrypted copy is a bonus. Losing it must not cost the
@@ -166,6 +154,9 @@ export const POST = withParentAuth(async (req, ctx) => {
     ccsApproved: me.ccsApproved ?? null,
     ccsApplied: me.ccsApplied ?? null,
     languageSpoken: me.languageSpoken ?? "",
+    // Reg 160(3)(i) asks for the PARENTS' cultural background too; it was
+    // collected on step 1 and then only copied onto the child.
+    culturalBackground: me.culturalBackground ?? "",
     gender: me.gender ?? "",
   };
 
@@ -221,6 +212,12 @@ export const POST = withParentAuth(async (req, ctx) => {
       medicareNumber: c.medicareNumber ?? "",
       medicareExpiry: c.medicareExpiry ?? "",
     },
+    // Reg 160(3)(f): who an educator must NOT release the child to. Lives
+    // on the Child row too, but the pack is read from the submission.
+    courtOrderRestrictedPersons:
+      contacts.courtOrders === true
+        ? contacts.courtOrderRestrictedPersons ?? ""
+        : "",
     bookingPrefs: {
       bookingType: billing.bookingType ?? "",
       startDate: billing.startDate ?? "",
@@ -323,11 +320,11 @@ export const POST = withParentAuth(async (req, ctx) => {
         emergencyContacts: emergencyContacts as unknown as object[],
         authorisedPickup: authorisedPickup as unknown as object[],
         consents,
-        paymentMethod: payment?.method ?? null,
-        paymentDetails:
-          maskedPayment || encryptedRaw
-            ? { ...(maskedPayment ?? {}), ...(encryptedRaw ? { raw: encryptedRaw } : {}) }
-            : undefined,
+        paymentMethod: payment.method,
+        paymentDetails: {
+          ...maskedPayment,
+          ...(encryptedRaw ? { raw: encryptedRaw } : {}),
+        },
         referralSource: agreement.referralSource ?? null,
         referralEducatorName: agreement.referralEducatorName?.trim() || null,
         signature: agreement.signature ?? null,

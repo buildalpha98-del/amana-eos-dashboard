@@ -256,13 +256,15 @@ export const POST = withParentAuth(async (req) => {
   } = parsed.data;
 
   // Payment method validation — require payment-specific fields
+  //
+  // Cards are refused outright (2026-10-06). Card collection was removed
+  // from every form on 2026-10-02, but this public endpoint still took a
+  // card number and CCV and stored them encrypted — a PCI breach however
+  // the request arrives. Direct debit is the only method.
   if (payment.method === "credit_card") {
-    if (!payment.cardName || !payment.cardNumber || payment.cardNumber.length < 13) {
-      throw ApiError.badRequest("Valid credit card details are required");
-    }
-    if (!payment.cardExpiryMonth || !payment.cardExpiryYear || !payment.cardCcv) {
-      throw ApiError.badRequest("Card expiry and CCV are required");
-    }
+    throw ApiError.badRequest(
+      "Card payments are no longer accepted — please provide direct debit details.",
+    );
   } else if (payment.method === "bank_account") {
     if (!payment.bankAccountName || !payment.bankBsb || payment.bankBsb.length < 6) {
       throw ApiError.badRequest("Valid bank account details are required");
@@ -279,12 +281,7 @@ export const POST = withParentAuth(async (req) => {
   // accessible via the /api/enrolments/[id]/payment decrypt endpoint.
   let maskedPayment = null;
   const paymentMethod = payment.method || null;
-  if (payment.method === "credit_card" && payment.cardNumber) {
-    maskedPayment = {
-      lastFour: payment.cardNumber.slice(-4),
-      cardType: detectCardType(payment.cardNumber),
-    };
-  } else if (payment.method === "bank_account" && payment.bankAccountNumber) {
+  if (payment.method === "bank_account" && payment.bankAccountNumber) {
     maskedPayment = {
       bsbLastThree: payment.bankBsb.slice(-3),
       accountLastFour: payment.bankAccountNumber.slice(-4),
@@ -296,16 +293,7 @@ export const POST = withParentAuth(async (req) => {
   // payment data is always stored; encrypted raw is a bonus for OWNA porting.
   let encryptedPaymentRaw: string | null = null;
   try {
-    if (payment.method === "credit_card") {
-      encryptedPaymentRaw = encryptField(JSON.stringify({
-        method: "credit_card",
-        cardName: payment.cardName,
-        cardNumber: payment.cardNumber,
-        expiryMonth: payment.cardExpiryMonth,
-        expiryYear: payment.cardExpiryYear,
-        ccv: payment.cardCcv,
-      }));
-    } else if (payment.method === "bank_account") {
+    if (payment.method === "bank_account") {
       encryptedPaymentRaw = encryptField(JSON.stringify({
         method: "bank_account",
         accountName: payment.bankAccountName,
@@ -572,14 +560,3 @@ export const POST = withParentAuth(async (req) => {
     parentName: `${primaryParent.firstName} ${primaryParent.surname}`,
   });
 });
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function detectCardType(number: string): string {
-  if (number.startsWith("4")) return "visa";
-  if (/^5[1-5]/.test(number) || /^2[2-7]/.test(number)) return "mastercard";
-  if (number.startsWith("3") && ["4", "7"].includes(number[1])) return "amex";
-  return "unknown";
-}

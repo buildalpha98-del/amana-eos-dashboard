@@ -73,6 +73,103 @@ function yesNo(value: unknown): string {
   return "";
 }
 
+/** Emergency-contact authorisation flags, as the portal form stores them. */
+const EMERGENCY_CONTACT_AUTHORITIES: ReadonlyArray<[string, string]> = [
+  ["consentPickup", "collect the child"],
+  ["consentNotify", "be notified of an emergency"],
+  ["consentMedical", "consent to medical treatment / medication"],
+  ["consentAmbulance", "consent to ambulance transport"],
+  ["consentTransport", "consent to transport"],
+  ["consentOffPremises", "consent to leaving the premises"],
+  ["consentOutings", "authorise regular outings"],
+];
+
+/** First of `keys` that holds a real value (false counts; "" doesn't). */
+function pick(o: Record<string, unknown>, ...keys: string[]): unknown {
+  for (const k of keys) {
+    const v = o[k];
+    if (v === undefined || v === null) continue;
+    if (typeof v === "string" && v.trim() === "") continue;
+    return v;
+  }
+  return undefined;
+}
+
+/** A yes/no answer, or a free-text one, as printable text. */
+function answer(v: unknown): string {
+  return typeof v === "boolean" ? yesNo(v) : text(v);
+}
+
+/**
+ * Label/value rows for a child's medical section.
+ *
+ * The portal form (/parent/enrol) and the legacy wizard store the SAME
+ * facts under different keys — `anaphylaxis` vs `anaphylaxisRisk`,
+ * `immunisationStatus` vs `immunisationUpToDate`, `medications` as text vs
+ * an array. The pack read only the legacy names, so every portal enrolment
+ * printed with NO anaphylaxis status, immunisation status, medications,
+ * dietary needs or paracetamol consent — the facts an educator most needs.
+ * Reads the portal name first, the legacy one second.
+ *
+ * Pure and exported so the mapping can be tested without rendering a PDF.
+ */
+export function childMedicalRows(
+  med: Record<string, unknown>,
+): Array<[string, string]> {
+  const rows: Array<[string, string]> = [];
+  const add = (label: string, v: unknown) => {
+    const t = answer(v);
+    if (t) rows.push([label, t]);
+  };
+
+  const doctor = [text(med.doctorName), text(med.doctorPractice)]
+    .filter(Boolean)
+    .join(" — ");
+  add("Doctor", doctor);
+  add("Doctor Phone", med.doctorPhone);
+  add("Doctor Address", med.doctorAddress);
+  add("Medicare", med.medicareNumber);
+  add("Medicare Ref", med.medicareRef);
+  add("Medicare Expiry", med.medicareExpiry);
+
+  add("Immunisation", pick(med, "immunisationStatus", "immunisationUpToDate"));
+  add("Immunisation Details", med.immunisationDetails);
+
+  const anaphylaxis = pick(med, "anaphylaxis", "anaphylaxisRisk");
+  add("Anaphylaxis", anaphylaxis);
+  add("Allergies", med.allergies);
+  add("Allergy Details", pick(med, "allergiesDetail", "allergyDetails"));
+  add("Asthma", med.asthma);
+  add("Asthma Details", med.asthmaDetail);
+
+  // Legacy stored the condition as free text; the portal as yes/no + detail.
+  if (typeof med.otherConditions === "string") {
+    add("Other Conditions", med.otherConditions);
+  } else {
+    add("Other Conditions", med.otherCondition);
+    add("Other Condition Details", med.otherConditionDetail);
+  }
+
+  if (Array.isArray(med.medications)) {
+    const list = asRows(med.medications)
+      .map((m) => {
+        const extra = [text(m.dosage), text(m.frequency)].filter(Boolean).join(", ");
+        return `${text(m.name)}${extra ? ` (${extra})` : ""}`;
+      })
+      .filter(Boolean);
+    add("Medications", list.join("; "));
+  } else {
+    add("Medications", med.medications);
+  }
+
+  add("Dietary Restrictions", pick(med, "dietaryRestrictions", "dietaryRequirements"));
+  add("Dietary Details", pick(med, "dietaryDetail", "dietaryDetails"));
+  add("Paracetamol (if parents unreachable)", med.paracetamolConsent);
+  add("Additional Needs / Disability", med.additionalNeeds);
+  add("Additional Needs Details", med.additionalNeedsDetail);
+  return rows;
+}
+
 interface EnrolmentSubmission {
   id: string;
   primaryParent: Record<string, unknown>;
@@ -151,44 +248,30 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
       .join(", ");
     row("Address", addr);
     row("School", child.schoolName as string);
-    row("Year Level", child.yearLevel as string);
+    // The portal stores the classroom code ("D.G1Y"); the legacy wizard a
+    // year level. Print whichever the submission has.
+    row("Classroom / Year", text(child.classroom) || text(child.yearLevel));
     const cultural = child.culturalBackground as string[] | undefined;
     if (Array.isArray(cultural) && cultural.length)
       row("Cultural Background", cultural.join(", "));
     row("CRN", child.crn as string);
 
-    // Medical
+    // Medical — field names differ between the portal form and the legacy
+    // wizard; childMedicalRows reads both so neither prints blank.
     const med = child.medical as Record<string, unknown> | null;
-    if (med) {
+    if (med && typeof med === "object") {
       checkPage(10);
       doc.setFontSize(9);
       doc.setFont("helvetica", "bolditalic");
       doc.setTextColor(...BRAND.green.rgb);
       doc.text("Medical Information", margin, b.y);
       b.y += 5;
-      row("Doctor", `${med.doctorName} — ${med.doctorPractice}`);
-      row("Doctor Phone", med.doctorPhone as string);
-      row("Medicare", med.medicareNumber as string);
-      row("Medicare Ref", med.medicareRef as string);
-      row("Medicare Expiry", med.medicareExpiry as string);
-      row("Immunisation", med.immunisationUpToDate as boolean);
-      if (med.immunisationUpToDate === false) row("Immunisation Details", med.immunisationDetails as string);
-      row("Anaphylaxis Risk", med.anaphylaxisRisk as boolean);
-      row("Allergies", med.allergies as boolean);
-      if (med.allergies) row("Allergy Details", med.allergyDetails as string);
-      row("Asthma", med.asthma as boolean);
-      row("Other Conditions", med.otherConditions as string);
-      const meds = asRows(med.medications) as unknown as {
-        name: string;
-        dosage: string;
-        frequency: string;
-      }[];
-      if (meds.length) {
-        row("Medications", meds.map((m) => `${m.name} (${m.dosage}, ${m.frequency})`).join("; "));
-      }
-      row("Dietary Requirements", med.dietaryRequirements as boolean);
-      if (med.dietaryRequirements) row("Dietary Details", med.dietaryDetails as string);
+      for (const [label, value] of childMedicalRows(med)) row(label, value);
     }
+    row(
+      "Court order — do NOT release to",
+      text(child.courtOrderRestrictedPersons),
+    );
 
     // Booking
     const bp = child.bookingPrefs as Record<string, unknown> | null;
@@ -240,6 +323,8 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
   row("Workplace", text(pp.workplace));
   row("Work Phone", text(pp.workPhone));
   row("CRN", text(pp.crn));
+  row("Language at home", text(pp.languageSpoken));
+  row("Cultural Background", text(pp.culturalBackground));
 
   if (text(pp.firstName) || text(pp.surname)) {
     // Only meaningful once there is a second parent to have custody OF.
@@ -259,7 +344,8 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
     // (not at submit time) means the second parent's address follows the
     // primary's if it is ever corrected, instead of freezing a stale copy.
     const spOwnAddr = parentAddress(sp);
-    if (sp.livesWithPrimary === true) {
+    // `sameAddressAsPrimary` is the portal form's name for the same flag.
+    if (sp.livesWithPrimary === true || sp.sameAddressAsPrimary === true) {
       row("Address", ppAddr ? `${ppAddr} (same as primary)` : "Same as primary");
     } else {
       row("Address", spOwnAddr);
@@ -275,9 +361,25 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
   heading("Emergency Contacts");
   const contacts = asRows(submission.emergencyContacts);
   contacts.forEach((c, i) => {
-    if (c.name) {
-      row(`Contact ${i + 1}`, `${c.name} (${c.relationship}) — ${c.phone}`);
-    }
+    if (!c.name) return;
+    row(
+      `Contact ${i + 1}`,
+      [`${text(c.name)}${text(c.relationship) ? ` (${text(c.relationship)})` : ""}`, text(c.phone)]
+        .filter(Boolean)
+        .join(" — "),
+    );
+    row("Address", text(c.address));
+    // Reg 160(3)(c)-(e) and 161: WHICH authorisations this person holds
+    // is the reason they're on the form. An educator ringing them for
+    // ambulance consent needs to see it was given.
+    const granted = EMERGENCY_CONTACT_AUTHORITIES.filter(
+      ([key]) => c[key] === true,
+    ).map(([, label]) => label);
+    const refused = EMERGENCY_CONTACT_AUTHORITIES.filter(
+      ([key]) => c[key] === false,
+    ).map(([, label]) => label);
+    if (granted.length) row("Authorised to", granted.join(", "));
+    if (refused.length) row("NOT authorised to", refused.join(", "));
   });
 
   const pickup = asRows(submission.authorisedPickup);

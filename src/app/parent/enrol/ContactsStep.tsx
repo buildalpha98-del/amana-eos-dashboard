@@ -149,6 +149,19 @@ export function ContactsStep({
             }
           />
         </Field>
+        <Field id="sp-dob" label="Date of birth" required={secondaryRequired}>
+          <input
+            id="sp-dob"
+            type="date"
+            className={field}
+            value={secondary.dob ?? ""}
+            onChange={(e) =>
+              onChange({
+                secondaryParent: { ...secondary, dob: e.target.value },
+              })
+            }
+          />
+        </Field>
         <Field id="sp-mobile" label="Mobile" required={secondaryRequired}>
           <input
             id="sp-mobile"

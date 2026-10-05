@@ -382,7 +382,7 @@ export function ChildStep({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id={`c${i}-doc`} label="Doctor / medical centre">
+            <Field id={`c${i}-doc`} label="Doctor / medical centre" required>
               <input
                 id={`c${i}-doc`}
                 className={field}

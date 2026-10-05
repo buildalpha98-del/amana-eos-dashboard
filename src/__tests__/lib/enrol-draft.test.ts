@@ -78,6 +78,7 @@ const goodContacts = {
   secondaryParent: {
     firstName: "Omar",
     surname: "Rahman",
+    dob: "1985-03-02",
     mobile: "0422 222 222",
     email: "omar@example.com",
     sameAddressAsPrimary: true,
@@ -101,6 +102,7 @@ const goodAgreement = {
   sunscreen: true,
   termsAccepted: true,
   privacyAccepted: true,
+  debitAgreement: true,
   signature: "Aisha Rahman",
   referralSource: "School newsletter",
 };
@@ -379,6 +381,7 @@ describe("National Regulations record requirements", () => {
         secondaryParent: {
           firstName: "Omar",
           surname: "Rahman",
+          dob: "1985-03-02",
           mobile: "0422 222 222",
         },
       },
@@ -396,6 +399,16 @@ describe("National Regulations record requirements", () => {
       },
     };
     expect(contactsComplete(typed)).toBe(true);
+  });
+
+  it("requires the second carer's date of birth when no court order applies", () => {
+    const { dob: _dob, ...noDob } = goodContacts.secondaryParent;
+    const d: EnrolDraft = {
+      ...fullDraft,
+      contacts: { ...goodContacts, secondaryParent: noDob },
+    };
+    expect(contactsComplete(d)).toBe(false);
+    expect(stepBlocker(2, d)).toMatch(/date of birth/i);
   });
 
   it("requires naming who is restricted when a court order applies (reg 160(3)(f))", () => {
@@ -560,10 +573,21 @@ describe("agreementComplete", () => {
     expect(agreementComplete(rest)).toBe(false);
   });
 
-  it("requires terms and privacy, but not the debit agreement", () => {
+  it("requires terms, privacy AND the debit authority", () => {
     expect(agreementComplete({ ...goodAgreement, termsAccepted: false })).toBe(false);
     expect(agreementComplete({ ...goodAgreement, privacyAccepted: false })).toBe(false);
-    expect(agreementComplete({ ...goodAgreement, debitAgreement: false })).toBe(true);
+    // Bank details are mandatory, so the authority to debit them is too.
+    expect(agreementComplete({ ...goodAgreement, debitAgreement: false })).toBe(false);
+  });
+
+  it("names the missing item rather than a catch-all", () => {
+    const blocker = (a: Partial<typeof goodAgreement> & Record<string, unknown>) =>
+      stepBlocker(4, { ...fullDraft, agreement: a });
+    expect(blocker({ ...goodAgreement, debitAgreement: false })).toMatch(/direct debit/i);
+    expect(blocker({ ...goodAgreement, referralSource: "" })).toMatch(/heard about/i);
+    expect(
+      blocker({ ...goodAgreement, referralSource: "One of our educators" }),
+    ).toMatch(/which educator/i);
   });
 
   it("requires a typed signature", () => {

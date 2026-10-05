@@ -14,6 +14,11 @@ export const PUBLIC_PARENT_ROUTES = [
   "/parent/login",
   "/parent/signup",
   "/parent/confirm",
+  // The emailed reset link is opened by someone who by definition can't
+  // sign in. Missing from this list, ParentAuthProvider bounced them to
+  // /parent/login before the page could render — the whole recovery flow
+  // looked like "the link doesn't work".
+  "/parent/reset-password",
 ] as const;
 
 export function isPublicParentRoute(pathname: string | null | undefined): boolean {

@@ -196,6 +196,7 @@ function validDraft(): Draft {
       secondaryParent: {
         firstName: "Sam",
         surname: "Khan",
+        dob: "1984-11-20",
         mobile: "0400 333 444",
         email: "sam@example.com",
         relationship: "Parent",
@@ -232,20 +233,12 @@ function validDraft(): Draft {
       sunscreen: true,
       termsAccepted: true,
       privacyAccepted: true,
+      debitAgreement: true,
       signature: "Aysha Khan",
       referralSource: "Google",
     },
   };
 }
-
-const CARD = {
-  method: "credit_card" as const,
-  cardName: "A Khan",
-  cardNumber: "4111 1111 1111 4242",
-  cardExpiryMonth: "05",
-  cardExpiryYear: "2031",
-  cardCcv: "123",
-};
 
 const BANK = {
   method: "bank_account" as const,
@@ -312,14 +305,14 @@ describe("submit — who may submit", () => {
     // look up `where: { accountId: undefined }` and take the first draft
     // it found.
     parentRef.accountId = undefined;
-    const res = await submit({ payment: CARD });
+    const res = await submit({ payment: BANK });
 
     expect(res.status).toBe(403);
     expect(prismaMock.enrolmentSubmission.create).not.toHaveBeenCalled();
   });
 
   it("reads the draft belonging to that account, not to the email", async () => {
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(prismaMock.enrolmentDraft.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ where: { accountId: "acc-1" } }),
     );
@@ -327,7 +320,7 @@ describe("submit — who may submit", () => {
 
   it("says so when there's nothing to submit", async () => {
     prismaMock.enrolmentDraft.findUnique.mockResolvedValue(null);
-    const res = await submit({ payment: CARD });
+    const res = await submit({ payment: BANK });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/no enrolment to submit/i);
   });
@@ -336,7 +329,7 @@ describe("submit — who may submit", () => {
     // `submittedAt` is the only thing standing between a double-tap and
     // two sets of Child rows on the same centre's roll.
     setDraft(validDraft(), new Date("2026-08-01"));
-    const res = await submit({ payment: CARD });
+    const res = await submit({ payment: BANK });
 
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/already been submitted/i);
@@ -349,7 +342,7 @@ describe("submit — the server-side completeness re-check", () => {
     // The disabled button is a courtesy; this endpoint is reachable
     // directly with curl.
     setDraft({});
-    const res = await submit({ payment: CARD });
+    const res = await submit({ payment: BANK });
     expect(res.status).toBe(400);
     expect(prismaMock.enrolmentSubmission.create).not.toHaveBeenCalled();
   });
@@ -361,7 +354,7 @@ describe("submit — the server-side completeness re-check", () => {
     draft.children = [validChild({ uploads: [] })];
     setDraft(draft);
 
-    const res = await submit({ payment: CARD });
+    const res = await submit({ payment: BANK });
     expect((await res.json()).error).toContain('"Your child"');
   });
 
@@ -370,7 +363,7 @@ describe("submit — the server-side completeness re-check", () => {
     draft.agreement.signature = "";
     setDraft(draft);
 
-    const res = await submit({ payment: CARD });
+    const res = await submit({ payment: BANK });
     expect((await res.json()).error).toContain('"Agreement"');
   });
 
@@ -382,31 +375,13 @@ describe("submit — the server-side completeness re-check", () => {
     draft.contacts.emergency[0].phone = "0400 111 222";
     setDraft(draft);
 
-    const res = await submit({ payment: CARD });
+    const res = await submit({ payment: BANK });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toContain('"Contacts"');
   });
 });
 
 describe("submit — payment", () => {
-  it("stores only the last four digits of a card", async () => {
-    await submit({ payment: CARD });
-    const details = submissionData().paymentDetails as Record<string, unknown>;
-
-    expect(details.lastFour).toBe("4242");
-    expect(details.cardType).toBe("Visa");
-    expect(JSON.stringify(details)).not.toContain("4111");
-  });
-
-  it("keeps the expiry readable so cards can be chased before they lapse", async () => {
-    // Deliberately outside the encrypted blob: the reminder job must be
-    // able to find expiring cards without decrypting anyone's number.
-    await submit({ payment: CARD });
-    const details = submissionData().paymentDetails as Record<string, unknown>;
-    expect(details.expiryMonth).toBe("05");
-    expect(details.expiryYear).toBe("2031");
-  });
-
   it("masks a bank account to the BSB's last three and account's last four", async () => {
     await submit({ payment: BANK });
     const details = submissionData().paymentDetails as Record<string, unknown>;
@@ -425,7 +400,7 @@ describe("submit — payment", () => {
     expect(stored).toMatchObject({
       method: "bank_account",
       accountName: "A Khan",
-      bsb: "063-123",
+      bsb: "063123",
       accountNumber: "12345678",
     });
     expect(stored).not.toHaveProperty("bankAccountNumber");
@@ -438,11 +413,11 @@ describe("submit — payment", () => {
       throw new Error("no key configured");
     });
 
-    const res = await submit({ payment: CARD });
+    const res = await submit({ payment: BANK });
     expect(res.status).toBe(200);
 
     const details = submissionData().paymentDetails as Record<string, unknown>;
-    expect(details.lastFour).toBe("4242");
+    expect(details.accountLastFour).toBe("5678");
     expect(details).not.toHaveProperty("raw");
     expect(warn).toHaveBeenCalledWith(
       expect.stringMatching(/encryption failed/i),
@@ -450,13 +425,33 @@ describe("submit — payment", () => {
     );
   });
 
-  it("accepts a submission with no payment block at all", async () => {
-    // The schema marks it optional, and a family paying another way
-    // shouldn't hit a 400 on the last screen.
-    const res = await submit({});
-    expect(res.status).toBe(200);
-    expect(submissionData().paymentMethod).toBeNull();
+  // 2026-10-06: cards were removed from the form on 2026-10-02, but this
+  // endpoint still took a card number and CCV and stored them encrypted.
+  it("refuses a card outright and stores nothing", async () => {
+    const res = await submit({
+      payment: {
+        method: "credit_card",
+        cardName: "A Khan",
+        cardNumber: "4111 1111 1111 4242",
+        cardExpiryMonth: "05",
+        cardExpiryYear: "2031",
+        cardCcv: "123",
+      },
+    });
+    expect(res.status).toBe(400);
     expect(encryptField).not.toHaveBeenCalled();
+  });
+
+  it("refuses a submission with no bank details", async () => {
+    // Bank details are mandatory in the form, so a body without them can
+    // only be a bypass — not "a family paying another way".
+    const res = await submit({});
+    expect(res.status).toBe(400);
+  });
+
+  it("refuses a BSB that isn't six digits", async () => {
+    const res = await submit({ payment: { ...BANK, bankBsb: "06312" } });
+    expect(res.status).toBe(400);
   });
 });
 
@@ -465,7 +460,7 @@ describe("submit — attaching children to a centre", () => {
     // Before this existed, submitted children were created with
     // serviceId null: in the database, absent from their centre's
     // children list, roll, ratios and billing.
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
 
     expect(childData()[0].serviceId).toBe("svc-springvale");
     expect(submissionData().serviceId).toBe("svc-springvale");
@@ -478,7 +473,7 @@ describe("submit — attaching children to a centre", () => {
     draft.children = [validChild({ schoolName: "Bayside Primary School" })];
     setDraft(draft);
 
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(childData()[0].serviceId).toBeNull();
     expect(submissionData().serviceId).toBeNull();
   });
@@ -491,7 +486,7 @@ describe("submit — attaching children to a centre", () => {
     ];
     setDraft(draft);
 
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(childData().map((c) => c.serviceId)).toEqual([
       "svc-springvale",
       "svc-coburg",
@@ -508,14 +503,14 @@ describe("submit — attaching children to a centre", () => {
     ];
     setDraft(draft);
 
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(submissionData().serviceId).toBeNull();
   });
 
   it("creates children pending, not active", async () => {
     // canBook() reads this — an active child could book before anyone
     // had reviewed the enrolment.
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(childData()[0].status).toBe("pending");
   });
 });
@@ -525,7 +520,7 @@ describe("submit — the authorised pickup list", () => {
     // Nothing used to create these on a fresh enrolment, so a new family
     // had an EMPTY pickup list despite naming a second carer — educators
     // at the door had nothing to check against.
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
 
     const rows = prismaMock.authorisedPickup.createMany.mock.calls[0][0].data;
     expect(rows).toContainEqual(
@@ -539,7 +534,7 @@ describe("submit — the authorised pickup list", () => {
   });
 
   it("adds an emergency contact who has pickup permission", async () => {
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     const rows = prismaMock.authorisedPickup.createMany.mock.calls[0][0].data;
     expect(rows).toContainEqual(
       expect.objectContaining({ name: "Layla Aziz", isEmergencyContact: true }),
@@ -551,7 +546,7 @@ describe("submit — the authorised pickup list", () => {
     draft.contacts.emergency[0].consentPickup = false;
     setDraft(draft);
 
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     const rows = prismaMock.authorisedPickup.createMany.mock.calls[0][0].data;
     expect(rows.map((r: { name: string }) => r.name)).not.toContain("Layla Aziz");
   });
@@ -569,7 +564,7 @@ describe("submit — the authorised pickup list", () => {
     draft.contacts.courtOrderRestrictedPersons = "Redacted Name";
     setDraft(draft);
 
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     const rows = prismaMock.authorisedPickup.createMany.mock.calls[0][0].data;
     expect(rows.map((r: { name: string }) => r.name)).toEqual(["Layla Aziz"]);
   });
@@ -585,7 +580,7 @@ describe("submit — the authorised pickup list", () => {
       { id: "child-2" },
     ]);
 
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     const rows = prismaMock.authorisedPickup.createMany.mock.calls[0][0]
       .data as { childId: string }[];
     expect(new Set(rows.map((r) => r.childId))).toEqual(
@@ -599,13 +594,13 @@ describe("submit — what lands on the submission", () => {
   it("takes the email from the session, not the draft", async () => {
     // The draft is parent-supplied; the session is the one thing here
     // that has been proven.
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     const primary = submissionData().primaryParent as Record<string, unknown>;
     expect(primary.email).toBe("aysha@example.com");
   });
 
   it("splits medical action plans out from the other documents", async () => {
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     const data = submissionData();
     expect(
       (data.medicalFiles as { filename: string }[]).map((f) => f.filename),
@@ -617,7 +612,7 @@ describe("submit — what lands on the submission", () => {
 
   it("copies the carer's cultural background onto the child", async () => {
     // Reg 160(3)(i) wants the child AND parents; we stopped asking twice.
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(childData()[0].culturalBackground).toEqual(["Lebanese"]);
   });
 
@@ -632,7 +627,7 @@ describe("submit — what lands on the submission", () => {
     draft.contacts.courtOrderRestrictedPersons = "Redacted Name";
     setDraft(draft);
 
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(childData()[0].custodyArrangements).toMatchObject({
       type: "court_order",
       details: "Redacted Name",
@@ -641,7 +636,7 @@ describe("submit — what lands on the submission", () => {
   });
 
   it("stamps the draft submitted so it can't be sent again", async () => {
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     const arg = prismaMock.enrolmentDraft.update.mock.calls[0][0] as {
       where: { id: string };
       data: { submittedAt: Date };
@@ -651,7 +646,7 @@ describe("submit — what lands on the submission", () => {
   });
 
   it("names the household without overwriting a staff correction", async () => {
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     const arg = prismaMock.parentAccount.updateMany.mock.calls[0][0] as {
       where: Record<string, unknown>;
       data: { familyName: string };
@@ -692,19 +687,19 @@ describe("submit — booking preferences the dashboard can actually read", () =>
     };
 
   it("names the session types the family picked", async () => {
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(prefs().sessionTypes).toEqual(["asc"]);
   });
 
   it("keys the days by session type, not as a flat list", async () => {
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(prefs().days).toEqual({ asc: ["monday", "tuesday"] });
   });
 
   it("lowercases the weekdays, because that's what the lookup uses", async () => {
     // DAY_NAME_TO_INDEX in booking-generator.ts is keyed "monday". A
     // capitalised name misses it and generates nothing, silently.
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(prefs().days.asc).not.toContain("Monday");
   });
 
@@ -717,7 +712,7 @@ describe("submit — booking preferences the dashboard can actually read", () =>
     };
     setDraft(draft);
 
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(prefs().sessionTypes.sort()).toEqual(["asc", "bsc", "vc"]);
     expect(prefs().days.bsc).toEqual(["monday"]);
     expect(prefs().days.asc).toEqual(["monday", "friday"]);
@@ -730,19 +725,19 @@ describe("submit — booking preferences the dashboard can actually read", () =>
     draft.billing.sessions = { holidayQuest: ["yes"] };
     setDraft(draft);
 
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(prefs().sessionTypes).toEqual(["vc"]);
     expect(prefs().days.vc).toEqual([]);
   });
 
   it("carries the booking type and start date generateBookings needs", async () => {
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(prefs().bookingType).toBe("permanent");
     expect(prefs().startDate).toBe("2026-09-01");
   });
 
   it("keeps the parent's raw grid answer alongside the translation", async () => {
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(prefs().sessions).toEqual({ amanaAfternoons: ["Monday", "Tuesday"] });
   });
 
@@ -754,7 +749,7 @@ describe("submit — booking preferences the dashboard can actually read", () =>
     draft.billing.days = ["Monday"];
     setDraft(draft);
 
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(prefs().sessionTypes).toEqual([]);
     expect(warn).toHaveBeenCalledWith(
       expect.stringMatching(/pre-grid booking days/i),
@@ -768,7 +763,7 @@ describe("submit — the things that must not cost a family their enrolment", ()
     // Someone who just finished a five-step form must not be told it
     // failed because our mail provider hiccuped.
     enrolmentReceivedEmail.mockRejectedValueOnce(new Error("smtp down"));
-    const res = await submit({ payment: CARD });
+    const res = await submit({ payment: BANK });
 
     expect(res.status).toBe(200);
     expect((await res.json()).submissionId).toBe("sub-1");
@@ -776,26 +771,26 @@ describe("submit — the things that must not cost a family their enrolment", ()
 
   it("survives a failed second-carer invite", async () => {
     secondaryCarerInviteEmail.mockRejectedValueOnce(new Error("bounced"));
-    const res = await submit({ payment: CARD });
+    const res = await submit({ payment: BANK });
     expect(res.status).toBe(200);
   });
 
   it("survives the nurture cancellation failing", async () => {
     cancelPreEnrolmentNurture.mockRejectedValueOnce(new Error("nope"));
-    const res = await submit({ payment: CARD });
+    const res = await submit({ payment: BANK });
     expect(res.status).toBe(200);
   });
 
   it("survives the session refresh failing", async () => {
     signParentJwt.mockRejectedValueOnce(new Error("no secret"));
-    const res = await submit({ payment: CARD });
+    const res = await submit({ payment: BANK });
     expect(res.status).toBe(200);
   });
 });
 
 describe("submit — after it commits", () => {
   it("invites the second carer to the portal", async () => {
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({ to: "sam@example.com" }),
     );
@@ -808,12 +803,12 @@ describe("submit — after it commits", () => {
     draft.contacts.secondaryParent!.email = "AYSHA@Example.com ";
     setDraft(draft);
 
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(secondaryCarerInviteEmail).not.toHaveBeenCalled();
   });
 
   it("confirms receipt to the family", async () => {
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({ to: "aysha@example.com" }),
     );
@@ -822,7 +817,7 @@ describe("submit — after it commits", () => {
   it("stops the pre-enrolment chase for the centre they joined", async () => {
     // "Need a hand with the form?" the morning after they finished it is
     // the kind of thing families remember.
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(cancelPreEnrolmentNurture).toHaveBeenCalledWith(
       "aysha@example.com",
       "svc-springvale",
@@ -834,7 +829,7 @@ describe("submit — after it commits", () => {
     draft.children = [validChild({ schoolName: "Bayside Primary School" })];
     setDraft(draft);
 
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(cancelPreEnrolmentNurture).not.toHaveBeenCalled();
   });
 
@@ -842,7 +837,7 @@ describe("submit — after it commits", () => {
     // enrolmentIds is baked into the JWT at login and only ever filtered
     // DOWN afterwards — without this the family would be sent straight
     // back into the form they just completed.
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(signParentJwt).toHaveBeenCalledWith(
       expect.objectContaining({
         enrolmentIds: ["old-sub", "sub-1"],
@@ -856,7 +851,7 @@ describe("submit — after it commits", () => {
     prismaMock.parentAccount.findUnique.mockResolvedValue({
       ambassadorRefCode: "REF123",
     });
-    await submit({ payment: CARD });
+    await submit({ payment: BANK });
     expect(logAmbassadorEnrolments).toHaveBeenCalledWith({
       submissionId: "sub-1",
       refCode: "REF123",

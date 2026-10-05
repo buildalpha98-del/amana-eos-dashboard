@@ -199,10 +199,16 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   // The parent portal is not in use yet — parents use OWNA for bookings,
   // invoices and fees. Show a full-screen notice on every authenticated
   // page except My Centre (centre info) and Account (so they can sign out).
+  //
+  // The enrolment form's own sub-pages (the thank-you page) must stay
+  // reachable: matching the form path EXACTLY meant a family who had just
+  // submitted landed on "this app is not active yet" instead of their
+  // confirmation.
   const allowedWhileLocked =
     pathname === "/parent/my-centre" ||
     pathname.startsWith("/parent/account") ||
-    pathname === ENROL_PATH;
+    pathname === ENROL_PATH ||
+    pathname.startsWith(`${ENROL_PATH}/`);
 
   if (!allowedWhileLocked) {
     return (
@@ -274,6 +280,20 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
                   <li><strong>Family details</strong></li>
                 </ul>
               </div>
+
+              {/* A family still to enrol is redirected into the form by the
+                  effect above — but only once /api/parent/state answers. If
+                  that call fails (retry: false) they would sit here with no
+                  way forward, so the form is always one tap away. */}
+              {parentState?.state !== "pending_review" &&
+                parentState?.state !== "active" && (
+                  <Link
+                    href={ENROL_PATH}
+                    className="block bg-accent/20 border border-accent rounded-xl p-4 text-sm font-medium text-foreground hover:bg-accent/30 transition-colors"
+                  >
+                    New to Amana OSHC? Start or continue your enrolment →
+                  </Link>
+                )}
 
               <div className="border-t border-border pt-5">
                 <p className="text-sm text-muted mb-3">

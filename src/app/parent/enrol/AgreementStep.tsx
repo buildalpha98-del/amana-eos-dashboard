@@ -234,6 +234,7 @@ export function AgreementStep({
             out on the Billing step — {feeDescription(DIRECT_DEBIT_FEE)} for
             direct debit, plus{" "}
             {dishonourDescription(DIRECT_DEBIT_FEE)}.
+            <span className="text-red-500"> *</span>
           </span>
         </label>
       </div>

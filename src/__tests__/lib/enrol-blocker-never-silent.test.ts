@@ -70,6 +70,7 @@ const COMPLETE_CONTACTS = {
   secondaryParent: {
     firstName: "Omar",
     surname: "Rahman",
+    dob: "1985-03-02",
     mobile: "0400333444",
     sameAddressAsPrimary: true,
   },
@@ -108,6 +109,7 @@ const COMPLETE_AGREEMENT = {
   sunscreen: true,
   termsAccepted: true,
   privacyAccepted: true,
+  debitAgreement: true,
   signature: "Aisha Rahman",
   referralSource: "Facebook",
 };
@@ -196,6 +198,7 @@ const LADDERS: Record<number, EnrolDraft[]> = {
     { agreement: {} },
     { agreement: { ...COMPLETE_AGREEMENT, sunscreen: undefined } },
     { agreement: { ...COMPLETE_AGREEMENT, termsAccepted: false } },
+    { agreement: { ...COMPLETE_AGREEMENT, debitAgreement: false } },
     { agreement: { ...COMPLETE_AGREEMENT, signature: "" } },
     { agreement: { ...COMPLETE_AGREEMENT, referralSource: "" } },
     {

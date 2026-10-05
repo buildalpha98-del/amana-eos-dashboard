@@ -143,6 +143,12 @@ export interface DraftSecondaryParent {
   email?: string;
   mobile?: string;
   relationship?: string;
+  /**
+   * YYYY-MM-DD. Reg 160(3)(b) records each parent's details, and the pack
+   * is re-keyed into OWNA, which wants it — a blank DOB is the field that
+   * most often sends the pack back to the family.
+   */
+  dob?: string;
   /** Reg 160(3)(b) — address of EACH parent/guardian. */
   address?: string;
   /** Saves retyping when both carers live together. */
@@ -465,7 +471,12 @@ export function secondaryParentFilled(
   sp: DraftSecondaryParent | undefined,
 ): boolean {
   return Boolean(
-    sp && (filled(sp.firstName) || filled(sp.surname) || filled(sp.email) || filled(sp.mobile)),
+    sp &&
+      (filled(sp.firstName) ||
+        filled(sp.surname) ||
+        filled(sp.email) ||
+        filled(sp.mobile) ||
+        filled(sp.dob)),
   );
 }
 
@@ -473,7 +484,12 @@ function secondaryParentValid(sp: DraftSecondaryParent | undefined): boolean {
   // Address may be inherited from the primary carer rather than typed.
   const hasAddress = Boolean(sp?.sameAddressAsPrimary || filled(sp?.address));
   return Boolean(
-    sp && filled(sp.firstName) && filled(sp.surname) && filled(sp.mobile) && hasAddress,
+    sp &&
+      filled(sp.firstName) &&
+      filled(sp.surname) &&
+      filled(sp.mobile) &&
+      filled(sp.dob) &&
+      hasAddress,
   );
 }
 
@@ -538,11 +554,11 @@ export function contactsBlocker(d: EnrolDraft): string | null {
     return "Please answer whether any court orders or parenting plans apply.";
   }
   if (contacts.courtOrders === false && !secondaryParentValid(sp)) {
-    return "Please add a second parent or carer — first name, last name, mobile and address. If a court order means you can't, answer Yes to the court order question above.";
+    return "Please add a second parent or carer — first name, last name, date of birth, mobile and address. If a court order means you can't, answer Yes to the court order question above.";
   }
   if (contacts.courtOrders === true) {
     if (secondaryParentFilled(sp) && !secondaryParentValid(sp)) {
-      return "Please complete the second carer's first name, last name and mobile, or clear those fields.";
+      return "Please complete the second carer's first name, last name, date of birth, mobile and address, or clear those fields.";
     }
     if ((contacts.courtOrderUploads ?? []).length === 0) {
       return "Please upload a copy of the court order or parenting plan.";
@@ -619,9 +635,52 @@ export function agreementComplete(a: DraftAgreement | undefined): boolean {
     allAnswered &&
     a.termsAccepted === true &&
     a.privacyAccepted === true &&
+    // Bank details are mandatory on Billing, and a debit without the
+    // account holder's authority is not a debit we may run (BECS DDR).
+    a.debitAgreement === true &&
     filled(a.signature) &&
     referralAnswered
   );
+}
+
+const AGREEMENT_CONSENTS: (keyof DraftAgreement)[] = [
+  "firstAid",
+  "medication",
+  "ambulance",
+  "transport",
+  "excursions",
+  "photos",
+  "sunscreen",
+];
+
+/**
+ * Names the FIRST missing thing on the agreement step. The old single
+ * catch-all never mentioned "How did you hear about us?" or the debit
+ * authority, so a parent who had done everything it listed was told to
+ * redo it.
+ */
+function agreementBlocker(a: DraftAgreement | undefined): string | null {
+  if (agreementComplete(a)) return null;
+  const ag = a ?? {};
+  if (!AGREEMENT_CONSENTS.every((k) => typeof ag[k] === "boolean")) {
+    return "Please answer every consent question with Yes or No.";
+  }
+  if (ag.termsAccepted !== true) return "Please accept the terms and conditions.";
+  if (ag.privacyAccepted !== true) return "Please accept the privacy policy.";
+  if (ag.debitAgreement !== true) {
+    return "Please tick the direct debit authority — we need it to collect fees from the account you gave us.";
+  }
+  if (!filled(ag.signature)) return "Please type your full name to sign.";
+  if (!filled(ag.referralSource)) {
+    return "Please tell us how you heard about Amana OSHC.";
+  }
+  if (
+    ag.referralSource === "One of our educators" &&
+    !filled(ag.referralEducatorName)
+  ) {
+    return "Please tell us which educator told you about us.";
+  }
+  return "Please complete the agreement.";
 }
 
 /**
@@ -716,9 +775,7 @@ export function stepBlocker(step: number, d: EnrolDraft): string | null {
       return "Please complete the booking details.";
     }
     case 4:
-      return agreementComplete(d.agreement)
-        ? null
-        : "Please answer every consent, accept the terms and privacy policy, and type your name to sign.";
+      return agreementBlocker(d.agreement);
     default:
       return null;
   }

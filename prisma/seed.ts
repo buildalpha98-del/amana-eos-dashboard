@@ -361,6 +361,27 @@ async function main() {
   }
   console.log(`Upserted ${centres.length} service centres`);
 
+  // Irfan College (2026-10-06). The school has been on the enrolment form's
+  // picker since #319, but with no centre to match, every Irfan enrolment
+  // arrived unassigned — absent from any centre's children list and roll.
+  // CREATE-ONLY, unlike the loop above: Daniel is finalising the name and
+  // details in the dashboard, and an upsert would revert them on every
+  // deploy. The name must keep "Irfan" in it — that is how
+  // matchSchoolToService() routes "Irfan College" enrolments here.
+  await prisma.service.upsert({
+    where: { code: "IRF" },
+    update: {},
+    create: {
+      name: "Amana OSHC Irfan College",
+      code: "IRF",
+      state: "NSW",
+      phone: "1300 200 262",
+      status: "active",
+      operatingDays: "Mon-Fri",
+      managerId: admin.id,
+    },
+  });
+
   // ============================================================
   // Seed Project Templates
   // ============================================================
