@@ -2,7 +2,7 @@
  * Edge-safe induction lock helpers (imported by middleware + sidebar).
  * Pure functions — no Prisma, no DB mock needed.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   isInductionLocked,
   isInductionAllowedPath,
@@ -12,6 +12,18 @@ import {
 const now = new Date("2026-07-07T00:00:00Z");
 const future = new Date("2026-08-11T00:00:00Z");
 const past = new Date("2026-06-01T00:00:00Z");
+
+// The gate ships disabled (2026-10-02); these suites exercise its logic as it
+// behaves once re-enabled.
+beforeEach(() => vi.stubEnv("NEXT_PUBLIC_INDUCTION_LOCK_ENABLED", "true"));
+afterEach(() => vi.unstubAllEnvs());
+
+describe("induction gate kill switch", () => {
+  it("never locks while the flag is unset", () => {
+    vi.stubEnv("NEXT_PUBLIC_INDUCTION_LOCK_ENABLED", "");
+    expect(isInductionLocked("new_starter", null, { now })).toBe(false);
+  });
+});
 
 describe("isInductionLocked", () => {
   it("new_starter is locked", () => {

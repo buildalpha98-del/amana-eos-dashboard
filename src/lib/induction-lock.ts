@@ -93,12 +93,9 @@ export function isInductionLocked(
   opts: {
     role?: string | null;
     now?: Date;
-    essentialsPublished?: boolean;
-  } = {},
-): boolean {
-  // 2026-10-02: induction gate disabled — staff should have full dashboard
-  // access while the system is being set up. Re-enable by removing this line.
-  return false;
+    /**
+     * Whether ANY essential course is published (see `hasPublishedEssentials`).
+     *
      * 2026-09-19: locked-mode read status alone, so it fired whether or not
      * there was a curriculum to complete. Amana's essential courses are seeded
      * as DRAFTS with placeholder content, so real coordinators were shut out of
@@ -113,6 +110,11 @@ export function isInductionLocked(
     essentialsPublished?: boolean;
   } = {},
 ): boolean {
+  // 2026-10-02: induction gate disabled — staff should have full dashboard
+  // access while the system is being set up. Re-enable by setting
+  // NEXT_PUBLIC_INDUCTION_LOCK_ENABLED=true (inlined at build, so it reaches
+  // Edge middleware and the client Sidebar alike) and redeploying.
+  if (process.env.NEXT_PUBLIC_INDUCTION_LOCK_ENABLED !== "true") return false;
   const { role, now = new Date(), essentialsPublished } = opts;
   if (isInductionExemptRole(role)) return false; // administers the gate
   // Nothing published to complete → nothing to lock anyone out over.
