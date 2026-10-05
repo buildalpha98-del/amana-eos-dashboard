@@ -143,6 +143,12 @@ export interface DraftSecondaryParent {
   email?: string;
   mobile?: string;
   relationship?: string;
+  /**
+   * YYYY-MM-DD. Reg 160(3)(b) records each parent's details, and the pack
+   * is re-keyed into OWNA, which wants it — a blank DOB is the field that
+   * most often sends the pack back to the family.
+   */
+  dob?: string;
   /** Reg 160(3)(b) — address of EACH parent/guardian. */
   address?: string;
   /** Saves retyping when both carers live together. */
@@ -341,8 +347,46 @@ export const IMMUNISATION_STATUS_OPTIONS = [
 
 export const OPTIONAL_CHILD_DOCUMENTS = [
   { type: "child_photo", label: "Photo of your child" },
-  { type: "medical_action_plan", label: "Medical / action plan" },
+  { type: "medical_action_plan", label: "Other medical plan (allergy, diabetes…)" },
 ] as const;
+
+/**
+ * Reg 90/162: a child with a diagnosed medical condition needs a medical
+ * management plan on file before they attend. Anaphylaxis and asthma are
+ * the two where an educator acts on the plan in the moment, so a "Yes"
+ * makes that plan a required upload, each in its OWN slot — the single
+ * shared slot meant a child with both could only ever have one on file.
+ */
+export function requiredActionPlans(
+  c: DraftChild | undefined,
+): { type: string; label: string }[] {
+  const plans: { type: string; label: string }[] = [];
+  if (c?.anaphylaxis === true) {
+    plans.push({ type: "anaphylaxis_action_plan", label: "Anaphylaxis action plan" });
+  }
+  if (c?.asthma === true) {
+    plans.push({ type: "asthma_action_plan", label: "Asthma action plan" });
+  }
+  return plans;
+}
+
+/** Which required action plans are still missing for this child. */
+export function missingActionPlans(
+  c: DraftChild | undefined,
+): { type: string; label: string }[] {
+  const required = requiredActionPlans(c);
+  // A draft started before the dedicated slots put its plan in the generic
+  // one. That still counts — but only when there is exactly ONE plan it
+  // could be, so it can't satisfy anaphylaxis and asthma at once.
+  const genericCovers =
+    required.length === 1 && hasUpload(c, "medical_action_plan");
+  return required.filter((p) => !hasUpload(c, p.type) && !genericCovers);
+}
+
+/** Upload types that are medical plans (routed to `medicalFiles`). */
+export function isActionPlanUpload(type: string | undefined): boolean {
+  return typeof type === "string" && type.endsWith("_action_plan");
+}
 
 // ---------------------------------------------------------------------------
 // Completeness
@@ -357,6 +401,17 @@ const normName = (s: string | undefined): string =>
 const normPhone = (s: string | undefined): string =>
   (s ?? "").replace(/\D/g, "");
 
+/**
+ * The CRN is required unless the family has told us they have neither
+ * approved nor applied-for CCS. That family may genuinely not have one,
+ * and the CCS prompt (src/lib/enrol-ccs.ts) promises they can carry on —
+ * insisting on a CRN made step 1 a dead end for exactly the families we
+ * most want to finish. Staff collect it once the claim is lodged.
+ */
+export function crnRequired(me: DraftMe | undefined): boolean {
+  return !(me?.ccsApproved === "no" && me?.ccsApplied === "no");
+}
+
 export function meComplete(me: DraftMe | undefined): boolean {
   if (!me) return false;
   return (
@@ -366,7 +421,7 @@ export function meComplete(me: DraftMe | undefined): boolean {
     filled(me.dob) &&
     filled(me.street) &&
     filled(me.suburb) &&
-    filled(me.crn) &&
+    (filled(me.crn) || !crnRequired(me)) &&
     filled(me.culturalBackground) &&
     me.isLegalCarer === true &&
     ccsAnswered({ approved: me.ccsApproved ?? null, applied: me.ccsApplied ?? null })
@@ -419,7 +474,9 @@ export function childComplete(c: DraftChild | undefined): boolean {
   const medicare =
     filled(c.medicareNumber) && medicareExpiryValid(c.medicareExpiry);
 
-  const documents = REQUIRED_CHILD_DOCUMENTS.every((d) => hasUpload(c, d.type));
+  const documents =
+    REQUIRED_CHILD_DOCUMENTS.every((d) => hasUpload(c, d.type)) &&
+    missingActionPlans(c).length === 0;
 
   // Reg 162(a): the practitioner's name, ADDRESS and phone must all be on
   // the record. Reg 162(g): immunisation status.
@@ -465,7 +522,12 @@ export function secondaryParentFilled(
   sp: DraftSecondaryParent | undefined,
 ): boolean {
   return Boolean(
-    sp && (filled(sp.firstName) || filled(sp.surname) || filled(sp.email) || filled(sp.mobile)),
+    sp &&
+      (filled(sp.firstName) ||
+        filled(sp.surname) ||
+        filled(sp.email) ||
+        filled(sp.mobile) ||
+        filled(sp.dob)),
   );
 }
 
@@ -473,7 +535,12 @@ function secondaryParentValid(sp: DraftSecondaryParent | undefined): boolean {
   // Address may be inherited from the primary carer rather than typed.
   const hasAddress = Boolean(sp?.sameAddressAsPrimary || filled(sp?.address));
   return Boolean(
-    sp && filled(sp.firstName) && filled(sp.surname) && filled(sp.mobile) && hasAddress,
+    sp &&
+      filled(sp.firstName) &&
+      filled(sp.surname) &&
+      filled(sp.mobile) &&
+      filled(sp.dob) &&
+      hasAddress,
   );
 }
 
@@ -538,11 +605,11 @@ export function contactsBlocker(d: EnrolDraft): string | null {
     return "Please answer whether any court orders or parenting plans apply.";
   }
   if (contacts.courtOrders === false && !secondaryParentValid(sp)) {
-    return "Please add a second parent or carer — first name, last name, mobile and address. If a court order means you can't, answer Yes to the court order question above.";
+    return "Please add a second parent or carer — first name, last name, date of birth, mobile and address. If a court order means you can't, answer Yes to the court order question above.";
   }
   if (contacts.courtOrders === true) {
     if (secondaryParentFilled(sp) && !secondaryParentValid(sp)) {
-      return "Please complete the second carer's first name, last name and mobile, or clear those fields.";
+      return "Please complete the second carer's first name, last name, date of birth, mobile and address, or clear those fields.";
     }
     if ((contacts.courtOrderUploads ?? []).length === 0) {
       return "Please upload a copy of the court order or parenting plan.";
@@ -619,9 +686,52 @@ export function agreementComplete(a: DraftAgreement | undefined): boolean {
     allAnswered &&
     a.termsAccepted === true &&
     a.privacyAccepted === true &&
+    // Bank details are mandatory on Billing, and a debit without the
+    // account holder's authority is not a debit we may run (BECS DDR).
+    a.debitAgreement === true &&
     filled(a.signature) &&
     referralAnswered
   );
+}
+
+const AGREEMENT_CONSENTS: (keyof DraftAgreement)[] = [
+  "firstAid",
+  "medication",
+  "ambulance",
+  "transport",
+  "excursions",
+  "photos",
+  "sunscreen",
+];
+
+/**
+ * Names the FIRST missing thing on the agreement step. The old single
+ * catch-all never mentioned "How did you hear about us?" or the debit
+ * authority, so a parent who had done everything it listed was told to
+ * redo it.
+ */
+function agreementBlocker(a: DraftAgreement | undefined): string | null {
+  if (agreementComplete(a)) return null;
+  const ag = a ?? {};
+  if (!AGREEMENT_CONSENTS.every((k) => typeof ag[k] === "boolean")) {
+    return "Please answer every consent question with Yes or No.";
+  }
+  if (ag.termsAccepted !== true) return "Please accept the terms and conditions.";
+  if (ag.privacyAccepted !== true) return "Please accept the privacy policy.";
+  if (ag.debitAgreement !== true) {
+    return "Please tick the direct debit authority — we need it to collect fees from the account you gave us.";
+  }
+  if (!filled(ag.signature)) return "Please type your full name to sign.";
+  if (!filled(ag.referralSource)) {
+    return "Please tell us how you heard about Amana OSHC.";
+  }
+  if (
+    ag.referralSource === "One of our educators" &&
+    !filled(ag.referralEducatorName)
+  ) {
+    return "Please tell us which educator told you about us.";
+  }
+  return "Please complete the agreement.";
 }
 
 /**
@@ -637,7 +747,7 @@ export function stepBlocker(step: number, d: EnrolDraft): string | null {
   switch (step) {
     case 0: {
       const me = d.me ?? {};
-      if (!filled(me.crn)) {
+      if (!filled(me.crn) && crnRequired(me)) {
         return "Please enter your CRN — we need it to claim your Child Care Subsidy.";
       }
       if (!filled(me.culturalBackground)) {
@@ -702,6 +812,12 @@ export function stepBlocker(step: number, d: EnrolDraft): string | null {
           .map((m) => m.label.toLowerCase())
           .join(" and ")}. A photo from your phone is fine.`;
       }
+      const plans = missingActionPlans(c);
+      if (plans.length) {
+        return `Please upload ${who}'s ${plans
+          .map((p) => p.label.toLowerCase())
+          .join(" and ")} — our educators follow it if they need to act.`;
+      }
       return `Please finish ${who}'s details.`;
     }
     case 2:
@@ -716,9 +832,7 @@ export function stepBlocker(step: number, d: EnrolDraft): string | null {
       return "Please complete the booking details.";
     }
     case 4:
-      return agreementComplete(d.agreement)
-        ? null
-        : "Please answer every consent, accept the terms and privacy policy, and type your name to sign.";
+      return agreementBlocker(d.agreement);
     default:
       return null;
   }

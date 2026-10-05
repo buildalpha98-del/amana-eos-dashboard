@@ -10,6 +10,8 @@ import { isPublicParentRoute, PUBLIC_PARENT_ROUTES } from "@/lib/parent-routes";
 describe("isPublicParentRoute", () => {
   it("allows the routes a signed-out parent must reach", () => {
     expect(isPublicParentRoute("/parent/login")).toBe(true);
+    // The emailed reset link is opened signed-out by definition.
+    expect(isPublicParentRoute("/parent/reset-password")).toBe(true);
     expect(isPublicParentRoute("/parent/signup")).toBe(true);
     expect(isPublicParentRoute("/parent/confirm")).toBe(true);
   });

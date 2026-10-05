@@ -17,6 +17,7 @@ import {
 } from "@/lib/enrol-ccs";
 import { AUSTRALIAN_STATES } from "@/components/enrol/types";
 import { field } from "./ui";
+import { crnRequired } from "@/lib/enrol-draft";
 
 export interface MeData {
   firstName?: string;
@@ -256,7 +257,7 @@ export function MeStep({
 
         <div>
           <label htmlFor="me-crn" className="block text-sm font-medium text-foreground mb-1">
-            Your CRN <span className="text-red-500">*</span>
+            Your CRN {crnRequired(data) && <span className="text-red-500">*</span>}
           </label>
           <input id="me-crn" className={field} value={data.crn ?? ""}
             onChange={(e) => onChange({ crn: e.target.value })} placeholder="e.g. 123 456 789A" />
@@ -264,6 +265,8 @@ export function MeStep({
             Your Centrelink Customer Reference Number, from your myGov or
             Centrelink account. We need this to claim your Child Care
             Subsidy — without it your fees can&apos;t be subsidised.
+            {!crnRequired(data) &&
+              " If you don't have one yet, leave this blank and send it to us once your claim is lodged."}
           </p>
         </div>
       </div>

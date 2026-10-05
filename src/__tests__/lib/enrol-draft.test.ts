@@ -15,6 +15,7 @@ import {
   stepComplete,
   stepBlocker,
   normaliseSessions,
+  missingActionPlans,
   SESSION_ROWS,
   EMERGENCY_RELATIONSHIP_OPTIONS,
   type DraftEmergencyContact,
@@ -78,6 +79,7 @@ const goodContacts = {
   secondaryParent: {
     firstName: "Omar",
     surname: "Rahman",
+    dob: "1985-03-02",
     mobile: "0422 222 222",
     email: "omar@example.com",
     sameAddressAsPrimary: true,
@@ -101,6 +103,7 @@ const goodAgreement = {
   sunscreen: true,
   termsAccepted: true,
   privacyAccepted: true,
+  debitAgreement: true,
   signature: "Aisha Rahman",
   referralSource: "School newsletter",
 };
@@ -379,6 +382,7 @@ describe("National Regulations record requirements", () => {
         secondaryParent: {
           firstName: "Omar",
           surname: "Rahman",
+          dob: "1985-03-02",
           mobile: "0422 222 222",
         },
       },
@@ -396,6 +400,16 @@ describe("National Regulations record requirements", () => {
       },
     };
     expect(contactsComplete(typed)).toBe(true);
+  });
+
+  it("requires the second carer's date of birth when no court order applies", () => {
+    const { dob: _dob, ...noDob } = goodContacts.secondaryParent;
+    const d: EnrolDraft = {
+      ...fullDraft,
+      contacts: { ...goodContacts, secondaryParent: noDob },
+    };
+    expect(contactsComplete(d)).toBe(false);
+    expect(stepBlocker(2, d)).toMatch(/date of birth/i);
   });
 
   it("requires naming who is restricted when a court order applies (reg 160(3)(f))", () => {
@@ -560,10 +574,21 @@ describe("agreementComplete", () => {
     expect(agreementComplete(rest)).toBe(false);
   });
 
-  it("requires terms and privacy, but not the debit agreement", () => {
+  it("requires terms, privacy AND the debit authority", () => {
     expect(agreementComplete({ ...goodAgreement, termsAccepted: false })).toBe(false);
     expect(agreementComplete({ ...goodAgreement, privacyAccepted: false })).toBe(false);
-    expect(agreementComplete({ ...goodAgreement, debitAgreement: false })).toBe(true);
+    // Bank details are mandatory, so the authority to debit them is too.
+    expect(agreementComplete({ ...goodAgreement, debitAgreement: false })).toBe(false);
+  });
+
+  it("names the missing item rather than a catch-all", () => {
+    const blocker = (a: Partial<typeof goodAgreement> & Record<string, unknown>) =>
+      stepBlocker(4, { ...fullDraft, agreement: a });
+    expect(blocker({ ...goodAgreement, debitAgreement: false })).toMatch(/direct debit/i);
+    expect(blocker({ ...goodAgreement, referralSource: "" })).toMatch(/heard about/i);
+    expect(
+      blocker({ ...goodAgreement, referralSource: "One of our educators" }),
+    ).toMatch(/which educator/i);
   });
 
   it("requires a typed signature", () => {
@@ -615,5 +640,72 @@ describe("stepComplete / draftSubmittable", () => {
 
   it("returns null from contactsBlocker when the step is fine", () => {
     expect(contactsBlocker(fullDraft)).toBeNull();
+  });
+});
+
+describe("CRN when the family has no CCS claim (2026-10-06)", () => {
+  it("still requires the CRN when CCS is approved", () => {
+    expect(meComplete({ ...goodMe, crn: "" })).toBe(false);
+  });
+
+  it("still requires it when they've applied but aren't approved yet", () => {
+    expect(
+      meComplete({ ...goodMe, crn: "", ccsApproved: "no", ccsApplied: "yes" }),
+    ).toBe(false);
+  });
+
+  it("lets a family with no claim at all carry on without one", () => {
+    // The CCS prompt promises they can continue; a mandatory CRN made
+    // step 1 a dead end for exactly those families.
+    const me = { ...goodMe, crn: "", ccsApproved: "no" as const, ccsApplied: "no" as const };
+    expect(meComplete(me)).toBe(true);
+    expect(stepBlocker(0, { ...fullDraft, me })).toBeNull();
+  });
+});
+
+describe("medical action plans (reg 90/162, 2026-10-06)", () => {
+  const plan = (type: string) => ({ type, filename: `${type}.pdf`, url: `https://b/${type}.pdf` });
+
+  it("needs nothing extra when there's no anaphylaxis or asthma", () => {
+    expect(childComplete(goodChild)).toBe(true);
+  });
+
+  it("requires an anaphylaxis plan once anaphylaxis is Yes", () => {
+    const c = { ...goodChild, anaphylaxis: true };
+    expect(childComplete(c)).toBe(false);
+    expect(stepBlocker(1, { ...fullDraft, children: [c] })).toMatch(/anaphylaxis action plan/i);
+    expect(
+      childComplete({ ...c, uploads: [...goodChild.uploads, plan("anaphylaxis_action_plan")] }),
+    ).toBe(true);
+  });
+
+  it("requires a SEPARATE plan per condition", () => {
+    const c = {
+      ...goodChild,
+      anaphylaxis: true,
+      asthma: true,
+      uploads: [...goodChild.uploads, plan("anaphylaxis_action_plan")],
+    };
+    expect(missingActionPlans(c).map((p) => p.type)).toEqual(["asthma_action_plan"]);
+    expect(childComplete(c)).toBe(false);
+  });
+
+  it("accepts a plan already in the old generic slot when only one is needed", () => {
+    const c = {
+      ...goodChild,
+      asthma: true,
+      uploads: [...goodChild.uploads, plan("medical_action_plan")],
+    };
+    expect(childComplete(c)).toBe(true);
+  });
+
+  it("but the generic slot can't stand in for two conditions", () => {
+    const c = {
+      ...goodChild,
+      anaphylaxis: true,
+      asthma: true,
+      uploads: [...goodChild.uploads, plan("medical_action_plan")],
+    };
+    expect(missingActionPlans(c)).toHaveLength(2);
   });
 });
