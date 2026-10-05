@@ -36,6 +36,7 @@ import { bookingGridFromSessions } from "@/lib/booking-grid";
 import {
   draftSubmittable,
   firstIncompleteStep,
+  isActionPlanUpload,
   type DraftChild,
   type EnrolDraft,
 } from "@/lib/enrol-draft";
@@ -259,7 +260,9 @@ export const POST = withParentAuth(async (req, ctx) => {
   enrichedChildren.forEach((c, childIndex) => {
     for (const u of c.uploads ?? []) {
       const row = { childIndex, type: u.type, filename: u.filename, url: u.url };
-      if (u.type === "medical_action_plan") medicalFiles.push(row);
+      // Anaphylaxis, asthma and the generic plan all belong with the
+      // medical files staff check before the child attends.
+      if (isActionPlanUpload(u.type)) medicalFiles.push(row);
       else documentUploads.push(row);
     }
   });

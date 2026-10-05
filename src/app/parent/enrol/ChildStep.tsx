@@ -30,6 +30,7 @@ import {
   medicareExpiryValid,
   OPTIONAL_CHILD_DOCUMENTS,
   REQUIRED_CHILD_DOCUMENTS,
+  requiredActionPlans,
   type DraftChild,
   type DraftUpload,
 } from "@/lib/enrol-draft";
@@ -466,6 +467,17 @@ export function ChildStep({
                 onChange={(u) => setUpload(i, d.type, u)}
               />
             ))}
+            {requiredActionPlans(c).map((d) => (
+              <FileUploadField
+                key={d.type}
+                label={d.label}
+                type={d.type}
+                required
+                hint="The plan signed by your child's doctor."
+                value={getUpload(i, d.type)}
+                onChange={(u) => setUpload(i, d.type, u)}
+              />
+            ))}
             {OPTIONAL_CHILD_DOCUMENTS.map((d) => (
               <FileUploadField
                 key={d.type}
@@ -473,7 +485,7 @@ export function ChildStep({
                 type={d.type}
                 hint={
                   d.type === "medical_action_plan"
-                    ? "Upload here if your child has an action plan."
+                    ? "For any other condition with a plan from your doctor."
                     : undefined
                 }
                 value={getUpload(i, d.type)}

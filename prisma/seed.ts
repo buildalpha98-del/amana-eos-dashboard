@@ -352,14 +352,20 @@ async function main() {
       },
     ];
 
+  // CREATE-ONLY (2026-10-06). This ran on every production deploy with
+  // `update: { ...centre, managerId: admin.id }`, so each deploy reset every
+  // centre's manager to the admin account (ramp watchers and reviews key off
+  // it), reverted name/address/contact edits made in the dashboard, and
+  // re-activated any centre that had been closed. The dashboard is the
+  // source of truth for a centre once it exists; the seed only bootstraps.
   for (const centre of centres) {
     await prisma.service.upsert({
       where: { code: centre.code },
-      update: { ...centre, managerId: admin.id },
+      update: {},
       create: { ...centre, managerId: admin.id },
     });
   }
-  console.log(`Upserted ${centres.length} service centres`);
+  console.log(`Ensured ${centres.length} service centres exist`);
 
   // Irfan College (2026-10-06). The school has been on the enrolment form's
   // picker since #319, but with no centre to match, every Irfan enrolment
@@ -374,7 +380,10 @@ async function main() {
     create: {
       name: "Amana OSHC Irfan College",
       code: "IRF",
+      address: "2089-2109 Elizabeth Dr",
+      suburb: "Cecil Park",
       state: "NSW",
+      postcode: "2178",
       phone: "1300 200 262",
       status: "active",
       operatingDays: "Mon-Fri",

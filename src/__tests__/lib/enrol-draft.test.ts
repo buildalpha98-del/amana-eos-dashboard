@@ -15,6 +15,7 @@ import {
   stepComplete,
   stepBlocker,
   normaliseSessions,
+  missingActionPlans,
   SESSION_ROWS,
   EMERGENCY_RELATIONSHIP_OPTIONS,
   type DraftEmergencyContact,
@@ -639,5 +640,72 @@ describe("stepComplete / draftSubmittable", () => {
 
   it("returns null from contactsBlocker when the step is fine", () => {
     expect(contactsBlocker(fullDraft)).toBeNull();
+  });
+});
+
+describe("CRN when the family has no CCS claim (2026-10-06)", () => {
+  it("still requires the CRN when CCS is approved", () => {
+    expect(meComplete({ ...goodMe, crn: "" })).toBe(false);
+  });
+
+  it("still requires it when they've applied but aren't approved yet", () => {
+    expect(
+      meComplete({ ...goodMe, crn: "", ccsApproved: "no", ccsApplied: "yes" }),
+    ).toBe(false);
+  });
+
+  it("lets a family with no claim at all carry on without one", () => {
+    // The CCS prompt promises they can continue; a mandatory CRN made
+    // step 1 a dead end for exactly those families.
+    const me = { ...goodMe, crn: "", ccsApproved: "no" as const, ccsApplied: "no" as const };
+    expect(meComplete(me)).toBe(true);
+    expect(stepBlocker(0, { ...fullDraft, me })).toBeNull();
+  });
+});
+
+describe("medical action plans (reg 90/162, 2026-10-06)", () => {
+  const plan = (type: string) => ({ type, filename: `${type}.pdf`, url: `https://b/${type}.pdf` });
+
+  it("needs nothing extra when there's no anaphylaxis or asthma", () => {
+    expect(childComplete(goodChild)).toBe(true);
+  });
+
+  it("requires an anaphylaxis plan once anaphylaxis is Yes", () => {
+    const c = { ...goodChild, anaphylaxis: true };
+    expect(childComplete(c)).toBe(false);
+    expect(stepBlocker(1, { ...fullDraft, children: [c] })).toMatch(/anaphylaxis action plan/i);
+    expect(
+      childComplete({ ...c, uploads: [...goodChild.uploads, plan("anaphylaxis_action_plan")] }),
+    ).toBe(true);
+  });
+
+  it("requires a SEPARATE plan per condition", () => {
+    const c = {
+      ...goodChild,
+      anaphylaxis: true,
+      asthma: true,
+      uploads: [...goodChild.uploads, plan("anaphylaxis_action_plan")],
+    };
+    expect(missingActionPlans(c).map((p) => p.type)).toEqual(["asthma_action_plan"]);
+    expect(childComplete(c)).toBe(false);
+  });
+
+  it("accepts a plan already in the old generic slot when only one is needed", () => {
+    const c = {
+      ...goodChild,
+      asthma: true,
+      uploads: [...goodChild.uploads, plan("medical_action_plan")],
+    };
+    expect(childComplete(c)).toBe(true);
+  });
+
+  it("but the generic slot can't stand in for two conditions", () => {
+    const c = {
+      ...goodChild,
+      anaphylaxis: true,
+      asthma: true,
+      uploads: [...goodChild.uploads, plan("medical_action_plan")],
+    };
+    expect(missingActionPlans(c)).toHaveLength(2);
   });
 });

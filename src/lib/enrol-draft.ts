@@ -347,8 +347,46 @@ export const IMMUNISATION_STATUS_OPTIONS = [
 
 export const OPTIONAL_CHILD_DOCUMENTS = [
   { type: "child_photo", label: "Photo of your child" },
-  { type: "medical_action_plan", label: "Medical / action plan" },
+  { type: "medical_action_plan", label: "Other medical plan (allergy, diabetes…)" },
 ] as const;
+
+/**
+ * Reg 90/162: a child with a diagnosed medical condition needs a medical
+ * management plan on file before they attend. Anaphylaxis and asthma are
+ * the two where an educator acts on the plan in the moment, so a "Yes"
+ * makes that plan a required upload, each in its OWN slot — the single
+ * shared slot meant a child with both could only ever have one on file.
+ */
+export function requiredActionPlans(
+  c: DraftChild | undefined,
+): { type: string; label: string }[] {
+  const plans: { type: string; label: string }[] = [];
+  if (c?.anaphylaxis === true) {
+    plans.push({ type: "anaphylaxis_action_plan", label: "Anaphylaxis action plan" });
+  }
+  if (c?.asthma === true) {
+    plans.push({ type: "asthma_action_plan", label: "Asthma action plan" });
+  }
+  return plans;
+}
+
+/** Which required action plans are still missing for this child. */
+export function missingActionPlans(
+  c: DraftChild | undefined,
+): { type: string; label: string }[] {
+  const required = requiredActionPlans(c);
+  // A draft started before the dedicated slots put its plan in the generic
+  // one. That still counts — but only when there is exactly ONE plan it
+  // could be, so it can't satisfy anaphylaxis and asthma at once.
+  const genericCovers =
+    required.length === 1 && hasUpload(c, "medical_action_plan");
+  return required.filter((p) => !hasUpload(c, p.type) && !genericCovers);
+}
+
+/** Upload types that are medical plans (routed to `medicalFiles`). */
+export function isActionPlanUpload(type: string | undefined): boolean {
+  return typeof type === "string" && type.endsWith("_action_plan");
+}
 
 // ---------------------------------------------------------------------------
 // Completeness
@@ -363,6 +401,17 @@ const normName = (s: string | undefined): string =>
 const normPhone = (s: string | undefined): string =>
   (s ?? "").replace(/\D/g, "");
 
+/**
+ * The CRN is required unless the family has told us they have neither
+ * approved nor applied-for CCS. That family may genuinely not have one,
+ * and the CCS prompt (src/lib/enrol-ccs.ts) promises they can carry on —
+ * insisting on a CRN made step 1 a dead end for exactly the families we
+ * most want to finish. Staff collect it once the claim is lodged.
+ */
+export function crnRequired(me: DraftMe | undefined): boolean {
+  return !(me?.ccsApproved === "no" && me?.ccsApplied === "no");
+}
+
 export function meComplete(me: DraftMe | undefined): boolean {
   if (!me) return false;
   return (
@@ -372,7 +421,7 @@ export function meComplete(me: DraftMe | undefined): boolean {
     filled(me.dob) &&
     filled(me.street) &&
     filled(me.suburb) &&
-    filled(me.crn) &&
+    (filled(me.crn) || !crnRequired(me)) &&
     filled(me.culturalBackground) &&
     me.isLegalCarer === true &&
     ccsAnswered({ approved: me.ccsApproved ?? null, applied: me.ccsApplied ?? null })
@@ -425,7 +474,9 @@ export function childComplete(c: DraftChild | undefined): boolean {
   const medicare =
     filled(c.medicareNumber) && medicareExpiryValid(c.medicareExpiry);
 
-  const documents = REQUIRED_CHILD_DOCUMENTS.every((d) => hasUpload(c, d.type));
+  const documents =
+    REQUIRED_CHILD_DOCUMENTS.every((d) => hasUpload(c, d.type)) &&
+    missingActionPlans(c).length === 0;
 
   // Reg 162(a): the practitioner's name, ADDRESS and phone must all be on
   // the record. Reg 162(g): immunisation status.
@@ -696,7 +747,7 @@ export function stepBlocker(step: number, d: EnrolDraft): string | null {
   switch (step) {
     case 0: {
       const me = d.me ?? {};
-      if (!filled(me.crn)) {
+      if (!filled(me.crn) && crnRequired(me)) {
         return "Please enter your CRN — we need it to claim your Child Care Subsidy.";
       }
       if (!filled(me.culturalBackground)) {
@@ -760,6 +811,12 @@ export function stepBlocker(step: number, d: EnrolDraft): string | null {
         return `Please upload ${who}'s ${missing
           .map((m) => m.label.toLowerCase())
           .join(" and ")}. A photo from your phone is fine.`;
+      }
+      const plans = missingActionPlans(c);
+      if (plans.length) {
+        return `Please upload ${who}'s ${plans
+          .map((p) => p.label.toLowerCase())
+          .join(" and ")} — our educators follow it if they need to act.`;
       }
       return `Please finish ${who}'s details.`;
     }
