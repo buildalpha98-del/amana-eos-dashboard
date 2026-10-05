@@ -52,3 +52,6 @@ next-env.d.ts
 # superpowers brainstorm server
 .superpowers/
 .firecrawl/
+
+# Amana AI — local SharePoint export (full policy text; never commit)
+/knowledge-export/

@@ -75,6 +75,8 @@ beforeEach(() => {
   prismaMock.deliveryLog.updateMany.mockResolvedValue({ count: 0 });
   prismaMock.deliveryLog.update.mockResolvedValue({});
   prismaMock.marketingSendRecipient.deleteMany.mockResolvedValue({ count: 0 });
+  prismaMock.knowledgeSyncRun.deleteMany.mockResolvedValue({ count: 0 });
+  prismaMock.knowledgeSyncRun.updateMany.mockResolvedValue({ count: 0 });
   mockDeliveryRows();
   mockedListBrevoLists.mockResolvedValue({ lists: [], count: 0 });
   mockedDeleteBrevoList.mockResolvedValue(undefined);
@@ -282,6 +284,41 @@ describe("GET /api/cron/email-janitor", () => {
     );
   });
 
+  it("prunes KnowledgeSyncRun rows older than 90 days and reports the count", async () => {
+    prismaMock.knowledgeSyncRun.deleteMany.mockResolvedValue({ count: 4 });
+
+    const res = await GET(authed());
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.syncRunsPruned).toBe(4);
+
+    expect(prismaMock.knowledgeSyncRun.deleteMany).toHaveBeenCalledTimes(1);
+    expect(prismaMock.knowledgeSyncRun.deleteMany.mock.calls[0][0]).toEqual({
+      where: { startedAt: { lt: new Date(NOW.getTime() - 90 * DAY_MS) } },
+    });
+    expect(guardComplete).toHaveBeenCalledWith(
+      expect.objectContaining({ syncRunsPruned: 4 }),
+    );
+  });
+
+  it("closes KnowledgeSyncRun rows still open after 1h as 'timed out' and reports the count", async () => {
+    prismaMock.knowledgeSyncRun.updateMany.mockResolvedValue({ count: 2 });
+
+    const res = await GET(authed());
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.syncRunsTimedOut).toBe(2);
+
+    expect(prismaMock.knowledgeSyncRun.updateMany).toHaveBeenCalledTimes(1);
+    expect(prismaMock.knowledgeSyncRun.updateMany.mock.calls[0][0]).toEqual({
+      where: { finishedAt: null, startedAt: { lt: new Date(NOW.getTime() - HOUR_MS) } },
+      data: { finishedAt: NOW, error: "timed out" },
+    });
+    expect(guardComplete).toHaveBeenCalledWith(
+      expect.objectContaining({ syncRunsTimedOut: 2 }),
+    );
+  });
+
   it("does not touch the ledger when the guard is not acquired", async () => {
     vi.mocked(acquireCronLock).mockResolvedValueOnce({
       acquired: false,
@@ -291,6 +328,8 @@ describe("GET /api/cron/email-janitor", () => {
     });
     await GET(authed());
     expect(prismaMock.marketingSendRecipient.deleteMany).not.toHaveBeenCalled();
+    expect(prismaMock.knowledgeSyncRun.deleteMany).not.toHaveBeenCalled();
+    expect(prismaMock.knowledgeSyncRun.updateMany).not.toHaveBeenCalled();
   });
 
   it("guard.fail on unexpected error", async () => {

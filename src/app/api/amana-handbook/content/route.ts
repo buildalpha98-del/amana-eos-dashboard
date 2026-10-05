@@ -20,6 +20,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { syncAfterResponse } from "@/lib/knowledge/hooks";
+import { syncHandbook } from "@/lib/knowledge/adapters/handbook";
 
 const SINGLETON_ID = "singleton";
 const MAX_BYTES = 200_000;
@@ -77,6 +79,8 @@ export const PATCH = withApiAuth(
         details: { keys: Object.keys(parsed.data.data).length },
       },
     });
+
+    syncAfterResponse("handbook", () => syncHandbook());
 
     return NextResponse.json({
       data: row.data,

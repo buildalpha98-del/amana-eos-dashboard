@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
+import { syncAfterResponse } from "@/lib/knowledge/hooks";
+import { syncHelpArticles } from "@/lib/knowledge/adapters/help-article";
 const seedArticles = [
   // ─── Getting Started ────────────────────────────────────────────────
   {
@@ -1215,6 +1217,8 @@ export const POST = withApiAuth(async (req, session) => {
     const created = await prisma.knowledgeBaseArticle.createMany({
       data: seedArticles,
     });
+
+    syncAfterResponse("help_article", () => syncHelpArticles());
 
     return NextResponse.json(
       { message: "Seeded successfully", count: created.count },

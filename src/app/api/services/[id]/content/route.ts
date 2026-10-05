@@ -6,9 +6,13 @@
  * as a JSON document validated against the Zod schema in
  * src/lib/service-content-shared.ts.
  *
- * GET   — any authenticated user (the content is parent-facing, not
- *         confidential; service-scope read restrictions are about
- *         confidential ops data like incidents/ratios, not About copy).
+ * GET   — any authenticated user gets the parent-facing fields (the
+ *         content is parent-facing, not confidential; service-scope read
+ *         restrictions are about confidential ops data like
+ *         incidents/ratios, not About copy). Staff-only fields (gate/alarm
+ *         codes, etc — see STAFF_ONLY_FIELDS) are additionally scoped by
+ *         `getCentreScope`: only visible to org-wide admin tiers or a
+ *         caller attached to THIS service.
  * PATCH — org-wide admin (owner / head_office / admin) OR the Director
  *         of Service whose `User.serviceId` matches this service.
  *
@@ -22,8 +26,12 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import {
   mergeServiceContent,
   serviceContentSchema,
+  toParentContent,
 } from "@/lib/service-content-shared";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { getCentreScope } from "@/lib/centre-scope";
+import { syncAfterResponse } from "@/lib/knowledge/hooks";
+import { syncCentreFacts } from "@/lib/knowledge/adapters/centre-facts";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -31,15 +39,22 @@ const ORG_WIDE_EDIT_ROLES = new Set<string>(ADMIN_ROLES);
 
 const MAX_BYTES = 100_000;
 
-export const GET = withApiAuth(async (_req, _session, context) => {
+export const GET = withApiAuth(async (_req, session, context) => {
   const { id: serviceId } = await (context as unknown as RouteCtx).params;
   const row = await prisma.service.findUnique({
     where: { id: serviceId },
     select: { content: true, updatedAt: true },
   });
   if (!row) throw ApiError.notFound("Service not found");
+  const merged = mergeServiceContent(row.content);
+  // Staff-only fields (gate/alarm codes…) are visible only inside the
+  // caller's own centre scope: org-wide admin tier, or a centre the user
+  // is attached to (getCentreScope = primary + manager-of + memberships;
+  // null = unscoped). Everyone else gets the parent-safe view.
+  const { serviceIds } = await getCentreScope(session!);
+  const inScope = serviceIds === null || serviceIds.includes(serviceId);
   return NextResponse.json({
-    content: mergeServiceContent(row.content),
+    content: inScope ? merged : toParentContent(merged),
     updatedAt: row.updatedAt,
   });
 });
@@ -103,6 +118,8 @@ export const PATCH = withApiAuth(
         details: { fields: Object.keys(parsed.data).length },
       },
     });
+
+    syncAfterResponse("centre_facts", () => syncCentreFacts(serviceId));
 
     return NextResponse.json({
       content: mergeServiceContent(updated.content),

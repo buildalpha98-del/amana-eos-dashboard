@@ -24,6 +24,10 @@ vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn(() => ({ limited: false })),
 }));
 
+vi.mock("@/lib/knowledge/hooks", () => ({
+  syncAfterResponse: vi.fn(),
+}));
+
 // Stub out the file upload pipeline so we never touch Vercel Blob in tests.
 vi.mock("@/app/api/_lib/upload", async () => {
   const mod = await vi.importActual<typeof import("@/app/api/_lib/upload")>(

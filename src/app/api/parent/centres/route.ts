@@ -16,7 +16,7 @@
 import { NextResponse } from "next/server";
 import { withParentAuth } from "@/lib/parent-auth";
 import { prisma } from "@/lib/prisma";
-import { mergeServiceContent } from "@/lib/service-content-shared";
+import { mergeServiceContent, toParentContent } from "@/lib/service-content-shared";
 import {
   bookableSessionKeys,
   type SessionKey,
@@ -254,7 +254,7 @@ export const GET = withParentAuth(async (_req, { parent }) => {
     email: s.email,
     serviceApprovalNumber: s.serviceApprovalNumber,
     operatingDays: s.operatingDays,
-    content: contentByService.get(s.id)!,
+    content: toParentContent(contentByService.get(s.id)!),
     casualSessions: enabledCasualSessions(
       s.casualBookingSettings,
       (s.sessionTimes ?? null) as SessionTimes | null,
