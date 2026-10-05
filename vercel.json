@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx prisma generate && (npx prisma migrate deploy || true) && (npx tsx prisma/seed.ts || true) && next build",
+  "buildCommand": "bash scripts/vercel-build.sh",
   "crons": [
     {
       "path": "/api/cron/unsigned-in-alert",

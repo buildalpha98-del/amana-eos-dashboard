@@ -12,7 +12,12 @@ import { SafeReportForm } from "./SafeReportForm";
  *
  * The page is a server component for service-list lookup only —
  * the form itself is client-side and posts to /api/safe-reports.
+ *
+ * Rendered per request: prerendering froze the centre list at deploy time
+ * and made every build depend on the database being reachable.
  */
+export const dynamic = "force-dynamic";
+
 export default async function SafeReportPage() {
   const services = await prisma.service.findMany({
     where: { status: "active" },

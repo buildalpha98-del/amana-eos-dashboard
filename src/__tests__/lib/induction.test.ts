@@ -6,7 +6,7 @@
  * course counting, the inert empty-curriculum gate, grace/override windows,
  * and the locked-mode helper.
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 import {
   getInductionReadiness,
@@ -298,6 +298,9 @@ describe("onModuleProgressed", () => {
 });
 
 describe("isInductionLocked", () => {
+  // Gate ships disabled (2026-10-02); exercise the re-enabled logic.
+  beforeEach(() => vi.stubEnv("NEXT_PUBLIC_INDUCTION_LOCK_ENABLED", "true"));
+  afterEach(() => vi.unstubAllEnvs());
   const now = new Date("2026-07-07T00:00:00Z");
   const future = new Date("2026-08-01T00:00:00Z");
   const past = new Date("2026-06-01T00:00:00Z");
