@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { INDUCTION_EXEMPT_ROLES } from "@/lib/induction-lock";
+import { NOT_CENTRE_ACCOUNT } from "@/lib/centre-account";
 
 const GRACE_DAYS = 35; // 5 weeks
 
@@ -39,6 +40,7 @@ export const POST = withApiAuth(
         active: true,
         inductionStatus: "cleared",
         role: { notIn: [...INDUCTION_EXEMPT_ROLES] },
+        ...NOT_CENTRE_ACCOUNT, // shared centre mailboxes are never inducted
       },
       select: { id: true },
     });

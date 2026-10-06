@@ -1016,7 +1016,9 @@ export default function MyPortalPage() {
   // all-certs certStats) when the role has no required types configured.
   const requiredCertStats = useMemo(() => {
     if (!data) return null;
-    const requiredTypes = getRequiredCertTypes(data.profile.role, orgConfig);
+    const requiredTypes = getRequiredCertTypes(data.profile.role, orgConfig, {
+      isCentreAccount: session?.user?.isCentreAccount,
+    });
     if (requiredTypes.length === 0) return null;
 
     let valid = 0;
@@ -1039,7 +1041,7 @@ export default function MyPortalPage() {
       else expired++;
     }
     return { valid, expiring, expired, missing, total: requiredTypes.length };
-  }, [data, orgConfig]);
+  }, [data, orgConfig, session?.user?.isCentreAccount]);
 
   /* ---- Loading State ---- */
   if (isLoading) {

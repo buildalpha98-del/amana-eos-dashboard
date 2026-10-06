@@ -48,7 +48,11 @@ export function getRequiredCertTypes(
   orgSettings?: {
     compliance?: { requiredCertsByRole?: Partial<Record<string, unknown>> };
   } | null,
+  opts: { isCentreAccount?: boolean } = {},
 ): RequiredCertType[] {
+  // A shared centre mailbox holds no WWCC or first aid — the people who use
+  // it do, on their own logins (src/lib/centre-account.ts).
+  if (opts.isCentreAccount) return [];
   if (!role || !isKnownRole(role)) return [];
 
   const stored = orgSettings?.compliance?.requiredCertsByRole?.[role];

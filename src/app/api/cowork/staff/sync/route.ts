@@ -9,6 +9,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { centreAccountCreateFields, findCentreForEmail } from "@/lib/centre-account";
 // ── Role mapping ─────────────────────────────────────────────
 
 const ROLE_MAP: Record<string, Role> = {
@@ -122,7 +123,12 @@ export const POST = withApiHandler(async (req) => {
         // Never downgrade owner or head_office roles via sync —
         // those are set manually in the dashboard and the registry
         // shouldn't be able to override them.
-        const privileged = existing.role === "owner" || existing.role === "head_office";
+        // Centre accounts (shared centre mailboxes) keep the access the
+        // dashboard gave them too — the HR registry describes PEOPLE.
+        const privileged =
+          existing.role === "owner" ||
+          existing.role === "head_office" ||
+          existing.isCentreAccount;
         const newRole = entry.role && !privileged ? role : existing.role;
 
         // Update existing user
@@ -143,6 +149,11 @@ export const POST = withApiHandler(async (req) => {
         const tempPassword = `Welcome_${Math.random().toString(36).slice(2, 10)}!`;
         const passwordHash = await bcrypt.hash(tempPassword, 12);
 
+        // A registry row for a centre mailbox becomes a centre account.
+        const centre = await findCentreForEmail(prisma, email);
+        const centreFields = centre
+          ? centreAccountCreateFields(centre, role, serviceId)
+          : null;
         await prisma.user.create({
           data: {
             name: entry.name,
@@ -153,7 +164,8 @@ export const POST = withApiHandler(async (req) => {
             serviceId,
             phone: entry.phone || null,
             active: entry.active !== false,
-            notificationPrefs: getDefaultNotificationPrefs(role),
+            notificationPrefs: getDefaultNotificationPrefs(centreFields?.role ?? role),
+            ...(centreFields ?? {}),
           },
         });
         created.push(email);
@@ -168,6 +180,9 @@ export const POST = withApiHandler(async (req) => {
           email: { notIn: Array.from(syncedEmails) },
           active: true,
           role: { notIn: ["owner", "head_office"] },
+          // Centre mailboxes are never on the HR registry — deactivating
+          // them for that would lock a whole centre out.
+          isCentreAccount: false,
         },
         select: { email: true },
       });

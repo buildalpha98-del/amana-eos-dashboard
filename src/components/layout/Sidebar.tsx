@@ -57,6 +57,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     {
       role: session?.user?.role,
       essentialsPublished: session?.user?.essentialsPublished,
+      isCentreAccount: session?.user?.isCentreAccount,
     }
   );
 

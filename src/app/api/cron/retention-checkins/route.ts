@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
+import { NOT_CENTRE_ACCOUNT } from "@/lib/centre-account";
 
 const MILESTONES = [1, 3, 6, 12] as const;
 
@@ -39,6 +40,7 @@ export const GET = withApiHandler(async (req) => {
         active: true,
         startDate: { not: null },
         serviceId: { not: null },
+        ...NOT_CENTRE_ACCOUNT,
       },
       select: {
         id: true,

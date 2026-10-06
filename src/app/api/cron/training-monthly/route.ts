@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { INDUCTION_EXEMPT_ROLES } from "@/lib/induction-lock";
+import { NOT_CENTRE_ACCOUNT } from "@/lib/centre-account";
 
 /**
  * GET /api/cron/training-monthly
@@ -69,6 +70,7 @@ export const GET = withApiHandler(async (req) => {
             active: true,
             inductionStatus: "cleared",
             role: { notIn: [...INDUCTION_EXEMPT_ROLES] },
+            ...NOT_CENTRE_ACCOUNT, // centre mailboxes aren't enrolled in training
           },
           select: { id: true },
         });

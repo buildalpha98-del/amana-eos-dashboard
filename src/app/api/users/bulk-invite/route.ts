@@ -12,6 +12,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { siteUrl } from "@/lib/site-url";
 import { isAdminRole } from "@/lib/role-permissions";
+import { centreAccountCreateFields, findCentreForEmail } from "@/lib/centre-account";
 const bulkUserSchema = z.object({
   email: z.string().email("Valid email is required").transform((e) => e.toLowerCase().trim()),
   name: z.string().min(1, "Name is required"),
@@ -104,6 +105,8 @@ export const POST = withApiAuth(async (req, session) => {
         const tempPassword = generateTempPassword();
         const passwordHash = await hash(tempPassword, 12);
 
+        // A centre mailbox becomes a centre account (src/lib/centre-account.ts).
+        const centre = await findCentreForEmail(prisma, email);
         const user = await prisma.user.create({
           data: {
             name,
@@ -114,6 +117,7 @@ export const POST = withApiAuth(async (req, session) => {
               userData.role === "staff" || userData.role === "member"
                 ? serviceId
                 : null,
+            ...(centre ? centreAccountCreateFields(centre, userData.role, serviceId) : {}),
           },
         });
 

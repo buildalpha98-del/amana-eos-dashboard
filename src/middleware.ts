@@ -42,6 +42,7 @@ export default withAuth(
         {
           role: token?.role as string | undefined,
           essentialsPublished: token?.essentialsPublished as boolean | undefined,
+          isCentreAccount: token?.isCentreAccount === true,
         },
       )
     ) {
