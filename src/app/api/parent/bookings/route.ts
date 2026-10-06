@@ -10,6 +10,7 @@ import { casualBookingSettingsSchema, resolveCasualFee, type CasualBookingSettin
 import { checkCasualBookingAllowed } from "@/lib/casual-booking-check";
 import { parseJsonField } from "@/lib/schemas/json-fields";
 import { requireRoomId } from "@/lib/room-resolver";
+import { assertParentBookingsOpen } from "@/lib/parent-portal-lockdown";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -98,6 +99,8 @@ export const GET = withParentAuth(async (req, { parent }) => {
 // ---------------------------------------------------------------------------
 
 export const POST = withParentAuth(async (req, { parent }) => {
+  // Bookings live in OWNA while the portal is locked (parent-portal-lockdown).
+  assertParentBookingsOpen();
   const body = await parseJsonBody(req);
   const parsed = createBookingSchema.safeParse(body);
   if (!parsed.success) {

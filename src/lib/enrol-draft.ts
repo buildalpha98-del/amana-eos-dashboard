@@ -198,7 +198,10 @@ export interface DraftAgreement {
   ambulance?: boolean | null;
   transport?: boolean | null;
   excursions?: boolean | null;
+  /** Photos/videos taken, used and stored for learning records and family updates (reg 168, 2025). */
   photos?: boolean | null;
+  /** Separately: photos on public social media, the website or marketing. */
+  photosPublic?: boolean | null;
   sunscreen?: boolean | null;
   termsAccepted?: boolean;
   privacyAccepted?: boolean;
@@ -662,17 +665,21 @@ export function billingComplete(b: DraftBilling | undefined): boolean {
   return anySessionSelected(b);
 }
 
+/** Every consent on the agreement step — each must be answered yes OR no. */
+export const AGREEMENT_CONSENTS: (keyof DraftAgreement)[] = [
+  "firstAid",
+  "medication",
+  "ambulance",
+  "transport",
+  "excursions",
+  "photos",
+  "photosPublic",
+  "sunscreen",
+];
+
 export function agreementComplete(a: DraftAgreement | undefined): boolean {
   if (!a) return false;
-  const consents: (keyof DraftAgreement)[] = [
-    "firstAid",
-    "medication",
-    "ambulance",
-    "transport",
-    "excursions",
-    "photos",
-    "sunscreen",
-  ];
+  const consents = AGREEMENT_CONSENTS;
   // Every consent must be an explicit yes OR no. An unanswered consent is
   // not the same as a "no" — staff need to know which one they're looking at.
   const allAnswered = consents.every((k) => typeof a[k] === "boolean");
@@ -694,15 +701,6 @@ export function agreementComplete(a: DraftAgreement | undefined): boolean {
   );
 }
 
-const AGREEMENT_CONSENTS: (keyof DraftAgreement)[] = [
-  "firstAid",
-  "medication",
-  "ambulance",
-  "transport",
-  "excursions",
-  "photos",
-  "sunscreen",
-];
 
 /**
  * Names the FIRST missing thing on the agreement step. The old single

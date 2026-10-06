@@ -68,9 +68,15 @@ const CONSENTS: {
   },
   {
     key: "photos",
-    label: "Photos",
+    label: "Photos & videos — learning records",
     detail:
-      "I consent to photos of my child being used in the service's programming and communications.",
+      "I consent to educators taking photos and videos of my child, and to Amana OSHC using and securely storing them to record learning and share updates with our family.",
+  },
+  {
+    key: "photosPublic",
+    label: "Photos — social media & marketing",
+    detail:
+      "I consent to photos of my child appearing on Amana OSHC's social media, website or marketing. (Saying no here doesn't affect the learning-records consent above.)",
   },
   {
     key: "sunscreen",
@@ -156,14 +162,16 @@ export function AgreementStep({
           </p>
           <p>
             We share it with: our educators (as needed to care for your
-            child), Services Australia (for Child Care Subsidy), and
+            child), the Australian Government Department of Education and
+            Services Australia (for Child Care Subsidy), and
             emergency services or medical practitioners in an emergency. We
             do not sell it or use it for marketing without asking you
             separately.
           </p>
           <p>
-            Enrolment records are kept for the period the Regulations
-            require — generally until the child turns 25. You can ask to see
+            We keep enrolment records for at least three years after your
+            child last attends, and any incident, injury or illness records
+            until your child turns 25, as the Regulations require. You can ask to see
             or correct your family&apos;s information at any time by
             emailing{" "}
             <a href={`mailto:${ENROLMENTS_EMAIL}`} className="underline">
@@ -192,7 +200,10 @@ export function AgreementStep({
             >
               terms and conditions of enrolment
             </a>
-            , including the fee schedule.
+            , including the fee schedule. I agree that this enrolment —
+            with my start date, booking type, and the days and session times
+            I&apos;ve chosen — is my Complying Written Arrangement for Child
+            Care Subsidy.
             <span className="text-red-500"> *</span>
           </span>
         </label>

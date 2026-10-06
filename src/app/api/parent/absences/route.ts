@@ -8,6 +8,7 @@ import { getParentChildIds } from "@/app/api/parent/bookings/route";
 import { sendAbsenceConfirmationNotification } from "@/lib/notifications/bookings";
 import { logger } from "@/lib/logger";
 import { requireRoomId } from "@/lib/room-resolver";
+import { assertParentBookingsOpen } from "@/lib/parent-portal-lockdown";
 
 const absenceSchema = z.object({
   childId: z.string().min(1, "childId is required"),
@@ -24,6 +25,8 @@ const absenceSchema = z.object({
  * Record an absence notification from a parent.
  */
 export const POST = withParentAuth(async (req, { parent }) => {
+  // Bookings live in OWNA while the portal is locked (parent-portal-lockdown).
+  assertParentBookingsOpen();
   const body = await parseJsonBody(req);
   const parsed = absenceSchema.safeParse(body);
   if (!parsed.success) {

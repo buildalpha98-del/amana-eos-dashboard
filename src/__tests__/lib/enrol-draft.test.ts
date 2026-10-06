@@ -100,6 +100,7 @@ const goodAgreement = {
   transport: false,
   excursions: true,
   photos: false,
+  photosPublic: false,
   sunscreen: true,
   termsAccepted: true,
   privacyAccepted: true,

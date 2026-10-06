@@ -230,6 +230,7 @@ function validDraft(): Draft {
       transport: true,
       excursions: true,
       photos: true,
+      photosPublic: false,
       sunscreen: true,
       termsAccepted: true,
       privacyAccepted: true,

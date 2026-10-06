@@ -34,6 +34,7 @@ import { useEnrolmentDraft } from "@/hooks/useEnrolmentDraft";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { ENROL_STEPS } from "./steps";
+import { BeforeYouStart } from "./BeforeYouStart";
 import { MeStep, type MeData } from "./MeStep";
 import { ChildStep } from "./ChildStep";
 import { ContactsStep } from "./ContactsStep";
@@ -73,6 +74,10 @@ export default function ParentEnrolPage() {
   const [stepOverride, setStepOverride] = useState<number | null>(null);
   const form: EnrolDraft = (edits ?? initialData) as EnrolDraft;
   const step = stepOverride ?? initialStep;
+
+  // "Have these ready" screen: shown automatically before a FRESH form
+  // (nothing typed yet), reopenable from any step. null = automatic.
+  const [checklistOpen, setChecklistOpen] = useState<boolean | null>(null);
 
   // Payment lives OUTSIDE the draft on purpose — never autosaved. See the
   // header comment in BillingStep.tsx.
@@ -225,6 +230,22 @@ export default function ParentEnrolPage() {
     );
   }
 
+  const freshForm =
+    step === 0 &&
+    !form.me?.firstName?.trim() &&
+    !(form.children ?? []).some((c) => c.firstName?.trim());
+  if (checklistOpen ?? freshForm) {
+    return (
+      <BeforeYouStart
+        resuming={!freshForm}
+        onStart={() => {
+          setChecklistOpen(false);
+          window.scrollTo({ top: 0 });
+        }}
+      />
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-3 sm:px-4 py-6">
       {/* Progress */}
@@ -279,7 +300,14 @@ export default function ParentEnrolPage() {
           {ENROL_STEPS[step].title}
         </h1>
         {/* Autosave status — quiet, never a blocking error. */}
-        <span className="inline-flex items-center gap-1.5 text-xs text-muted">
+        <span className="inline-flex items-center gap-3 text-xs text-muted">
+          <button
+            type="button"
+            onClick={() => setChecklistOpen(true)}
+            className="underline underline-offset-2 hover:text-brand"
+          >
+            What you&apos;ll need
+          </button>
           {saveState === "saving" && (<><Loader2 className="w-3 h-3 animate-spin" /> Saving…</>)}
           {saveState === "saved" && (<><Cloud className="w-3 h-3" /> Saved</>)}
           {saveState === "error" && (<><CloudOff className="w-3 h-3 text-amber-600" /> Not saved — we&apos;ll retry</>)}

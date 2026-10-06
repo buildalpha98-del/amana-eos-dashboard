@@ -106,6 +106,7 @@ const COMPLETE_AGREEMENT = {
   transport: true,
   excursions: true,
   photos: false,
+  photosPublic: false,
   sunscreen: true,
   termsAccepted: true,
   privacyAccepted: true,
