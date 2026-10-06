@@ -155,6 +155,7 @@ export const POST = withParentAuth(async (req, ctx) => {
     ccsApproved: me.ccsApproved ?? null,
     ccsApplied: me.ccsApplied ?? null,
     languageSpoken: me.languageSpoken ?? "",
+    preferredLanguage: me.preferredLanguage ?? "",
     // Reg 160(3)(i) asks for the PARENTS' cultural background too; it was
     // collected on step 1 and then only copied onto the child.
     culturalBackground: me.culturalBackground ?? "",

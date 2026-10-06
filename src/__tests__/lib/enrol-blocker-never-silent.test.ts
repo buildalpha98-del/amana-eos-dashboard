@@ -35,6 +35,7 @@ const COMPLETE_ME = {
   postcode: "2155",
   crn: "123456789A",
   culturalBackground: "Australian",
+  preferredLanguage: "Arabic",
   isLegalCarer: true,
   ccsApproved: true,
   ccsApplied: true,

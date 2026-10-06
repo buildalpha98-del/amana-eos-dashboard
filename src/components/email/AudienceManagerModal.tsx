@@ -17,6 +17,7 @@ import {
 } from "@/hooks/useEmailTemplates";
 // Type-only import — audience-rules.ts is client-safe (zod + Prisma types only).
 import type { AudienceRules } from "@/lib/audience-rules";
+import { PREFERRED_LANGUAGES, type PreferredLanguage } from "@/lib/languages";
 
 interface Props {
   open: boolean;
@@ -84,6 +85,9 @@ function AudienceForm({
   const [serviceIds, setServiceIds] = useState<string[]>(
     initial?.rules.serviceIds ?? [],
   );
+  const [languages, setLanguages] = useState<PreferredLanguage[]>(
+    initial?.rules.languages ?? [],
+  );
   const [statuses, setStatuses] = useState<AudienceStatus[]>(
     initial?.rules.statuses ?? [],
   );
@@ -131,6 +135,7 @@ function AudienceForm({
     () => ({
       ...(serviceIds.length > 0 && { serviceIds }),
       ...(statuses.length > 0 && { statuses }),
+      ...(languages.length > 0 && { languages }),
       ...(joinedAfter && { joinedAfter }),
       ...(joinedBefore && { joinedBefore }),
       ...(engagementKind !== "none" &&
@@ -141,6 +146,7 @@ function AudienceForm({
     [
       serviceIds,
       statuses,
+      languages,
       joinedAfter,
       joinedBefore,
       engagementKind,
@@ -275,6 +281,40 @@ function AudienceForm({
                 className="rounded border-border text-brand focus:ring-brand"
               />
               {STATUS_LABELS[status]}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Preferred language */}
+      <div className="rounded-lg border border-border p-3">
+        <p className="mb-2 text-sm font-medium text-foreground">
+          Preferred language
+        </p>
+        <p className="mb-2 text-2xs text-muted">
+          Leave all unticked for every family. Ticking a language sends only
+          to families who chose it (families with no language on record are
+          left out).
+        </p>
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
+          {PREFERRED_LANGUAGES.map((lang) => (
+            <label
+              key={lang}
+              className="flex items-center gap-2 text-sm text-foreground"
+            >
+              <input
+                type="checkbox"
+                checked={languages.includes(lang)}
+                onChange={() =>
+                  setLanguages((prev) =>
+                    prev.includes(lang)
+                      ? prev.filter((l) => l !== lang)
+                      : [...prev, lang],
+                  )
+                }
+                className="rounded border-border text-brand focus:ring-brand"
+              />
+              {lang}
             </label>
           ))}
         </div>

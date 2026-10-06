@@ -5475,6 +5475,11 @@ model CentreContact {
   workPhone    String?
   parentRole   String? // "primary" | "secondary"
 
+  /// The language the family wants to hear from us in (a PREFERRED_LANGUAGES
+  /// label, src/lib/languages.ts). Drives language-targeted audiences and
+  /// the per-centre language breakdown. Null = not told.
+  preferredLanguage String? @db.VarChar(60)
+
   // Link to any enrolment submission this contact was created from (provenance)
   sourceEnrolmentId String?
 
@@ -5508,6 +5513,7 @@ model CentreContact {
   @@unique([email, serviceId])
   @@index([serviceId])
   @@index([serviceId, status])
+  @@index([serviceId, preferredLanguage])
   @@index([createdAt])
 }
 

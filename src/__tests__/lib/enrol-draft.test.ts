@@ -32,6 +32,7 @@ const goodMe = {
   suburb: "Auburn",
   crn: "123 456 789A",
   culturalBackground: "Lebanese",
+  preferredLanguage: "Arabic",
   isLegalCarer: true,
   ccsApproved: "yes" as const,
 };
@@ -741,5 +742,13 @@ describe("Medicare and immunisation statement (2026-10-06)", () => {
       uploads: goodChild.uploads.filter((u) => u.type !== "birth_certificate"),
     };
     expect(missingRequiredDocuments(c).map((d) => d.type)).toEqual(["birth_certificate"]);
+  });
+});
+
+describe("preferred language (2026-10-06)", () => {
+  it("is required on the parent's step, with a named reason", () => {
+    const me = { ...goodMe, preferredLanguage: "" };
+    expect(meComplete(me)).toBe(false);
+    expect(stepBlocker(0, { ...fullDraft, me })).toMatch(/language/i);
   });
 });

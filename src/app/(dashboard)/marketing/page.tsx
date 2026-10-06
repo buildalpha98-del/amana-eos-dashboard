@@ -52,6 +52,7 @@ import { CreatePostModal } from "@/components/marketing/CreatePostModal";
 import { CreateCampaignModal } from "@/components/marketing/CreateCampaignModal";
 import { CreateTaskModal } from "@/components/marketing/CreateTaskModal";
 import { SequencesTab } from "@/components/marketing/SequencesTab";
+import { LanguageBreakdown } from "@/components/marketing/LanguageBreakdown";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 /* ------------------------------------------------------------------ */
@@ -323,13 +324,16 @@ export default function MarketingPage() {
 
         {/* ---- Analytics: includes Coverage ---- */}
         {activeTab === "analytics" && (
-          <AnalyticsTab
-            serviceId={selectedServiceId}
-            onCentreClick={(id) => {
-              setSelectedServiceId(id);
-              setActiveTab("overview");
-            }}
-          />
+          <div className="space-y-6">
+            <LanguageBreakdown serviceId={selectedServiceId} />
+            <AnalyticsTab
+              serviceId={selectedServiceId}
+              onCentreClick={(id) => {
+                setSelectedServiceId(id);
+                setActiveTab("overview");
+              }}
+            />
+          </div>
         )}
 
         {/* ---- Toolkit: Assets / Templates / Hashtags / KPIs ---- */}

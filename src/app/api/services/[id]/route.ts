@@ -7,6 +7,7 @@ import { syncRoomsQuietly } from "@/lib/rooms";
 import { getCentreScope } from "@/lib/centre-scope";
 import { z } from "zod";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { convertCentreMailboxUser } from "@/lib/centre-account";
 
 const patchSchema = z.object({
   name: z.string().min(1).optional(),
@@ -207,6 +208,12 @@ export const PATCH = withApiAuth(
      * settings save. `syncRoomsQuietly` logs and swallows for the same
      * reason. That changes at Stage 2, when reads move.
      */
+    // Saving a centre's email turns the user who logs in with it into the
+    // centre account (no onboarding, full centre access).
+    if (typeof data.email === "string" && data.email.trim()) {
+      await convertCentreMailboxUser(prisma, service.id, data.email);
+    }
+
     if ("sessionTimes" in data) {
       await syncRoomsQuietly(
         service.id,

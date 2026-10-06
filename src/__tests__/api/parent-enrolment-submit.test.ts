@@ -187,6 +187,7 @@ function validDraft(): Draft {
       postcode: "3058",
       crn: "123456789A",
       culturalBackground: "Lebanese",
+      preferredLanguage: "Arabic",
       isLegalCarer: true,
       ccsApproved: "yes",
     },

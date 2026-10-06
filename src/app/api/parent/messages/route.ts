@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { sendNewMessageNotification } from "@/lib/notifications/messaging";
 import { logger } from "@/lib/logger";
 import { attachmentUrlsField } from "@/lib/schemas/message-attachments";
+import { isPreferredLanguage, languageFromText } from "@/lib/languages";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -90,6 +91,9 @@ async function ensureParentContact(
       firstName: str(pp.firstName) ?? (fallbackFirst || null),
       lastName: str(pp.surname) ?? (fallbackRest.join(" ") || null),
       mobile: str(pp.mobile),
+      preferredLanguage: isPreferredLanguage(pp.preferredLanguage)
+        ? pp.preferredLanguage
+        : languageFromText(pp.languageSpoken),
       parentRole: "primary",
       sourceEnrolmentId: source?.id ?? null,
     },

@@ -72,3 +72,57 @@ export function centreAccountCreateFields(
     role: (requestedRole === "staff" ? "member" : requestedRole) as never,
   };
 }
+
+/**
+ * A centre's email was just saved: if a user already logs in with that
+ * address, make them the centre account now — the same conversion the
+ * 20261006120000 migration applied to existing accounts. Without this, a
+ * coordinator whose mailbox differed from the centre record stayed a "new
+ * employee" until someone remembered to fix it by hand.
+ *
+ * Swallow-and-log: a failure here must never fail the centre save.
+ */
+export async function convertCentreMailboxUser(
+  db: PrismaClient,
+  serviceId: string,
+  email: string | null | undefined,
+): Promise<{ converted: string | null }> {
+  const normalised = email?.trim().toLowerCase();
+  if (!normalised) return { converted: null };
+  try {
+    const user = await db.user.findFirst({
+      where: {
+        email: { equals: normalised, mode: "insensitive" },
+        isCentreAccount: false,
+      },
+      select: { id: true, role: true, serviceId: true },
+    });
+    if (!user) return { converted: null };
+
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        isCentreAccount: true,
+        inductionStatus: "cleared",
+        inductionClearedAt: new Date(),
+        inductionGraceUntil: null,
+        serviceId: user.serviceId ?? serviceId,
+        // Educator → Director of Service; every other role is kept.
+        ...(user.role === "staff" ? { role: "member" as const } : {}),
+      },
+    });
+    // Stop any 90-day ramp emails to the shared inbox.
+    await db.staffRamp.updateMany({
+      where: { userId: user.id, status: { in: ["active", "extended"] } },
+      data: { status: "ended", completedAt: new Date() },
+    });
+    return { converted: user.id };
+  } catch (err) {
+    const { logger } = await import("@/lib/logger");
+    logger.warn("Centre account conversion failed", {
+      serviceId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return { converted: null };
+  }
+}
