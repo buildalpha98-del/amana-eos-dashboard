@@ -128,7 +128,7 @@ export function childMedicalRows(
   add("Doctor", doctor);
   add("Doctor Phone", med.doctorPhone);
   add("Doctor Address", med.doctorAddress);
-  add("Medicare", med.medicareNumber);
+  add("Medicare", med.noMedicare === true ? "None — family has no Medicare card" : med.medicareNumber);
   add("Medicare Ref", med.medicareRef);
   add("Medicare Expiry", med.medicareExpiry);
 
@@ -267,6 +267,9 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
       doc.text("Medical Information", margin, b.y);
       b.y += 5;
       for (const [label, value] of childMedicalRows(med)) row(label, value);
+    }
+    if (child.immunisationRecordToFollow === true) {
+      row("Immunisation statement", "TO FOLLOW — family will send it; please chase");
     }
     row(
       "Court order — do NOT release to",

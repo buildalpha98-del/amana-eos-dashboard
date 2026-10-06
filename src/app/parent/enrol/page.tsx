@@ -96,7 +96,14 @@ export default function ParentEnrolPage() {
 
   const children = form.children ?? [{}];
 
-  const canAdvance = stepComplete(step, form);
+  // Bank details live OUTSIDE the draft (never autosaved), so the draft
+  // rules can't see them. Billing used to tick itself complete without
+  // them and let Next through — the parent only found out on the last
+  // step. Count them here, where the payment state lives.
+  const BILLING_STEP = 3;
+  const stepDone = (i: number) =>
+    stepComplete(i, form) && (i !== BILLING_STEP || paymentEntered(payment));
+  const canAdvance = stepDone(step);
   // On the last step the blocker also has to account for payment, which
   // lives outside the draft.
   const blocker =
@@ -110,7 +117,9 @@ export default function ParentEnrolPage() {
             : !draftSubmittable(form)
               ? "Some earlier steps are incomplete. Use the circles above to go back and finish them."
               : null
-      : stepBlocker(step, form);
+      : step === BILLING_STEP && stepComplete(step, form) && !paymentEntered(payment)
+        ? "Please enter your bank details — account name, a 6-digit BSB and your account number."
+        : stepBlocker(step, form);
   const canSubmit =
     draftSubmittable(form) && paymentEntered(payment) && !submitting;
 
@@ -256,7 +265,7 @@ export default function ParentEnrolPage() {
             // Completeness, not position: with free navigation a parent
             // can be on step 4 with step 2 still unfinished, and a tick
             // there would be a lie.
-            const done = stepComplete(i, form);
+            const done = stepDone(i);
             const current = i === step;
             return (
               <div key={s.key} className="flex-1 min-w-0 px-0.5 flex flex-col items-center relative">
@@ -313,6 +322,14 @@ export default function ParentEnrolPage() {
           {saveState === "error" && (<><CloudOff className="w-3 h-3 text-amber-600" /> Not saved — we&apos;ll retry</>)}
         </span>
       </div>
+
+      {form.sibling && (
+        <div className="mb-4 rounded-xl border border-accent bg-accent/15 p-3 text-sm text-foreground">
+          <strong>Enrolling another child.</strong> We&apos;ve filled in your
+          family&apos;s details from last time — please check they&apos;re still
+          right, then add your child, their days and the consents for them.
+        </div>
+      )}
 
       <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
         {step === 0 && (

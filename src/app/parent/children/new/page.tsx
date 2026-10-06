@@ -1,101 +1,62 @@
 "use client";
 
+/**
+ * Enrol another child (sibling).
+ *
+ * Re-opens the family's enrolment form with their details carried over and
+ * sends them to its Child step — ONE form for first children and siblings,
+ * so siblings get every fix the live form has (second-parent DOB, action
+ * plans, direct-debit-only). Siblings used to go through the legacy wizard
+ * in src/components/enrol, which had none of them.
+ */
+
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useParentProfile } from "@/hooks/useParentPortal";
-import { EnrolmentWizard } from "@/components/enrol/EnrolmentWizard";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { toast } from "@/hooks/useToast";
-import type { ParentDetails } from "@/components/enrol/types";
+import { useQueryClient } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
+import { mutateApi } from "@/lib/fetch-api";
 
 export default function NewChildPage() {
   const router = useRouter();
-  const { data: profile, isLoading } = useParentProfile();
+  const queryClient = useQueryClient();
+  const [error, setError] = useState<string | null>(null);
+  const started = useRef(false);
 
-  if (isLoading) {
-    return (
-      <div className="space-y-5">
-        <Skeleton className="h-5 w-40" />
-        <Skeleton className="h-8 w-64 mb-2" />
-        <Skeleton className="h-[400px] w-full rounded-xl" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    mutateApi("/api/parent/enrolment-draft/sibling", { method: "POST" })
+      .then(async () => {
+        // The form reads the draft through this query — drop the cached
+        // (submitted) copy so it opens the re-opened one.
+        await queryClient.invalidateQueries({ queryKey: ["parent", "enrolment-draft"] });
+        router.replace("/parent/enrol");
+      })
+      .catch((err: unknown) =>
+        setError(
+          err instanceof Error
+            ? err.message
+            : "We couldn't start a new enrolment just now. Please try again.",
+        ),
+      );
+  }, [queryClient, router]);
 
-  if (!profile) {
+  if (error) {
     return (
-      <div className="space-y-4">
-        <Link
-          href="/parent/children"
-          className="inline-flex items-center gap-1 text-sm text-brand hover:text-brand-light font-medium transition-colors min-h-[44px]"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to children
+      <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border space-y-3">
+        <p className="text-sm text-foreground">{error}</p>
+        <Link href="/parent/messages" className="text-sm font-medium text-brand underline">
+          Message us for help
         </Link>
-        <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border">
-          <p className="text-muted text-sm">
-            We couldn&apos;t load your details just now — try again in a moment.
-          </p>
-        </div>
       </div>
     );
   }
-
-  // Map profile to ParentDetails shape for prefill
-  const parentPrefill: ParentDetails = {
-    firstName: profile.firstName,
-    surname: profile.lastName,
-    dob: "",
-    email: profile.email,
-    mobile: profile.phone ?? "",
-    street: profile.address?.street ?? "",
-    suburb: profile.address?.suburb ?? "",
-    state: profile.address?.state ?? "",
-    postcode: profile.address?.postcode ?? "",
-    relationship: "",
-    occupation: "",
-    workplace: "",
-    workPhone: "",
-    crn: "",
-    soleCustody: null,
-    livesWithPrimary: false,
-    preferredLanguage: "",
-  };
-
-  const handleComplete = (result: { token: string; childNames: string }) => {
-    toast({
-      description: `Enrolment submitted for ${result.childNames}! We will be in touch within 2 business days.`,
-    });
-    router.push("/parent/children");
-  };
 
   return (
-    <div className="space-y-5">
-      <Link
-        href="/parent/children"
-        className="inline-flex items-center gap-1 text-sm text-brand hover:text-brand-light font-medium transition-colors min-h-[44px]"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to children
-      </Link>
-
-      <div>
-        <h1 className="text-2xl font-heading font-bold text-foreground">
-          New Enrolment
-        </h1>
-        <p className="text-sm text-muted mt-1">
-          Your details are pre-filled. Just add the new child&apos;s information —
-          we&apos;ll be in touch within 2 business days.
-        </p>
-      </div>
-
-      <EnrolmentWizard
-        parentPrefill={parentPrefill}
-        skipSteps={[1]}
-        onComplete={handleComplete}
-        variant="portal"
-      />
+    <div className="flex flex-col items-center justify-center gap-3 py-24 text-sm text-muted">
+      <Loader2 className="w-6 h-6 animate-spin text-brand" />
+      Setting up your new enrolment…
     </div>
   );
 }

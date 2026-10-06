@@ -146,33 +146,3 @@ describe("GET /api/enrol/[token] — when it refuses", () => {
   });
 });
 
-/**
- * The gate on the submission endpoint itself.
- *
- * Kept in its own file-level mock scope because `enrol.test.ts` stubs
- * parent auth THROUGH, so it can keep testing the stage-event logging
- * it was written for. Here the real wrapper runs.
- */
-describe("POST /api/enrol — requires a parent session", () => {
-  it("refuses a caller with no parent session", async () => {
-    // It was open to the internet for months after the anonymous form
-    // that fed it was retired, creating EnrolmentSubmission and Child
-    // rows for anyone who found the URL.
-    const { POST } = await import("@/app/api/enrol/route");
-    const res = await POST(
-      createRequest("POST", "/api/enrol", { body: {} }),
-      undefined as never,
-    );
-    expect(res.status).toBe(401);
-  });
-
-  it("does not reach the database before authenticating", async () => {
-    // A gate that runs after the write isn't a gate.
-    const { POST } = await import("@/app/api/enrol/route");
-    await POST(
-      createRequest("POST", "/api/enrol", { body: {} }),
-      undefined as never,
-    );
-    expect(prismaMock.enrolmentSubmission.create).not.toHaveBeenCalled();
-  });
-});

@@ -105,6 +105,13 @@ const nextConfig: NextConfig = {
         source: "/parent/signup",
         headers: securityHeaders({ metaPixel: true }),
       },
+      // The enrolment conversion fires here (CompleteRegistration). The
+      // live form never fired it — only the retired legacy wizard did — so
+      // Meta ads couldn't see a single completed enrolment.
+      {
+        source: "/parent/enrol/thank-you",
+        headers: securityHeaders({ metaPixel: true }),
+      },
     ];
   },
 };

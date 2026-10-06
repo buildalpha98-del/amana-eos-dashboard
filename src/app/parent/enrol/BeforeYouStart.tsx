@@ -40,7 +40,7 @@ const GROUPS: { icon: LucideIcon; title: string; items: string[] }[] = [
     title: "Your child",
     items: [
       "Their school and class (for example D.G1Y)",
-      "Medicare card number and expiry date",
+      "Medicare card number and expiry date, if they have one",
       "Their CRN, if they have one",
     ],
   },
@@ -58,7 +58,7 @@ const GROUPS: { icon: LucideIcon; title: string; items: string[] }[] = [
     title: "Photos of two documents",
     items: [
       "Birth certificate",
-      "Immunisation history statement (download it from myGov → Medicare)",
+      "Immunisation history statement (download it from myGov → Medicare) — you can send this later if you need to",
     ],
   },
   {
