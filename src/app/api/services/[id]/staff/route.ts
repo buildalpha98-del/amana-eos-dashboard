@@ -22,7 +22,7 @@ function toIsoDate(d: Date | null | undefined): string | null {
 }
 
 // GET /api/services/[id]/staff
-export const GET = withApiAuth(async (_req, session, context) => {
+export const GET = withApiAuth(async (req, session, context) => {
   const { id: serviceId } = await context!.params!;
 
   // SECURITY (2026-09-04, staff-portal-v2 Chunk 5): read access was
@@ -34,12 +34,19 @@ export const GET = withApiAuth(async (_req, session, context) => {
   // Emails are admin-only: non-admin callers (member/staff) get `email:
   // null` — the roster grid and shift modal only need id/name/avatar.
   const includeEmail = isAdminRole(session.user.role);
+  // The Staff tab lists EVERYONE assigned here (primary or membership) —
+  // including the centre's shared mailbox login — so what you see matches
+  // what the add dialog's "already primary" check sees. Roster pickers
+  // don't pass this flag: a mailbox isn't an educator to roster or count.
+  const includeCentreAccounts =
+    new URL(req.url).searchParams.get("centreAccounts") === "1";
+  const accountFilter = includeCentreAccounts ? {} : { isCentreAccount: false };
 
   const [primaryUsers, memberships] = await Promise.all([
     prisma.user.findMany({
       // People only — the centre's shared mailbox isn't an educator to
       // roster or count (src/lib/centre-account.ts).
-      where: { serviceId, active: true, isCentreAccount: false },
+      where: { serviceId, active: true, ...accountFilter },
       select: {
         id: true,
         name: true,
@@ -47,12 +54,13 @@ export const GET = withApiAuth(async (_req, session, context) => {
         avatar: true,
         role: true,
         active: true,
+        isCentreAccount: true,
         createdAt: true,
       },
       orderBy: { name: "asc" },
     }),
     prisma.userServiceMembership.findMany({
-      where: { serviceId, status: "active", user: { isCentreAccount: false } },
+      where: { serviceId, status: "active", user: accountFilter },
       include: {
         user: {
           select: {
@@ -62,6 +70,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
             avatar: true,
             role: true,
             active: true,
+            isCentreAccount: true,
           },
         },
       },
@@ -80,6 +89,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
         role: u.role,
         isPrimary: true,
         isActive: u.active,
+        isCentreAccount: u.isCentreAccount ?? false,
         membership: {
           // Synthetic id for primary rows so the client can route a
           // remove call to the [membershipId] handler. The handler
@@ -102,6 +112,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
       role: m.user.role,
       isPrimary: false,
       isActive: m.user.active,
+      isCentreAccount: m.user.isCentreAccount ?? false,
       membership: {
         id: m.id,
         roleAtService: m.roleAtService,
