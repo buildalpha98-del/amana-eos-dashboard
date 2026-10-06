@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { LifeBuoy } from "lucide-react";
+import { BackToApp } from "./BackToApp";
 
 export const metadata: Metadata = {
   title: {
@@ -43,6 +44,7 @@ export default function SupportLayout({ children }: { children: React.ReactNode 
           </Link>
         </div>
       </header>
+      <BackToApp />
 
       <div className="flex-1">{children}</div>
 
