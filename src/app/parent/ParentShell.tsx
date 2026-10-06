@@ -232,6 +232,12 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
             >
               Messages
             </Link>
+            <Link
+              href="/support"
+              className="text-xs text-white/70 hover:text-white underline underline-offset-2"
+            >
+              Help
+            </Link>
             <button
               onClick={logout}
               className="text-xs text-white/70 hover:text-white underline underline-offset-2"
@@ -291,6 +297,13 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
                 <MessageCircle className="h-4 w-4" />
                 Need help? Message us
               </Link>
+              <Link
+                href="/support"
+                className="flex items-center justify-center gap-2 px-5 py-3 border border-brand/30 text-brand rounded-xl text-sm font-semibold hover:bg-brand/5 transition-colors"
+              >
+                <LifeBuoy className="h-4 w-4" />
+                Browse common questions
+              </Link>
 
               {/* A family still to enrol is redirected into the form by the
                   effect above — but only once /api/parent/state answers. If
@@ -345,9 +358,19 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
           <span className="text-white font-heading font-semibold">
             Amana OSHC
           </span>
+          {/* Families mid-enrolment are the ones most likely to get stuck,
+              and had no way to help from here at all. They can't message
+              us yet (no centre until they submit), so Help is the route. */}
+          <Link
+            href="/support"
+            className="ml-auto inline-flex items-center gap-1 text-xs text-white/80 hover:text-white underline underline-offset-2 min-h-11"
+          >
+            <LifeBuoy className="w-3.5 h-3.5" />
+            Help
+          </Link>
           <button
             onClick={logout}
-            className="ml-auto text-xs text-white/70 hover:text-white underline underline-offset-2"
+            className="ml-4 text-xs text-white/70 hover:text-white underline underline-offset-2"
           >
             Sign out
           </button>
