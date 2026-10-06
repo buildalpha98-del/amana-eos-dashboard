@@ -34,7 +34,7 @@ const ACCESS_LABEL: Record<ServiceStaffMember["membership"]["accessLevel"], stri
 };
 
 export function ServiceStaffTab({ serviceId }: { serviceId: string }) {
-  const { data, isLoading } = useServiceStaff(serviceId);
+  const { data, isLoading } = useServiceStaff(serviceId, { includeCentreAccounts: true });
   const { data: session } = useSession();
   const role = session?.user?.role;
   const sessionServiceId = (session?.user as { serviceId?: string | null } | undefined)

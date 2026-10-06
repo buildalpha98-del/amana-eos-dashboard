@@ -27,6 +27,8 @@ export interface ServiceStaffMember {
   role: Role;
   isPrimary: boolean;
   isActive: boolean;
+  /** Shared centre mailbox login (only returned with includeCentreAccounts). */
+  isCentreAccount?: boolean;
   membership: {
     id: string | null;
     roleAtService: string;
@@ -41,11 +43,15 @@ interface Listing {
   members: ServiceStaffMember[];
 }
 
-export function useServiceStaff(serviceId: string | undefined) {
+export function useServiceStaff(
+  serviceId: string | undefined,
+  opts: { includeCentreAccounts?: boolean } = {},
+) {
+  const qs = opts.includeCentreAccounts ? "?centreAccounts=1" : "";
   return useQuery<Listing>({
-    queryKey: ["service-staff", serviceId],
+    queryKey: ["service-staff", serviceId, ...(qs ? ["centre-accounts"] : [])],
     queryFn: () =>
-      fetchApi<Listing>(`/api/services/${serviceId}/staff`),
+      fetchApi<Listing>(`/api/services/${serviceId}/staff${qs}`),
     enabled: !!serviceId,
     retry: 2,
     staleTime: 30_000,
