@@ -11,19 +11,36 @@ import { attachmentUrlsField } from "@/lib/schemas/message-attachments";
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * The centres this parent belongs to: each submitted enrolment's centre,
+ * plus any centre staff have since assigned to the children. The second half
+ * matters for an enrolment whose school didn't resolve at submit — staff fix
+ * it on the CHILD, and the family would otherwise stay unable to message.
+ */
+async function getParentServiceIds(enrolmentIds: string[]): Promise<string[]> {
+  if (enrolmentIds.length === 0) return [];
+  const [enrolments, children] = await Promise.all([
+    prisma.enrolmentSubmission.findMany({
+      where: { id: { in: enrolmentIds }, status: { not: "draft" } },
+      select: { serviceId: true },
+    }),
+    prisma.child.findMany({
+      where: { enrolmentId: { in: enrolmentIds }, serviceId: { not: null } },
+      select: { serviceId: true },
+    }),
+  ]);
+  return [
+    ...new Set(
+      [...enrolments, ...children].map((r) => r.serviceId).filter(Boolean),
+    ),
+  ] as string[];
+}
+
 async function getParentContactIds(
   email: string,
   enrolmentIds: string[],
 ): Promise<string[]> {
-  if (enrolmentIds.length === 0) return [];
-
-  const enrolments = await prisma.enrolmentSubmission.findMany({
-    where: { id: { in: enrolmentIds }, status: { not: "draft" } },
-    select: { serviceId: true },
-  });
-  const serviceIds = [
-    ...new Set(enrolments.map((e) => e.serviceId).filter(Boolean)),
-  ] as string[];
+  const serviceIds = await getParentServiceIds(enrolmentIds);
   if (serviceIds.length === 0) return [];
 
   const contacts = await prisma.centreContact.findMany({
@@ -31,6 +48,53 @@ async function getParentContactIds(
     select: { id: true, serviceId: true },
   });
   return contacts.map((c) => c.id);
+}
+
+/**
+ * The family's CentreContact at this centre, creating it if needed.
+ *
+ * Nothing created one when a family enrolled through the portal, so the
+ * first message from a newly enrolled parent failed with "No contact record
+ * found" — the families most likely to need help were the ones who couldn't
+ * ask. Seeded from the enrolment's primary carer; unique on (email,
+ * serviceId), so a concurrent sync or approval can't duplicate it.
+ */
+async function ensureParentContact(
+  email: string,
+  serviceId: string,
+  enrolmentIds: string[],
+  fallbackName: string | undefined,
+) {
+  const normalised = email.toLowerCase();
+  const existing = await prisma.centreContact.findFirst({
+    where: { email: normalised, serviceId },
+    select: { id: true, firstName: true, lastName: true },
+  });
+  if (existing) return existing;
+
+  const source = await prisma.enrolmentSubmission.findFirst({
+    where: { id: { in: enrolmentIds }, status: { not: "draft" } },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, primaryParent: true },
+  });
+  const pp = (source?.primaryParent ?? {}) as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  const [fallbackFirst, ...fallbackRest] = (fallbackName ?? "").trim().split(/\s+/);
+
+  return prisma.centreContact.upsert({
+    where: { email_serviceId: { email: normalised, serviceId } },
+    update: {},
+    create: {
+      email: normalised,
+      serviceId,
+      firstName: str(pp.firstName) ?? (fallbackFirst || null),
+      lastName: str(pp.surname) ?? (fallbackRest.join(" ") || null),
+      mobile: str(pp.mobile),
+      parentRole: "primary",
+      sourceEnrolmentId: source?.id ?? null,
+    },
+    select: { id: true, firstName: true, lastName: true },
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -116,37 +180,26 @@ export const POST = withParentAuth(async (req, { parent }) => {
 
   const { subject, message, serviceId, attachmentUrls } = parsed.data;
 
-  // Resolve parent's CentreContact(s)
-  const enrolments = await prisma.enrolmentSubmission.findMany({
-    where: { id: { in: parent.enrolmentIds }, status: { not: "draft" } },
-    select: { serviceId: true },
-  });
-  const serviceIds = [
-    ...new Set(enrolments.map((e) => e.serviceId).filter(Boolean)),
-  ] as string[];
+  const serviceIds = await getParentServiceIds(parent.enrolmentIds);
 
-  // Pick the right service
+  // A requested centre must be one of the family's own. Accepting any id
+  // let a parent open a conversation with a centre they have no tie to.
+  if (serviceId && !serviceIds.includes(serviceId)) {
+    throw ApiError.forbidden("You can only message your own centre.");
+  }
   const resolvedServiceId = serviceId ?? serviceIds[0];
   if (!resolvedServiceId) {
     throw ApiError.badRequest(
-      "No service found. Please contact the centre.",
+      "We're still matching your enrolment to a centre. Please email enrolments@amanaoshc.com.au and we'll help straight away.",
     );
   }
 
-  // Find the CentreContact for this parent + service
-  const contact = await prisma.centreContact.findFirst({
-    where: {
-      email: parent.email.toLowerCase(),
-      serviceId: resolvedServiceId,
-    },
-    select: { id: true, firstName: true, lastName: true },
-  });
-
-  if (!contact) {
-    throw ApiError.badRequest(
-      "No contact record found. Please contact the centre.",
-    );
-  }
+  const contact = await ensureParentContact(
+    parent.email,
+    resolvedServiceId,
+    parent.enrolmentIds,
+    parent.name,
+  );
 
   const senderName = [contact.firstName, contact.lastName]
     .filter(Boolean)

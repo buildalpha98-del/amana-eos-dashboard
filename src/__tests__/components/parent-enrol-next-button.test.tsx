@@ -70,7 +70,11 @@ function renderPage() {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={qc}>{children}</QueryClientProvider>
   );
-  return render(<ParentEnrolPage />, { wrapper: Wrapper });
+  const utils = render(<ParentEnrolPage />, { wrapper: Wrapper });
+  // A fresh form opens on the "Before you start" checklist; these tests are
+  // about the form behind it.
+  fireEvent.click(screen.getByRole("button", { name: /let's start/i }));
+  return utils;
 }
 
 describe("/parent/enrol — Next always responds", () => {
@@ -78,6 +82,18 @@ describe("/parent/enrol — Next always responds", () => {
     vi.clearAllMocks();
     window.HTMLElement.prototype.scrollIntoView = scrollIntoView;
     window.scrollTo = vi.fn();
+  });
+
+  it("opens a fresh form on the 'have these ready' checklist", () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <ParentEnrolPage />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole("heading", { name: /before you start/i })).toBeInTheDocument();
+    expect(screen.getByText(/Immunisation history statement/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /next/i })).toBeNull();
   });
 
   it("does NOT disable Next on an unfinished step", () => {

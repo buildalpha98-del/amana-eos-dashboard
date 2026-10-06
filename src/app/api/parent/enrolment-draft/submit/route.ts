@@ -236,6 +236,7 @@ export const POST = withParentAuth(async (req, ctx) => {
     transport: agreement.transport ?? null,
     excursions: agreement.excursions ?? null,
     photos: agreement.photos ?? null,
+    photosPublic: agreement.photosPublic ?? null,
     sunscreen: agreement.sunscreen ?? null,
   };
 

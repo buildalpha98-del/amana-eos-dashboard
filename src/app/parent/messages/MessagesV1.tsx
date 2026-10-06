@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/Dialog";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
+import { HelpSuggestions } from "@/components/parent/HelpSuggestions";
 
 export default function MessagesV1() {
   const { data: conversations, isLoading } = useParentConversations();
@@ -223,6 +224,8 @@ function NewMessageDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
               className="w-full px-3 py-2.5 border-2 border-border rounded-lg bg-background/50 text-sm text-foreground placeholder-muted/60 focus:outline-none focus:border-brand transition-colors resize-none"
             />
           </div>
+
+          <HelpSuggestions text={`${subject} ${message}`} />
 
           <button
             onClick={handleSend}

@@ -39,6 +39,7 @@ import {
   MAX_ATTACHMENTS,
 } from "@/components/parent/ui";
 import { AiButton } from "@/components/ui/AiButton";
+import { AnswerPicker } from "./AnswerPicker";
 
 // ── Status Tabs ────────────────────────────────────────────
 
@@ -507,7 +508,17 @@ function ConversationThread({
               rows={3}
               className="w-full px-3 py-2.5 border border-border rounded-lg bg-[#f8f5f2]/50 text-sm text-foreground placeholder-muted/60 focus:outline-none focus:border-brand transition-colors resize-none"
             />
-            <div className="flex justify-end">
+            <div className="flex justify-end items-center gap-1">
+              <AnswerPicker
+                parentMessage={
+                  [...conversation.messages]
+                    .reverse()
+                    .find((m) => m.senderType === "parent")?.body ?? conversation.subject
+                }
+                onInsert={(text) =>
+                  setReplyText((prev) => (prev.trim() ? `${prev.trim()}\n\n${text}` : text))
+                }
+              />
               <AiButton
                 size="sm"
                 templateSlug="messaging/parent-reply"

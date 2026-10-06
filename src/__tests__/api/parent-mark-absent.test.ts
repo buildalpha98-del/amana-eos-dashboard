@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+// Absence LOGIC stays intact behind the portal lockdown;
+// parent-bookings-locked.test.ts covers the lock itself.
+vi.mock("@/lib/parent-portal-lockdown", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/parent-portal-lockdown")>()),
+  assertParentBookingsOpen: () => {},
+}));
+
 import { prismaMock } from "../helpers/prisma-mock";
 import { createRequest } from "../helpers/request";
 import { ApiError } from "@/lib/api-error";

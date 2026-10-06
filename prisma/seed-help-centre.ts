@@ -1,3 +1,4 @@
+import { PREVIOUS_SEED_BODIES } from "./help-centre-revisions";
 import type { PrismaClient } from "@prisma/client";
 
 /**
@@ -27,6 +28,54 @@ type CategorySeed = {
 
 const CATEGORIES: CategorySeed[] = [
   {
+    name: "Using OWNA & the Amana app",
+    slug: "owna-and-the-amana-app",
+    description:
+      "Where to book, pay and update details — and what the Amana parent app is for right now.",
+    icon: "help-circle",
+    sortOrder: 0,
+    articles: [
+      {
+        title: "Can I book or pay through the Amana parent app?",
+        body: `Not yet. **Please don't book, cancel or pay through the Amana parent app** — anything booked or changed there won't reach your centre.
+
+For now, everything to do with your bookings and fees happens in **OWNA**:
+
+- **All bookings** — permanent and casual
+- **Invoices and fees**
+- **Family details**
+
+The Amana parent app is for:
+
+- **Completing your enrolment form**
+- **Messaging our team** if you need help
+- **Your centre's details**
+
+We'll let you know as soon as the Amana app is ready for bookings.`,
+      },
+      {
+        title: "I haven't received my OWNA login details",
+        body: `We email your OWNA login details once your enrolment has been reviewed and confirmed.
+
+1. **Check your junk or spam folder** for an email from OWNA.
+2. Make sure you're looking in the inbox for the email address you enrolled with.
+3. Still nothing after **two business days**? Send us a message in the Amana parent app (or email **enrolments@amanaoshc.com.au**) with your name and your child's name, and we'll resend it.
+
+Until then, if you need a session booked urgently, call your centre and the team will help.`,
+      },
+      {
+        title: "How do I update my child's medical details or action plan?",
+        body: `Please tell us **straight away** — our educators rely on this information every session.
+
+1. Send us a message in the Amana parent app with what's changed (a new allergy, a new medication, a change to an action plan).
+2. Attach a photo of any **new or updated action plan** signed by your child's doctor.
+3. Bring the original into your centre at your next drop-off or pick-up so it can be kept on site.
+
+If it's urgent — for example a new anaphylaxis diagnosis — please also **call your centre** before your child's next session.`,
+      },
+    ],
+  },
+  {
     name: "Enrolments & Bookings",
     slug: "enrolments-and-bookings",
     description:
@@ -43,7 +92,7 @@ const CATEGORIES: CategorySeed[] = [
 3. Choose the days you'd like — permanent before-school, after-school, or both.
 4. Submit the form. Our team reviews every enrolment and confirms by email, usually within two business days.
 
-Once your enrolment is confirmed you'll receive a welcome email with your first-day details and how to set up the parent app.
+Once your enrolment is confirmed you'll receive a welcome email with your first-day details. **Bookings, invoices and fees are managed in OWNA** — we'll email you your OWNA login details, so keep an eye on your inbox (and junk folder).
 
 **Tip:** if you plan to claim the Child Care Subsidy (CCS), start your CCS claim with Services Australia early — see the *Payments & CCS* section. You can enrol before your CCS is approved.`,
       },
@@ -51,23 +100,25 @@ Once your enrolment is confirmed you'll receive a welcome email with your first-
         title: "How do I book a casual day?",
         body: `Casual bookings are for days outside your child's regular schedule — a one-off work commitment, an appointment, or a change of plans.
 
-1. Log in to the **Amana parent portal** and open **Bookings**.
-2. Pick the date and session (before or after school care) you need.
-3. Submit the request. The centre team reviews it against that day's capacity and educator-to-child ratios and confirms by email.
+**Casual days are booked in OWNA, not in the Amana parent app.** Anything booked in the Amana app won't reach your centre.
+
+1. Log in to **OWNA** — we email your login details once your enrolment is confirmed.
+2. Book the date and session (before or after school care) you need.
+3. The centre team checks it against that day's capacity and educator-to-child ratios and confirms it.
 
 A casual booking isn't guaranteed until it's confirmed — popular days can fill up, so book as early as you can.
 
-If you can't see the day you need, or it's for **today**, please call your centre directly so the team can help straight away.`,
+If you can't see the day you need, it's for **today**, or you haven't received your OWNA login yet, message us in the parent app or call your centre and we'll help straight away.`,
       },
       {
         title: "How do I change or cancel my child's booked days?",
         body: `**Permanent (recurring) days**
 
-To change your child's regular schedule — for example moving from Tuesday to Wednesday, or adding a day — send the request through the parent portal messages or email your centre. Changes to permanent bookings take effect from the following week once confirmed.
+To change your child's regular schedule — for example moving from Tuesday to Wednesday, or adding a day — send us a message in the parent app or email your centre. Changes to permanent bookings take effect from the following week once confirmed.
 
 **Casual bookings**
 
-Casual bookings can be cancelled from the **Bookings** page in the parent portal. Please give as much notice as you can — it frees the place for another family.
+Casual bookings are managed in **OWNA** — please cancel them there, giving as much notice as you can. It frees the place for another family. (Bookings can't be changed in the Amana parent app.)
 
 **Cancellation notice**
 
@@ -77,7 +128,7 @@ Sessions cancelled with less than the required notice period may still be charge
         title: "My child will be absent — what do I need to do?",
         body: `If your child is enrolled for a session but won't attend:
 
-1. **Tell us before the session starts** — mark the absence in the parent app, or message/call your centre. This matters most for after-school care: if your child doesn't arrive from class and we haven't been told, our team must treat it as a missing child and will begin follow-up immediately.
+1. **Tell us before the session starts** — mark the absence in **OWNA**, or message/call your centre. This matters most for after-school care: if your child doesn't arrive from class and we haven't been told, our team must treat it as a missing child and will begin follow-up immediately.
 2. For illness, let us know anything we should be aware of — some conditions have exclusion periods to protect other children (see *Policies & Safety*).
 
 Charged absences generally still count toward your CCS allowable absences, so you usually still receive your subsidy for that session.`,
@@ -235,7 +286,7 @@ If your child's dietary needs change, update us straight away — message the ce
 
 Anyone our educators haven't met before will be asked for **photo ID**, which is checked against your authorised list. This can feel formal, but it's how we make sure "Nana is picking up today" is really Nana.
 
-**To add or change authorised contacts,** update your details in the parent portal or message your centre. In an emergency, you can phone the centre and authorise a one-off collection verbally — the team will still ID-check the person at the door.
+**To add or change authorised contacts,** send us a message in the parent app or speak with your centre, and we'll update your child's record. In an emergency, you can phone the centre and authorise a one-off collection verbally — the team will still ID-check the person at the door.
 
 If a court order affects who may collect your child, please give the centre a copy so the team can uphold it.`,
       },
@@ -255,7 +306,39 @@ All complaints are handled confidentially and never affect how your child is car
   },
 ];
 
+/** Same slug rule as article creation below. */
+function articleSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+/**
+ * Bring an UNEDITED article up to its current seed text — see
+ * PREVIOUS_SEED_BODIES. The body-equality guard is the whole point: admin
+ * edits are never overwritten.
+ */
+async function applySeedRevisions(prisma: PrismaClient): Promise<void> {
+  const current = new Map(
+    CATEGORIES.flatMap((c) => c.articles).map((a) => [articleSlug(a.title), a.body]),
+  );
+  for (const [slug, previous] of Object.entries(PREVIOUS_SEED_BODIES)) {
+    const next = current.get(slug);
+    if (!next || next === previous) continue;
+    const { count } = await prisma.helpArticle.updateMany({
+      where: { slug, body: previous },
+      data: { body: next },
+    });
+    if (count > 0) console.log(`  Help centre: revised "${slug}" (was unedited)`);
+  }
+}
+
 export async function seedHelpCentre(prisma: PrismaClient): Promise<void> {
+  await applySeedRevisions(prisma);
+
   for (const cat of CATEGORIES) {
     let category = await prisma.helpCategory.findUnique({
       where: { slug: cat.slug },

@@ -5,6 +5,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { isPublicParentRoute } from "@/lib/parent-routes";
+import {
+  PARENT_PORTAL_LOCKED,
+  isAllowedWhileLocked,
+} from "@/lib/parent-portal-lockdown";
 
 /** Where a parent without an enrolment is funnelled. */
 const ENROL_PATH = "/parent/enrol";
@@ -196,19 +200,11 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   }
 
   // ── TEMPORARY LOCKDOWN ──────────────────────────────────────
-  // The parent portal is not in use yet — parents use OWNA for bookings,
-  // invoices and fees. Show a full-screen notice on every authenticated
-  // page except My Centre (centre info) and Account (so they can sign out).
-  //
-  // The enrolment form's own sub-pages (the thank-you page) must stay
-  // reachable: matching the form path EXACTLY meant a family who had just
-  // submitted landed on "this app is not active yet" instead of their
-  // confirmation.
+  // The parent portal is not in use for bookings or billing yet — parents
+  // use OWNA. Only enrolment, messages, My Centre and Account stay open
+  // (src/lib/parent-portal-lockdown.ts); everything else shows the notice.
   const allowedWhileLocked =
-    pathname === "/parent/my-centre" ||
-    pathname.startsWith("/parent/account") ||
-    pathname === ENROL_PATH ||
-    pathname.startsWith(`${ENROL_PATH}/`);
+    !PARENT_PORTAL_LOCKED || isAllowedWhileLocked(pathname);
 
   if (!allowedWhileLocked) {
     return (
@@ -229,6 +225,12 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
               className="text-xs text-white/70 hover:text-white underline underline-offset-2"
             >
               My Centre
+            </Link>
+            <Link
+              href="/parent/messages"
+              className="text-xs text-white/70 hover:text-white underline underline-offset-2"
+            >
+              Messages
             </Link>
             <button
               onClick={logout}
@@ -255,24 +257,25 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
                 </p>
               </div>
 
-              <div className="bg-red-50 border-2 border-red-300 rounded-xl p-5 text-left">
-                <p className="text-base font-bold text-red-800 mb-2">
-                  Important: This app is not active yet
+              <div className="bg-red-50 dark:bg-red-950/40 border-2 border-red-300 rounded-xl p-5 text-left">
+                <p className="text-base font-bold text-red-800 dark:text-red-200 mb-2">
+                  Please don&apos;t book or pay through this app
                 </p>
-                <p className="text-sm text-red-700 leading-relaxed">
-                  We are currently <strong>not using the Amana parent app</strong> for
-                  bookings or billing. Please <strong>do not</strong> use this app to
-                  manage your bookings.
+                <p className="text-sm text-red-700 dark:text-red-300 leading-relaxed">
+                  We&apos;re <strong>not using the Amana parent app</strong> for
+                  bookings, fees or family details yet. Anything you book or
+                  change here <strong>won&apos;t reach your centre</strong>.
                 </p>
               </div>
 
               <div className="bg-brand/5 border border-brand/20 rounded-xl p-5 text-left">
                 <p className="text-sm font-bold text-foreground mb-2">
-                  Use OWNA instead
+                  Use OWNA for now
                 </p>
                 <p className="text-sm text-muted leading-relaxed mb-3">
-                  Your OWNA login details have been sent to your email.
-                  OWNA is where you manage:
+                  <strong>We&apos;ll email you new OWNA login details</strong> —
+                  keep an eye on your inbox (and your junk folder). OWNA is
+                  where you manage:
                 </p>
                 <ul className="text-sm text-muted space-y-1.5 ml-4 list-disc">
                   <li><strong>All bookings</strong> — permanent and casual</li>
@@ -280,6 +283,14 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
                   <li><strong>Family details</strong></li>
                 </ul>
               </div>
+
+              <Link
+                href="/parent/messages"
+                className="flex items-center justify-center gap-2 px-5 py-3 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-brand-hover transition-colors"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Need help? Message us
+              </Link>
 
               {/* A family still to enrol is redirected into the form by the
                   effect above — but only once /api/parent/state answers. If
@@ -351,6 +362,77 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
             </div>
           )}
         </main>
+      </div>
+    );
+  }
+
+  // Locked portal, on a page that stays open: a slim shell whose links are
+  // ONLY the open pages. The full nav would offer Bookings/Billing tabs that
+  // each lead to the "coming soon" notice — a row of dead ends.
+  if (PARENT_PORTAL_LOCKED) {
+    const links = [
+      { href: "/parent/my-centre", label: "My Centre", icon: MapPin },
+      { href: "/parent/messages", label: "Messages", icon: MessageCircle },
+      { href: "/support", label: "Help", icon: LifeBuoy },
+      { href: "/parent/account", label: "Account", icon: Settings },
+    ];
+    return (
+      <div data-v2="parent" className="parent-portal min-h-screen bg-parent-bg">
+        <header
+          className="bg-brand flex items-center gap-1 px-3 shadow-md overflow-x-auto"
+          style={{
+            paddingTop: "env(safe-area-inset-top, 0px)",
+            minHeight: "calc(3.5rem + env(safe-area-inset-top, 0px))",
+          }}
+        >
+          <Image
+            src="/logo-icon-white.svg"
+            alt="Amana OSHC"
+            width={18}
+            height={26}
+            className="mr-2 shrink-0"
+            priority
+          />
+          {links.map((l) => {
+            const active = pathname.startsWith(l.href);
+            const badge = l.href === "/parent/messages" && unreadCount > 0;
+            return (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={cn(
+                  "relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap min-h-11",
+                  active
+                    ? "bg-white/15 text-accent"
+                    : "text-white/75 hover:text-white hover:bg-white/10",
+                )}
+              >
+                <l.icon className="w-4 h-4 shrink-0" />
+                <span>{l.label}</span>
+                {badge && (
+                  <span className="absolute top-0.5 right-0 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-2xs font-bold">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+          <button
+            onClick={logout}
+            className="ml-auto pl-2 text-xs text-white/70 hover:text-white underline underline-offset-2 whitespace-nowrap min-h-11"
+          >
+            Sign out
+          </button>
+        </header>
+
+        {/* Said on every open page, not just the notice: a parent who lands
+            on My Centre from an email has never seen the notice. */}
+        <div className="bg-accent/25 border-b border-accent/60 px-4 py-2.5 text-center text-xs sm:text-sm text-foreground">
+          <strong>Please don&apos;t book or pay in this app.</strong> Bookings
+          and fees are in OWNA — we&apos;ll email you new OWNA login details.
+        </div>
+
+        <main className="max-w-2xl mx-auto px-4 py-6 pb-12">{children}</main>
       </div>
     );
   }

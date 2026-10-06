@@ -8,6 +8,13 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+// These tests exercise the booking LOGIC, which stays intact behind the
+// portal lockdown; parent-bookings-locked.test.ts covers the lock itself.
+vi.mock("@/lib/parent-portal-lockdown", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/parent-portal-lockdown")>()),
+  assertParentBookingsOpen: () => {},
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     booking: { findUnique: vi.fn(), update: vi.fn() },

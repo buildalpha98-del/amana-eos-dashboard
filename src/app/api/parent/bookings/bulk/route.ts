@@ -8,6 +8,7 @@ import { casualBookingSettingsSchema, type CasualBookingSettings, type SessionTi
 import { checkCasualBookingAllowed } from "@/lib/casual-booking-check";
 import { parseJsonField } from "@/lib/schemas/json-fields";
 import { requireRoomId } from "@/lib/room-resolver";
+import { assertParentBookingsOpen } from "@/lib/parent-portal-lockdown";
 
 const bulkBookingSchema = z.object({
   childId: z.string().min(1),
@@ -33,6 +34,8 @@ const bulkBookingSchema = z.object({
  * to match the prior `createMany + skipDuplicates` behaviour.
  */
 export const POST = withParentAuth(async (req, { parent }) => {
+  // Bookings live in OWNA while the portal is locked (parent-portal-lockdown).
+  assertParentBookingsOpen();
   const body = await parseJsonBody(req);
   const parsed = bulkBookingSchema.safeParse(body);
   if (!parsed.success) {

@@ -13,6 +13,7 @@ import {
   casualBookingSettingsSchema,
   type CasualBookingSettings,
 } from "@/lib/service-settings";
+import { assertParentBookingsOpen } from "@/lib/parent-portal-lockdown";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -64,6 +65,8 @@ async function getBookingForParent(bookingId: string, enrolmentIds: string[]) {
 // ---------------------------------------------------------------------------
 
 export const PATCH = withParentAuth(async (req, ctx) => {
+  // Bookings live in OWNA while the portal is locked (parent-portal-lockdown).
+  assertParentBookingsOpen();
   const params = await ctx.params;
   const bookingId = params?.bookingId;
   if (!bookingId) throw ApiError.badRequest("bookingId is required");
@@ -179,6 +182,8 @@ export const PATCH = withParentAuth(async (req, ctx) => {
 // ---------------------------------------------------------------------------
 
 export const DELETE = withParentAuth(async (_req, ctx) => {
+  // Bookings live in OWNA while the portal is locked (parent-portal-lockdown).
+  assertParentBookingsOpen();
   const params = await ctx.params;
   const bookingId = params?.bookingId;
   if (!bookingId) throw ApiError.badRequest("bookingId is required");
