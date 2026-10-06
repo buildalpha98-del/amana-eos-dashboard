@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
+import { NOT_CENTRE_ACCOUNT } from "@/lib/centre-account";
 
 /**
  * GET /api/cron/induction-grace
@@ -33,6 +34,7 @@ export const GET = withApiHandler(async (req) => {
       where: {
         inductionStatus: "in_training",
         inductionGraceUntil: { lt: now },
+        ...NOT_CENTRE_ACCOUNT,
       },
       data: { inductionGraceUntil: null },
     });

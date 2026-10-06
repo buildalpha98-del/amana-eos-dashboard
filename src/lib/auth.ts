@@ -60,6 +60,7 @@ export const authOptions: NextAuthOptions = {
           tokenVersion: user.tokenVersion,
           inductionStatus: user.inductionStatus,
           inductionGraceUntil: user.inductionGraceUntil,
+          isCentreAccount: user.isCentreAccount,
           mfaRequired: !!user.mfaEnabledAt,
         };
       },
@@ -88,6 +89,8 @@ export const authOptions: NextAuthOptions = {
         // Whether there is a curriculum to be gated on at all. Without this
         // the lock fires against an empty course list — see induction-lock.ts.
         token.essentialsPublished = await hasPublishedEssentials();
+        token.isCentreAccount =
+          (user as unknown as Record<string, unknown>).isCentreAccount === true;
         token.mfaRequired = (user as unknown as Record<string, unknown>).mfaRequired ?? false;
         token.mfaVerified = false;
 
@@ -140,6 +143,7 @@ export const authOptions: NextAuthOptions = {
                 state: true,
                 inductionStatus: true,
                 inductionGraceUntil: true,
+                isCentreAccount: true,
               },
             });
             if (!dbUser || !dbUser.active || dbUser.tokenVersion !== token.tokenVersion) {
@@ -159,6 +163,7 @@ export const authOptions: NextAuthOptions = {
             // is never stale — only the UI nav lock lags by this window).
             token.inductionStatus = dbUser.inductionStatus;
             token.inductionGraceUntil = dbUser.inductionGraceUntil;
+            token.isCentreAccount = dbUser.isCentreAccount;
             // Re-read on the same cadence so publishing the first essential
             // course starts gating new starters within ~5 min, and un-publishing
             // (or a fresh org with no curriculum) lifts the lock just as fast.
@@ -191,6 +196,7 @@ export const authOptions: NextAuthOptions = {
         session.user.serviceId = token.serviceId;
         session.user.state = token.state;
         session.user.inductionStatus = token.inductionStatus as string | undefined;
+        session.user.isCentreAccount = token.isCentreAccount === true;
         session.user.inductionGraceUntil =
           (token.inductionGraceUntil as string | null | undefined) ?? null;
         session.user.essentialsPublished = token.essentialsPublished as

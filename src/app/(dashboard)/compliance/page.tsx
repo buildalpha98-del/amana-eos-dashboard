@@ -390,7 +390,9 @@ function StaffComplianceView() {
   // /api/org-settings/config slice) and a collapsed "Other certificate
   // types" section. While the config is loading, getRequiredCertTypes
   // falls back to code defaults — no flicker for a default org.
-  const requiredTypes = getRequiredCertTypes(session?.user?.role, orgConfig);
+  const requiredTypes = getRequiredCertTypes(session?.user?.role, orgConfig, {
+    isCentreAccount: session?.user?.isCentreAccount,
+  });
   const optionalTypes = certTypes.filter(
     (t) => t !== "other" && !(requiredTypes as string[]).includes(t),
   );

@@ -37,7 +37,9 @@ export const GET = withApiAuth(async (_req, session, context) => {
 
   const [primaryUsers, memberships] = await Promise.all([
     prisma.user.findMany({
-      where: { serviceId, active: true },
+      // People only — the centre's shared mailbox isn't an educator to
+      // roster or count (src/lib/centre-account.ts).
+      where: { serviceId, active: true, isCentreAccount: false },
       select: {
         id: true,
         name: true,
@@ -50,7 +52,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
       orderBy: { name: "asc" },
     }),
     prisma.userServiceMembership.findMany({
-      where: { serviceId, status: "active" },
+      where: { serviceId, status: "active", user: { isCentreAccount: false } },
       include: {
         user: {
           select: {

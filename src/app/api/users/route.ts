@@ -16,6 +16,7 @@ import {
 } from "@/lib/role-enum";
 import { resolveServiceIdFilter } from "@/lib/authz-scope";
 import { generateTempPassword } from "@/lib/temp-password";
+import { centreAccountCreateFields, findCentreForEmail } from "@/lib/centre-account";
 
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -123,8 +124,13 @@ export const POST = withApiAuth(async (req, session) => {
     );
   }
 
+  // A centre's own mailbox (arkana@…) is a CENTRE ACCOUNT: attached to that
+  // centre, Director-of-Service access, and never onboarded or inducted —
+  // whatever the form said. See src/lib/centre-account.ts.
+  const centre = await findCentreForEmail(prisma, email);
+
   // Validate: staff and member roles require a serviceId
-  if ((role === "staff" || role === "member") && !serviceId) {
+  if ((role === "staff" || role === "member") && !serviceId && !centre) {
     return NextResponse.json(
       { error: "Staff and member users must be assigned to a service/centre" },
       { status: 400 }
@@ -174,6 +180,8 @@ export const POST = withApiAuth(async (req, session) => {
             ...(startDate ? { startDate: new Date(startDate) } : {}),
           }
         : {}),
+      // Last, so it overrides newStarter / role / serviceId above.
+      ...(centre ? centreAccountCreateFields(centre, role, serviceId) : {}),
     },
     select: {
       id: true,

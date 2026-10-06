@@ -24,6 +24,16 @@ export async function assignOnboardingPack(opts: {
 }) {
   const { userId, packId, dueDate, actorId } = opts;
 
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isCentreAccount: true },
+  });
+  if (target?.isCentreAccount) {
+    throw ApiError.badRequest(
+      "This is a centre account (a shared centre mailbox), so it doesn't do onboarding. Assign the pack to the person instead.",
+    );
+  }
+
   const existing = await prisma.staffOnboarding.findUnique({
     where: { userId_packId: { userId, packId } },
   });

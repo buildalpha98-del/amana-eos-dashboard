@@ -14,6 +14,8 @@ declare module "next-auth" {
       inductionGraceUntil?: string | Date | null;
       /** Is there a published essential curriculum? See `hasPublishedEssentials`. */
       essentialsPublished?: boolean;
+      /** Shared centre mailbox — see src/lib/centre-account.ts. */
+      isCentreAccount?: boolean;
     };
   }
 
@@ -27,6 +29,7 @@ declare module "next-auth" {
     inductionStatus?: InductionStatus | string;
     inductionGraceUntil?: string | Date | null;
     essentialsPublished?: boolean;
+    isCentreAccount?: boolean;
   }
 }
 
@@ -44,5 +47,6 @@ declare module "next-auth/jwt" {
      * database round trip, exactly like inductionStatus.
      */
     essentialsPublished?: boolean;
+    isCentreAccount?: boolean;
   }
 }

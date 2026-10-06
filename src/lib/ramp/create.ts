@@ -32,6 +32,14 @@ export async function createStaffRamp(
     const existing = await db.staffRamp.findUnique({ where: { userId }, select: { id: true } });
     if (existing) return { created: false, rampId: existing.id };
 
+    // A shared centre mailbox has no "first 90 days" — no weekly check-in
+    // emails to a shared inbox, no probation review for a mailbox.
+    const who = await db.user.findUnique({
+      where: { id: userId },
+      select: { isCentreAccount: true },
+    });
+    if (who?.isCentreAccount) return { created: false, rampId: null };
+
     const start = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
     const skipBefore = addDays(now, -RAMP_SKIP_PAST_DAYS);
 

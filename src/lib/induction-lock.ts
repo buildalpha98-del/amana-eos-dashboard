@@ -40,6 +40,10 @@ export const INDUCTION_ALLOWED_PREFIXES = [
   "/my-day",
   "/my-expenses",
   "/notifications",
+  // 2026-10-06, Daniel: staff can view their own service even before
+  // they've finished onboarding. Server-side centre scoping still limits
+  // WHICH service; this only stops locked-mode hiding it.
+  "/services",
 ] as const;
 
 /**
@@ -108,6 +112,8 @@ export function isInductionLocked(
      * the conservative direction, and it self-corrects on the next refresh.
      */
     essentialsPublished?: boolean;
+    /** A shared centre mailbox (src/lib/centre-account.ts) — never locked. */
+    isCentreAccount?: boolean;
   } = {},
 ): boolean {
   // 2026-10-02: induction gate disabled — staff should have full dashboard
@@ -116,6 +122,7 @@ export function isInductionLocked(
   // Edge middleware and the client Sidebar alike) and redeploying.
   if (process.env.NEXT_PUBLIC_INDUCTION_LOCK_ENABLED !== "true") return false;
   const { role, now = new Date(), essentialsPublished } = opts;
+  if (opts.isCentreAccount === true) return false; // not a person — never inducted
   if (isInductionExemptRole(role)) return false; // administers the gate
   // Nothing published to complete → nothing to lock anyone out over.
   if (essentialsPublished === false) return false;

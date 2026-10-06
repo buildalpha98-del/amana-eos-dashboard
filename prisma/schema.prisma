@@ -781,6 +781,12 @@ model User {
   startDate         DateTime?       @db.Date
   probationEndDate  DateTime?       @db.Date
 
+  /// A shared CENTRE mailbox (e.g. arkana@amanaoshc.com.au), not a person.
+  /// Never onboarded, inducted, ramped or rostered; full access to its own
+  /// centre. Set automatically when the email matches a Service.email —
+  /// see src/lib/centre-account.ts.
+  isCentreAccount Boolean @default(false)
+
   // ── Induction state machine (see src/lib/induction.ts) ──
   inductionStatus        InductionStatus @default(cleared)
   inductionDueDate       DateTime?

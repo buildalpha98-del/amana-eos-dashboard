@@ -132,9 +132,19 @@ export async function assertUserCleared(userId: string): Promise<void> {
       inductionStatus: true,
       inductionGraceUntil: true,
       inductionOverrideUntil: true,
+      isCentreAccount: true,
     },
   });
   if (!user) throw ApiError.notFound("User not found");
+
+  // A shared centre mailbox isn't a person: rostering it or clocking it in
+  // would put a phantom educator into ratios, timesheets and payroll. It is
+  // exempt from induction, NOT cleared to work shifts.
+  if (user.isCentreAccount) {
+    throw ApiError.forbidden(
+      "This is a centre account, not a person — it can't be rostered or clock in. Use the educator's own login.",
+    );
+  }
 
   if (user.inductionStatus === "cleared") return;
 
@@ -166,10 +176,18 @@ export async function assertUserCleared(userId: string): Promise<void> {
 export async function recomputeInductionState(userId: string): Promise<string> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { inductionStatus: true, inductionGraceUntil: true },
+    select: { inductionStatus: true, inductionGraceUntil: true, isCentreAccount: true },
   });
   if (!user) throw ApiError.notFound("User not found");
   if (user.inductionStatus === "cleared") return "cleared";
+  // Centre mailboxes are never inducted — clear any stray status.
+  if (user.isCentreAccount) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { inductionStatus: "cleared", inductionClearedAt: new Date() },
+    });
+    return "cleared";
+  }
 
   const { ready } = await getInductionReadiness(userId);
   const isBackfilled = Boolean(user.inductionGraceUntil);

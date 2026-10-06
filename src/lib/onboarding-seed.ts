@@ -87,6 +87,14 @@ export async function seedOnboardingPackage(
   options?: { serviceId?: string | null },
 ): Promise<void> {
   try {
+    // Centre mailboxes aren't new starters — no "complete your profile /
+    // upload your WWCC" todos. Checked HERE, not at the five call sites.
+    const target = await prisma.user.findUnique({
+      where: { id: newUserId },
+      select: { isCentreAccount: true },
+    });
+    if (target?.isCentreAccount) return;
+
     const ownerId = await getOwnerUserId();
     // 2026-05-16: pull the admin-editable welcome announcement seed from
     // OrgSettings.config.onboardingWelcome (falls back to the previous

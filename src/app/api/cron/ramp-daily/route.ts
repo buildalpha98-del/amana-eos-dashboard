@@ -10,6 +10,7 @@ import { addDays } from "@/lib/ramp/dates";
 import { createStaffRamp } from "@/lib/ramp/create";
 import { sendRampCheckpointEmail } from "@/lib/ramp/emails";
 import { resolveRampWatchers } from "@/lib/ramp/recipients";
+import { NOT_CENTRE_ACCOUNT } from "@/lib/centre-account";
 
 /**
  * GET /api/cron/ramp-daily
@@ -43,6 +44,7 @@ export const GET = withApiHandler(async (req) => {
         active: true,
         startDate: { gte: addDays(now, -RAMP_LENGTH_DAYS), lte: now },
         ramp: null,
+        ...NOT_CENTRE_ACCOUNT, // a centre mailbox has no "first 90 days"
       },
       select: { id: true, startDate: true },
     });
