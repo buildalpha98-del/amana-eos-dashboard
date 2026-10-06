@@ -24,6 +24,7 @@ export function isAllowedWhileLocked(pathname: string | null | undefined): boole
   const under = (base: string) => pathname === base || pathname.startsWith(`${base}/`);
   return (
     under("/parent/enrol") || // the form AND its thank-you page
+    pathname === "/parent/children/new" || // enrol a sibling (re-opens the form)
     under("/parent/messages") || // support stays open
     under("/parent/my-centre") ||
     under("/parent/account")

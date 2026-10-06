@@ -77,6 +77,10 @@ export async function enrolmentReceivedEmail(params: {
       as soon as it's fully up and running. You'll receive a separate
       email within 24 hours with your login details for <strong>OWNA</strong>,
       the parent app we currently use for bookings and daily updates.</p>
+      <p><strong>Claiming Child Care Subsidy?</strong> Once we confirm
+      your enrolment, Services Australia will ask you to confirm it in your
+      <strong>myGov / Centrelink online account</strong>. Please do it as
+      soon as you see it — your fees can't be subsidised until you do.</p>
       <p style="font-size:13px;color:#6b7280;">Any questions in the
       meantime, just reply to this email or contact us at
       enrolments@amanaoshc.com.au.</p>

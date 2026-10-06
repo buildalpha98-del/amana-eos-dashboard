@@ -310,14 +310,21 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
                   that call fails (retry: false) they would sit here with no
                   way forward, so the form is always one tap away. */}
               {parentState?.state !== "pending_review" &&
-                parentState?.state !== "active" && (
-                  <Link
-                    href={ENROL_PATH}
-                    className="block bg-accent/20 border border-accent rounded-xl p-4 text-sm font-medium text-foreground hover:bg-accent/30 transition-colors"
-                  >
-                    New to Amana OSHC? Start or continue your enrolment →
-                  </Link>
-                )}
+              parentState?.state !== "active" ? (
+                <Link
+                  href={ENROL_PATH}
+                  className="block bg-accent/20 border border-accent rounded-xl p-4 text-sm font-medium text-foreground hover:bg-accent/30 transition-colors"
+                >
+                  New to Amana OSHC? Start or continue your enrolment →
+                </Link>
+              ) : (
+                <Link
+                  href="/parent/children/new"
+                  className="block bg-accent/20 border border-accent rounded-xl p-4 text-sm font-medium text-foreground hover:bg-accent/30 transition-colors"
+                >
+                  Enrolling another child? Start their enrolment here →
+                </Link>
+              )}
 
               <div className="border-t border-border pt-5">
                 <p className="text-sm text-muted mb-3">

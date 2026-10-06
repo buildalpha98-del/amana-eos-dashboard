@@ -212,7 +212,12 @@ export const POST = withParentAuth(async (req, ctx) => {
       additionalNeedsDetail: c.additionalNeedsDetail ?? "",
       medicareNumber: c.medicareNumber ?? "",
       medicareExpiry: c.medicareExpiry ?? "",
+      noMedicare: c.noMedicare === true,
     },
+    // Uploaded later — staff chase it; the pack prints "to follow".
+    immunisationRecordToFollow:
+      c.immunisationRecordLater === true &&
+      !(c.uploads ?? []).some((u) => u.type === "immunisation_record"),
     // Reg 160(3)(f): who an educator must NOT release the child to. Lives
     // on the Child row too, but the pack is read from the submission.
     courtOrderRestrictedPersons:

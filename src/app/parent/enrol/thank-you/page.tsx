@@ -17,7 +17,7 @@
  * cleared and doesn't intercept this path.
  */
 
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -31,10 +31,12 @@ import {
   Mail,
   Hash,
   FileText,
+  BadgeCheck,
 } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WarmCTA } from "@/components/ui/v2";
+import { MetaPixel } from "@/components/analytics/MetaPixel";
 import { formatTime } from "@/lib/service-settings";
 import type { ServiceContent } from "@/lib/service-content-shared";
 
@@ -68,15 +70,56 @@ const isPdf = (url: string) => url.toLowerCase().split("?")[0].endsWith(".pdf");
 export default function EnrolmentThankYouPage() {
   return (
     <Suspense fallback={null}>
+      <MetaPixel />
       <ThankYouContent />
     </Suspense>
   );
+}
+
+declare global {
+  interface Window {
+    fbq?: (...args: unknown[]) => void;
+  }
+}
+
+/**
+ * Report the enrolment to Meta as a conversion — ONCE per submission (a
+ * refresh or Back must not count it twice). The retired legacy wizard did
+ * this on submit; the live form never did, so ads saw no enrolments.
+ * fbq loads after hydration, so wait briefly for it; production-only,
+ * because MetaPixel renders nothing elsewhere.
+ */
+function useEnrolmentConversion(submissionId: string | null) {
+  useEffect(() => {
+    if (!submissionId) return;
+    const key = `amana-conversion-${submissionId}`;
+    try {
+      if (window.sessionStorage.getItem(key)) return;
+    } catch {
+      // Storage blocked — firing at most once per page view is still fine.
+    }
+    let tries = 0;
+    const timer = window.setInterval(() => {
+      tries += 1;
+      if (window.fbq) {
+        window.fbq("track", "CompleteRegistration");
+        try {
+          window.sessionStorage.setItem(key, "1");
+        } catch {}
+        window.clearInterval(timer);
+      } else if (tries > 20) {
+        window.clearInterval(timer);
+      }
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [submissionId]);
 }
 
 function ThankYouContent() {
   const searchParams = useSearchParams();
   const submissionId = searchParams?.get("submissionId") ?? null;
   const serviceId = searchParams?.get("serviceId") ?? null;
+  useEnrolmentConversion(submissionId);
 
   // Only fetched to pull the one centre's custom message — the same
   // endpoint /parent/my-centre uses, so no new API surface.
@@ -122,7 +165,29 @@ function ThankYouContent() {
         )}
       </section>
 
+      {/* CCS isn't paid until the family confirms the enrolment in their
+          Centrelink account — the most common reason subsidy starts late,
+          and nothing else told them it was their step. */}
+      <section className="warm-card space-y-2 border-l-4 border-[color:var(--color-accent)]">
+        <p className="text-xs font-semibold text-[color:var(--color-muted)] uppercase tracking-wide flex items-center gap-1.5">
+          <BadgeCheck className="w-3.5 h-3.5" /> Claiming Child Care Subsidy?
+        </p>
+        <p className="text-sm text-[color:var(--color-foreground)]/85 leading-relaxed">
+          Once we confirm your enrolment, Services Australia will ask you to
+          <strong> confirm it in your myGov / Centrelink online account</strong>.
+          Please do it as soon as you see it — your fees can&apos;t be
+          subsidised until you do.
+        </p>
+      </section>
+
       {centre && <CentreDetailsCard centre={centre} />}
+
+      <Link
+        href="/parent/children/new"
+        className="block text-center text-sm font-medium text-[color:var(--color-brand)] underline underline-offset-2 min-h-11 py-2"
+      >
+        Enrolling a brother or sister too? Add another child
+      </Link>
 
       <WarmCTA icon={Home} title="Go to my portal" href="/parent" />
 

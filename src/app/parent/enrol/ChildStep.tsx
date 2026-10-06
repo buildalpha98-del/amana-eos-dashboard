@@ -152,6 +152,8 @@ export function ChildStep({
                 onChange={(e) => patch(i, { crn: e.target.value })}
               />
             </Field>
+            {!c.noMedicare && (
+              <>
             <Field id={`c${i}-medicare`} label="Medicare number" required>
               <input
                 id={`c${i}-medicare`}
@@ -185,6 +187,24 @@ export function ChildStep({
                 maxLength={7}
               />
             </Field>
+              </>
+            )}
+            <label className="sm:col-span-2 flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={c.noMedicare ?? false}
+                onChange={(e) =>
+                  patch(i, {
+                    noMedicare: e.target.checked,
+                    ...(e.target.checked ? { medicareNumber: "", medicareExpiry: "" } : {}),
+                  })
+                }
+                className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+              />
+              <span className="text-sm text-foreground">
+                My child doesn&apos;t have a Medicare card
+              </span>
+            </label>
           </div>
 
           <SectionHeading>Health &amp; medical</SectionHeading>
@@ -457,16 +477,42 @@ export function ChildStep({
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {REQUIRED_CHILD_DOCUMENTS.map((d) => (
-              <FileUploadField
-                key={d.type}
-                label={d.label}
-                type={d.type}
-                required
-                value={getUpload(i, d.type)}
-                onChange={(u) => setUpload(i, d.type, u)}
-              />
-            ))}
+            {REQUIRED_CHILD_DOCUMENTS.map((d) => {
+              const canDefer = d.type === "immunisation_record";
+              const deferred = canDefer && c.immunisationRecordLater === true;
+              const uploaded = Boolean(getUpload(i, d.type));
+              return (
+                <div key={d.type} className="space-y-2">
+                  <FileUploadField
+                    label={d.label}
+                    type={d.type}
+                    required={!deferred}
+                    hint={
+                      canDefer
+                        ? "Download it from myGov → Medicare → Immunisation history."
+                        : undefined
+                    }
+                    value={getUpload(i, d.type)}
+                    onChange={(u) => setUpload(i, d.type, u)}
+                  />
+                  {canDefer && !uploaded && (
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={deferred}
+                        onChange={(e) =>
+                          patch(i, { immunisationRecordLater: e.target.checked })
+                        }
+                        className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                      />
+                      <span className="text-xs text-muted">
+                        I don&apos;t have it yet — I&apos;ll send it later
+                      </span>
+                    </label>
+                  )}
+                </div>
+              );
+            })}
             {requiredActionPlans(c).map((d) => (
               <FileUploadField
                 key={d.type}

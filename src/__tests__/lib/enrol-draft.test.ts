@@ -16,6 +16,7 @@ import {
   stepBlocker,
   normaliseSessions,
   missingActionPlans,
+  missingRequiredDocuments,
   SESSION_ROWS,
   EMERGENCY_RELATIONSHIP_OPTIONS,
   type DraftEmergencyContact,
@@ -708,5 +709,37 @@ describe("medical action plans (reg 90/162, 2026-10-06)", () => {
       uploads: [...goodChild.uploads, plan("medical_action_plan")],
     };
     expect(missingActionPlans(c)).toHaveLength(2);
+  });
+});
+
+describe("Medicare and immunisation statement (2026-10-06)", () => {
+  it("accepts a child with no Medicare card when the family says so", () => {
+    const c = { ...goodChild, medicareNumber: "", medicareExpiry: "", noMedicare: true };
+    expect(childComplete(c)).toBe(true);
+  });
+
+  it("still needs the card details unless that box is ticked", () => {
+    const c = { ...goodChild, medicareNumber: "" };
+    expect(childComplete(c)).toBe(false);
+    expect(stepBlocker(1, { ...fullDraft, children: [c] })).toMatch(/Medicare card/);
+  });
+
+  it("lets the immunisation statement follow later", () => {
+    const c = {
+      ...goodChild,
+      uploads: goodChild.uploads.filter((u) => u.type !== "immunisation_record"),
+    };
+    expect(childComplete(c)).toBe(false);
+    expect(stepBlocker(1, { ...fullDraft, children: [c] })).toMatch(/send it later/);
+    expect(childComplete({ ...c, immunisationRecordLater: true })).toBe(true);
+  });
+
+  it("never lets the birth certificate be deferred", () => {
+    const c = {
+      ...goodChild,
+      immunisationRecordLater: true,
+      uploads: goodChild.uploads.filter((u) => u.type !== "birth_certificate"),
+    };
+    expect(missingRequiredDocuments(c).map((d) => d.type)).toEqual(["birth_certificate"]);
   });
 });

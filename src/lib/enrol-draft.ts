@@ -79,6 +79,18 @@ export interface DraftChild {
   medicareNumber?: string;
   /** MM/YYYY — cards only ever show month and year. */
   medicareExpiry?: string;
+  /**
+   * Reg 162(b) asks for a Medicare number "if available". New arrivals and
+   * some visa holders have none, and a mandatory field was a dead end.
+   */
+  noMedicare?: boolean;
+  /**
+   * The family will send the immunisation history statement later. No Jab
+   * No Play doesn't apply to OSHC (NSW/VIC), so the STATUS is still required
+   * but the document needn't stall the enrolment. Staff chase it — the
+   * pack prints "to follow".
+   */
+  immunisationRecordLater?: boolean;
 
   // ── Health screening (mirrors the NQF-standard questions) ──
   anaphylaxis?: boolean | null;
@@ -214,6 +226,12 @@ export interface DraftAgreement {
 }
 
 export interface EnrolDraft {
+  /**
+   * Set when the draft was re-opened to enrol ANOTHER child (sibling). The
+   * family's own details are carried over; the form opens on the Child
+   * step and asks them to check what was pre-filled.
+   */
+  sibling?: boolean;
   me?: DraftMe;
   children?: DraftChild[];
   contacts?: DraftContacts;
@@ -454,6 +472,17 @@ export function formatMedicareExpiry(raw: string): string {
 }
 
 /** Has this child's document `type` been uploaded? */
+/** Required documents still to upload, honouring "I'll send it later". */
+export function missingRequiredDocuments(
+  c: DraftChild | undefined,
+): { type: string; label: string }[] {
+  return REQUIRED_CHILD_DOCUMENTS.filter(
+    (d) =>
+      !hasUpload(c, d.type) &&
+      !(d.type === "immunisation_record" && c?.immunisationRecordLater === true),
+  );
+}
+
 export function hasUpload(c: DraftChild | undefined, type: string): boolean {
   return (c?.uploads ?? []).some((u) => u.type === type && filled(u.url));
 }
@@ -475,10 +504,11 @@ export function childComplete(c: DraftChild | undefined): boolean {
   // well as present: "2030" or "5/30" would be accepted as "filled" and
   // then be useless to the person reading the record.
   const medicare =
-    filled(c.medicareNumber) && medicareExpiryValid(c.medicareExpiry);
+    c.noMedicare === true ||
+    (filled(c.medicareNumber) && medicareExpiryValid(c.medicareExpiry));
 
   const documents =
-    REQUIRED_CHILD_DOCUMENTS.every((d) => hasUpload(c, d.type)) &&
+    missingRequiredDocuments(c).length === 0 &&
     missingActionPlans(c).length === 0;
 
   // Reg 162(a): the practitioner's name, ADDRESS and phone must all be on
@@ -777,8 +807,11 @@ export function stepBlocker(step: number, d: EnrolDraft): string | null {
       if (!filled(c.schoolName) || !filled(c.classroom)) {
         return `Please select ${who}'s school and enter their classroom.`;
       }
-      if (!filled(c.medicareNumber) || !medicareExpiryValid(c.medicareExpiry)) {
-        return `Please enter ${who}'s Medicare number and expiry as MM/YYYY.`;
+      if (
+        c.noMedicare !== true &&
+        (!filled(c.medicareNumber) || !medicareExpiryValid(c.medicareExpiry))
+      ) {
+        return `Please enter ${who}'s Medicare number and expiry as MM/YYYY — or tick "doesn't have a Medicare card".`;
       }
       const screening = [
         c.anaphylaxis,
@@ -802,13 +835,15 @@ export function stepBlocker(step: number, d: EnrolDraft): string | null {
       ) {
         return `Please add ${who}'s doctor — name, phone and address.`;
       }
-      const missing = REQUIRED_CHILD_DOCUMENTS.filter(
-        (doc) => !hasUpload(c, doc.type),
-      );
+      const missing = missingRequiredDocuments(c);
       if (missing.length) {
         return `Please upload ${who}'s ${missing
           .map((m) => m.label.toLowerCase())
-          .join(" and ")}. A photo from your phone is fine.`;
+          .join(" and ")}. A photo from your phone is fine.${
+          missing.some((m) => m.type === "immunisation_record")
+            ? " If you don't have the immunisation statement yet, tick \"I'll send it later\"."
+            : ""
+        }`;
       }
       const plans = missingActionPlans(c);
       if (plans.length) {
