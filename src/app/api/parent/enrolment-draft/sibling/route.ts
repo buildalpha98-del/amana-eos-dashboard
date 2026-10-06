@@ -47,6 +47,7 @@ function fromSubmission(sub: {
       postcode: str(pp.postcode),
       crn: str(pp.crn),
       languageSpoken: str(pp.languageSpoken),
+      preferredLanguage: str(pp.preferredLanguage),
       culturalBackground: str(pp.culturalBackground),
     },
     contacts: {

@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 import {
+  convertCentreMailboxUser,
   centreAccountCreateFields,
   findCentreForEmail,
   isCentreAccount,
@@ -106,5 +107,46 @@ describe("never rostered as a person", () => {
       isCentreAccount: false,
     } as never);
     await expect(assertUserCleared("u-person")).resolves.toBeUndefined();
+  });
+});
+
+describe("saving a centre's email", () => {
+  it("converts the user who already logs in with it", async () => {
+    prismaMock.user.findFirst.mockResolvedValue({ id: "u1", role: "staff", serviceId: null } as never);
+    prismaMock.user.update.mockResolvedValue({} as never);
+    prismaMock.staffRamp.updateMany.mockResolvedValue({ count: 1 } as never);
+
+    await expect(
+      convertCentreMailboxUser(prismaMock as never, "svc-ark", "Arkana@AmanaOSHC.com.au"),
+    ).resolves.toEqual({ converted: "u1" });
+
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: "u1" },
+      data: expect.objectContaining({
+        isCentreAccount: true,
+        inductionStatus: "cleared",
+        serviceId: "svc-ark",
+        role: "member",
+      }),
+    });
+    expect(prismaMock.staffRamp.updateMany).toHaveBeenCalled();
+  });
+
+  it("keeps a senior role and an existing centre", async () => {
+    prismaMock.user.findFirst.mockResolvedValue({ id: "u2", role: "admin", serviceId: "svc-other" } as never);
+    prismaMock.user.update.mockResolvedValue({} as never);
+    prismaMock.staffRamp.updateMany.mockResolvedValue({ count: 0 } as never);
+    await convertCentreMailboxUser(prismaMock as never, "svc-ark", "x@amanaoshc.com.au");
+    const data = (prismaMock.user.update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    expect(data.role).toBeUndefined();
+    expect(data.serviceId).toBe("svc-other");
+  });
+
+  it("does nothing when nobody uses that address", async () => {
+    prismaMock.user.findFirst.mockResolvedValue(null);
+    await expect(
+      convertCentreMailboxUser(prismaMock as never, "svc-ark", "nobody@amanaoshc.com.au"),
+    ).resolves.toEqual({ converted: null });
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 });

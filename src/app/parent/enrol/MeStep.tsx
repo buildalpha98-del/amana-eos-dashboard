@@ -18,6 +18,7 @@ import {
 import { AUSTRALIAN_STATES } from "@/components/enrol/types";
 import { field } from "./ui";
 import { crnRequired } from "@/lib/enrol-draft";
+import { PREFERRED_LANGUAGES } from "@/lib/languages";
 
 export interface MeData {
   firstName?: string;
@@ -26,6 +27,7 @@ export interface MeData {
   dob?: string;
   gender?: string;
   languageSpoken?: string;
+  preferredLanguage?: string;
   culturalBackground?: string;
   crn?: string;
   street?: string;
@@ -131,6 +133,24 @@ export function MeStep({
           </label>
           <input id="me-lang" className={field} value={data.languageSpoken ?? ""}
             onChange={(e) => onChange({ languageSpoken: e.target.value })} placeholder="English" />
+        </div>
+        {/* Separate from "language spoken at home" (a regulation record):
+            this is the language the family wants to HEAR FROM US in, and it
+            drives which version of our information they receive. */}
+        <div>
+          <label htmlFor="me-pref-lang" className="block text-sm font-medium text-foreground mb-1">
+            Preferred language for information from us <span className="text-red-500">*</span>
+          </label>
+          <select id="me-pref-lang" className={field} value={data.preferredLanguage ?? ""}
+            onChange={(e) => onChange({ preferredLanguage: e.target.value })}>
+            <option value="">Select...</option>
+            {PREFERRED_LANGUAGES.map((l) => (
+              <option key={l} value={l}>{l}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-muted">
+            We&apos;ll send you information in this language where we can.
+          </p>
         </div>
         {/* Reg 160(3)(i): the record must show the cultural background of
             the child AND their parents. */}

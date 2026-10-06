@@ -156,3 +156,46 @@ describe("upsertContactsFromSubmission", () => {
     expect(result.secondary?.id).toBe("cc-s");
   });
 });
+
+describe("preferred language on the family's contact (2026-10-06)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const created = () =>
+    (prismaMock.centreContact.create.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+
+  it("stores the primary carer's chosen language", async () => {
+    prismaMock.centreContact.findFirst.mockResolvedValue(null);
+    prismaMock.centreContact.create.mockResolvedValue({ id: "cc" });
+    await upsertParentContact(prismaMock, {
+      blob: { email: "a@x.test", preferredLanguage: "Arabic" },
+      serviceId: "s1",
+      enrolmentId: "e1",
+      role: "primary",
+    });
+    expect(created().preferredLanguage).toBe("Arabic");
+  });
+
+  it("infers it from 'language spoken at home' for older enrolments", async () => {
+    prismaMock.centreContact.findFirst.mockResolvedValue(null);
+    prismaMock.centreContact.create.mockResolvedValue({ id: "cc" });
+    await upsertParentContact(prismaMock, {
+      blob: { email: "a@x.test", languageSpoken: "Urdu and English" },
+      serviceId: "s1",
+      enrolmentId: "e1",
+      role: "primary",
+    });
+    expect(created().preferredLanguage).toBe("Urdu");
+  });
+
+  it("leaves the second carer's contact alone", async () => {
+    prismaMock.centreContact.findFirst.mockResolvedValue(null);
+    prismaMock.centreContact.create.mockResolvedValue({ id: "cc" });
+    await upsertParentContact(prismaMock, {
+      blob: { email: "b@x.test", preferredLanguage: "Arabic" },
+      serviceId: "s1",
+      enrolmentId: "e1",
+      role: "secondary",
+    });
+    expect(created()).not.toHaveProperty("preferredLanguage");
+  });
+});

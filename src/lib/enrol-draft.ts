@@ -38,6 +38,8 @@ export interface DraftMe {
   dob?: string;
   gender?: string;
   languageSpoken?: string;
+  /** PREFERRED_LANGUAGES label (src/lib/languages.ts) — language for our material. */
+  preferredLanguage?: string;
   /**
    * MANDATORY for the primary carer. Daniel, 2026-07-30: "the CRN for the
    * parent, especially the primary carer, is not optional — they must give
@@ -444,6 +446,7 @@ export function meComplete(me: DraftMe | undefined): boolean {
     filled(me.suburb) &&
     (filled(me.crn) || !crnRequired(me)) &&
     filled(me.culturalBackground) &&
+    filled(me.preferredLanguage) &&
     me.isLegalCarer === true &&
     ccsAnswered({ approved: me.ccsApproved ?? null, applied: me.ccsApplied ?? null })
   );
@@ -780,6 +783,9 @@ export function stepBlocker(step: number, d: EnrolDraft): string | null {
       }
       if (!filled(me.culturalBackground)) {
         return "Please select your cultural background.";
+      }
+      if (!filled(me.preferredLanguage)) {
+        return "Please choose the language you'd like to receive information in.";
       }
       if (!me.isLegalCarer) {
         return "Please confirm you're the parent or legal carer.";

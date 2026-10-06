@@ -6,6 +6,7 @@
  */
 
 import type { Prisma } from "@prisma/client";
+import { isPreferredLanguage, languageFromText } from "@/lib/languages";
 
 type PrismaLike = Prisma.TransactionClient | typeof import("@/lib/prisma").prisma;
 
@@ -20,6 +21,8 @@ interface ParentBlob {
   occupation?: string;
   workplace?: string;
   workPhone?: string;
+  preferredLanguage?: string;
+  languageSpoken?: string;
   address?: {
     street?: string;
     suburb?: string;
@@ -83,6 +86,17 @@ export async function upsertParentContact(
     address: normaliseAddress(opts.blob.address) ?? undefined,
     parentRole: opts.role,
     sourceEnrolmentId: opts.enrolmentId,
+    // The family's language lives on the PRIMARY carer's contact. Picked
+    // from the dropdown, else inferred from "language spoken at home" for
+    // families who enrolled before it. Undefined = leave as it is.
+    ...(opts.role === "primary"
+      ? {
+          preferredLanguage:
+            (isPreferredLanguage(opts.blob.preferredLanguage)
+              ? opts.blob.preferredLanguage
+              : languageFromText(opts.blob.languageSpoken)) ?? undefined,
+        }
+      : {}),
   } as const;
 
   const existing = await tx.centreContact.findFirst({

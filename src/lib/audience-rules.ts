@@ -41,6 +41,7 @@
  */
 
 import { z } from "zod";
+import { PREFERRED_LANGUAGES } from "@/lib/languages";
 import type { Prisma, PrismaClient } from "@prisma/client";
 
 /** Whitelisted `CentreContact.status` values — see the file-level doc comment. */
@@ -64,6 +65,12 @@ export const audienceRulesSchema = z
   .object({
     serviceIds: z.array(z.string().min(1)).optional(),
     statuses: z.array(z.enum(AUDIENCE_STATUSES)).optional(),
+    /**
+     * Families whose preferred language is one of these (PREFERRED_LANGUAGES
+     * labels) — e.g. send the Arabic info pack to Arabic-preferring
+     * families. Contacts with no language recorded are NOT included.
+     */
+    languages: z.array(z.enum(PREFERRED_LANGUAGES)).optional(),
     /** Date-only or full ISO string. Combines with joinedBefore into one createdAt range. */
     joinedAfter: parseableDate.optional(),
     /** Date-only or full ISO string. Combines with joinedAfter into one createdAt range. */
@@ -100,6 +107,10 @@ export function compileAudienceWhere(
 
   if (rules.statuses && rules.statuses.length > 0) {
     where.status = { in: rules.statuses };
+  }
+
+  if (rules.languages && rules.languages.length > 0) {
+    where.preferredLanguage = { in: rules.languages };
   }
 
   if (rules.joinedAfter || rules.joinedBefore) {
