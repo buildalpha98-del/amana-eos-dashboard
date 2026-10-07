@@ -26,6 +26,10 @@ export interface PolicyDocumentListItem {
   state: string | null;
   /** Staff must sign it; false = read-only reference (most SharePoint docs). */
   requiresAcknowledgement: boolean;
+  /** Read the short version + sign at onboarding. */
+  keyPolicy: boolean;
+  /** Admin override of the short version (null = built-in default). */
+  summary: string | null;
   fromSharepoint: boolean;
   createdAt: string;
   updatedAt: string;
@@ -182,6 +186,8 @@ export function useUpdatePolicy() {
       description?: string | null;
       category?: PolicyDocumentCategory;
       requiresAcknowledgement?: boolean;
+      keyPolicy?: boolean;
+      summary?: string | null;
     }) =>
       mutateApi<PolicyDocumentListItem>(`/api/policies/${id}`, {
         method: "PATCH",

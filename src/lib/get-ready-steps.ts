@@ -22,6 +22,7 @@ export type GetReadyStepKey =
   | "details"
   | "documents"
   | "reading"
+  | "policies"
   | "training"
   | "practical";
 
@@ -59,8 +60,13 @@ export interface GetReadyInput {
   reading: {
     handbook: boolean;
     amanaWay: boolean;
-    /** Titles of required policies (that exist) still unsigned. */
-    policiesOutstanding: string[];
+  };
+  /** KEY policies (Code of Conduct, Privacy …) — short version + signature. */
+  keyPolicies: {
+    /** How many exist; 0 hides the step (never "done" by default). */
+    total: number;
+    /** Titles not yet signed at their current version. */
+    outstanding: string[];
   };
   training: { total: number; remaining: number };
   practical: { items: number; allSigned: boolean };
@@ -135,32 +141,35 @@ export function buildGetReadySteps(input: GetReadyInput): GetReadyStep[] {
     href: "/compliance",
   });
 
-  // 4. Reading — the Staff Handbook, The Amana Way, and any required policies
+  // 4. Reading — the Staff Handbook and The Amana Way
   const toRead: string[] = [];
   if (!input.reading.handbook) toRead.push("the Staff Handbook");
   if (!input.reading.amanaWay) toRead.push("The Amana Way");
-  const toSign = input.reading.policiesOutstanding;
   steps.push({
     key: "reading",
     label: "Read the Staff Handbook and The Amana Way",
-    hint:
-      toRead.length || toSign.length
-        ? [
-            toRead.length ? `Still to read: ${listOf(toRead)}` : "",
-            toSign.length ? `Still to sign: ${listOf(toSign)}` : "",
-          ]
-            .filter(Boolean)
-            .join(" · ")
-        : "Read and confirmed",
-    done: toRead.length === 0 && toSign.length === 0,
-    href: !input.reading.handbook
-      ? "/tools/handbook"
-      : !input.reading.amanaWay
-        ? "/tools/the-amana-way"
-        : "/policies",
+    hint: toRead.length ? `Still to read: ${listOf(toRead)}` : "Read and confirmed",
+    done: toRead.length === 0,
+    href: !input.reading.handbook ? "/tools/handbook" : "/tools/the-amana-way",
   });
 
-  // 5. Essential training (only when there is any)
+  // 5. Key policies — read the short version and sign (only when some exist:
+  // a step is never ticked just because there was nothing to sign).
+  if (input.keyPolicies.total > 0) {
+    const outstanding = input.keyPolicies.outstanding;
+    steps.push({
+      key: "policies",
+      label:
+        input.keyPolicies.total === 1 ? "Sign the key policy" : `Sign the ${input.keyPolicies.total} key policies`,
+      hint: outstanding.length
+        ? `Still to sign: ${listOf(outstanding)} — a short version of each, about 3 minutes`
+        : "Signed",
+      done: outstanding.length === 0,
+      href: "/my-training#key-policies",
+    });
+  }
+
+  // 6. Essential training (only when there is any)
   if (input.training.total > 0) {
     const left = input.training.remaining;
     steps.push({
@@ -175,7 +184,7 @@ export function buildGetReadySteps(input: GetReadyInput): GetReadyStep[] {
     });
   }
 
-  // 6. Week-1 practical (new starters only)
+  // 7. Week-1 practical (new starters only)
   if (newStarter && input.practical.items > 0) {
     steps.push({
       key: "practical",

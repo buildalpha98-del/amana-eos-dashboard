@@ -22,6 +22,7 @@
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { uploadFile } from "@/lib/storage/uploadFile";
+import { isDefaultKeyPolicyTitle } from "@/lib/key-policy-summaries";
 import { downloadAsPdf, isGraphConfigured, listFolderFiles, type DriveItem } from "@/lib/ms-graph";
 
 /** Shared Documents drive on amanaoshcptyltd.sharepoint.com (from the search API). */
@@ -205,7 +206,14 @@ export async function runSharepointPolicySync(
           // A reading library by default — an admin decides which synced
           // policies staff must sign (requiresAcknowledgement).
           const created = await tx.policyDocument.create({
-            data: { title: parsed.title, ...meta, requiresAcknowledgement: false },
+            data: {
+              title: parsed.title,
+              ...meta,
+              // Code of Conduct / Privacy arrive as KEY policies (short
+              // version + signature at onboarding); the rest are reference.
+              requiresAcknowledgement: isDefaultKeyPolicyTitle(parsed.title),
+              keyPolicy: isDefaultKeyPolicyTitle(parsed.title),
+            },
             select: { id: true },
           });
           documentId = created.id;

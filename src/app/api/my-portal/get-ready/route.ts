@@ -13,7 +13,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { getOrgSettings } from "@/lib/org-settings";
 import { getRequiredCertTypes } from "@/lib/cert-requirements";
 import type { RequiredCertType } from "@/lib/org-settings-shared";
-import { outstandingRequiredPolicies } from "@/lib/induction";
+import { outstandingRequiredPolicies, REQUIRED_POLICY_TITLES } from "@/lib/induction";
 import { ensureEssentialEnrolments } from "@/lib/essential-enrolment";
 import { getEmployee, isConfigured } from "@/lib/eh-payroll";
 import { logger } from "@/lib/logger";
@@ -67,7 +67,7 @@ export const GET = withApiAuth(async (_req, session) => {
   // induction gate has always asked for).
   const requiredTypes: string[] = required.length ? required : ["wwcc"];
 
-  const [contract, certs, policiesOutstanding, essentials, practicalItems, signoffs] =
+  const [contract, certs, policiesOutstanding, keyPolicyCount, essentials, practicalItems, signoffs] =
     await Promise.all([
       prisma.employmentContract.findFirst({
         where: { userId, status: "active" },
@@ -83,6 +83,12 @@ export const GET = withApiAuth(async (_req, session) => {
         select: { type: true },
       }),
       outstandingRequiredPolicies(userId),
+      prisma.policyDocument.count({
+        where: {
+          isArchived: false,
+          OR: [{ keyPolicy: true }, { title: { in: REQUIRED_POLICY_TITLES } }],
+        },
+      }),
       prisma.lMSCourse.findMany({
         where: { track: "essential", status: "published", deleted: false },
         select: { id: true, enrollments: { where: { userId }, select: { status: true } } },
@@ -126,8 +132,8 @@ export const GET = withApiAuth(async (_req, session) => {
     reading: {
       handbook: !!user.handbookReadAt,
       amanaWay: !!user.amanaWayReadAt,
-      policiesOutstanding,
     },
+    keyPolicies: { total: keyPolicyCount, outstanding: policiesOutstanding },
     training: {
       total: essentials.length,
       remaining: essentials.filter((c) => c.enrollments[0]?.status !== "completed").length,

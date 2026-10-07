@@ -15,6 +15,10 @@ const updatePolicySchema = z.object({
   // Whether staff must sign it (2026-10-08 — SharePoint-synced policies
   // arrive as a reading library; admins switch this on per policy).
   requiresAcknowledgement: z.boolean().optional(),
+  // Key policy: short version + signature at onboarding. Setting it on
+  // also turns on requiresAcknowledgement (a key policy must be signed).
+  keyPolicy: z.boolean().optional(),
+  summary: z.string().max(20_000).nullable().optional(),
 });
 
 // GET /api/policies/[id] — single document with full version history and
@@ -97,12 +101,21 @@ export const PATCH = withApiAuth(
       description?: string | null;
       category?: PolicyDocumentCategory;
       requiresAcknowledgement?: boolean;
+      keyPolicy?: boolean;
+      summary?: string | null;
     } = {};
     if (parsed.data.title !== undefined) data.title = parsed.data.title;
     if (parsed.data.description !== undefined) data.description = parsed.data.description;
     if (parsed.data.category !== undefined) data.category = parsed.data.category;
     if (parsed.data.requiresAcknowledgement !== undefined) {
       data.requiresAcknowledgement = parsed.data.requiresAcknowledgement;
+    }
+    if (parsed.data.keyPolicy !== undefined) {
+      data.keyPolicy = parsed.data.keyPolicy;
+      if (parsed.data.keyPolicy) data.requiresAcknowledgement = true;
+    }
+    if (parsed.data.summary !== undefined) {
+      data.summary = parsed.data.summary?.trim() || null;
     }
 
     if (Object.keys(data).length === 0) {

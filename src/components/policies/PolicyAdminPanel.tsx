@@ -163,6 +163,7 @@ export function PolicyAdminPanel() {
               onToggleSigning={() =>
                 update.mutate({ id: d.id, requiresAcknowledgement: !d.requiresAcknowledgement })
               }
+              onToggleKey={() => update.mutate({ id: d.id, keyPolicy: !d.keyPolicy })}
             />
           ))}
         </ul>
@@ -196,6 +197,7 @@ function DocumentRow({
   onArchive,
   onViewAcks,
   onToggleSigning,
+  onToggleKey,
 }: {
   doc: PolicyDocumentListItem;
   onUploadVersion: () => void;
@@ -203,6 +205,7 @@ function DocumentRow({
   onArchive: () => void;
   onViewAcks: () => void;
   onToggleSigning: () => void;
+  onToggleKey: () => void;
 }) {
   return (
     <li className="flex flex-wrap items-center gap-3 p-4">
@@ -222,6 +225,11 @@ function DocumentRow({
           {doc.state && (
             <span className="text-2xs uppercase tracking-wide font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded">
               {doc.state} only
+            </span>
+          )}
+          {doc.keyPolicy && (
+            <span className="text-2xs uppercase tracking-wide font-medium text-brand bg-accent/30 px-1.5 py-0.5 rounded">
+              key policy
             </span>
           )}
           {doc.fromSharepoint && (
@@ -258,6 +266,13 @@ function DocumentRow({
             className="rounded"
           />
           Staff must sign
+        </label>
+        <label
+          className="flex items-center gap-1.5 text-xs text-foreground/80 mr-1"
+          title="New starters read a short version and sign it before their first shift"
+        >
+          <input type="checkbox" checked={doc.keyPolicy} onChange={onToggleKey} className="rounded" />
+          Key policy
         </label>
         <Button
           variant="secondary"
@@ -456,11 +471,15 @@ function EditDocumentDialog({ doc, onClose }: { doc: PolicyDocumentListItem; onC
   const [title, setTitle] = useState(doc.title);
   const [description, setDescription] = useState(doc.description ?? "");
   const [category, setCategory] = useState<PolicyDocumentCategory>(doc.category);
+  // The short version new starters read before signing. Empty = use the
+  // built-in default for this policy (src/lib/key-policy-summaries.ts).
+  const [summary, setSummary] = useState(doc.summary ?? "");
 
   const dirty =
     title.trim() !== doc.title ||
     (description.trim() || null) !== doc.description ||
-    category !== doc.category;
+    category !== doc.category ||
+    (summary.trim() || null) !== doc.summary;
   const valid = title.trim().length > 0 && dirty;
 
   async function submit() {
@@ -474,6 +493,7 @@ function EditDocumentDialog({ doc, onClose }: { doc: PolicyDocumentListItem; onC
             ? description.trim() || null
             : undefined,
         category: category !== doc.category ? category : undefined,
+        summary: (summary.trim() || null) !== doc.summary ? summary.trim() || null : undefined,
       });
       onClose();
     } catch {
@@ -516,6 +536,18 @@ function EditDocumentDialog({ doc, onClose }: { doc: PolicyDocumentListItem; onC
               ))}
             </select>
           </Field>
+          {doc.keyPolicy && (
+            <Field label="Short version for new starters (optional)">
+              <textarea
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                rows={8}
+                maxLength={20000}
+                placeholder="Leave empty to use the built-in short version. Markdown: ### headings, - bullets, **bold**."
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm font-mono"
+              />
+            </Field>
+          )}
           <p className="text-xs text-muted">
             Editing metadata does <strong>not</strong> create a new version or
             invalidate existing acknowledgements. To replace the PDF, use

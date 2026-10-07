@@ -1,5 +1,6 @@
 "use client";
 
+import { KeyPoliciesSection } from "@/components/policies/KeyPoliciesSection";
 import Link from "next/link";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
@@ -251,6 +252,9 @@ export function MyTrainingContent() {
           </div>
         </section>
       )}
+
+      {/* Key policies — read the short version and sign (2026-10-08) */}
+      <KeyPoliciesSection />
 
       {/* Essential courses */}
       {essential.length > 0 && (

@@ -47,8 +47,13 @@ export const REQUIRED_POLICY_TITLES = [
  * account that had signed nothing, because neither policy was published).
  */
 export async function outstandingRequiredPolicies(userId: string): Promise<string[]> {
+  // Key policies (flagged on the Policies page; Code of Conduct + Privacy
+  // by default) — plus the legacy hard-coded titles for older data.
   const policies = await prisma.policyDocument.findMany({
-    where: { title: { in: REQUIRED_POLICY_TITLES }, isArchived: false },
+    where: {
+      isArchived: false,
+      OR: [{ keyPolicy: true }, { title: { in: REQUIRED_POLICY_TITLES } }],
+    },
     select: { title: true, currentVersionId: true },
   });
   if (policies.length === 0) return [];

@@ -8,7 +8,8 @@ function input(over: Partial<GetReadyInput> = {}): GetReadyInput {
     details: { missing: [] },
     payroll: { applicable: true, linked: true, complete: true },
     documents: { missing: [] },
-    reading: { handbook: true, amanaWay: true, policiesOutstanding: [] },
+    reading: { handbook: true, amanaWay: true },
+    keyPolicies: { total: 0, outstanding: [] },
     training: { total: 0, remaining: 0 },
     practical: { items: 0, allSigned: false },
     ...over,
@@ -23,13 +24,14 @@ describe("buildGetReadySteps", () => {
         details: { missing: ["a profile photo", "an emergency contact"] },
         payroll: { applicable: true, linked: false, complete: false },
         documents: { missing: ["Working With Children Check", "First Aid"] },
-        reading: { handbook: false, amanaWay: false, policiesOutstanding: [] },
+        reading: { handbook: false, amanaWay: false },
+        keyPolicies: { total: 2, outstanding: ["Code of Conduct Policy", "Privacy and Confidentiality Policy"] },
         training: { total: 8, remaining: 8 },
         practical: { items: 6, allSigned: false },
       }),
     );
     expect(steps.map((s) => s.key)).toEqual([
-      "contract", "details", "documents", "reading", "training", "practical",
+      "contract", "details", "documents", "reading", "policies", "training", "practical",
     ]);
     expect(steps.every((s) => !s.done)).toBe(true);
   });
@@ -68,33 +70,46 @@ describe("buildGetReadySteps", () => {
 
   describe("reading", () => {
     it("asks for the Staff Handbook and The Amana Way", () => {
-      const s = step(input({ reading: { handbook: false, amanaWay: false, policiesOutstanding: [] } }), "reading");
+      const s = step(input({ reading: { handbook: false, amanaWay: false } }), "reading");
       expect(s?.done).toBe(false);
       expect(s?.hint).toBe("Still to read: the Staff Handbook and The Amana Way");
       expect(s?.href).toBe("/tools/handbook");
     });
 
     it("sends them to The Amana Way once the handbook is done", () => {
-      expect(step(input({ reading: { handbook: true, amanaWay: false, policiesOutstanding: [] } }), "reading")?.href).toBe(
+      expect(step(input({ reading: { handbook: true, amanaWay: false } }), "reading")?.href).toBe(
         "/tools/the-amana-way",
       );
     });
 
-    it("folds outstanding required policies into the same step", () => {
-      const s = step(
-        input({ reading: { handbook: true, amanaWay: true, policiesOutstanding: ["Privacy Policy"] } }),
-        "reading",
-      );
+    // The bug Daniel hit: "Read and sign two policies" showed ticked on an
+    // account that had signed nothing, because the policies didn't exist.
+    it("is not done until both are read", () => {
+      const s = step(input({ reading: { handbook: false, amanaWay: true } }), "reading");
       expect(s?.done).toBe(false);
-      expect(s?.hint).toBe("Still to sign: Privacy Policy");
-      expect(s?.href).toBe("/policies");
+    });
+  });
+
+  describe("key policies", () => {
+    it("asks for each unsigned key policy by name and links My Training", () => {
+      const s = step(
+        input({ keyPolicies: { total: 2, outstanding: ["Privacy and Confidentiality Policy"] } }),
+        "policies",
+      );
+      expect(s?.label).toBe("Sign the 2 key policies");
+      expect(s?.done).toBe(false);
+      expect(s?.hint).toMatch(/^Still to sign: Privacy and Confidentiality Policy/);
+      expect(s?.href).toBe("/my-training#key-policies");
+    });
+
+    it("is done once all are signed", () => {
+      expect(step(input({ keyPolicies: { total: 2, outstanding: [] } }), "policies")?.done).toBe(true);
     });
 
     // The bug Daniel hit: "Read and sign two policies" showed ticked on an
     // account that had signed nothing, because the policies didn't exist.
-    it("is never done just because there was nothing to check", () => {
-      const s = step(input({ reading: { handbook: false, amanaWay: true, policiesOutstanding: [] } }), "reading");
-      expect(s?.done).toBe(false);
+    it("is hidden — never ticked — when there are no key policies at all", () => {
+      expect(step(input({ keyPolicies: { total: 0, outstanding: [] } }), "policies")).toBeUndefined();
     });
   });
 
@@ -127,12 +142,13 @@ describe("buildGetReadySteps", () => {
       input({
         details: { missing: ["a profile photo"] },
         documents: { missing: ["CPR"] },
-        reading: { handbook: false, amanaWay: false, policiesOutstanding: [] },
+        reading: { handbook: false, amanaWay: false },
+        keyPolicies: { total: 1, outstanding: ["Code of Conduct Policy"] },
         training: { total: 2, remaining: 2 },
       }),
     );
     for (const s of steps.filter((x) => !x.waiting)) {
-      expect(s.href, s.key).toMatch(/^\/(my-contract|profile(#payroll)?|compliance|tools\/handbook|tools\/the-amana-way|policies|my-training)$/);
+      expect(s.href, s.key).toMatch(/^\/(my-contract|profile(#payroll)?|compliance|tools\/handbook|tools\/the-amana-way|my-training(#key-policies)?)$/);
     }
   });
 });

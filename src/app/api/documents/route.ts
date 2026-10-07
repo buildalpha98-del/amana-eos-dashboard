@@ -83,6 +83,10 @@ const { searchParams } = new URL(req.url);
     serviceId: staffServiceId,
   });
   if (Object.keys(visibility).length) and.push(visibility);
+  // Admins browse personal files (contracts, certificates…) in the per-staff
+  // "Staff files" folders now (2026-10-08), so the library itself shows only
+  // org documents — unless they search, which still finds everything.
+  else if (!search) and.push({ assignedToId: null });
 
   if (isServiceScoped) {
     // Educators and Directors never see another centre's documents.
