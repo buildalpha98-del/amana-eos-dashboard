@@ -142,3 +142,19 @@ export async function canViewStaffDocument(
 
   return canAccessStaffProfile(viewerId, viewerRole, assignee);
 }
+
+/**
+ * Can this viewer see a CENTRE's staff records (the service "Documents →
+ * Staff files" tab, 2026-10-08)? Admin tier anywhere; a Director of Service
+ * for the centres in their scope (primary, managed, or active membership —
+ * the same scope canAccessStaffProfile uses). Everyone else: no.
+ */
+export async function canViewServiceRecords(
+  viewerId: string,
+  viewerRole: string | null,
+  serviceId: string,
+): Promise<boolean> {
+  if (isAdminRole(viewerRole)) return true;
+  if (viewerRole !== STAFF_RECORD_SUPERVISOR_ROLE) return false;
+  return (await directorCentreScope(viewerId)).has(serviceId);
+}

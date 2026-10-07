@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { streamStoredFile } from "@/lib/blob-proxy";
+import { canAccessStaffProfile, canViewServiceRecords } from "@/lib/staff-access";
 
 /**
  * GET /api/compliance/[id]/download
@@ -45,11 +46,23 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
 
   let canAccess = isOwn || isAdmin;
   if (!canAccess && viewerRole === "member") {
-    const viewer = await prisma.user.findUnique({
-      where: { id: viewerId },
-      select: { serviceId: true },
-    });
-    canAccess = !!viewer?.serviceId && viewer.serviceId === cert.serviceId;
+    if (cert.userId) {
+      // A personal certificate (WWCC, first aid…) usually has NO serviceId,
+      // so the old "cert.serviceId === my centre" check locked Directors out
+      // of their own staff's files. Same rule as the staff profile: they can
+      // see it when they share a centre with its owner (2026-10-08 — the
+      // service Documents tab, for regulator spot checks).
+      const owner = await prisma.user.findUnique({
+        where: { id: cert.userId },
+        select: { id: true, serviceId: true },
+      });
+      canAccess = !!owner && (await canAccessStaffProfile(viewerId, viewerRole, owner));
+    }
+    // A certificate filed under the Director's own centre stays visible too
+    // (the original rule — kept so nothing that opened before stops opening).
+    if (!canAccess && cert.serviceId) {
+      canAccess = await canViewServiceRecords(viewerId, viewerRole, cert.serviceId);
+    }
   }
 
   if (!canAccess) throw ApiError.forbidden();
