@@ -26,7 +26,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import { useAssistant, type ChatMessage } from "@/hooks/useAssistant";
-import { useSidebar } from "@/components/layout/SidebarContext";
 import { cn } from "@/lib/utils";
 
 const HIDE_ON_PATHS = ["/assistant", "/login"];
@@ -34,7 +33,6 @@ const HIDE_ON_PATHS = ["/assistant", "/login"];
 export function FloatingChatWidget() {
   const pathname = usePathname();
   const { status } = useSession();
-  const { collapsed } = useSidebar();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   // Help menu → "Ask Amana AI".
@@ -66,11 +64,7 @@ export function FloatingChatWidget() {
 
   return (
     <>
-      {/* Trigger button — anchored bottom-LEFT but offset past the
-          fixed sidebar so it isn't hidden behind it. Sidebar is
-          w-64 expanded / w-16 collapsed on desktop, hidden on
-          mobile — match each so the pill stays visible on every
-          page. */}
+      {/* Trigger button — bottom-right (see the className note). */}
       {!open && (
         <button
           type="button"
@@ -84,9 +78,11 @@ export function FloatingChatWidget() {
             // of the Home tab (2026-10-07). It's the only floating button on
             // phones — feedback moved into the Help (?) menu (2026-10-08).
             "right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))]",
-            "md:right-auto md:bottom-4",
-            // Desktop: bottom-left, clear of the sidebar
-            collapsed ? "md:left-20" : "md:left-72",
+            // Desktop: bottom-RIGHT, just above the feedback bubble. It used
+            // to sit bottom-left beside the sidebar, where it covered the
+            // bottom of the service page's own menu — Daniel couldn't see
+            // the Documents section under it (2026-10-08).
+            "md:right-6 md:bottom-20",
           )}
         >
           <Bot className="w-5 h-5" />
@@ -96,8 +92,7 @@ export function FloatingChatWidget() {
         </button>
       )}
 
-      {/* Panel — bottom-LEFT corner, full-screen on mobile, offset
-          past the sidebar on desktop. */}
+      {/* Panel — full-screen on phones, bottom-right on larger screens. */}
       {open && (
         <div
           className={cn(
@@ -106,8 +101,8 @@ export function FloatingChatWidget() {
             "inset-0 sm:inset-auto",
             // Desktop: bottom-left anchored panel, offset past sidebar;
             // above the bottom tab bar while it's visible (sm–md)
-            "sm:bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-4 sm:w-[420px] sm:h-[600px] sm:max-h-[80vh] sm:rounded-xl",
-            collapsed ? "sm:left-20" : "sm:left-72",
+            "sm:bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 sm:w-[420px] sm:h-[600px] sm:max-h-[80vh] sm:rounded-xl",
+            "sm:right-4 md:right-6",
           )}
           role="dialog"
           aria-label="AI assistant"

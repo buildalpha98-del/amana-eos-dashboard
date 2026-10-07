@@ -12,6 +12,8 @@ import {
   Home,
   Wallet,
   CalendarDays,
+  Bell,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotificationCount } from "@/hooks/useNotifications";
@@ -54,7 +56,18 @@ export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
   const role = session?.user?.role as string | undefined;
   // While the session loads, render the generic set — a one-render swap
   // at 4 items is imperceptible and avoids a blank bar.
-  const tabs = role && STAFF_TIER_ROLES.has(role) ? staffTabs : defaultTabs;
+  // A shared centre mailbox (isCentreAccount) works from its centre's page —
+  // the same short set as its sidebar (2026-10-08).
+  const centreServiceId = session?.user?.isCentreAccount ? session.user.serviceId : null;
+  const tabs = session?.user?.isCentreAccount
+    ? [
+        { href: centreServiceId ? `/services/${centreServiceId}` : "/services", label: "My Centre", icon: Building2 },
+        { href: "/notifications", label: "Alerts", icon: Bell },
+        { href: "/handbook", label: "Handbook", icon: BookOpen },
+      ]
+    : role && STAFF_TIER_ROLES.has(role)
+      ? staffTabs
+      : defaultTabs;
 
   const { data: unreadData } = useUnreadNotificationCount({
     refetchInterval: NOTIFICATION_POLL_INTERVAL_MS,

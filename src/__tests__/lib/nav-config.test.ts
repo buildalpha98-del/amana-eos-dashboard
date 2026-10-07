@@ -38,6 +38,20 @@ describe("filterNavItems", () => {
     }
   });
 
+  // 2026-10-08: shared centre mailboxes (isCentreAccount) aren't people.
+  it("a centre account gets only My Centre, Notifications and Handbook & Help", () => {
+    const items = filterNavItems(navItems, "member" as Role, { isCentreAccount: true, serviceId: "svc-1" });
+    expect(items.map((i) => i.href)).toEqual(["/services/svc-1", "/notifications", "/handbook"]);
+    expect(items[0].label).toBe("My Centre");
+    expect(items.some((i) => ["/my-pay", "/my-leave", "/my-expenses", "/my-contract", "/compliance"].includes(i.href))).toBe(false);
+  });
+
+  it("keys on the centre-account flag, not the role — a real Director keeps their menu", () => {
+    const items = filterNavItems(navItems, "member" as Role, { isCentreAccount: false, serviceId: "svc-1" });
+    expect(items.map((i) => i.href)).toContain("/roster");
+    expect(items.map((i) => i.href)).toContain("/my-pay");
+  });
+
   it("labels compliance as the staff member's own", () => {
     const item = filterNavItems(navItems, "staff" as Role).find((i) => i.href === "/compliance");
     expect(item?.label).toBe("My Compliance");

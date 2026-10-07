@@ -11,7 +11,19 @@
  */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Award, CheckCircle2, ChevronDown, ChevronRight, FileText, Search } from "lucide-react";
+import Link from "next/link";
+import {
+  AlertTriangle,
+  Award,
+  BookOpen,
+  BookOpenCheck,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  Route,
+  Search,
+} from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -45,7 +57,36 @@ export function ServiceDocumentsTab({
   sub: string;
 }) {
   if (sub === "staff-files") return <ServiceStaffFiles serviceId={serviceId} />;
+  if (sub === "handbook") return <HandbookLinks />;
   return <PolicyStaffPanel stateFilter={serviceState} />;
+}
+
+// The three documents every educator is asked to read — here too, so a
+// centre has them to hand alongside its policies (2026-10-08).
+const HANDBOOK_LINKS = [
+  { href: "/tools/handbook", title: "Staff Handbook", detail: "How we work — for every educator", icon: BookOpen },
+  { href: "/tools/the-amana-way", title: "The Amana Way", detail: "Our values and what makes Amana special", icon: BookOpenCheck },
+  { href: "/tools/amana-way-one-pager", title: "Amana Proven Process", detail: "Our 7-stage journey from enrolment to ongoing care", icon: Route },
+] as const;
+
+function HandbookLinks() {
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      {HANDBOOK_LINKS.map(({ href, title, detail, icon: Icon }) => (
+        <Link
+          key={href}
+          href={href}
+          className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 hover:border-brand/30 hover:shadow-md transition-all"
+        >
+          <Icon className="w-5 h-5 text-brand shrink-0 mt-0.5" aria-hidden />
+          <span>
+            <span className="block text-sm font-semibold text-foreground">{title}</span>
+            <span className="block text-xs text-muted mt-0.5">{detail}</span>
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
 }
 
 function ServiceStaffFiles({ serviceId }: { serviceId: string }) {
