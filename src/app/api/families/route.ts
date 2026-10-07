@@ -9,13 +9,15 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { getParentEnrolmentState } from "@/lib/parent-enrolment-state";
 import { findEnrolmentsForEmails } from "@/lib/parent-account";
-import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { ADMIN_ROLES, isAdminRole } from "@/lib/role-permissions";
+import { getCentreScope } from "@/lib/centre-scope";
+import { ApiError } from "@/lib/api-error";
 
 /** How many families one request returns. Reported when it's hit. */
 const ACCOUNT_PAGE_SIZE = 200;
 
 export const GET = withApiAuth(
-  async (req) => {
+  async (req, session) => {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search")?.trim().toLowerCase();
     // Scopes the list to families with a child at this service — the
@@ -23,6 +25,16 @@ export const GET = withApiAuth(
     // account query, because the account→service link runs through the
     // enrolment's children, not a column on ParentAccount.
     const serviceId = searchParams.get("serviceId")?.trim() || null;
+
+    // 2026-10-08: a Director (incl. a centre's own login) may list ONE
+    // centre's families — the centre page's Families tab. It toasted
+    // "forbidden" for every coordinator. The org-wide list stays admin-only.
+    if (!isAdminRole(session!.user.role)) {
+      const { serviceIds } = await getCentreScope(session);
+      if (!serviceId || (serviceIds !== null && !serviceIds.includes(serviceId))) {
+        throw ApiError.forbidden("You can only see families at your own centre");
+      }
+    }
 
     /**
      * When a centre is asked for, find whose families they are FIRST.
@@ -223,5 +235,6 @@ export const GET = withApiAuth(
       truncated: accounts.length === ACCOUNT_PAGE_SIZE,
     });
   },
-  { roles: [...ADMIN_ROLES] },
+  // Directors: one centre only — enforced at the top of the handler.
+  { roles: [...ADMIN_ROLES, "member"] },
 );

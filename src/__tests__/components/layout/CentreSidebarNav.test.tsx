@@ -43,6 +43,16 @@ describe("CentreSidebarNav", () => {
     );
   });
 
+  it("can collapse the section you're in", () => {
+    search = new URLSearchParams("tab=overview&sub=forms");
+    render(<CentreSidebarNav serviceId="svc-1" collapsed={false} />);
+    expect(screen.getByRole("link", { name: "Forms & excursions" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Service Information/ }));
+    expect(screen.queryByRole("link", { name: "Forms & excursions" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Service Information/ }));
+    expect(screen.getByRole("link", { name: "Forms & excursions" })).toBeTruthy();
+  });
+
   it("closes the phone drawer when a page is chosen", () => {
     const onNavigate = vi.fn();
     render(<CentreSidebarNav serviceId="svc-1" collapsed={false} onNavigate={onNavigate} />);

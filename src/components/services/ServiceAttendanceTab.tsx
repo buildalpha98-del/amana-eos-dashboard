@@ -1,5 +1,7 @@
 "use client";
 
+import { useSession } from "next-auth/react";
+import { isAdminRole } from "@/lib/role-permissions";
 import { Fragment, useState, useMemo, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -355,6 +357,9 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
   const [rosterSuggestion, setRosterSuggestion] = useState<string | null>(null);
   const [rosterExpanded, setRosterExpanded] = useState(true);
 
+  const { data: session } = useSession();
+  const canForecast = isAdminRole(session?.user?.role);
+
   const handleForecast = async () => {
     setForecastLoading(true);
     try {
@@ -647,6 +652,9 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                 size="sm"
                 section="hr"
               />
+              {/* demand-forecast is admin-only server-side — don't offer a
+                  button that can only fail for a Director (2026-10-08). */}
+              {canForecast && (
               <button
                 onClick={handleForecast}
                 disabled={forecastLoading}
@@ -665,6 +673,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                 )}
                 {forecastLoading ? "Forecasting..." : "Forecast Demand"}
               </button>
+              )}
             </div>
           </div>
           <ResponsiveContainer width="100%" height={260}>
