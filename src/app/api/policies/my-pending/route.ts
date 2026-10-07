@@ -13,6 +13,8 @@ export const GET = withApiAuth(async (req, session) => {
     where: {
       isArchived: false,
       currentVersionId: { not: null },
+      // Only documents staff must sign count as pending (2026-10-08).
+      requiresAcknowledgement: true,
     },
     include: {
       currentVersion: {

@@ -22,6 +22,11 @@ export interface PolicyDocumentListItem {
   description: string | null;
   category: PolicyDocumentCategory;
   isArchived: boolean;
+  /** "NSW" / "VIC" for state-specific policies. */
+  state: string | null;
+  /** Staff must sign it; false = read-only reference (most SharePoint docs). */
+  requiresAcknowledgement: boolean;
+  fromSharepoint: boolean;
   createdAt: string;
   updatedAt: string;
   currentVersion: PolicyVersionSummary | null;
@@ -176,6 +181,7 @@ export function useUpdatePolicy() {
       title?: string;
       description?: string | null;
       category?: PolicyDocumentCategory;
+      requiresAcknowledgement?: boolean;
     }) =>
       mutateApi<PolicyDocumentListItem>(`/api/policies/${id}`, {
         method: "PATCH",
@@ -253,5 +259,37 @@ export function useMyPendingPoliciesCount() {
     queryFn: () => fetchApi<{ count: number }>("/api/policies/my-pending/count"),
     staleTime: 60_000,
     retry: 2,
+  });
+}
+
+/** Pull the SharePoint master folder into the library (admin). Each run
+ *  converts a batch; `pending` > 0 means press again. */
+export function useSyncSharepointPolicies() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      mutateApi<{
+        created: number;
+        updated: number;
+        unchanged: number;
+        archived: number;
+        pending: number;
+        failed: { title: string; error: string }[];
+      }>("/api/policies/sharepoint-sync", { method: "POST" }),
+    onSuccess: (r) => {
+      queryClient.invalidateQueries({ queryKey: ["policies"] });
+      const parts = [
+        r.created && `${r.created} new`,
+        r.updated && `${r.updated} updated`,
+        r.archived && `${r.archived} archived`,
+        r.failed.length && `${r.failed.length} couldn't be converted`,
+      ].filter(Boolean);
+      toast({
+        description:
+          (parts.length ? `SharePoint sync: ${parts.join(", ")}.` : "Already up to date with SharePoint.") +
+          (r.pending ? ` ${r.pending} more to bring in — press Sync again.` : ""),
+      });
+    },
+    onError: (err: Error) => toast({ variant: "destructive", description: err.message }),
   });
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { CheckCircle2, AlertCircle, FileText, ExternalLink } from "lucide-react";
+import { CheckCircle2, AlertCircle, FileText, ExternalLink, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -28,20 +29,42 @@ const READ_DELAY_SECONDS = 5;
 // Staff library — list of docs with status + viewer launcher
 // ═══════════════════════════════════════════════════════════════════════════
 
+type Filter = "all" | "to_sign" | "policy" | "procedure";
+
+const needsSigning = (d: PolicyDocumentListItem) =>
+  d.requiresAcknowledgement && !d.myAcknowledgedAt;
+
 export function PolicyStaffPanel() {
   const { data: docs, isLoading, isError, error, refetch } = usePolicies();
   const [openDocId, setOpenDocId] = useState<string | null>(null);
+  // 2026-10-08: the whole SharePoint library lands here (~100 documents),
+  // so staff get a search box and filters; only documents marked
+  // "requires acknowledgement" ask for a signature.
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
 
-  // Unacknowledged docs first, then alphabetical within each group.
+  const toSignCount = useMemo(() => (docs ?? []).filter(needsSigning).length, [docs]);
+
+  // Ones to sign first, then alphabetical.
   const sorted = useMemo(() => {
     if (!docs) return [];
-    return [...docs].sort((a, b) => {
-      const aPending = !a.myAcknowledgedAt;
-      const bPending = !b.myAcknowledgedAt;
-      if (aPending !== bPending) return aPending ? -1 : 1;
-      return a.title.localeCompare(b.title);
-    });
-  }, [docs]);
+    const q = query.trim().toLowerCase();
+    return docs
+      .filter((d) =>
+        filter === "to_sign"
+          ? needsSigning(d)
+          : filter === "policy" || filter === "procedure"
+            ? d.category === filter
+            : true,
+      )
+      .filter((d) => !q || `${d.title} ${d.description ?? ""}`.toLowerCase().includes(q))
+      .sort((a, b) => {
+        const aPending = needsSigning(a);
+        const bPending = needsSigning(b);
+        if (aPending !== bPending) return aPending ? -1 : 1;
+        return a.title.localeCompare(b.title);
+      });
+  }, [docs, query, filter]);
 
   const openDoc = openDocId ? sorted.find((d) => d.id === openDocId) ?? null : null;
 
@@ -67,7 +90,7 @@ export function PolicyStaffPanel() {
     );
   }
 
-  if (sorted.length === 0) {
+  if (!docs || docs.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border bg-muted/30 p-12 text-center">
         <FileText className="mx-auto h-8 w-8 text-muted" />
@@ -78,13 +101,57 @@ export function PolicyStaffPanel() {
     );
   }
 
+  const chips: { key: Filter; label: string }[] = [
+    { key: "all", label: `All (${docs.length})` },
+    ...(toSignCount ? [{ key: "to_sign" as const, label: `To sign (${toSignCount})` }] : []),
+    { key: "policy", label: "Policies" },
+    { key: "procedure", label: "Procedures" },
+  ];
+
   return (
     <>
-      <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-        {sorted.map((d) => (
-          <StaffRow key={d.id} doc={d} onOpen={() => setOpenDocId(d.id)} />
-        ))}
-      </ul>
+      <div className="space-y-3 mb-3">
+        <label className="relative block">
+          <span className="sr-only">Search policies and procedures</span>
+          <Search className="h-4 w-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" aria-hidden />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search, e.g. sun safe, medication, excursions"
+            className="w-full rounded-lg border border-border bg-card pl-9 pr-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+          />
+        </label>
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter">
+          {chips.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => setFilter(c.key)}
+              aria-pressed={filter === c.key}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                filter === c.key
+                  ? "border-brand bg-brand text-white"
+                  : "border-border bg-card text-muted hover:text-foreground",
+              )}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {sorted.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted">
+          Nothing matches “{query}”.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+          {sorted.map((d) => (
+            <StaffRow key={d.id} doc={d} onOpen={() => setOpenDocId(d.id)} />
+          ))}
+        </ul>
+      )}
       {openDoc && (
         <PolicyViewerModal
           doc={openDoc}
@@ -120,9 +187,9 @@ function StaffRow({
             <span className="text-2xs uppercase tracking-wide font-medium text-muted bg-muted/50 px-1.5 py-0.5 rounded">
               {CATEGORY_LABEL[doc.category]}
             </span>
-            {doc.currentVersion && (
+            {doc.state && (
               <span className="text-2xs uppercase tracking-wide font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded">
-                v{doc.currentVersion.versionNumber}
+                {doc.state} only
               </span>
             )}
           </div>
@@ -130,7 +197,7 @@ function StaffRow({
             <p className="mt-1 text-xs text-muted line-clamp-1">{doc.description}</p>
           )}
         </div>
-        {acked ? (
+        {!doc.requiresAcknowledgement ? null : acked ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950/50 px-2 py-1 text-2xs font-medium text-emerald-700 dark:text-emerald-300">
             <CheckCircle2 className="h-3 w-3" />
             Acknowledged
@@ -158,15 +225,18 @@ function PolicyViewerModal({
   onClose: () => void;
 }) {
   const ack = useAcknowledgePolicy();
+  // Reference-only documents (most of the SharePoint library) have no
+  // acknowledge step at all.
+  const signable = doc.requiresAcknowledgement;
   const [secondsLeft, setSecondsLeft] = useState(
-    doc.myAcknowledgedAt ? 0 : READ_DELAY_SECONDS,
+    doc.myAcknowledgedAt || !signable ? 0 : READ_DELAY_SECONDS,
   );
 
   // Countdown — only when the user has not already acknowledged this version.
   // The interval is created ONCE when the gate starts (not re-created every
   // tick); the functional decrement self-clears at zero.
   useEffect(() => {
-    if (doc.myAcknowledgedAt) return;
+    if (doc.myAcknowledgedAt || !signable) return;
     const t = window.setInterval(() => {
       setSecondsLeft((s) => {
         if (s <= 1) {
@@ -177,7 +247,7 @@ function PolicyViewerModal({
       });
     }, 1000);
     return () => window.clearInterval(t);
-  }, [doc.myAcknowledgedAt]);
+  }, [doc.myAcknowledgedAt, signable]);
 
   const acked = !!doc.myAcknowledgedAt;
   const canAck = !acked && secondsLeft === 0;
@@ -245,7 +315,9 @@ function PolicyViewerModal({
           )}
 
           <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 md:px-6 md:py-4">
-            {acked ? (
+            {!signable ? (
+              <p className="text-xs text-muted">For reference — no signature needed.</p>
+            ) : acked ? (
               <div className="inline-flex items-center gap-2 text-sm text-emerald-700">
                 <CheckCircle2 className="h-4 w-4" />
                 You acknowledged this on{" "}
@@ -272,7 +344,7 @@ function PolicyViewerModal({
               >
                 Close
               </button>
-              {!acked && (
+              {signable && !acked && (
                 <Button
                   variant="primary"
                   size="md"

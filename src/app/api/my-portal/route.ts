@@ -145,7 +145,7 @@ const userId = session!.user.id;
 
     // 5. Active policy documents with their current version
     prisma.policyDocument.findMany({
-      where: { isArchived: false, currentVersionId: { not: null } },
+      where: { isArchived: false, currentVersionId: { not: null }, requiresAcknowledgement: true },
       select: {
         id: true,
         title: true,

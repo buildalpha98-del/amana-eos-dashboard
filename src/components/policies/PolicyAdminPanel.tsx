@@ -8,6 +8,7 @@ import {
   Archive,
   Users,
   FileText,
+  RefreshCw,
   Loader2,
   CheckCircle2,
 } from "lucide-react";
@@ -23,6 +24,7 @@ import {
   usePolicies,
   useCreatePolicy,
   useUpdatePolicy,
+  useSyncSharepointPolicies,
   useUploadPolicyVersion,
   useArchivePolicy,
   usePolicyAcknowledgements,
@@ -69,10 +71,15 @@ export function PolicyAdminPanel() {
     includeArchived: showArchived,
   });
 
+  const sync = useSyncSharepointPolicies();
+  const update = useUpdatePolicy();
+  const [query, setQuery] = useState("");
+
   const visible = useMemo(() => {
     if (!docs) return [];
-    return docs;
-  }, [docs]);
+    const q = query.trim().toLowerCase();
+    return q ? docs.filter((d) => d.title.toLowerCase().includes(q)) : docs;
+  }, [docs, query]);
 
   return (
     <div className="space-y-4">
@@ -97,15 +104,36 @@ export function PolicyAdminPanel() {
             />
             Show archived
           </label>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search"
+            aria-label="Search documents"
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm min-h-[40px]"
+          />
         </div>
-        <Button
-          variant="primary"
-          size="md"
-          iconLeft={<Plus className="w-4 h-4" />}
-          onClick={() => setUploadOpen(true)}
-        >
-          New document
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* 2026-10-08: SharePoint is where policies are written; this
+              pulls the master folder in (also runs nightly). */}
+          <Button
+            variant="secondary"
+            size="md"
+            iconLeft={<RefreshCw className={sync.isPending ? "w-4 h-4 animate-spin" : "w-4 h-4"} />}
+            onClick={() => sync.mutate()}
+            disabled={sync.isPending}
+          >
+            {sync.isPending ? "Syncing…" : "Sync from SharePoint"}
+          </Button>
+          <Button
+            variant="primary"
+            size="md"
+            iconLeft={<Plus className="w-4 h-4" />}
+            onClick={() => setUploadOpen(true)}
+          >
+            New document
+          </Button>
+        </div>
       </header>
 
       {isLoading ? (
@@ -132,6 +160,9 @@ export function PolicyAdminPanel() {
               onEdit={() => setEditingDoc(d)}
               onArchive={() => setArchivingDoc(d)}
               onViewAcks={() => setAcksDoc(d)}
+              onToggleSigning={() =>
+                update.mutate({ id: d.id, requiresAcknowledgement: !d.requiresAcknowledgement })
+              }
             />
           ))}
         </ul>
@@ -164,12 +195,14 @@ function DocumentRow({
   onEdit,
   onArchive,
   onViewAcks,
+  onToggleSigning,
 }: {
   doc: PolicyDocumentListItem;
   onUploadVersion: () => void;
   onEdit: () => void;
   onArchive: () => void;
   onViewAcks: () => void;
+  onToggleSigning: () => void;
 }) {
   return (
     <li className="flex flex-wrap items-center gap-3 p-4">
@@ -186,6 +219,16 @@ function DocumentRow({
           <span className="text-2xs uppercase tracking-wide font-medium text-muted bg-muted/50 px-1.5 py-0.5 rounded">
             {categoryLabel(doc.category)}
           </span>
+          {doc.state && (
+            <span className="text-2xs uppercase tracking-wide font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded">
+              {doc.state} only
+            </span>
+          )}
+          {doc.fromSharepoint && (
+            <span className="text-2xs uppercase tracking-wide font-medium text-muted bg-surface px-1.5 py-0.5 rounded">
+              SharePoint
+            </span>
+          )}
           {doc.currentVersion ? (
             <span className="text-2xs uppercase tracking-wide font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded">
               v{doc.currentVersion.versionNumber}
@@ -207,12 +250,22 @@ function DocumentRow({
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
+        <label className="flex items-center gap-1.5 text-xs text-foreground/80 mr-1">
+          <input
+            type="checkbox"
+            checked={doc.requiresAcknowledgement}
+            onChange={onToggleSigning}
+            className="rounded"
+          />
+          Staff must sign
+        </label>
         <Button
           variant="secondary"
           size="sm"
           iconLeft={<Upload className="w-3.5 h-3.5" />}
           onClick={onUploadVersion}
-          disabled={doc.isArchived}
+          disabled={doc.isArchived || doc.fromSharepoint}
+          title={doc.fromSharepoint ? "Update it in SharePoint — the next sync brings the new version in" : undefined}
         >
           Upload new version
         </Button>
