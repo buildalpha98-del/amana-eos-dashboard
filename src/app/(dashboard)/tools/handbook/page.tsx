@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requirePageSession } from "@/lib/server-auth";
+import { ReadConfirmBar } from "@/components/handbook/ReadConfirmBar";
 import { HandbookContentClient } from "./HandbookContentClient";
 
 export const metadata = { title: "Staff Handbook" };
@@ -16,12 +17,18 @@ export default async function StaffHandbookPage() {
   const role = session.user.role ?? null;
   const canEdit = role === "owner" || role === "admin";
 
-  const row = await prisma.amanaHandbookContent.findUnique({ where: { id: SINGLETON_ID } });
+  const [row, me] = await Promise.all([
+    prisma.amanaHandbookContent.findUnique({ where: { id: SINGLETON_ID } }),
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { handbookReadAt: true } }),
+  ]);
 
   return (
+    <>
+    <ReadConfirmBar doc="handbook" label="the Staff Handbook" alreadyRead={!!me?.handbookReadAt} />
     <HandbookContentClient
       initialOverrides={((row?.data ?? {}) as Record<string, string>) || {}}
       canEdit={canEdit}
     />
+    </>
   );
 }

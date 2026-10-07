@@ -38,6 +38,33 @@ export const REQUIRED_POLICY_TITLES = [
   "Privacy Policy",
 ];
 
+/**
+ * Titles of the REQUIRED_POLICY_TITLES the user hasn't acknowledged (current
+ * version). Only policies that EXIST count — so "no blocker" can mean
+ * "nothing to sign", which is why the My Portal checklist asks this
+ * directly instead of reading "done" from a missing blocker (2026-10-07:
+ * Daniel's checklist showed "Read and sign two policies" ticked on an
+ * account that had signed nothing, because neither policy was published).
+ */
+export async function outstandingRequiredPolicies(userId: string): Promise<string[]> {
+  const policies = await prisma.policyDocument.findMany({
+    where: { title: { in: REQUIRED_POLICY_TITLES }, isArchived: false },
+    select: { title: true, currentVersionId: true },
+  });
+  if (policies.length === 0) return [];
+  const currentVersionIds = policies
+    .map((p) => p.currentVersionId)
+    .filter((v): v is string => Boolean(v));
+  const acks = await prisma.policyDocumentAcknowledgement.findMany({
+    where: { userId, versionId: { in: currentVersionIds } },
+    select: { versionId: true },
+  });
+  const ackedVersions = new Set(acks.map((a) => a.versionId));
+  return policies
+    .filter((p) => !p.currentVersionId || !ackedVersions.has(p.currentVersionId))
+    .map((p) => p.title);
+}
+
 export async function getInductionReadiness(
   userId: string,
 ): Promise<{ ready: boolean; blockers: Blocker[] }> {
@@ -79,29 +106,13 @@ export async function getInductionReadiness(
   }
 
   // 3. Required policy acknowledgements (current version of each).
-  const policies = await prisma.policyDocument.findMany({
-    where: { title: { in: REQUIRED_POLICY_TITLES }, isArchived: false },
-    select: { title: true, currentVersionId: true },
-  });
-  if (policies.length > 0) {
-    const currentVersionIds = policies
-      .map((p) => p.currentVersionId)
-      .filter((v): v is string => Boolean(v));
-    const acks = await prisma.policyDocumentAcknowledgement.findMany({
-      where: { userId, versionId: { in: currentVersionIds } },
-      select: { versionId: true },
+  const unacked = await outstandingRequiredPolicies(userId);
+  if (unacked.length > 0) {
+    blockers.push({
+      kind: "policies",
+      label: `${unacked.length} policy acknowledgement${unacked.length > 1 ? "s" : ""} outstanding`,
+      href: "/policies",
     });
-    const ackedVersions = new Set(acks.map((a) => a.versionId));
-    const unacked = policies.filter(
-      (p) => !p.currentVersionId || !ackedVersions.has(p.currentVersionId),
-    );
-    if (unacked.length > 0) {
-      blockers.push({
-        kind: "policies",
-        label: `${unacked.length} policy acknowledgement${unacked.length > 1 ? "s" : ""} outstanding`,
-        href: "/policies",
-      });
-    }
   }
 
   // 4. Profile completeness — photo, phone, at least one emergency contact.

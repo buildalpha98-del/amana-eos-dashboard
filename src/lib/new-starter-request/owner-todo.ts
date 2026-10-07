@@ -48,6 +48,9 @@ export interface OwnerTodoInput {
   createdById: string;
   serviceId: string | null;
   expectedStartDate: Date;
+  /** Payroll was set up automatically (src/lib/eh-onboarding.ts) — the
+   *  to-do then only covers the contract. Omitted = still a manual step. */
+  payrollSetUp?: boolean;
 }
 
 export async function createOnboardingOwnerTodo(
@@ -79,12 +82,17 @@ export async function createOnboardingOwnerTodo(
     const dueDate =
       input.expectedStartDate < threeDays ? input.expectedStartDate : threeDays;
 
+    const payrollDone = input.payrollSetUp === true;
     await db.todo.create({
       data: {
-        title: `Onboard ${input.fullName} — Employment Hero + contract`,
+        title: payrollDone
+          ? `Onboard ${input.fullName} — contract`
+          : `Onboard ${input.fullName} — Employment Hero + contract`,
         description:
           `${input.fullName} has been added to the onboarding list and their dashboard account is created.\n\n` +
-          `- Set them up in Employment Hero payroll\n` +
+          (payrollDone
+            ? `- Employment Hero: done automatically — they've been emailed EH's setup link for tax, bank and super\n`
+            : `- Set them up in Employment Hero payroll\n`) +
           `- Prepare and issue their employment contract\n\n` +
           `Start date: ${input.expectedStartDate.toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}`,
         assigneeId: owner.id,
@@ -98,7 +106,9 @@ export async function createOnboardingOwnerTodo(
     await notifyUsers(db, [owner.id], {
       type: NOTIFICATION_TYPES.NEW_STARTER_REQUEST_SUBMITTED,
       title: "New starter to onboard",
-      body: `${input.fullName} is starting — Employment Hero + contract are yours`,
+      body: payrollDone
+        ? `${input.fullName} is starting — their contract is yours (payroll is set up)`
+        : `${input.fullName} is starting — Employment Hero + contract are yours`,
       link: `/team?tab=onboarding&open=${input.requestId}`,
     });
   } catch (err) {

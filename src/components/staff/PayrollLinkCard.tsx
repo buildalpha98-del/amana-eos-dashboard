@@ -22,7 +22,7 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Link as LinkIcon, Loader2, X } from "lucide-react";
+import { CheckCircle2, Link as LinkIcon, Loader2, Send, X } from "lucide-react";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 
@@ -86,6 +86,29 @@ export function PayrollLinkCard({
     },
   });
 
+  // 2026-10-07: one click instead of copying the EH id by hand — finds
+  // them in EH by email, or creates them there and sends EH's own setup
+  // email (tax file declaration, bank, super). See src/lib/eh-onboarding.ts.
+  const setupMutation = useMutation<
+    { status: string; ehEmployeeId: number | null; message: string },
+    Error,
+    { resend?: boolean }
+  >({
+    mutationFn: ({ resend }) =>
+      mutateApi("/api/eh-payroll/setup", {
+        method: "POST",
+        body: { userId: targetUserId, resend },
+      }),
+    onSuccess: (data) => {
+      if (data.ehEmployeeId !== null) {
+        setOptimistic({ employeeId: data.ehEmployeeId, ehName: null });
+      }
+      toast({ description: data.message });
+      qc.invalidateQueries();
+    },
+    onError: (err) => toast({ variant: "destructive", description: err.message }),
+  });
+
   const handleLink = () => {
     const n = Number(inputValue.trim());
     if (!Number.isFinite(n) || n <= 0) {
@@ -117,8 +140,9 @@ export function PayrollLinkCard({
             Employment Hero link
           </p>
           <p className="text-sm text-muted mt-1">
-            Type {targetUserName}&apos;s EH Payroll employee ID. The dashboard
-            verifies it against Employment Hero before saving.
+            {isLinked
+              ? `${targetUserName} is connected to Employment Hero payroll.`
+              : `Set ${targetUserName} up in Employment Hero in one click, or link an existing record by its ID.`}
           </p>
         </div>
         {isLinked && (
@@ -144,6 +168,21 @@ export function PayrollLinkCard({
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setupMutation.mutate({ resend: true })}
+              disabled={setupMutation.isPending}
+              className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md border border-border hover:bg-surface disabled:opacity-50"
+              title="Re-send Employment Hero's setup email (tax, bank, super)"
+              data-testid="payroll-setup-resend"
+            >
+              {setupMutation.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Send className="w-3.5 h-3.5" />
+              )}
+              Re-send setup email
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -172,6 +211,30 @@ export function PayrollLinkCard({
           </div>
         </div>
       ) : (
+        <div className="space-y-3">
+        {!editing && (
+          <div className="rounded-md bg-surface/60 p-3">
+            <button
+              type="button"
+              onClick={() => setupMutation.mutate({})}
+              disabled={setupMutation.isPending}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand/90 transition-colors disabled:opacity-50"
+              data-testid="payroll-setup"
+            >
+              {setupMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              {setupMutation.isPending ? "Setting up…" : "Set up in Employment Hero"}
+            </button>
+            <p className="mt-1.5 text-xs text-muted">
+              Links them if Employment Hero already has someone with their email.
+              Otherwise creates them there and emails Employment Hero&apos;s setup
+              link, where they enter their tax file declaration, bank and super.
+            </p>
+          </div>
+        )}
         <div className="flex flex-wrap items-end gap-2">
           <div className="flex-1 min-w-[180px]">
             <label
@@ -233,6 +296,7 @@ export function PayrollLinkCard({
               {linkMutation.isPending ? "Verifying…" : "Link & sync"}
             </button>
           </div>
+        </div>
         </div>
       )}
     </div>

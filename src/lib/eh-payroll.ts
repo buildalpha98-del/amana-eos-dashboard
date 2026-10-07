@@ -196,7 +196,9 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
     return res as unknown as T;
   }
 
-  return (await res.json()) as T;
+  // Some writes (e.g. initiateselfservice) answer 200 with an empty body.
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 // ─── Business + connection ───────────────────────────────────────────
@@ -818,4 +820,201 @@ export async function attachExpenseReceipt(
     throw new EhPayrollError(res.status, body);
   }
   return (await res.json()) as EhExpenseRequest;
+}
+
+
+// ─── Onboarding: Employee Self Setup ─────────────────────────────────
+//
+// 2026-10-07. Daniel used to create every new starter by hand in EH,
+// then copy their EH id into the dashboard. `initiateSelfSetup` creates
+// the EH record (when `id` is omitted) AND sends EH's own Self Setup
+// email, where the employee completes their tax file declaration, bank
+// and super inside EH — the TFN never touches our systems. The endpoint
+// answers 200 with NO body, so callers find the new record by email
+// afterwards (findEmployeeByEmail).
+
+export interface EhSelfSetupInput {
+  firstName: string;
+  surname: string;
+  email: string;
+  mobile?: string | null;
+  /** An existing EH employee to (re)send setup to; omit to create one. */
+  id?: number;
+}
+
+export async function initiateSelfSetup(input: EhSelfSetupInput): Promise<void> {
+  await request<void>(`/employeeonboarding/initiateselfservice`, {
+    method: "POST",
+    body: {
+      ...(input.id ? { id: input.id } : {}),
+      firstName: input.firstName,
+      surname: input.surname,
+      email: input.email,
+      ...(input.mobile ? { mobile: input.mobile } : {}),
+      // Our own onboarding collects these — don't ask twice.
+      emergencyContactDetailsRequired: false,
+      qualificationsRequired: false,
+    },
+  });
+}
+
+/**
+ * The EH employee with this email, preferring a live record (Active, then
+ * Incomplete — a self-setup in progress) over a Terminated one. Null when
+ * none matches.
+ */
+export async function findEmployeeByEmail(email: string): Promise<EhEmployee | null> {
+  const want = email.trim().toLowerCase();
+  const matches = (await listEmployees()).filter(
+    (e) => (e.email ?? "").trim().toLowerCase() === want,
+  );
+  const rank = (e: EhEmployee) =>
+    e.status === "Active" ? 0 : e.status === "Incomplete" ? 1 : 2;
+  return matches.sort((a, b) => rank(a) - rank(b))[0] ?? null;
+}
+
+/** Statuses that mean "this person is (becoming) an employee" — keep links. */
+export function isLiveEhStatus(status: string | null | undefined): boolean {
+  return status === "Active" || status === "Incomplete";
+}
+
+// ─── Bank accounts + super funds ─────────────────────────────────────
+//
+// 2026-10-07: staff edit these on My Details, and they are written
+// STRAIGHT to EH — never stored in our database. Every caller resolves the
+// employee id from the session (requireOwnEmployee), never the request.
+
+export interface EhBankAccount {
+  id: number;
+  employeeId: number;
+  bsb: string;
+  accountName: string;
+  accountNumber: string;
+  accountType?: string | null;
+  allocatedPercentage: number | null;
+  fixedAmount: number | null;
+  allocateBalance: boolean;
+  isEmployeeEditable?: boolean;
+  canBeDeleted?: boolean;
+}
+
+export interface EhBankAccountInput {
+  bsb: string;
+  accountName: string;
+  accountNumber: string;
+}
+
+interface EhSaveBankAccountResponse {
+  validationWarning: string | null;
+  result: EhBankAccount;
+}
+
+export async function listBankAccounts(employeeId: number): Promise<EhBankAccount[]> {
+  return request<EhBankAccount[]>(`/employee/${employeeId}/bankaccount`);
+}
+
+/**
+ * Set the account an employee is paid into. Updates the existing
+ * remainder ("balance") account in place — keeping any fixed/percentage
+ * splits the employee set up in EH untouched — or creates a balance
+ * account when they have none.
+ */
+export async function saveMainBankAccount(
+  employeeId: number,
+  input: EhBankAccountInput,
+): Promise<{ account: EhBankAccount; warning: string | null; previous: EhBankAccount | null }> {
+  const existing = await listBankAccounts(employeeId);
+  const main =
+    existing.find((a) => a.allocateBalance) ??
+    (existing.length === 1 ? existing[0] : null);
+  const body = {
+    ...(main ?? {}),
+    employeeId,
+    bsb: input.bsb,
+    accountName: input.accountName,
+    accountNumber: input.accountNumber,
+    ...(main ? {} : { allocateBalance: true, allocatedPercentage: null, fixedAmount: null }),
+  };
+  const res = main
+    ? await request<EhSaveBankAccountResponse>(`/employee/${employeeId}/bankaccount/${main.id}`, {
+        method: "PUT",
+        body,
+      })
+    : await request<EhSaveBankAccountResponse>(`/employee/${employeeId}/bankaccount`, {
+        method: "POST",
+        body,
+      });
+  return { account: res.result, warning: res.validationWarning ?? null, previous: main };
+}
+
+export interface EhSuperFund {
+  id: number;
+  employeeId: number;
+  name: string;
+  memberNumber: string | null;
+  allocatedPercentage: number | null;
+  fixedAmount: number | null;
+  allocateBalance: boolean;
+  isEmployerNominatedFund: boolean;
+  canBeDeleted?: boolean;
+  superProduct?: { productCode?: string | null; productName?: string | null; abn?: string | null } | null;
+}
+
+export interface EhSuperProduct {
+  id: number;
+  abn: string | null;
+  productCode: string | null;
+  productName: string | null;
+  businessName: string | null;
+  displayName: string | null;
+  productType: string | null;
+}
+
+interface EhSaveSuperFundResponse {
+  validationWarning: string | null;
+  result: EhSuperFund;
+}
+
+export async function listSuperFunds(employeeId: number): Promise<EhSuperFund[]> {
+  return request<EhSuperFund[]>(`/employee/${employeeId}/superfund`);
+}
+
+/** EH's own fund directory (APRA-regulated products) — search by name. */
+export async function searchSuperProducts(term: string): Promise<EhSuperProduct[]> {
+  const q = new URLSearchParams({ term });
+  return request<EhSuperProduct[]>(`/superfund/productsearch?${q.toString()}`);
+}
+
+/**
+ * Point an employee's super at a fund (by its product code / USI). Updates
+ * the existing balance fund, or creates one. Self-managed funds aren't
+ * handled here — those have their own setup in EH.
+ */
+export async function saveMainSuperFund(
+  employeeId: number,
+  input: { productCode: string; fundName: string; memberNumber: string },
+): Promise<{ fund: EhSuperFund; warning: string | null }> {
+  const existing = await listSuperFunds(employeeId);
+  const main =
+    existing.find((f) => f.allocateBalance) ??
+    (existing.length === 1 ? existing[0] : null);
+  const body = {
+    productCode: input.productCode,
+    fundName: input.fundName,
+    memberNumber: input.memberNumber,
+    allocateBalance: true,
+    allocatedPercentage: null,
+    fixedAmount: null,
+    isEmployerNominatedFund: false,
+  };
+  const res = main
+    ? await request<EhSaveSuperFundResponse>(`/employee/${employeeId}/superfund/${main.id}`, {
+        method: "PUT",
+        body,
+      })
+    : await request<EhSaveSuperFundResponse>(`/employee/${employeeId}/superfund`, {
+        method: "POST",
+        body,
+      });
+  return { fund: res.result, warning: res.validationWarning ?? null };
 }

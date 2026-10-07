@@ -27,6 +27,7 @@ vi.mock("@/lib/eh-payroll", () => ({
   listEmployees: (...args: unknown[]) => listEmployees(...args),
   getEmployee: (...args: unknown[]) => getEmployee(...args),
   EhPayrollError: MockEhError,
+  isLiveEhStatus: (s: string | null | undefined) => s === "Active" || s === "Incomplete",
 }));
 
 import { runEmployeeSync } from "@/lib/eh-payroll-sync";
@@ -134,13 +135,45 @@ describe("runEmployeeSync", () => {
     });
   });
 
-  it("does not map to a non-Active EH employee; reports unmatched instead", async () => {
-    listEmployees.mockResolvedValue([eh(200, "new@test.com", "Incomplete")]);
-    prismaMock.user.findMany.mockResolvedValue([dbUser("u2", "new@test.com", null)]);
+  it("does not map to a Terminated EH employee; reports unmatched instead", async () => {
+    listEmployees.mockResolvedValue([eh(200, "old@test.com", "Terminated")]);
+    prismaMock.user.findMany.mockResolvedValue([dbUser("u2", "old@test.com", null)]);
 
     const summary = await runEmployeeSync();
     expect(summary.newlyMapped).toBe(0);
     expect(summary.unmatchedCount).toBe(1);
     expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  // 2026-10-07: a new starter the dashboard invited sits at "Incomplete"
+  // until they finish EH Self Setup — that is a live record.
+  it("maps an unmapped user to an Incomplete (mid self-setup) EH record", async () => {
+    listEmployees.mockResolvedValue([eh(200, "new@test.com", "Incomplete")]);
+    prismaMock.user.findMany.mockResolvedValue([dbUser("u2", "new@test.com", null)]);
+
+    const summary = await runEmployeeSync();
+    expect(summary.newlyMapped).toBe(1);
+  });
+
+  it("keeps a mapping to an Incomplete EH record", async () => {
+    listEmployees.mockResolvedValue([eh(200, "new@test.com", "Incomplete")]);
+    prismaMock.user.findMany.mockResolvedValue([dbUser("u2", "new@test.com", 200)]);
+
+    const summary = await runEmployeeSync();
+    expect(summary.unchanged).toBe(1);
+    expect(summary.cleared).toBe(0);
+  });
+
+  it("prefers the live record when a rehire has a Terminated twin with the same email", async () => {
+    listEmployees.mockResolvedValue([
+      eh(300, "back@test.com", "Active"),
+      eh(100, "back@test.com", "Terminated"),
+    ]);
+    prismaMock.user.findMany.mockResolvedValue([dbUser("u3", "back@test.com", null)]);
+
+    await runEmployeeSync();
+    expect(prismaMock.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { employmentHeroEmployeeId: 300 } }),
+    );
   });
 });

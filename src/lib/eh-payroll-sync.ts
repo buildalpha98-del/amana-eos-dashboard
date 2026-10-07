@@ -22,6 +22,7 @@ import {
   getEmployee,
   listEmployees,
   EhPayrollError,
+  isLiveEhStatus,
   type EhEmployee,
 } from "@/lib/eh-payroll";
 
@@ -85,7 +86,13 @@ export async function runEmployeeSync(): Promise<SyncSummary> {
   for (const e of employees) {
     ehById.set(e.id, e);
     if (e.email) {
-      byEmail.set(e.email.toLowerCase().trim(), e);
+      const key = e.email.toLowerCase().trim();
+      // A rehire can leave a Terminated record beside a live one with the
+      // same email — the live one must win, whatever order EH lists them.
+      const prev = byEmail.get(key);
+      if (!prev || (!isLiveEhStatus(prev.status) && isLiveEhStatus(e.status))) {
+        byEmail.set(key, e);
+      }
     }
   }
 
@@ -114,7 +121,9 @@ export async function runEmployeeSync(): Promise<SyncSummary> {
     // Tier 1: already mapped — verify EH side still has them Active.
     if (u.employmentHeroEmployeeId !== null) {
       const eh = ehById.get(u.employmentHeroEmployeeId);
-      if (eh && eh.status === "Active") {
+      // "Incomplete" = mid Self Setup (a new starter the dashboard just
+      // invited) — a live record, not a reason to unlink (2026-10-07).
+      if (eh && isLiveEhStatus(eh.status)) {
         unchanged += 1;
         continue;
       }
@@ -137,7 +146,7 @@ export async function runEmployeeSync(): Promise<SyncSummary> {
             return "unverifiable" as const;
           },
         );
-        if (verified === "unverifiable" || (verified && verified.status === "Active")) {
+        if (verified === "unverifiable" || (verified && isLiveEhStatus(verified.status))) {
           keptAfterVerify += 1;
           continue;
         }
@@ -159,7 +168,7 @@ export async function runEmployeeSync(): Promise<SyncSummary> {
     // Tier 2: unmapped, active — email match.
     if (!u.active) continue;
     const candidate = byEmail.get(u.email.toLowerCase().trim());
-    if (candidate && candidate.status === "Active") {
+    if (candidate && isLiveEhStatus(candidate.status)) {
       await prisma.user.update({
         where: { id: u.id },
         data: { employmentHeroEmployeeId: candidate.id },

@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { CheckCircle2, ChevronRight, Circle, Clock, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useInductionReadiness } from "@/hooks/useInduction";
+import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/fetch-api";
 import {
   buildGetReadySteps,
   isNewStarter,
+  type GetReadyInput,
   type GetReadyStep,
 } from "@/lib/get-ready-steps";
 
@@ -15,21 +17,22 @@ import {
  * Renders nothing once every step is done, so a settled educator's home
  * page carries no onboarding furniture at all.
  */
-export function GetReadyChecklist({
-  contract,
-  hasTraining,
-}: {
-  contract: { acknowledgedByStaff: boolean } | null;
-  hasTraining: boolean;
-}) {
-  const { data: readiness } = useInductionReadiness();
-  if (!readiness) return null;
+export function GetReadyChecklist() {
+  // Everything the steps need, in one request (GET /api/my-portal/get-ready).
+  const { data } = useQuery<GetReadyInput>({
+    queryKey: ["get-ready"],
+    queryFn: () => fetchApi<GetReadyInput>("/api/my-portal/get-ready"),
+    staleTime: 30_000,
+    retry: 1,
+    meta: { suppressGlobalErrorToast: true },
+  });
+  if (!data) return null;
 
-  const steps = buildGetReadySteps({ readiness, contract, hasTraining });
+  const steps = buildGetReadySteps(data);
   const doneCount = steps.filter((s) => s.done).length;
   if (doneCount === steps.length) return null;
 
-  const newStarter = isNewStarter(readiness.status);
+  const newStarter = isNewStarter(data.status);
   const pct = Math.round((doneCount / steps.length) * 100);
 
   return (

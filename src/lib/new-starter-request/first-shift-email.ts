@@ -5,7 +5,7 @@
  * 2026-10-07: this used to paste the onboarding pack's task list straight
  * in — 33 bullets ("Submit valid CPR certificate (HLTAID009)", "Read
  * Behaviour Guidance policy" …) for someone who hasn't logged in yet. It
- * read as a wall. Now it's the same five steps as the "Get ready for your
+ * read as a wall. Now it's the same steps as the "Get ready for your
  * first shift" checklist on My Portal (src/lib/get-ready-steps.ts), in the
  * same order, so the email and the app tell one story. The detailed pack
  * stays on /onboarding for the people running it.
@@ -21,21 +21,26 @@ const STEPS: { title: string; detail: string }[] = [
       "Use the temporary password from your welcome email. You'll be asked to pick your own straight away.",
   },
   {
-    title: "Upload all your documents to My Compliance",
-    detail:
-      "Your Working With Children Check, first aid, CPR, anaphylaxis and asthma certificates, and your qualification. A photo from your phone is fine.",
-  },
-  {
     title: "Sign your employment contract",
     detail: "It's waiting for you under My Contract — read it through and sign at the bottom.",
   },
   {
-    title: "Read the Staff Handbook and sign two policies",
-    detail: "The Child Safe Code of Conduct and the Privacy Policy.",
+    title: "Add your details",
+    detail:
+      "A photo, your phone number and an emergency contact — plus your tax file declaration, bank and super through the Employment Hero email you'll receive separately.",
+  },
+  {
+    title: "Upload your compliance documents",
+    detail:
+      "Your Working With Children Check, first aid, CPR, anaphylaxis and asthma certificates, all in My Compliance. A photo from your phone is fine.",
+  },
+  {
+    title: "Read the Staff Handbook and The Amana Way",
+    detail: "Both are in your menu under Handbook — tap \"I've read it\" when you're done.",
   },
   {
     title: "Complete your essential training",
-    detail: "Short online courses under My Training, including child protection.",
+    detail: "Short online courses under My Training — child safety, your first day and more.",
   },
 ];
 
@@ -69,7 +74,7 @@ export async function sendFirstShiftChecklistEmail(opts: {
     `
       <h2 style="margin:0 0 12px;">Welcome to Amana OSHC, ${escapeHtml(firstName)}!</h2>
       <p>We can't wait to see you on <strong>${startDateLabel}</strong>. Before your first
-      shift there are five quick things to do — most take a couple of minutes, and your
+      shift there are a few quick things to do — most take a couple of minutes, and your
       portal walks you through each one.</p>
       <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 8px;width:100%;">${stepsHtml}</table>
       ${buttonHtml("Open my portal", portalUrl)}
