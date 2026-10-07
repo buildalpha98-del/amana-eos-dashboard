@@ -5,8 +5,9 @@
  * never stored here.
  *
  * Redirecting someone's pay is a classic account-takeover fraud, so every
- * change is audited AND emailed to the account owner — if it wasn't them,
- * they find out before payday. Tight rate limit for the same reason.
+ * change is audited, emailed to the account owner — if it wasn't them,
+ * they find out before payday — and flagged to every owner (in-app + email,
+ * Daniel's request 2026-10-07). Tight rate limit for the same reason.
  */
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
@@ -18,6 +19,44 @@ import { logAuditEvent } from "@/lib/audit-log";
 import { sendEmail } from "@/lib/email";
 import { baseLayout } from "@/lib/email-templates/base";
 import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+import { notifyUsers } from "@/lib/notify-user";
+import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+
+/** Every active owner hears about a bank change — never blocks the save. */
+async function alertOwners(input: { staffUserId: string; staffName: string; last3: string }) {
+  try {
+    const owners = await prisma.user.findMany({
+      where: { role: "owner", active: true, isCentreAccount: false, id: { not: input.staffUserId } },
+      select: { id: true, email: true },
+    });
+    if (owners.length === 0) return;
+    const body = `${input.staffName} changed the bank account their pay goes into (now ending ${input.last3}).`;
+    await notifyUsers(prisma, owners.map((o) => o.id), {
+      type: NOTIFICATION_TYPES.PAYROLL_BANK_CHANGED,
+      title: "Pay account changed",
+      body,
+      link: `/staff/${input.staffUserId}`,
+    });
+    await sendEmail({
+      to: owners.map((o) => o.email),
+      subject: `Pay account changed — ${input.staffName}`,
+      html: baseLayout(
+        `<h2 style="margin:0 0 12px;">A staff member changed their pay account</h2>
+         <p>${escapeHtml(body)}</p>
+         <p>It's already saved in Employment Hero. If it doesn't look right — especially just before
+         a pay run — check with them directly (not by replying to an email from that account).</p>`,
+        "staff",
+      ),
+    });
+  } catch (err) {
+    logger.error("Bank change owner alert failed", { err, staffUserId: input.staffUserId });
+  }
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
 
 export const PUT = withApiAuth(
   async (req, session) => {
@@ -69,6 +108,12 @@ export const PUT = withApiAuth(
         ),
       }).catch((err) => logger.error("Bank change alert email failed", { err }));
     }
+
+    await alertOwners({
+      staffUserId: session!.user.id,
+      staffName: session!.user.name ?? session!.user.email ?? "A staff member",
+      last3: maskAccountNumber(parsed.data.accountNumber).replace("•••• ", ""),
+    });
 
     return NextResponse.json({ account: maskBankAccount(saved.account), warning: saved.warning });
   },

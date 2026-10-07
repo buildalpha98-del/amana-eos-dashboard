@@ -78,6 +78,9 @@ export const NOTIFICATION_TYPES = {
   SCORECARD_WATCHDOG: "scorecard_watchdog",
   CASCADE_PUBLISHED: "cascade_published",
   CASCADE_REMINDER: "cascade_reminder",
+  // 2026-10-07: a staff member changed the account their pay goes into
+  // (→ every owner, alongside the email to the staff member themselves).
+  PAYROLL_BANK_CHANGED: "payroll_bank_changed",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];
