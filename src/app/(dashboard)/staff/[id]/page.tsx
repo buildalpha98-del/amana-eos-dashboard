@@ -324,7 +324,7 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     // Live policies (non-archived with a current version) — used below
     // to compute which CURRENT versions the user has NOT acknowledged.
     prisma.policyDocument.findMany({
-      where: { isArchived: false, currentVersionId: { not: null } },
+      where: { isArchived: false, currentVersionId: { not: null }, requiresAcknowledgement: true },
       orderBy: { title: "asc" },
       select: {
         id: true,

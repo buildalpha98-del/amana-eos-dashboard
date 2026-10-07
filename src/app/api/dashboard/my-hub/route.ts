@@ -134,6 +134,8 @@ const userId = session!.user.id;
         where: {
           isArchived: false,
           currentVersionId: { not: null },
+          // Only documents staff must sign count as pending (2026-10-08).
+          requiresAcknowledgement: true,
           currentVersion: {
             acknowledgements: { none: { userId } },
           },

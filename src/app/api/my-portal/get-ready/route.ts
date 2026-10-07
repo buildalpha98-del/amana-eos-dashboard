@@ -12,13 +12,17 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { getOrgSettings } from "@/lib/org-settings";
 import { getRequiredCertTypes } from "@/lib/cert-requirements";
+import type { RequiredCertType } from "@/lib/org-settings-shared";
 import { outstandingRequiredPolicies } from "@/lib/induction";
 import { ensureEssentialEnrolments } from "@/lib/essential-enrolment";
 import { getEmployee, isConfigured } from "@/lib/eh-payroll";
 import { logger } from "@/lib/logger";
 import type { GetReadyInput, InductionStatus } from "@/lib/get-ready-steps";
 
-const CERT_LABELS: Record<string, string> = {
+// Every RequiredCertType gets a human name — a raw "child_protection"
+// leaked onto Daniel's phone on 2026-10-08. The Record type makes a new
+// type in org-settings-shared fail the build until it's named here.
+const CERT_LABELS: Record<RequiredCertType, string> = {
   wwcc: "Working With Children Check",
   first_aid: "First Aid",
   cpr: "CPR",
@@ -26,6 +30,12 @@ const CERT_LABELS: Record<string, string> = {
   asthma: "Asthma",
   police_check: "Police Check",
   annual_review: "Annual Review",
+  child_protection: "Child Protection training",
+  geccko: "GECCKO training",
+  food_safety: "Food Safety",
+  food_handler: "Food Handler",
+  mandatory_reporter_training: "Mandatory Reporter training",
+  child_safe_code_of_conduct: "Child Safe Code of Conduct",
 };
 
 export const GET = withApiAuth(async (_req, session) => {
@@ -109,7 +119,9 @@ export const GET = withApiAuth(async (_req, session) => {
     details: { missing: detailsMissing },
     payroll,
     documents: {
-      missing: requiredTypes.filter((t) => !held.has(t)).map((t) => CERT_LABELS[t] ?? t),
+      missing: requiredTypes
+        .filter((t) => !held.has(t))
+        .map((t) => CERT_LABELS[t as RequiredCertType] ?? t.replace(/_/g, " ")),
     },
     reading: {
       handbook: !!user.handbookReadAt,

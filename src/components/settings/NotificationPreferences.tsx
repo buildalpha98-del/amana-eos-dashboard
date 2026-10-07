@@ -16,6 +16,7 @@ import {
   BellOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSession } from "next-auth/react";
 import type { LucideIcon } from "lucide-react";
 
 interface NotificationPrefs {
@@ -98,7 +99,16 @@ const PREF_ITEMS: PrefItem[] = [
   },
 ];
 
+// Educators have no rocks or L10 meetings — those rows only confused them
+// (2026-10-08). Their preference values are left untouched, just not shown.
+const STAFF_HIDDEN_PREFS = new Set<keyof NotificationPrefs>(["meetingReminders", "rockUpdates"]);
+
 export function NotificationPreferences() {
+  const { data: session } = useSession();
+  const visiblePrefs =
+    session?.user?.role === "staff"
+      ? PREF_ITEMS.filter((p) => !STAFF_HIDDEN_PREFS.has(p.key))
+      : PREF_ITEMS;
   const queryClient = useQueryClient();
   const [showSaved, setShowSaved] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -266,7 +276,7 @@ export function NotificationPreferences() {
 
       {/* Toggle list — greyed while fully muted */}
       <div className={cn("divide-y divide-border/50 px-6", muted && "pointer-events-none opacity-50")}>
-        {PREF_ITEMS.map((item) => {
+        {visiblePrefs.map((item) => {
           const Icon = item.icon;
           const enabled = prefs[item.key];
 

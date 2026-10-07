@@ -432,7 +432,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         {/* Theme + Nav Layout toggles */}
         <div className={cn("px-3 pb-1 space-y-1.5", collapsed && "px-1.5")}>
           <ThemeToggle className="w-full justify-center text-white/50 hover:text-white hover:bg-white/10" />
-          {!collapsed && <NavLayoutToggle className="w-full justify-center" />}
+          {/* Sidebar-vs-top-bar is a desktop choice — on a phone the drawer
+              is the only layout, and the switch ate the space that hid the
+              last menu item below the fold (2026-10-08). */}
+          {!collapsed && <NavLayoutToggle className="hidden md:flex w-full justify-center" />}
         </div>
 
         {/* User Section */}

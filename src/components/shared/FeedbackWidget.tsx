@@ -55,7 +55,10 @@ export function FeedbackWidget() {
             // the quieter outline style. Phone offset clears the tab bar
             // plus the iOS home-indicator inset (bottom-20 alone sat on top
             // of the More tab — 2026-10-07).
-            "fixed z-50 flex h-11 w-11 items-center justify-center",
+            // Phones: hidden — "Send feedback" lives in the Help (?) menu, and
+            // two floating bubbles covered the right edge of content
+            // (2026-10-08). The popover still opens there via the event.
+            "fixed z-50 hidden md:flex h-11 w-11 items-center justify-center",
             "rounded-full border border-border bg-card text-brand shadow-lg transition-all",
             "hover:bg-surface hover:scale-105 active:scale-95",
             "right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] md:right-6 md:bottom-6",

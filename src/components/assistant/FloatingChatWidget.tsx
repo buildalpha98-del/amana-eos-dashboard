@@ -78,12 +78,12 @@ export function FloatingChatWidget() {
           aria-label="Open AI assistant"
           className={cn(
             "fixed z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-brand text-white shadow-lg hover:bg-brand/90 transition-colors",
-            // Phones (tab bar visible below md): stacked on the RIGHT above
-            // the feedback bubble, both clear of the tab bar AND the iOS
-            // home-indicator inset. The old bottom-20 (80px) ignored the
-            // inset, so on an iPhone the pill sat on top of the Home tab
-            // and was hard to tap (2026-10-07).
-            "right-4 bottom-[calc(8.25rem+env(safe-area-inset-bottom))]",
+            // Phones (tab bar visible below md): bottom-RIGHT, clear of the
+            // tab bar AND the iOS home-indicator inset. The old bottom-20
+            // (80px) ignored the inset, so on an iPhone the pill sat on top
+            // of the Home tab (2026-10-07). It's the only floating button on
+            // phones — feedback moved into the Help (?) menu (2026-10-08).
+            "right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))]",
             "md:right-auto md:bottom-4",
             // Desktop: bottom-left, clear of the sidebar
             collapsed ? "md:left-20" : "md:left-72",

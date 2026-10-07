@@ -12,6 +12,9 @@ const updatePolicySchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).nullable().optional(),
   category: z.enum(POLICY_CATEGORIES).optional(),
+  // Whether staff must sign it (2026-10-08 — SharePoint-synced policies
+  // arrive as a reading library; admins switch this on per policy).
+  requiresAcknowledgement: z.boolean().optional(),
 });
 
 // GET /api/policies/[id] — single document with full version history and
@@ -93,10 +96,14 @@ export const PATCH = withApiAuth(
       title?: string;
       description?: string | null;
       category?: PolicyDocumentCategory;
+      requiresAcknowledgement?: boolean;
     } = {};
     if (parsed.data.title !== undefined) data.title = parsed.data.title;
     if (parsed.data.description !== undefined) data.description = parsed.data.description;
     if (parsed.data.category !== undefined) data.category = parsed.data.category;
+    if (parsed.data.requiresAcknowledgement !== undefined) {
+      data.requiresAcknowledgement = parsed.data.requiresAcknowledgement;
+    }
 
     if (Object.keys(data).length === 0) {
       throw ApiError.badRequest("No fields to update");

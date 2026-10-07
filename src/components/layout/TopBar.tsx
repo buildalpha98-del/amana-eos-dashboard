@@ -249,8 +249,13 @@ export function TopBar() {
             <Search className="w-4 h-4" />
           </button>
         )}
-        <button onClick={handleQuickAddClick} className="h-8 w-8 inline-flex items-center justify-center rounded-full text-white bg-brand hover:bg-brand-hover transition-colors" title="Quick Add" aria-label="Quick add">
-          <Plus className="w-3.5 h-3.5" />
+        {/* globals.css gives every phone button a 44px min-height (tap
+            target), which stretched the old 32px-wide button into a tall
+            pill. Full 44px hit area, round 32px visual inside. */}
+        <button onClick={handleQuickAddClick} className="h-11 w-11 inline-flex items-center justify-center group" title="Quick Add" aria-label="Quick add">
+          <span className="h-8 w-8 inline-flex items-center justify-center rounded-full text-white bg-brand group-hover:bg-brand-hover transition-colors">
+            <Plus className="w-4 h-4" />
+          </span>
         </button>
         <HelpMenu compact />
         <NotificationBell />

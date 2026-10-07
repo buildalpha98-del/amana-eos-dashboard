@@ -497,12 +497,19 @@ function GlanceTiles({
     retry: terminalRetry,
   });
 
+  // 404 = not linked to Employment Hero yet (a new starter mid-setup). Say
+  // so, rather than a bare "—" that reads as broken (2026-10-08).
+  const notLinked = payslipsQuery.error?.status === 404;
+  const NOT_LINKED_SUB = "Shows once your payroll is set up";
+
   // Pay — latest slip's net.
   const latestSlip = payslipsQuery.data?.payslips[0];
   const payValue = latestSlip ? formatCurrency(latestSlip.netEarnings) : "—";
   const paySub = latestSlip
     ? `net · ${latestSlip.totalHours.toFixed(1)} hrs`
-    : undefined;
+    : notLinked
+      ? NOT_LINKED_SUB
+      : undefined;
 
   // Leave — the annual-leave category (fall back to the first balance).
   const balances = balancesQuery.data?.balances ?? [];
@@ -518,7 +525,9 @@ function GlanceTiles({
       ? `≈ ${(annual.accruedAmount / HOURS_PER_DAY).toFixed(1)} days available`
       : annual
         ? annual.leaveCategoryName
-        : undefined;
+        : notLinked
+          ? NOT_LINKED_SUB
+          : undefined;
 
   // Expenses — pending (awaiting-approval) claims. Same pending
   // predicate as MyExpensesContent's statusKind: anything that isn't
@@ -541,12 +550,15 @@ function GlanceTiles({
     ? pendingClaims.length > 0
       ? `${pendingClaims.length} claim${pendingClaims.length === 1 ? "" : "s"} awaiting approval`
       : "No claims awaiting approval"
-    : undefined;
+    : notLinked
+      ? NOT_LINKED_SUB
+      : undefined;
 
   // Compliance — required-only type counts when the role has a configured
   // requirement set (Phase 9); otherwise the legacy all-certs count.
   const complianceValue = requiredCertStats
-    ? `${requiredCertStats.valid} of ${requiredCertStats.total} required`
+    ? // "required" truncated to "req…" on a phone tile — the sub line carries it.
+      `${requiredCertStats.valid} of ${requiredCertStats.total}`
     : certStats
       ? `${certStats.valid} of ${certStats.total}`
       : "—";
@@ -554,7 +566,7 @@ function GlanceTiles({
     ? requiredCertStats.expired > 0
       ? `${requiredCertStats.expired} expired`
       : requiredCertStats.missing > 0
-        ? `${requiredCertStats.missing} missing`
+        ? `${requiredCertStats.missing} required missing`
         : requiredCertStats.expiring > 0
           ? `${requiredCertStats.expiring} expiring soon`
           : "up to date"

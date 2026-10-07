@@ -254,7 +254,7 @@ export async function checkPolicyCompliance(): Promise<ComplianceResult> {
 
   // 1. Get all active policy documents (non-archived, with a current PDF version)
   const documents = await prisma.policyDocument.findMany({
-    where: { isArchived: false, currentVersionId: { not: null } },
+    where: { isArchived: false, currentVersionId: { not: null }, requiresAcknowledgement: true },
     select: {
       id: true,
       title: true,

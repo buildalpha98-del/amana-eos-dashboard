@@ -4940,6 +4940,18 @@ model PolicyDocument {
   currentVersion   PolicyDocumentVersion?  @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
   versions         PolicyDocumentVersion[] @relation("DocumentVersions")
   isArchived       Boolean                 @default(false)
+  // 2026-10-07: policies synced from the SharePoint master folder
+  // (src/lib/sharepoint-policies.ts). Null on hand-uploaded documents.
+  sharepointItemId   String?   @unique
+  sharepointETag     String?
+  sharepointWebUrl   String?
+  sharepointSyncedAt DateTime?
+  /// "NSW" / "VIC" for state-specific policies; null = applies everywhere.
+  state              String?
+  /// Staff must sign it. True for hand-uploaded documents (unchanged
+  /// behaviour); SharePoint-synced ones arrive false — a reading library —
+  /// and an admin switches it on for the ones that need a signature.
+  requiresAcknowledgement Boolean @default(true)
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
 
