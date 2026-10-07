@@ -298,7 +298,9 @@ export default function ServiceDetailPage() {
           opens the SAME tree in a sheet, so "see everything at once"
           isn't a desktop-only privilege. iPad portrait is 820px wide,
           which lands here, and it's the device this is used on most. */}
-      <div className="lg:hidden">
+      {/* Centre accounts navigate from the main sidebar (the phone drawer
+          too) — a second row of section buttons was a duplicate. */}
+      <div className={cn("lg:hidden", ownCentreAccount && "hidden")}>
         <ServiceTabBarV2
           groups={visibleGroups}
           activeGroup={activeGroup}
