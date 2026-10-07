@@ -53,15 +53,13 @@ export function CentreSidebarNav({
   const activeTab = onCentre ? searchParams.get("tab") || "today" : null;
   const activeSub = searchParams.get("sub");
 
-  // The active section starts open; others open on tap.
-  const [open, setOpen] = useState<Set<string>>(() => new Set(activeTab ? [activeTab] : []));
+  // The active section starts open, but a tap ALWAYS toggles — including
+  // the one you're on (Daniel couldn't collapse Service Information while
+  // inside it). An explicit choice per section beats the default.
+  const [choice, setChoice] = useState<Record<string, boolean>>({});
+  const isSectionOpen = (key: string) => choice[key] ?? key === activeTab;
   const toggle = (key: string) =>
-    setOpen((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+    setChoice((prev) => ({ ...prev, [key]: !(prev[key] ?? key === activeTab) }));
 
   const hrefFor = (g: TabGroup, subKey?: string) => {
     if (g.key === "today") return base;
@@ -78,7 +76,7 @@ export function CentreSidebarNav({
         const Icon = g.icon;
         const isActive = activeTab === g.key;
         const hasSubs = g.subTabs.length > 0;
-        const isOpen = !collapsed && hasSubs && (open.has(g.key) || isActive);
+        const isOpen = !collapsed && hasSubs && isSectionOpen(g.key);
 
         if (!hasSubs || collapsed) {
           return (

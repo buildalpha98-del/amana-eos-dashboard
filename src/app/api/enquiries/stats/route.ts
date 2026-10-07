@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
-import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { ADMIN_ROLES, isAdminRole } from "@/lib/role-permissions";
+import { getCentreScope } from "@/lib/centre-scope";
+import { ApiError } from "@/lib/api-error";
 const STAGES = [
   "new_enquiry",
   "info_sent",
@@ -21,6 +23,17 @@ const STAGES = [
 export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
+
+  // 2026-10-08: a Director (incl. a centre's own login) may read ONE centre's
+  // stats — the capacity card on Service Info calls this, and the blanket
+  // admin-only rule toasted "forbidden" on every coordinator's centre page.
+  // Org-wide (no serviceId) stays admin-only.
+  if (!isAdminRole(session!.user.role)) {
+    const { serviceIds } = await getCentreScope(session);
+    if (!serviceId || (serviceIds !== null && !serviceIds.includes(serviceId))) {
+      throw ApiError.forbidden("You can only see enquiry numbers for your own centre");
+    }
+  }
 
   const baseWhere: Record<string, unknown> = { deleted: false };
   if (serviceId) baseWhere.serviceId = serviceId;
@@ -115,4 +128,4 @@ export const GET = withApiAuth(async (req, session) => {
       { status: 500 },
     );
   }
-}, { roles: [...ADMIN_ROLES] });
+}, { roles: [...ADMIN_ROLES, "member"] });
