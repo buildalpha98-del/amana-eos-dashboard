@@ -26,6 +26,12 @@ import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { EmergencyContactsSection } from "@/components/profile/EmergencyContactsSection";
 import { MyCertificatesSection } from "@/components/profile/MyCertificatesSection";
 import { MyAvailabilitySection } from "@/components/profile/MyAvailabilitySection";
+import { SetKioskPinCard } from "@/components/my-portal/SetKioskPinCard";
+import { MyQuietHoursCard } from "@/components/my-portal/MyQuietHoursCard";
+import { MyPositionDescriptionCard } from "@/components/my-portal/MyPositionDescriptionCard";
+import { MyDiversityCard } from "@/components/my-portal/MyDiversityCard";
+import { NotificationPreferences } from "@/components/settings/NotificationPreferences";
+import { SessionManagement } from "@/components/settings/SessionManagement";
 
 /* ------------------------------------------------------------------ */
 /* Profile Page                                                        */
@@ -615,6 +621,19 @@ export default function ProfilePage() {
           Bank details are visible to administrators only for payroll processing.
         </p>
       </div>
+
+      {/* 2026-10-07: moved here from the My Portal home page, which had
+          become a 26-card scroll. These are settings about you, so they
+          live with your details. */}
+      <h2 className="text-sm font-semibold text-muted uppercase tracking-wide pt-2">
+        Work &amp; preferences
+      </h2>
+      <MyPositionDescriptionCard />
+      <SetKioskPinCard />
+      <MyQuietHoursCard />
+      <NotificationPreferences />
+      <MyDiversityCard />
+      <SessionManagement />
 
       {/* Bottom save bar */}
       {hasChanges && (

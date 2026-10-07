@@ -341,6 +341,39 @@ export const navItems: NavItem[] = [
 ];
 
 /**
+ * 2026-10-07: an Educator's whole sidebar. Before this, staff saw every item
+ * their page permissions allowed — Services, Documents, Communication,
+ * Activity Library, Design Requests, Ambassadors… — and new starters had no
+ * idea where to start. Everything about THEM lives here; the rest stays
+ * reachable by URL (page permissions are unchanged) and from the My Portal
+ * home page (contract, compliance, policies, profile).
+ *
+ * The list is also the ORDER, and every item is regrouped under one
+ * "My Portal" heading (Handbook & Help is filed under Admin for everyone
+ * else, which would read as nonsense to an Educator).
+ */
+export const STAFF_NAV_HREFS: readonly string[] = [
+  "/my-portal",
+  "/my-day",
+  "/roster/me",
+  "/my-pay",
+  "/my-leave",
+  "/my-expenses",
+  "/my-training",
+  "/notifications",
+  "/handbook",
+];
+
+function staffNavItems(items: readonly NavItem[]): NavItem[] {
+  const byHref = new Map(items.map((item) => [item.href, item]));
+  return STAFF_NAV_HREFS.flatMap((href) => {
+    const item = byHref.get(href);
+    if (!item || !canAccessPage("staff", href)) return [];
+    return [{ ...item, section: "My Portal", core: true, hidden: false }];
+  });
+}
+
+/**
  * Filter nav items by role: must pass `canAccessPage` AND (if tagged) the
  * `hasFeature` gate AND (if tagged) the `roles` allowlist. Keeps role logic
  * in one place so Sidebar stays declarative.
@@ -356,6 +389,7 @@ export function filterNavItems(
   items: readonly NavItem[],
   role: Role | undefined
 ): NavItem[] {
+  if (role === "staff") return staffNavItems(items);
   return items.filter((item) => {
     if (!canAccessPage(role, item.href)) return false;
     if (item.feature && !hasFeature(role, item.feature)) return false;

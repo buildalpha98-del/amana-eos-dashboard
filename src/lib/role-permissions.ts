@@ -1028,6 +1028,9 @@ export function hasMinRole(
  * operational widgets they have no business seeing. Everyone else: `/dashboard`.
  */
 export function getLandingPage(role: string | null | undefined): string {
+  // 2026-10-07: Educators land on their own portal — it is their home,
+  // and the command-centre /dashboard is not a page they work from.
+  if (role === "staff") return "/my-portal";
   return isEosRole(role) ? "/rocks" : "/dashboard";
 }
 

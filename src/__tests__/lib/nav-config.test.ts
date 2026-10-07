@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { filterNavItems, navItems, partitionNavSection, type NavItem } from "@/lib/nav-config";
+import { filterNavItems, navItems, partitionNavSection, STAFF_NAV_HREFS, type NavItem } from "@/lib/nav-config";
 import type { Role } from "@prisma/client";
 
 describe("filterNavItems", () => {
@@ -8,9 +8,30 @@ describe("filterNavItems", () => {
     expect(filtered.some((i) => i.href === "/contracts")).toBe(true);
   });
 
-  it("includes /contracts for staff (has contracts.view)", () => {
-    const filtered = filterNavItems(navItems, "staff" as Role);
+  it("includes /contracts for admin (has contracts.view)", () => {
+    const filtered = filterNavItems(navItems, "admin" as Role);
     expect(filtered.some((i) => i.href === "/contracts")).toBe(true);
+  });
+
+  // 2026-10-07: an Educator's sidebar is exactly STAFF_NAV_HREFS, in order,
+  // under one "My Portal" heading — no EOS, Operations, Growth or People.
+  it("gives staff only the My Portal list, in order", () => {
+    const filtered = filterNavItems(navItems, "staff" as Role);
+    expect(filtered.map((i) => i.href)).toEqual([...STAFF_NAV_HREFS]);
+    expect(new Set(filtered.map((i) => i.section))).toEqual(new Set(["My Portal"]));
+    expect(filtered.every((i) => i.core === true && !i.hidden)).toBe(true);
+  });
+
+  it("every staff nav item is a page staff can open", () => {
+    for (const href of STAFF_NAV_HREFS) {
+      expect(navItems.some((i) => i.href === href), href).toBe(true);
+    }
+  });
+
+  it("leaves Directors of Service with their centre tools", () => {
+    const filtered = filterNavItems(navItems, "member" as Role).map((i) => i.href);
+    expect(filtered).toContain("/roster");
+    expect(filtered).toContain("/services");
   });
 
   it("excludes /contracts for marketing (no contracts.view)", () => {
