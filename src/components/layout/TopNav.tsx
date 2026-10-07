@@ -49,6 +49,10 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
     const filtered = filterNavItems(
       navItems,
       session?.user?.role as Role | undefined,
+      {
+        isCentreAccount: session?.user?.isCentreAccount === true,
+        serviceId: session?.user?.serviceId ?? null,
+      },
     ).filter((item) => !item.hidden);
     const byKey = new Map<string, NavItem[]>();
     const order: string[] = [];
@@ -60,7 +64,7 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
       byKey.get(item.section)!.push(item);
     }
     return order.map((key) => ({ key, items: byKey.get(key)! }));
-  }, [session?.user?.role]);
+  }, [session?.user?.role, session?.user?.isCentreAccount, session?.user?.serviceId]);
 
   // Close the open dropdown when the user navigates to a new page —
   // adjust-state-during-render pattern, see react.dev "You Might Not Need an Effect".

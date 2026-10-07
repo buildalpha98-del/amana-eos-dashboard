@@ -392,6 +392,33 @@ function staffNavItems(items: readonly NavItem[]): NavItem[] {
 }
 
 /**
+ * 2026-10-08, Daniel: a shared CENTRE mailbox login (User.isCentreAccount —
+ * e.g. "AIA KKCC Admin") isn't a person, so My Pay / Leave / Expenses /
+ * Contract / Compliance / Getting Started mean nothing to it, and
+ * everything it works with already lives in its centre's own page menu.
+ * Its whole sidebar: My Centre, Notifications, Handbook & Help.
+ *
+ * Keyed on isCentreAccount — set automatically ONLY when the login's email
+ * matches a Service.email (src/lib/centre-account.ts) — never on role, so a
+ * real Director of Service is never caught by it. Page permissions are
+ * unchanged; other pages still open by URL.
+ */
+function centreAccountNavItems(items: readonly NavItem[], serviceId: string | null): NavItem[] {
+  const pick = (href: string) => items.find((i) => i.href === href);
+  const centre: NavItem = {
+    href: serviceId ? `/services/${serviceId}` : "/services",
+    label: "My Centre",
+    icon: Building2,
+    section: "My Centre",
+    tooltip: "Everything for your centre — today, roll call, roster, families, documents",
+    core: true,
+  };
+  return [centre, pick("/notifications"), pick("/handbook")]
+    .filter((i): i is NavItem => !!i)
+    .map((i) => ({ ...i, section: "My Centre", core: true, hidden: false }));
+}
+
+/**
  * Filter nav items by role: must pass `canAccessPage` AND (if tagged) the
  * `hasFeature` gate AND (if tagged) the `roles` allowlist. Keeps role logic
  * in one place so Sidebar stays declarative.
@@ -405,8 +432,10 @@ function staffNavItems(items: readonly NavItem[]): NavItem[] {
  */
 export function filterNavItems(
   items: readonly NavItem[],
-  role: Role | undefined
+  role: Role | undefined,
+  opts: { isCentreAccount?: boolean; serviceId?: string | null } = {},
 ): NavItem[] {
+  if (opts.isCentreAccount) return centreAccountNavItems(items, opts.serviceId ?? null);
   if (role === "staff") return staffNavItems(items);
   return items.filter((item) => {
     if (!canAccessPage(role, item.href)) return false;

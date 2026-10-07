@@ -269,6 +269,7 @@ const tabGroups: TabGroup[] = [
     icon: FolderOpen,
     subTabs: [
       { key: "policies", label: "Policies & procedures", icon: BookOpen },
+      { key: "handbook", label: "Handbook & Amana Way", icon: BookOpen },
       { key: "staff-files", label: "Staff files", icon: Users },
     ],
   },

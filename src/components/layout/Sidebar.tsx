@@ -84,7 +84,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const groupedItems = useMemo(() => {
     const filtered = filterNavItems(
       navItems,
-      session?.user?.role as Role | undefined
+      session?.user?.role as Role | undefined,
+      {
+        isCentreAccount: session?.user?.isCentreAccount === true,
+        serviceId: session?.user?.serviceId ?? null,
+      },
     )
       .filter((item) => !item.hidden || forceShowHrefs.includes(item.href))
       .filter((item) => !inductionLocked || isInductionAllowedPath(item.href));
@@ -98,19 +102,23 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       byKey.get(item.section)!.push(item);
     }
     return order.map((key) => ({ key, items: byKey.get(key)! }));
-  }, [session?.user?.role, inductionLocked, forceShowHrefs]);
+  }, [session?.user?.role, session?.user?.isCentreAccount, session?.user?.serviceId, inductionLocked, forceShowHrefs]);
 
   // Build favourited items list from the filtered nav items
   const favouriteItems = useMemo(() => {
     if (favourites.size === 0) return [];
     const filtered = filterNavItems(
       navItems,
-      session?.user?.role as Role | undefined
+      session?.user?.role as Role | undefined,
+      {
+        isCentreAccount: session?.user?.isCentreAccount === true,
+        serviceId: session?.user?.serviceId ?? null,
+      },
     )
       .filter((item) => !inductionLocked || isInductionAllowedPath(item.href))
       .filter((item) => favourites.has(item.href));
     return filtered;
-  }, [favourites, session?.user?.role, inductionLocked]);
+  }, [favourites, session?.user?.role, session?.user?.isCentreAccount, session?.user?.serviceId, inductionLocked]);
 
   return (
     <>
