@@ -22,6 +22,9 @@ const updateDocumentSchema = z.object({
   centreId: z.string().nullable().optional(),
   allServices: z.boolean().optional(),
   fileUrl: z.string().url().optional(),
+  // Link a document to the staff member it's about (their contract, WWCC…).
+  // It then appears on their profile and leaves everyone else's library.
+  assignedToId: z.string().nullable().optional(),
 });
 
 export const PATCH = withApiAuth(async (req, session, context) => {
@@ -33,8 +36,13 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const { centreId, allServices, ...rest } = parsed.data;
+  const { centreId, allServices, assignedToId, ...rest } = parsed.data;
   const updateData: Record<string, unknown> = { ...rest };
+  if (assignedToId !== undefined) {
+    updateData.assignedTo = assignedToId
+      ? { connect: { id: assignedToId } }
+      : { disconnect: true };
+  }
   if (allServices !== undefined) {
     updateData.allServices = allServices;
   }

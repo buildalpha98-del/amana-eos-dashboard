@@ -34,7 +34,11 @@ export const POST = withApiAuth(
     const { question } = parsed.data;
 
     // Search for relevant chunks
-    const searchResults = await searchChunks(question);
+    const searchResults = await searchChunks(question, 8, {
+      id: session!.user.id,
+      role: session!.user.role,
+      serviceId: session!.user.serviceId,
+    });
     const context = formatChunksForPrompt(searchResults);
 
     // Get AI client

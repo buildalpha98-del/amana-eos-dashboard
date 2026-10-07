@@ -47,6 +47,12 @@ function centreScopeClause(
   return clause?.OR;
 }
 
+/** The shared visibility clause (src/lib/document-visibility.ts), if any. */
+function visibilityClause(callArgs: { where: Record<string, unknown> }) {
+  const and = callArgs.where.AND as Array<Record<string, unknown>> | undefined;
+  return and?.find((c) => "assignedToId" in c);
+}
+
 describe("GET /api/documents", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -74,7 +80,7 @@ describe("GET /api/documents", () => {
     expect(body.documents).toHaveLength(2);
   });
 
-  it("for staff: the centre-scope clause includes their centre, org-wide and allServices", async () => {
+  it("for staff: sees their centre, allServices docs and their own uploads — not loose files", async () => {
     mockSession({ id: "u-1", name: "Staff", role: "staff", serviceId: "svc-1" });
     prismaMock.document.findMany.mockResolvedValue([
       { id: "d-1", title: "Own", centreId: "svc-1", allServices: false },
@@ -89,10 +95,13 @@ describe("GET /api/documents", () => {
     expect(scope).toEqual(
       expect.arrayContaining([
         { centreId: "svc-1" },
-        { centreId: null },
         { allServices: true },
+        { uploadedById: "u-1" },
       ]),
     );
+    // 2026-10-07: a loose upload (no centre, not org-wide, not assigned) is
+    // no longer everyone's — that's how an unlinked contract leaked.
+    expect(scope).not.toContainEqual({ centreId: null });
   });
 
   it("for staff filtering by centreId: unions that centre with allServices=true", async () => {
@@ -124,7 +133,7 @@ describe("GET /api/documents", () => {
     await GET(createRequest("GET", "/api/documents"));
 
     const callArgs = prismaMock.document.findMany.mock.calls[0][0];
-    expect(callArgs.where.assignedToId).toBeNull();
+    expect(visibilityClause(callArgs)?.assignedToId).toBeNull();
   });
 
   it("excludes assigned (personal) documents for a Director of Service", async () => {
@@ -138,7 +147,7 @@ describe("GET /api/documents", () => {
     await GET(createRequest("GET", "/api/documents"));
 
     const callArgs = prismaMock.document.findMany.mock.calls[0][0];
-    expect(callArgs.where.assignedToId).toBeNull();
+    expect(visibilityClause(callArgs)?.assignedToId).toBeNull();
   });
 
   it("excludes assigned (personal) documents for a marketing user", async () => {
@@ -151,7 +160,7 @@ describe("GET /api/documents", () => {
     await GET(createRequest("GET", "/api/documents"));
 
     const callArgs = prismaMock.document.findMany.mock.calls[0][0];
-    expect(callArgs.where.assignedToId).toBeNull();
+    expect(visibilityClause(callArgs)?.assignedToId).toBeNull();
   });
 
   it.each(["owner", "admin", "head_office"])(
@@ -166,7 +175,7 @@ describe("GET /api/documents", () => {
       // Admins keep one searchable view across everything — they can open
       // any staff profile anyway, so the library grants no extra access.
       const callArgs = prismaMock.document.findMany.mock.calls[0][0];
-      expect(callArgs.where.assignedToId).toBeUndefined();
+      expect(visibilityClause(callArgs)).toBeUndefined();
       // ...and the assignee comes back so the UI can label the row rather
       // than burying an HR file among org resources.
       expect(callArgs.include.assignedTo).toBeDefined();

@@ -52,6 +52,8 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { BulkUploadModal } from "@/components/documents/BulkUploadModal";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { DocumentReviewPanel } from "@/components/documents/DocumentReviewPanel";
+import { isAdminRole } from "@/lib/role-permissions";
 import { toast } from "@/hooks/useToast";
 import { uploadFileSmart } from "@/lib/upload-client";
 
@@ -413,6 +415,9 @@ export default function DocumentsPage() {
             },
           ]}
         />
+
+        {/* Loose files (no centre, not org-wide, not assigned) — admins only. */}
+        {isAdminRole(currentRole) && <DocumentReviewPanel />}
 
         {/* Breadcrumbs */}
         <div className="flex items-center gap-1.5 text-sm">

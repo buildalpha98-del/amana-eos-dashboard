@@ -311,7 +311,7 @@ describe("document-indexer", () => {
       ]);
 
       const { searchChunks } = await import("@/lib/document-indexer");
-      const results = await searchChunks("policy guidelines");
+      const results = await searchChunks("policy guidelines", 8, ADMIN);
 
       expect(results.length).toBe(2); // 2 documents
       // First group should be doc-1 (higher rank)
@@ -325,7 +325,7 @@ describe("document-indexer", () => {
       prismaMock.$queryRawUnsafe.mockResolvedValue([]);
 
       const { searchChunks } = await import("@/lib/document-indexer");
-      const results = await searchChunks("nonexistent query");
+      const results = await searchChunks("nonexistent query", 8, ADMIN);
 
       expect(results).toEqual([]);
     });
@@ -347,7 +347,7 @@ describe("document-indexer", () => {
       ]);
 
       const { searchChunks } = await import("@/lib/document-indexer");
-      await searchChunks("test query", 3);
+      await searchChunks("test query", 3, ADMIN);
 
       // Verify limit was passed to the raw query
       const queryCall = prismaMock.$queryRawUnsafe.mock.calls[0];
@@ -357,5 +357,38 @@ describe("document-indexer", () => {
       const sql = queryCall[0] as string;
       expect(sql).toContain("LIMIT");
     });
+
+    // 2026-10-07: the search used to have no access filter at all.
+    it("scopes an Educator's search to documents they may see", async () => {
+      prismaMock.$queryRawUnsafe.mockResolvedValue([]);
+      const { searchChunks } = await import("@/lib/document-indexer");
+      await searchChunks("contract", 8, { id: "u-staff", role: "staff", serviceId: "svc-1" });
+
+      const [sql, ...params] = prismaMock.$queryRawUnsafe.mock.calls[0] as [string, ...unknown[]];
+      expect(sql).toContain(`d."assignedToId" IS NULL`);
+      expect(sql).toContain(`d."allServices" = TRUE`);
+      expect(params).toEqual(["contract", 8, "internal://knowledge", "%/ai-knowledge/%", "u-staff", "svc-1"]);
+    });
+
+    it("applies the same scope to the fallback query", async () => {
+      prismaMock.$queryRawUnsafe.mockResolvedValue([]);
+      const { searchChunks } = await import("@/lib/document-indexer");
+      await searchChunks("contract", 8, { id: "u-staff", role: "staff", serviceId: "svc-1" });
+
+      const calls = prismaMock.$queryRawUnsafe.mock.calls;
+      expect(calls.length).toBe(2);
+      expect(calls[1][0] as string).toContain(`d."assignedToId" IS NULL`);
+    });
+
+    it("leaves an admin's search unscoped", async () => {
+      prismaMock.$queryRawUnsafe.mockResolvedValue([]);
+      const { searchChunks } = await import("@/lib/document-indexer");
+      await searchChunks("contract", 8, ADMIN);
+      const [sql, ...params] = prismaMock.$queryRawUnsafe.mock.calls[0] as [string, ...unknown[]];
+      expect(sql).not.toContain("assignedToId");
+      expect(params).toEqual(["contract", 8]);
+    });
   });
 });
+
+const ADMIN = { id: "u-admin", role: "admin", serviceId: null };

@@ -17,6 +17,7 @@
  * ```
  */
 
+import { documentVisibilitySql, type DocumentViewer } from "@/lib/document-visibility";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
@@ -566,11 +567,18 @@ export async function indexTextContent(
 /**
  * Full-text search across indexed DocumentChunks using PostgreSQL tsvector.
  * Returns results grouped by document, ranked by ts_rank.
+ *
+ * `viewer` is REQUIRED (2026-10-07): results are limited to the documents
+ * that viewer could open in the library (src/lib/document-visibility.ts).
+ * Before this the search had no filter at all, so the assistant would
+ * quote any indexed file — a colleague's contract included — to anyone.
  */
 export async function searchChunks(
   query: string,
   limit: number = 8,
+  viewer: DocumentViewer,
 ): Promise<SearchResult[]> {
+  const scope = documentVisibilitySql(viewer, 3);
   const rows = await prisma.$queryRawUnsafe<SearchChunkRow[]>(
     // First pass: plainto_tsquery — treats the input as a phrase
     // (implicit AND between tokens). Most precise but unforgiving:
@@ -592,11 +600,13 @@ export async function searchChunks(
     JOIN "Document" d ON d.id = dc."documentId"
     WHERE dc."searchVector" @@ plainto_tsquery('english', $1)
       AND d.deleted = false
+      AND ${scope.sql}
     ORDER BY rank DESC
     LIMIT $2
     `,
     query,
     limit,
+    ...scope.params,
   );
 
   // 2026-06-02 query-expansion fallback. When the strict AND-search
@@ -624,11 +634,13 @@ export async function searchChunks(
       JOIN "Document" d ON d.id = dc."documentId"
       WHERE dc."searchVector" @@ websearch_to_tsquery('english', $1)
         AND d.deleted = false
+        AND ${scope.sql}
       ORDER BY rank DESC
       LIMIT $2
       `,
       query,
       limit,
+      ...scope.params,
     );
     if (fallback.length === 0) return [];
     rows.push(...fallback);
