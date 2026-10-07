@@ -16,7 +16,8 @@
  * 2026-06-02.
  */
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useHelpEvent } from "@/lib/help-events";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Bot, Send, X, Loader2, Square, Trash2, Maximize2 } from "lucide-react";
@@ -36,6 +37,8 @@ export function FloatingChatWidget() {
   const { collapsed } = useSidebar();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
+  // Help menu → "Ask Amana AI".
+  useHelpEvent("assistant", useCallback(() => setOpen(true), []));
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { messages, isStreaming, sendMessage, stopStreaming, clearMessages } =

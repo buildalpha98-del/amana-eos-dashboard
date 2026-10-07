@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { WelcomeTour, TOUR_STORAGE_KEY } from "@/components/onboarding/WelcomeTour";
+import { useHelpEvent } from "@/lib/help-events";
 
 export function OnboardingTourWrapper() {
   const [showTour, setShowTour] = useState(false);
+  // Help menu → "Replay the welcome tour".
+  useHelpEvent("tour", useCallback(() => setShowTour(true), []));
 
   useEffect(() => {
     // Only show if not completed before

@@ -9,6 +9,7 @@ import { Plus, Search } from "lucide-react";
 import { getCurrentQuarter } from "@/lib/utils";
 import { QuickAddMenu, type QuickAddMenuPosition } from "./QuickAddMenu";
 import { CommandPalette } from "./CommandPalette";
+import { HelpMenu } from "./HelpMenu";
 import { navItems } from "@/lib/nav-config";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { useRecentPages } from "@/hooks/useRecentPages";
@@ -231,6 +232,7 @@ export function TopBar() {
             <Plus className="w-4 h-4" />
           </button>
 
+          <HelpMenu />
           <span data-tour="notifications"><NotificationBell /></span>
         </div>
       </header>
@@ -250,6 +252,7 @@ export function TopBar() {
         <button onClick={handleQuickAddClick} className="h-8 w-8 inline-flex items-center justify-center rounded-full text-white bg-brand hover:bg-brand-hover transition-colors" title="Quick Add" aria-label="Quick add">
           <Plus className="w-3.5 h-3.5" />
         </button>
+        <HelpMenu compact />
         <NotificationBell />
       </MobileHeaderActions>
 
