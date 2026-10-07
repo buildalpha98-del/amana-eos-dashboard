@@ -1,0 +1,1258 @@
+/**
+ * Parent welcome pack — HTML template, printed to A4 PDF by build.ts.
+ *
+ * Every page is a fixed 210 × 297mm box, so nothing ever splits across a
+ * page break (the first print run flowed freely and orphaned headings and
+ * cards). build.ts fails the run if any page's content overflows its box.
+ *
+ * Brand: Midnight Green #004E64, Jonquil #FECE00, Lemon Chiffon #FFF2BF,
+ * Cosmic Latte #FFFAE6. Somatic and DIN Condensed aren't web-licensed, so
+ * Fredoka (rounded geometric) and Barlow Condensed stand in for them.
+ */
+import type { WelcomePackCentre } from "./centres";
+
+const HEAD_OFFICE = "1300 200 262";
+const HEAD_OFFICE_TEL = "1300200262";
+const ENROL_EMAIL = "enrolment@amanaoshc.com.au";
+const WHATSAPP_URL = "https://chat.whatsapp.com/JU9ab3hMupbHzrfa5eS8Ko";
+
+export interface TemplateAssets {
+  /** file:// URL of a directory holding the per-centre jpgs + whatsapp-qr.png */
+  assetBase: string;
+  /** file:// URL of the repo's public/ directory */
+  publicBase: string;
+}
+
+const esc = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+const tel = (phone: string) => `tel:${phone.replace(/\s+/g, "")}`;
+
+/* ------------------------------------------------------------------ */
+/* Decoration                                                          */
+/* ------------------------------------------------------------------ */
+
+/** The logo's sun rays as a free-standing burst. `from`/`to` in degrees, 0 = up. */
+function burst(opts: {
+  size: number;
+  rays: number;
+  from?: number;
+  to?: number;
+  inner?: number;
+  color: string;
+  width?: number;
+  opacity?: number;
+}): string {
+  const { size, rays, from = -90, to = 90, inner = 0.38, color, width = 0.075, opacity = 1 } = opts;
+  const c = size / 2;
+  const r0 = c * inner;
+  const r1 = c * 0.94;
+  const sw = size * width;
+  const lines: string[] = [];
+  for (let i = 0; i < rays; i++) {
+    const deg = rays === 1 ? from : from + ((to - from) * i) / (rays - 1);
+    const a = ((deg - 90) * Math.PI) / 180;
+    const x0 = c + r0 * Math.cos(a);
+    const y0 = c + r0 * Math.sin(a);
+    const x1 = c + r1 * Math.cos(a);
+    const y1 = c + r1 * Math.sin(a);
+    lines.push(
+      `<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`,
+    );
+  }
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true"><g stroke="${color}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round" opacity="${opacity}">${lines.join("")}</g></svg>`;
+}
+
+const ICONS: Record<string, string> = {
+  phone:
+    '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  pin: '<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  door: '<path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17"/><path d="M3 21h18"/><circle cx="15" cy="12" r="1"/>',
+  globe:
+    '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  heart:
+    '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
+  shield: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  food: '<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 0-3 2.5-3 6h3v12"/>',
+  alert: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5"/>',
+  chat: '<path d="M4 5h16v11H9l-5 4z"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  coin: '<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6.5V8M12 16v1.5"/>',
+  card: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/>',
+  device: '<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/>',
+  hand: '<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4.5a1.5 1.5 0 0 1 3 0V12M14 11.5V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7c-3 0-4.5-1.5-6-4l-1.6-2.8a1.5 1.5 0 0 1 2.6-1.5L8 15"/>',
+  star: '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+};
+
+const icon = (name: string, cls = "ico") =>
+  `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
+
+/* ------------------------------------------------------------------ */
+/* Building blocks                                                     */
+/* ------------------------------------------------------------------ */
+
+function sectionHead(eyebrow: string, title: string, intro?: string): string {
+  return `<header class="sec">
+    <div class="eyebrow"><span class="ray">${burst({ size: 18, rays: 5, from: -60, to: 60, inner: 0.3, color: "#FECE00", width: 0.16 })}</span>${esc(eyebrow)}</div>
+    <h2>${title}</h2>
+    ${intro ? `<p class="lede">${intro}</p>` : ""}
+  </header>`;
+}
+
+function card(title: string, body: string, opts: { icon?: string; tone?: "white" | "chiffon" | "green"; cls?: string } = {}): string {
+  const { tone = "white", cls = "" } = opts;
+  return `<div class="card card-${tone} ${cls}">
+    <h3>${opts.icon ? icon(opts.icon) : ""}<span>${title}</span></h3>
+    ${body}
+  </div>`;
+}
+
+function steps(items: Array<[string, string]>, opts: { marker?: "num" | "alpha"; cls?: string } = {}): string {
+  const { marker = "num", cls = "" } = opts;
+  return `<ol class="steps ${cls}">${items
+    .map(
+      ([t, b], i) => `<li>
+        <span class="badge">${marker === "alpha" ? String.fromCharCode(97 + i) : i + 1}</span>
+        <div><strong>${t}</strong><p>${b}</p></div>
+      </li>`,
+    )
+    .join("")}</ol>`;
+}
+
+function bullets(items: string[]): string {
+  return `<ul class="bullets">${items.map((i) => `<li>${i}</li>`).join("")}</ul>`;
+}
+
+function page(c: WelcomePackCentre, n: number, body: string, opts: { cls?: string; footer?: boolean } = {}): string {
+  const { cls = "", footer = true } = opts;
+  return `<section class="page ${cls}">
+    <div class="page-body">${body}</div>
+    ${
+      footer
+        ? `<footer class="foot">
+      <span class="foot-l"><img src="__PUBLIC__/logo-icon-green.svg" alt=""/>Amana OSHC ${esc(c.name)}</span>
+      <span class="foot-r">Parent Welcome Pack<span class="pg">${n}</span></span>
+    </footer>`
+        : ""
+    }
+  </section>`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Pages                                                               */
+/* ------------------------------------------------------------------ */
+
+function cover(c: WelcomePackCentre): string {
+  return `<section class="page cover">
+    <div class="cover-burst">${burst({ size: 900, rays: 13, from: -90, to: 90, inner: 0.36, color: "#FECE00", width: 0.05 })}</div>
+    <div class="cover-sun"></div>
+    <div class="cover-top">
+      <img class="cover-logo" src="__PUBLIC__/logo-full-white.svg" alt="Amana OSHC"/>
+      <span class="cover-tag">Parent Welcome Pack</span>
+    </div>
+    <div class="cover-main">
+      <p class="cover-salaam">Assalamu Alaikum</p>
+      <h1>Welcome to<br/>the <span>Amana</span><br/>family</h1>
+      <div class="cover-centre">
+        <span class="cover-centre-k">Your centre</span>
+        <span class="cover-centre-v">Amana OSHC ${esc(c.name)}</span>
+        ${c.address ? `<span class="cover-centre-a">${esc(c.address)}</span>` : ""}
+      </div>
+    </div>
+    <div class="cover-bottom">
+      <span class="btb">Beyond The Bell</span>
+      <span class="cover-url">amanaoshc.com.au</span>
+    </div>
+  </section>`;
+}
+
+function welcomePage(c: WelcomePackCentre): string {
+  const contents: Array<[string, string, number]> = [
+    ["Finding us", "Your centre, map and coordinator", 3],
+    ["Getting started", "Four steps to the first day", 4],
+    ["Fees and CCS", "How fees and the subsidy work", 5],
+    ["Paying and invoices", "Three ways to pay", 7],
+    ["Booking and OWNA", "Booking, absences and changes", 8],
+    ["Drop-off and pick-up", "Handing over safely", 9],
+    ["Food and health", "Halal, nut-free and safe", 10],
+    ["Our programs", "What your child will get up to", 11],
+    ["Good to know", "Belongings, fair play and safety", 12],
+    ["Staying in touch", "Who to contact and how", 13],
+    ["Questions", "Frequently asked questions", 14],
+  ];
+  const glance = [
+    c.hasBsc
+      ? ["sun", "Before school", "Opens two hours before the bell"]
+      : null,
+    ["clock", "After school", c.earlyWednesday ? `Final bell to 6:30pm (Wednesdays from ${c.earlyWednesday})` : "Final bell to 6:30pm"],
+    ["phone", "Your centre", `<a href="${tel(c.phone)}">${esc(c.phone)}</a>`],
+    ["chat", "Head office", `<a href="tel:${HEAD_OFFICE_TEL}">${HEAD_OFFICE}</a>`],
+  ].filter(Boolean) as string[][];
+
+  return page(
+    c,
+    2,
+    `<div class="welcome-grid">
+      <div class="letter">
+        ${sectionHead("A note from us", "Welcome to the Amana OSHC family")}
+        <p class="big">Assalamu Alaikum, and thank you for choosing us.</p>
+        <p>We are so glad your family is joining Amana OSHC ${esc(c.name)}. Our team is here to give your child a safe, warm and fun place to learn and play before and after the school day, rooted in values that matter.</p>
+        <p>This pack covers what happens next, how fees and booking work, and everything you need for your child's first day. Keep it handy, and call us any time if you have a question. We are always happy to help.</p>
+        <p class="sign">Warm regards,<br/><strong>The Amana OSHC team</strong></p>
+        <blockquote class="pull">Learning doesn't stop at 3pm, and neither do we.</blockquote>
+        <div class="glance">
+          <h3>At a glance</h3>
+          ${glance
+            .map(
+              ([ic, k, v]) => `<div class="glance-row">${icon(ic)}<span class="k">${k}</span><span class="v">${v}</span></div>`,
+            )
+            .join("")}
+        </div>
+      </div>
+      <aside class="contents">
+        <div class="contents-burst">${burst({ size: 220, rays: 9, from: -90, to: 90, inner: 0.4, color: "#FECE00", width: 0.07, opacity: 0.55 })}</div>
+        <h3>Inside this pack</h3>
+        <ol>${contents
+          .map(
+            ([t, s, p]) => `<li><span class="ct"><strong>${t}</strong><em>${s}</em></span><span class="cp">${p}</span></li>`,
+          )
+          .join("")}</ol>
+      </aside>
+    </div>`,
+  );
+}
+
+function findingUsPage(c: WelcomePackCentre, a: TemplateAssets): string {
+  const initials = c.coordinator
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  return page(
+    c,
+    3,
+    `${sectionHead("Finding us", `Amana OSHC ${esc(c.name)}`, c.address ? `${icon("pin", "ico inline")} ${esc(c.address)}` : undefined)}
+    <div class="find-grid">
+      <figure class="map">
+        <img src="${a.assetBase}/${c.map}" alt="Map of the school showing where to find Amana OSHC"/>
+        <figcaption>
+          <span><i class="key key-pin"></i>Red pin: enter the school here</span>
+          <span><i class="key key-line"></i>Yellow line: walk this way</span>
+          <span><i class="key key-star"></i>Gold star: Amana OSHC</span>
+        </figcaption>
+      </figure>
+      <div class="find-side">
+        <div class="where">
+          <span class="k">${icon("door")}Drop-off and pick-up</span>
+          <span class="v">${esc(c.dropOff)}</span>
+          ${
+            c.earlyWednesday
+              ? `<p class="wed"><strong>Wednesdays:</strong> your school finishes early, so Wednesday sessions run ${c.earlyWednesday} to 6:30pm.</p>`
+              : ""
+          }
+        </div>
+        <div class="coord">
+          ${
+            c.photo
+              ? `<img class="avatar" src="${a.assetBase}/${c.photo}" alt="${esc(c.coordinator)}"/>`
+              : `<span class="avatar avatar-i">${initials}</span>`
+          }
+          <span class="k">Your Service Coordinator</span>
+          <span class="name">${esc(c.coordinator)}</span>
+          <p>Your first point of contact for anything about your child's day.</p>
+        </div>
+        <div class="contact-tiles">
+          <a class="tile" href="${tel(c.phone)}">${icon("phone")}<span class="k">Service number</span><span class="v big">${esc(c.phone)}</span></a>
+          <a class="tile" href="mailto:${c.email}">${icon("mail")}<span class="k">Service email</span><span class="v">${esc(c.email)}</span></a>
+        </div>
+        <div class="hours">
+          ${c.hasBsc ? `<div><span class="k">${icon("sun")}Before school</span><span class="v">Opens two hours before the bell</span></div>` : ""}
+          <div><span class="k">${icon("clock")}After school</span><span class="v">Final bell to 6:30pm</span></div>
+        </div>
+        <div class="spot">
+          ${icon("user")}
+          <p><strong>Spotting our team:</strong> we wear yellow lanyards with name tags and black Amana OSHC tees.</p>
+        </div>
+      </div>
+    </div>`,
+  );
+}
+
+function gettingStartedPage(c: WelcomePackCentre): string {
+  const timeline: Array<[string, string]> = [
+    ["We receive your form", "Once you submit your enrolment form, our team gets straight to work on it."],
+    ["We give you a call", "We will phone you to confirm your details and answer any questions you have."],
+    [
+      "Confirm in myGov",
+      "Once we notify Centrelink that your child is attending, you will be asked to confirm the enrolment in myGov. New to CCS? Make a new claim first (page 6).",
+    ],
+    ["Your child joins in", "Sessions are confirmed, and your child's first day is on. Nothing is charged until after it."],
+  ];
+  return page(
+    c,
+    4,
+    `${sectionHead("Getting started", "Four steps to your child's first day")}
+    <ol class="timeline">${timeline
+      .map(
+        ([t, b], i) => `<li>
+          <span class="tl-num">${i + 1}</span>
+          <strong>${t}</strong>
+          <p>${b}</p>
+        </li>`,
+      )
+      .join("")}</ol>
+
+    <div class="first-day">
+      <div class="first-day-head">
+        <div class="eyebrow dark">Before the first day</div>
+        <h2>Three things to know</h2>
+        <div class="fd-burst">${burst({ size: 160, rays: 7, from: -75, to: 75, inner: 0.42, color: "#FECE00", width: 0.09 })}</div>
+      </div>
+      <div class="fd-items">
+        <div class="fd">
+          <span class="fd-n">1</span>
+          <h3>Tell your child they are coming to Amana</h3>
+          <p>Some children forget, and then wait at the gate for you. Let your child know before their first day that they will be with us after school.</p>
+        </div>
+        <div class="fd">
+          <span class="fd-n">2</span>
+          <h3>Drop by and say hello</h3>
+          <p>If it is your first time, come and view the service so you know where it is, and meet our educators. Our team wear yellow lanyards with name tags and black Amana OSHC tees, so we are easy to spot.</p>
+        </div>
+        <div class="fd">
+          <span class="fd-n">3</span>
+          <h3>There is nothing extra to pack</h3>
+          <p>Your child does not need to bring anything special for us. Homework is simply whatever the school has set for the day, and we set aside time every session for reading and homework.</p>
+        </div>
+      </div>
+    </div>`,
+  );
+}
+
+function feesPage(c: WelcomePackCentre): string {
+  return page(
+    c,
+    5,
+    `${sectionHead(
+      "Fees and Child Care Subsidy",
+      "How fees work",
+      "Fees are charged <strong>one week in arrears</strong>. If your child attends in week one, you are charged on the Wednesday of week two, after your Child Care Subsidy (CCS) has been taken off.",
+    )}
+    <div class="callout">
+      ${icon("calendar")}
+      <p><strong>Fees apply to every booked session</strong>, including absences and any session that falls on a public holiday during term time, because our staffing and resourcing costs are fixed. <strong>The one exception is illness:</strong> if your child is unwell and you provide a medical certificate, there is no charge, for regular and casual bookings alike.</p>
+    </div>
+    <div class="two">
+      <div class="receipt">
+        <div class="receipt-head">
+          <span class="eyebrow dark">A worked example</span>
+          <p>Your child starts and attends 3 after school sessions in their first week.</p>
+        </div>
+        <div class="receipt-rows">
+          <div class="r"><span>3 sessions at $38.60</span><span>$115.80</span></div>
+          <div class="r minus"><span>CCS paid to us at 80%</span><span>&minus;$92.64</span></div>
+          <div class="r total"><span>You pay on Wednesday<br/>of week two</span><span>$23.16</span></div>
+        </div>
+        <p class="fine">Example only. Your CCS rate depends on your family income and is assessed by Services Australia.</p>
+      </div>
+      <div class="gap-explain">
+        <h3>How the CCS gap works</h3>
+        <div class="gap-bar">
+          <div class="gap-gov"><span>Government pays</span><strong>up to 90%</strong></div>
+          <div class="gap-you"><span>You pay</span><strong>the gap</strong></div>
+        </div>
+        <p>The government pays a percentage of each session fee, up to 90% depending on your family income, straight to us. The part left over is called the gap, and the gap is all you pay.</p>
+        <h4>Who qualifies?</h4>
+        ${bullets([
+          "Your child is 13 or under and not in secondary school",
+          "Your child meets immunisation requirements",
+          "You or your partner meet residency requirements",
+          "You do <strong>not</strong> need to be on Centrelink already",
+        ])}
+      </div>
+    </div>
+    <div class="two tight">
+      ${card("Late pick-up", "<p>We close at 6:30pm. After that, late pick-up is <strong>$15 for every 15 minutes, per child</strong>. It covers the educators staying back with your child. If you are running late, please call us.</p>", { icon: "clock" })}
+      ${card("No hidden extras", "<p>There is <strong>no registration fee, no enrolment fee and no bond</strong>.</p><p class='fine'>Swapping, make-up sessions and refunds for non-attendance are not possible because of government subsidy regulations.</p>", { icon: "star", tone: "chiffon" })}
+    </div>
+`,
+  );
+}
+
+function ccsPage(c: WelcomePackCentre): string {
+  const rows = [
+    c.hasBsc ? ["Rise and Shine Club", "before school", "$27.56", "$33.07", "$2.76"] : null,
+    ["Amana Afternoons", "after school", "$38.60", "$44.10", "$3.86"],
+  ].filter(Boolean) as string[][];
+  const from = c.hasBsc
+    ? "From <strong>$2.76</strong> a session for before school care and <strong>$3.86</strong> for after school care"
+    : "From <strong>$3.86</strong> a session for after school care";
+  return page(
+    c,
+    6,
+    `${sectionHead(
+      "Fees and Child Care Subsidy",
+      "Your Child Care Subsidy in two steps",
+      "There are two separate steps to get your CCS working with us. Step 1 is only for some families. Step 2 is for everyone.",
+    )}
+    <div class="ccs-steps">
+      <div class="ccs ccs-1">
+        <span class="ccs-tag">Step 1 &middot; Some families</span>
+        <h3>Make a new CCS claim with Centrelink</h3>
+        <p>Do this if you have not used the Child Care Subsidy before, or if your child has not been enrolled in any form of approved care in the last 26 weeks. If your child has been in approved care within the last 26 weeks, skip to Step 2.</p>
+        ${steps(
+          [
+            ["Set up myGov and link Centrelink", "Create a myGov account if you do not have one, then link Centrelink to it."],
+            ["Make the claim", "In myGov, go to Centrelink, then Payments and Claims, then Child Care Subsidy, and follow the prompts."],
+            ["Give us your details", "Add your child's CRN and date of birth to your Amana enrolment, so we can notify Centrelink that your child is attending."],
+          ],
+          { marker: "alpha", cls: "compact" },
+        )}
+      </div>
+      <div class="ccs ccs-2">
+        <span class="ccs-tag">Step 2 &middot; Everyone</span>
+        <h3>Confirm the enrolment in Centrelink</h3>
+        <p>Once we send Centrelink a notification that your child is attending Amana OSHC, you will be asked to confirm the enrolment in myGov. <strong>Please approve it as soon as you see it</strong>, so your subsidy can be applied to your child's sessions.</p>
+        <div class="help">
+          ${icon("phone")}
+          <p><strong>Stuck at any step?</strong> Call us on <a href="tel:${HEAD_OFFICE_TEL}">${HEAD_OFFICE}</a> and we will help, at no extra cost. Keep your income, hours and family details current in myGov.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="sub">Session fees</h3>
+    <p class="mb">${from} once the maximum 90% subsidy is applied. You only ever pay the gap. The full fees before CCS are:</p>
+    <table class="fees">
+      <thead><tr><th>Session</th><th>Regular</th><th>Casual</th><th class="hl">From, after 90% CCS</th></tr></thead>
+      <tbody>${rows
+        .map(
+          ([n, k, r, ca, f]) =>
+            `<tr><td><strong>${n}</strong><em>${k}</em></td><td>${r}</td><td>${ca}</td><td class="hl">${f}</td></tr>`,
+        )
+        .join("")}</tbody>
+    </table>
+    <p class="fine">Want your exact gap? Use the calculator at <a href="https://amanaoshc.com.au/fees#calculator">amanaoshc.com.au/fees</a>.</p>`,
+  );
+}
+
+function payPage(c: WelcomePackCentre): string {
+  return page(
+    c,
+    7,
+    `${sectionHead("Paying and invoices", "Three ways to pay")}
+    <div class="pay-grid">
+      <div class="pay">
+        <span class="pay-n">1</span>
+        <h3>Direct debit through OWNA</h3>
+        <p>Set and forget, debited weekly.</p>
+        <dl class="charges">
+          <dt>Bank account</dt><dd>$0.75 per transaction</dd>
+          <dt>Visa or Mastercard</dt><dd>1.56% plus $0.75</dd>
+          <dt>Amex</dt><dd>1.56% plus $0.75</dd>
+          <dt>Failed payment</dt><dd>$2.75</dd>
+          <dt>Chargeback</dt><dd>$50</dd>
+        </dl>
+      </div>
+      <div class="pay">
+        <span class="pay-n">2</span>
+        <h3>One-off payment in the OWNA app</h3>
+        <p>Go to Home, then Statements and Invoices. Open your latest invoice, scroll to the bottom, and choose One-Off Payment.</p>
+      </div>
+      <div class="pay">
+        <span class="pay-n">3</span>
+        <h3>Direct deposit</h3>
+        <dl class="bank">
+          <dt>Account name</dt><dd>Amana OSHC PTY LTD</dd>
+          <dt>BSB</dt><dd>062-692</dd>
+          <dt>Account</dt><dd>8288 2065</dd>
+        </dl>
+        <p>Use your child's name and school code as the reference, for example MFISGreenacre.</p>
+      </div>
+    </div>
+
+    <div class="invoice">
+      <div class="invoice-head">
+        <h3>How to read your invoice</h3>
+        <p>Your weekly invoice is in the OWNA app under Statements and Invoices. Here is what each part means.</p>
+      </div>
+      <div class="invoice-body">
+        <div class="inv-mock" aria-hidden="true">
+          <div class="im im1"><b>1</b></div>
+          <div class="im im2"><b>2</b><i></i><i></i><i></i></div>
+          <div class="im im3"><b>3</b></div>
+          <div class="im im4"><b>4</b></div>
+          <div class="im im5"><b>5</b><i></i><i></i></div>
+        </div>
+        ${steps(
+          [
+            ["Invoice details", "Your account name, issue date and the statement period the invoice covers."],
+            ["Transaction summary", "Your opening balance, then a line for each child's attendances that week with the sessions and total fee, followed by your CCS estimate as a credit."],
+            ["Total due", "The amount you pay after the CCS estimate has been taken off."],
+            ["CCS entitlements", "Your CCS percentage, the number of absence days used and your fortnightly hours."],
+            ["Session details", "Each day your child attended, with the session fee, the CCS estimate and your gap. Fees are averaged per day over a two week cycle."],
+          ],
+          { cls: "compact" },
+        )}
+      </div>
+    </div>`,
+  );
+}
+
+function bookingPage(c: WelcomePackCentre): string {
+  return page(
+    c,
+    8,
+    `${sectionHead("Booking and changes", "Booking, absences and changes")}
+    <div class="four">
+      ${card("Regular bookings", "<p>Made at least one week in advance, with a minimum of two sessions a week. Cancelling a day needs <strong>7 days' notice</strong>.</p>", { icon: "calendar" })}
+      ${card("Casual bookings", "<p>Casual sessions are non-cancellable. Once booked, the fee applies whether your child attends or not, unless your child is unwell and you have a medical certificate. Book casual days in OWNA up to <strong>14 days ahead</strong>.</p>", { icon: "star" })}
+      ${card("Changing days", `<p>Email <a href="mailto:${ENROL_EMAIL}">${ENROL_EMAIL}</a> with your school name, your child's name and the day you need. Please give one week's notice. This is for regular bookings only.</p>`, { icon: "mail" })}
+      ${card("Sick days", "<p>If your child is unwell, there is no charge when you provide a medical certificate, for regular and casual bookings alike. Please still mark them absent in OWNA.</p>", { icon: "heart" })}
+    </div>
+
+    <div class="owna">
+      <div class="owna-head">
+        <div>
+          <div class="eyebrow dark">The OWNA app</div>
+          <h3>Booking and managing in OWNA</h3>
+        </div>
+        <p>You will receive your OWNA login from our team. Keep it safe, because it opens both the Parent Portal and the OWNA app.</p>
+      </div>
+      ${steps(
+        [
+          ["Book attendances", "Tap the <b>+</b> button, choose Child(ren) Attendances, pick your dates and sessions, then confirm."],
+          ["Mark an absence or delete a future booking", "Open the booking and mark it absent or delete it, or use <b>+</b> then Mark Child Not Attending. Recurring bookings need 7 days' notice and casual bookings cannot be cancelled."],
+          ["Book several days at once", "Use multi-select on the Attendances screen."],
+          ["Check your bookings", "Tap the Upcoming Attendances dropdown. You can also view past and absent attendances."],
+          ["Update your details", "Tap the settings cog, then Manage My Details. You can also reset your password or PIN here. Health and medical changes must go through OWNA so our Health and Medical Team can review them."],
+          ["View statements and invoices", "Open the menu, then Statements and Invoices. See the last 30 days or up to 24 months, and print any statement."],
+        ],
+        { cls: "grid2" },
+      )}
+    </div>
+    <div class="more-owna">
+      <h3>${icon("device")}A few more things you can do in OWNA</h3>
+      ${bullets([
+        "See your child's daily information, including menu and sun protection updates, from the menu.",
+        "Sign your child's incident reports, record medication and upload an immunisation record from the three dots on your child's profile.",
+        "Sign your Complying Written Arrangement (CWA) when asked, from the same three dots menu.",
+        "Set up or change your direct debit using the DDR form button on Statements and Invoices.",
+        "Find our policies and centre information under Documents and Policies, at the bottom of the menu under Centre.",
+      ])}
+    </div>`,
+  );
+}
+
+function handoverPage(c: WelcomePackCentre): string {
+  return page(
+    c,
+    9,
+    `    ${sectionHead(
+      "Drop-off and pick-up",
+      "Handing over safely, every session",
+      "We use electronic sign-in on our iPad. A parent, carer or authorised adult must sign your child in and out. Children cannot sign themselves in or out, because it is a CCS requirement.",
+    )}
+    <ol class="signin">
+      <li><span>${icon("door")}</span><strong>Come into the service</strong><em>Not the gate or car park</em></li>
+      <li><span>${icon("device")}</span><strong>Sign in or out on the iPad</strong><em>A parent, carer or authorised adult</em></li>
+      <li><span>${icon("hand")}</span><strong>Hand over to an educator</strong><em>Every session, every child</em></li>
+    </ol>
+    <div class="${c.hasBsc ? "four" : "two"} fill">
+      ${
+        c.hasBsc
+          ? card(
+              "Before school drop-off",
+              `<p>Walk your child to ${esc(c.dropOff)} (see the map on page 3), hand them to an educator and sign them in on the iPad. There are no gate drop-offs and no car park hand-offs.</p><p>When it is time, our educators walk the children to class and hand them to their teachers.</p>`,
+              { icon: "sun" },
+            )
+          : ""
+      }
+      ${card(
+        "After school pick-up",
+        `<p>Children in Kindergarten and Year 1 are collected from their classrooms by our educators. Older children meet us at ${esc(c.dropOff)}.</p><p>Please come into the service, not the gate or car park, and sign your child out on the iPad before taking them home.</p>`,
+        { icon: "hand" },
+      )}
+      ${card("Who can collect", "<p>You, and anyone you have authorised. To authorise someone else, email written permission to your service's email address. They will need to show photo ID at the service.</p>", { icon: "user" })}
+      ${card("If your child does not arrive", "<p>Please mark them absent in OWNA. If your child is on the roll but does not arrive, we call you, then your emergency contacts, then police if we cannot confirm their safety.</p>", { icon: "alert", tone: "chiffon" })}
+    </div>
+    <a class="late" href="${tel(c.phone)}">
+      ${icon("clock")}
+      <div><strong>Running late?</strong>Please call your centre as soon as you know. After 6:30pm, late pick-up is $15 for every 15 minutes, per child.</div>
+      <span class="num">${esc(c.phone)}</span>
+    </a>`,
+  );
+}
+
+function foodPage(c: WelcomePackCentre): string {
+  return page(
+    c,
+    10,
+    `${sectionHead("Food and health", "Halal, nut-free and safe")}
+    <div class="two">
+      <div class="card card-white feature">
+        <img class="club" src="__PUBLIC__/amana-assets/club-fuel-up.svg" alt="Fuel Up with Amana"/>
+        <p>Everything we serve is <strong>halal</strong>, and ${c.hasBsc ? "breakfast and afternoon tea are" : "afternoon tea is"} included every session. Menus are on display at the service and in the OWNA app.</p>
+        <p>We are a <strong>nut-free service</strong>, so we do not provide nuts and please do not send any in your child's bag.</p>
+      </div>
+      ${card("Sun safety", "<p>Everyone wears a hat outdoors, and we have yellow Amana OSHC hats for anyone who forgets.</p><p>SPF 50+ sunscreen is available at every service. If your child has a sensitivity, please supply your own and tell the team.</p>", { icon: "sun", tone: "chiffon" })}
+    </div>
+
+    <div class="medical">
+      <div class="medical-head">
+        ${icon("heart", "ico big")}
+        <div>
+          <h3>Allergies and medical needs: what we need from you</h3>
+          <p>Our Health and Medical Team reviews every child's medical information and may follow up with questions. Please allow <strong>up to two weeks</strong> for review before schedules are confirmed.</p>
+        </div>
+      </div>
+      <div class="medical-body">
+        <div>
+          <h4>Please provide</h4>
+          <ul class="checks">
+            <li>A current letter of diagnosis from a medical practitioner</li>
+            <li>Any required medication (such as an EpiPen, Ventolin or antihistamine), with permissions</li>
+            <li>A coloured Action Plan signed and dated by a doctor, renewed every year</li>
+            <li>A Risk Minimisation and Communication Plan, updated every year</li>
+            <li>An Additional Clinical Support Plan, if we tell you one is needed</li>
+          </ul>
+        </div>
+        <div class="medical-note">
+          <p>Please keep these current. <strong>Children cannot attend if their medical requirements are not up to date</strong>, and we may end care if requested documentation is not supplied.</p>
+          <p>This is purely about your child's safety. Everything you share is kept confidential.</p>
+          <p class="hl-note">New diagnosis? Email us straight away, even before the paperwork is ready.</p>
+        </div>
+      </div>
+    </div>`,
+  );
+}
+
+function programsPage(c: WelcomePackCentre): string {
+  const clubs: Array<[string, string, string]> = [
+    ...(c.hasBsc
+      ? ([["club-rise-shine.svg", "Rise and Shine Club", "Before school care that opens two hours before the bell and starts the day with energy, movement and a positive mindset."]] as Array<[string, string, string]>)
+      : []),
+    ["club-afternoons.svg", "Amana Afternoons", "Our after school care, from the final bell until 6:30pm."],
+    ["club-homework.svg", "Homework Heroes", "Quiet, supported time to get homework done."],
+    ["club-little-champions.svg", "Little Champions Club", "Sport and active play that burns off the day's energy."],
+    ["club-imagination.svg", "Imagination Station", "Arts, crafts and STEM for curious minds."],
+    ["club-iqra.svg", "Iqra Circle", "Quran recitation and Arabic learning in a nurturing, faith-centred space."],
+    ["club-fuel-up.svg", "Fuel Up with Amana", "Halal food and cooking, with nutritious meals and snacks."],
+    [
+      "club-holiday-quest.svg",
+      "Holiday Quest",
+      'Vacation care in the school holidays, and on pupil-free days too. Open to all primary school aged children, 7:00am to 6:00pm. Locations rotate by demand. Details at <a href="https://amanaoshc.com.au/holiday-quest">amanaoshc.com.au/holiday-quest</a>.',
+    ],
+  ];
+  return page(
+    c,
+    11,
+    `${sectionHead("Our programs", "What your child will get up to", "Every session mixes learning, play, faith and food, so your child heads home happy, fed and with their homework done.")}
+    <div class="clubs ${clubs.length % 2 ? "odd" : ""}">${clubs
+      .map(
+        ([img, t, b]) => `<div class="club-card">
+          <div class="club-art"><img src="__PUBLIC__/amana-assets/${img}" alt=""/></div>
+          <div><h3>${t}</h3><p>${b}</p></div>
+        </div>`,
+      )
+      .join("")}</div>`,
+    { cls: "programs" },
+  );
+}
+
+function goodToKnowPage(c: WelcomePackCentre): string {
+  return page(
+    c,
+    12,
+    `${sectionHead("Good to know", "How we look after each other")}
+    <div class="two">
+      ${card("Devices and belongings", "<p>Phones, smart watches, tablets and laptops are not permitted unless used for homework. Please speak to your Service Coordinator about our BYOD policy.</p><p>Amana cannot be responsible for lost or stolen items, so please consider this when choosing what your child brings.</p>", { icon: "device" })}
+      <div class="card card-white">
+        <h3>${icon("star")}<span>Fair play</span></h3>
+        <p>We ask every child to:</p>
+        <ul class="pills">
+          <li>Be respectful</li><li>Look after our space</li><li>Listen to our team</li>
+          <li>Stay within view of an educator</li><li>Use kind language</li><li>Talk to us if something is worrying them</li>
+        </ul>
+        <p>Amana OSHC has zero tolerance for violence and aggression toward children or staff, and families may be called for early collection if unsafe behaviour continues.</p>
+      </div>
+    </div>
+
+    <div class="safety">
+      <div class="safety-burst">${burst({ size: 300, rays: 11, from: -90, to: 90, inner: 0.42, color: "#FECE00", width: 0.05, opacity: 0.9 })}</div>
+      <div class="eyebrow light">Child safety</div>
+      <h2>Your child's safety comes first</h2>
+      <div class="safety-grid">
+        <div>${icon("shield", "ico big")}<p>Every team member holds a valid <strong>Working With Children Check</strong></p></div>
+        <div>${icon("star", "ico big")}<p>Every team member has completed <strong>Geccko child safety</strong> and <strong>food handling</strong> training</p></div>
+        <div>${icon("heart", "ico big")}<p>Our senior team members hold current <strong>first aid</strong> training</p></div>
+        <div>${icon("user", "ico big")}<p>We employ our team directly, with <strong>no agency fill-ins</strong></p></div>
+      </div>
+      <p class="safety-foot">Children stay within an educator's eyesight at all times. Our policies, including our Medical Conditions Policy, are available on request, under Parent Resources on our website, and under Documents and Policies in OWNA.</p>
+    </div>`,
+  );
+}
+
+function touchPage(c: WelcomePackCentre, a: TemplateAssets): string {
+  return page(
+    c,
+    13,
+    `${sectionHead("Staying in touch", "Email, WhatsApp, OWNA and feedback")}
+    <div class="two">
+      ${card(
+        "Email",
+        `<p>We write from <strong>${ENROL_EMAIL}</strong>, through OWNA broadcasts, and from your school's address, <strong>${esc(c.email)}</strong>.</p><p>Please save these so we do not end up in your spam.</p>`,
+        { icon: "mail" },
+      )}
+      <div class="card card-green wa">
+        <div>
+          <h3>${icon("chat")}<span>WhatsApp community</span></h3>
+          <p>Join the Amana OSHC WhatsApp Community for general updates and announcements, including Holiday Quest news.</p>
+          <a class="btn" href="${WHATSAPP_URL}">Join the community</a>
+        </div>
+        <img class="qr" src="${a.assetBase}/whatsapp-qr.png" alt="QR code to join the WhatsApp community"/>
+      </div>
+      ${card("Social media", "<p>Follow <strong>@AmanaOSHC</strong> on Facebook and Instagram for community moments, holiday program peeks and team highlights.</p>", { icon: "globe" })}
+      ${card(
+        "Raising a concern or giving feedback",
+        `<p>We would love to hear from you. For any concern, question, help or enrolment change, email <a href="mailto:${ENROL_EMAIL}">${ENROL_EMAIL}</a> and our team will go through it. Please keep concerns out of the WhatsApp community so we can look after them properly.</p>`,
+        { icon: "heart", tone: "chiffon" },
+      )}
+    </div>
+
+    ${sectionHead("Who to contact", "We are always here to help")}
+    <div class="contact-big">
+      <a class="cb cb-centre" href="${tel(c.phone)}">
+        <span class="k">While your child is in care</span>
+        <span class="t">Call your service directly</span>
+        <span class="num">${icon("phone")}${esc(c.phone)}</span>
+      </a>
+      <a class="cb cb-office" href="tel:${HEAD_OFFICE_TEL}">
+        <span class="k">Questions, concerns, enrolment and after hours</span>
+        <span class="t">Call head office or email us</span>
+        <span class="num">${icon("phone")}${HEAD_OFFICE}</span>
+        <span class="mail">${ENROL_EMAIL}</span>
+      </a>
+    </div>
+    <p class="fine">We do not have a separate after hours line, so please call or email and we will respond as soon as we can.</p>`,
+  );
+}
+
+function faqs(c: WelcomePackCentre): Array<[string, string]> {
+  return [
+    ["What if my child is unwell?", "Please keep them home until they feel better, and mark them absent in OWNA. If you provide a medical certificate there is no charge, for regular and casual bookings alike. If your child becomes unwell while with us, we will contact you."],
+    ["What time do you open and close?", `Amana Afternoons runs from the final bell until 6:30pm.${c.hasBsc ? " Rise and Shine Club opens two hours before the bell." : ""}`],
+    [
+      "What does a typical afternoon look like?",
+      `Children arrive for roll call and a headcount, then enjoy a freshly prepared halal afternoon tea. Homework Heroes follows (Monday to Wednesday), then sport and active play with Little Champions Club, Iqra Circle and Asr prayer, and creative free play with Imagination Station before home time. Times are a guide and vary by centre.${c.hasBsc ? " Rise and Shine Club runs a morning version, with breakfast, calm play and a settled drop-off." : ""}`,
+    ],
+    ["When will I be charged?", "One week in arrears. Sessions your child attends in week one are charged on the Wednesday of week two, after CCS."],
+    ["Do I pay if my child is away?", "Fees apply to booked sessions, including absences and public holidays in term time. If your child is sick and you provide a medical certificate, there is no charge."],
+    ["Can I change my child's days?", `For regular bookings, yes. Email ${ENROL_EMAIL} with one week's notice. Casual sessions cannot be cancelled, and swaps and make-up sessions are not possible.`],
+    ["Can I book a casual day?", "Yes. Tap the + button in the OWNA app, choose Child(ren) Attendances, pick your dates and confirm. Casual days can be booked up to 14 days ahead."],
+    ["How do I pay?", "Weekly direct debit through OWNA, a one-off payment in the OWNA app, or direct deposit. The details are on page 7."],
+    ["How do I set up my Child Care Subsidy?", `If you have not used CCS before, or your child has not been in approved care in the last 26 weeks, make a new claim with Centrelink first. Then, once we notify Centrelink, confirm the enrolment in myGov. See page 6, or call us on ${HEAD_OFFICE}.`],
+    ["Is there a registration fee?", "No. There is no registration fee, enrolment fee or bond."],
+    ["Who collects my child from class?", "Children in Kindergarten and Year 1 are collected from their classrooms by our educators. Older children meet us at the service location."],
+    ["Can someone else pick up my child?", "Yes. Email written authorisation to your service's email address. They must bring photo ID."],
+    ["What if I am running late?", "Please call your service as soon as you know. After 6:30pm, late pick-up is $15 for every 15 minutes, per child."],
+    ["Is the food halal and nut-free?", "All food is halal and we are a nut-free service. Please do not send nuts in your child's bag."],
+    ["My child has an allergy or medical condition. What do I do?", "Add their medical plans to your enrolment in OWNA, or email your service. Our Health and Medical Team may take up to two weeks to review. Children cannot attend if their medical requirements are not up to date."],
+    ["Can staff give my child medication?", "Only when it has been recorded properly. Please record any medication your child needs in OWNA, and speak to your service before sending any medication with your child."],
+    ["Can my child bring a phone or tablet?", "No. Phones, smart watches, tablets and laptops are not permitted unless used for homework. Please speak to your Service Coordinator about our BYOD policy."],
+    ["Does my child pray at Amana?", "Our Iqra Circle offers Quran recitation, Arabic learning and Asr prayer in a dedicated, nurturing space."],
+    ["How do I update my details?", "In the OWNA app, tap the settings cog, then Manage My Details. Health and medical changes must go through OWNA so our Health and Medical Team can review them."],
+    ["I have not received my OWNA login. What do I do?", `Please email ${ENROL_EMAIL} or call ${HEAD_OFFICE} and we will sort it out.`],
+    ["Where can I read your policies?", "On request, under Parent Resources on our website, and under Documents and Policies in the OWNA app."],
+    ["How do I raise a concern or give feedback?", `Email ${ENROL_EMAIL} and our team will go through it. Please keep concerns out of the WhatsApp community.`],
+    ["Do you run vacation care and pupil-free days?", "Yes. Holiday Quest runs in the school holidays, and we also run care on pupil-free days. All primary school aged children are welcome, whether or not they attend Amana during term time."],
+    ["How are photos and social media handled?", `Your photo and social media consent is recorded in your enrolment form, and we follow it. To change it, email ${ENROL_EMAIL}.`],
+    ["How do I stop attending Amana?", `There is no lock-in. Simply cancel your recurring bookings, with one week's notice, by emailing ${ENROL_EMAIL}.`],
+  ];
+}
+
+function faqPages(c: WelcomePackCentre): string {
+  const all = faqs(c);
+  const split = 12;
+  const render = (items: Array<[string, string]>) =>
+    `<div class="faq">${items.map(([q, a]) => `<div class="qa"><h3><span class="q">Q</span>${q}</h3><p>${a}</p></div>`).join("")}</div>`;
+  return (
+    page(c, 14, `${sectionHead("Quick answers", "Frequently asked questions")}${render(all.slice(0, split))}`) +
+    page(c, 15, `${sectionHead("Quick answers", "More questions, answered")}${render(all.slice(split))}`)
+  );
+}
+
+function backCover(c: WelcomePackCentre): string {
+  return `<section class="page back">
+    <div class="back-burst">${burst({ size: 900, rays: 13, from: -90, to: 90, inner: 0.36, color: "#FECE00", width: 0.05 })}</div>
+    <div class="back-main">
+      <img class="back-icon" src="__PUBLIC__/logo-icon.svg" alt=""/>
+      <p class="thanks">Jazak Allahu Khairan</p>
+      <p class="thanks-sub">Thank you for trusting us with your child. We can't wait to meet them.</p>
+      <div class="back-contacts">
+        <div><span class="k">Your centre</span><span class="v">${esc(c.phone)}</span><span class="s">${esc(c.email)}</span></div>
+        <div><span class="k">Head office</span><span class="v">${HEAD_OFFICE}</span><span class="s">${ENROL_EMAIL}</span></div>
+      </div>
+      <p class="back-links">amanaoshc.com.au &nbsp;&middot;&nbsp; @AmanaOSHC on Facebook and Instagram</p>
+    </div>
+    <div class="back-foot">
+      <img src="__PUBLIC__/logo-full-white.svg" alt="Amana OSHC"/>
+      <span class="btb">Beyond The Bell</span>
+    </div>
+  </section>`;
+}
+
+/* ------------------------------------------------------------------ */
+
+export function renderWelcomePack(c: WelcomePackCentre, a: TemplateAssets): string {
+  const body = [
+    cover(c),
+    welcomePage(c),
+    findingUsPage(c, a),
+    gettingStartedPage(c),
+    feesPage(c),
+    ccsPage(c),
+    payPage(c),
+    bookingPage(c),
+    handoverPage(c),
+    foodPage(c),
+    programsPage(c),
+    goodToKnowPage(c),
+    touchPage(c, a),
+    faqPages(c),
+    backCover(c),
+  ].join("\n");
+
+  return `<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8"/>
+<title>Parent Welcome Pack: Amana OSHC ${esc(c.name)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Fredoka:wght@500;600;700&display=block" rel="stylesheet"/>
+<style>${CSS}</style>
+</head>
+<body>${body.replace(/__PUBLIC__/g, a.publicBase)}</body>
+</html>`;
+}
+
+const CSS = /* css */ `
+:root {
+  --green: #004E64;
+  --green-deep: #003A4B;
+  --jonquil: #FECE00;
+  --chiffon: #FFF2BF;
+  --latte: #FFFAE6;
+  --ink: #0F3340;
+  --muted: #4A6B76;
+  --line: #E9DFB8;
+  --white: #FFFFFF;
+}
+@page { size: A4; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #ddd; }
+body {
+  font-family: "Barlow Condensed", "DIN Condensed", sans-serif;
+  font-weight: 500;
+  font-size: 10.6pt;
+  line-height: 1.38;
+  color: var(--ink);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+a { color: inherit; text-decoration: none; }
+p a, li a, .fine a { color: var(--green); border-bottom: 1.5px solid var(--jonquil); font-weight: 600; }
+strong, b { font-weight: 700; color: var(--green); }
+h1, h2, h3, h4 { font-family: "Fredoka", "Somatic", sans-serif; color: var(--green); font-weight: 600; line-height: 1.15; }
+
+/* ---------- page frame ---------- */
+.page {
+  width: 210mm; height: 297mm;
+  position: relative; overflow: hidden;
+  background: var(--latte);
+  page-break-after: always; break-after: page;
+  margin: 0 auto;
+}
+@media screen { .page { margin: 8mm auto; box-shadow: 0 2px 14px rgba(0,0,0,.18); } }
+.page-body {
+  position: absolute; inset: 15mm 15mm 19mm 15mm;
+  overflow: hidden;
+  display: flex; flex-direction: column; gap: 5mm;
+}
+.foot {
+  position: absolute; left: 15mm; right: 15mm; bottom: 8mm;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 8.5pt; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600;
+  border-top: 1px solid var(--line); padding-top: 3mm;
+}
+.foot-l { display: flex; align-items: center; gap: 2.2mm; }
+.foot-l img { height: 5mm; }
+.foot-r { display: flex; align-items: center; gap: 3mm; }
+.pg {
+  display: inline-grid; place-items: center; width: 7mm; height: 7mm; border-radius: 50%;
+  background: var(--jonquil); color: var(--green); font-family: "Fredoka"; font-size: 9pt; letter-spacing: 0;
+}
+
+/* ---------- headings ---------- */
+.sec { display: flex; flex-direction: column; gap: 1.6mm; }
+.eyebrow {
+  display: flex; align-items: center; gap: 1.6mm;
+  font-size: 9pt; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--muted);
+}
+.eyebrow .ray svg { width: 4.6mm; height: 4.6mm; display: block; }
+.eyebrow.dark { color: var(--green); }
+.eyebrow.light { color: var(--jonquil); }
+h2 { font-size: 23pt; letter-spacing: -.01em; }
+h3 { font-size: 12.5pt; }
+h4 { font-size: 10.5pt; margin-top: 2mm; }
+.lede { font-size: 11.6pt; color: var(--ink); max-width: 165mm; }
+.lede .ico.inline { width: 4mm; height: 4mm; vertical-align: -0.7mm; color: var(--green); }
+h3.sub { font-size: 14pt; margin-top: 1mm; }
+p + p { margin-top: 1.6mm; }
+.fine { font-size: 9pt; color: var(--muted); }
+.mb { margin-top: -2.5mm; }
+
+/* ---------- cards ---------- */
+.card {
+  border-radius: 4.5mm; padding: 4.6mm 5mm;
+  display: flex; flex-direction: column; gap: 1.8mm;
+}
+.card h3 { display: flex; align-items: center; gap: 2mm; }
+.card-white { background: var(--white); box-shadow: 0 0.4mm 0 rgba(0,78,100,.06), 0 0 0 0.25mm rgba(0,78,100,.06); }
+.card-chiffon { background: var(--chiffon); }
+.card-green { background: var(--green); color: var(--latte); }
+.card-green h3, .card-green strong { color: var(--white); }
+.ico { width: 5.6mm; height: 5.6mm; flex: none; color: var(--green); }
+.card h3 .ico {
+  width: 7.4mm; height: 7.4mm; padding: 1.4mm; border-radius: 50%; background: var(--jonquil); color: var(--green);
+}
+.card-chiffon h3 .ico { background: var(--white); }
+.ico.big { width: 9mm; height: 9mm; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+.two.tight { gap: 3.5mm; }
+.three { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3.5mm; }
+.four { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5mm; }
+
+/* ---------- lists ---------- */
+.steps { list-style: none; display: flex; flex-direction: column; }
+.steps li { display: flex; gap: 3mm; padding: 2.4mm 0; border-bottom: 1px solid var(--line); }
+.steps li:last-child { border-bottom: 0; }
+.steps .badge {
+  flex: none; width: 6.6mm; height: 6.6mm; border-radius: 50%;
+  display: grid; place-items: center; background: var(--jonquil); color: var(--green);
+  font-family: "Fredoka"; font-weight: 600; font-size: 10pt;
+}
+.steps strong { font-family: "Fredoka"; font-weight: 600; font-size: 11pt; display: block; margin-bottom: .4mm; }
+.steps.compact li { padding: 1.7mm 0; }
+.steps.compact strong { font-size: 10.4pt; }
+.steps.grid2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6mm; }
+.steps.grid2 li:nth-last-child(2) { border-bottom: 0; }
+.bullets { list-style: none; display: flex; flex-direction: column; gap: 1.2mm; }
+.bullets li { padding-left: 5mm; position: relative; }
+.bullets li::before {
+  content: ""; position: absolute; left: .6mm; top: 1.8mm; width: 2mm; height: 2mm; border-radius: 50%; background: var(--jonquil);
+}
+.checks { list-style: none; display: flex; flex-direction: column; gap: 1.6mm; }
+.checks li { padding-left: 6.5mm; position: relative; }
+.checks li::before {
+  content: "✓"; position: absolute; left: 0; top: .1mm; width: 4.4mm; height: 4.4mm; border-radius: 1.2mm;
+  background: var(--green); color: var(--jonquil); font-size: 8pt; font-weight: 700; display: grid; place-items: center;
+}
+
+/* ---------- cover ---------- */
+.cover { background: var(--green); color: var(--latte); }
+.cover-burst { position: absolute; left: 50%; bottom: -150mm; transform: translateX(-50%); opacity: .95; }
+.cover-burst svg { width: 300mm; height: 300mm; }
+.cover-sun {
+  position: absolute; left: 50%; bottom: -50mm; transform: translateX(-50%);
+  width: 124mm; height: 124mm; border-radius: 50%; background: var(--jonquil);
+}
+.cover-top { position: absolute; top: 16mm; left: 16mm; right: 16mm; display: flex; justify-content: space-between; align-items: center; }
+.cover-logo { height: 21mm; }
+.cover-tag {
+  border: 0.5mm solid var(--jonquil); color: var(--jonquil); border-radius: 99mm; padding: 1.6mm 4.4mm;
+  font-size: 9.5pt; letter-spacing: .24em; text-transform: uppercase; font-weight: 700;
+}
+.cover-main { position: absolute; top: 58mm; left: 16mm; right: 16mm; }
+.cover-salaam { font-family: "Fredoka"; font-size: 15pt; color: var(--jonquil); margin-bottom: 3mm; }
+.cover h1 { color: var(--white); font-size: 52pt; line-height: 1.02; font-weight: 600; letter-spacing: -.015em; }
+.cover h1 span { color: var(--jonquil); }
+.cover-centre {
+  margin-top: 9mm; display: inline-flex; flex-direction: column; gap: 1mm;
+  background: var(--latte); color: var(--green); border-radius: 4mm; padding: 4.4mm 6mm; max-width: 150mm;
+}
+.cover-centre-k { font-size: 9pt; letter-spacing: .22em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+.cover-centre-v { font-family: "Fredoka"; font-weight: 600; font-size: 19pt; line-height: 1.1; }
+.cover-centre-a { font-size: 11pt; color: var(--ink); }
+.cover-bottom {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 20mm; padding: 0 16mm; display: flex; justify-content: space-between; align-items: center;
+  color: var(--green); background: var(--jonquil);
+}
+.btb { font-family: "Fredoka"; font-weight: 600; font-size: 13pt; letter-spacing: .16em; text-transform: uppercase; }
+.cover-url { font-size: 10pt; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; }
+
+/* ---------- welcome ---------- */
+.welcome-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 7mm; height: 100%; }
+.letter { display: flex; flex-direction: column; gap: 3mm; }
+.letter .big { font-family: "Fredoka"; font-size: 14pt; color: var(--green); font-weight: 500; }
+.letter p { font-size: 11.4pt; }
+.sign { margin-top: 1mm; }
+.pull { margin-top: 3mm; font-family: "Fredoka"; font-weight: 500; font-size: 16pt; line-height: 1.2; color: var(--green); border-left: 1.6mm solid var(--jonquil); padding: 1mm 0 1mm 4mm; }
+.glance { margin-top: auto; background: var(--white); border-radius: 4.5mm; padding: 4.5mm 5mm; display: flex; flex-direction: column; gap: 2.4mm; }
+.glance h3 { font-size: 12pt; }
+.glance-row { display: grid; grid-template-columns: 6mm 24mm 1fr; gap: 2mm; align-items: center; padding-top: 2.4mm; border-top: 1px solid var(--line); }
+.glance-row .k { font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 8.8pt; color: var(--muted); }
+.glance-row .v { font-weight: 600; }
+.contents {
+  display: flex; flex-direction: column;
+  position: relative; background: var(--green); color: var(--latte); border-radius: 5mm; padding: 7mm 6mm; overflow: hidden;
+}
+.contents-burst { position: absolute; right: -22mm; bottom: -40mm; transform: rotate(180deg); }
+.contents-burst svg { width: 70mm; height: 70mm; }
+.contents h3 { color: var(--jonquil); font-size: 15pt; margin-bottom: 4mm; position: relative; }
+.contents ol { list-style: none; display: flex; flex-direction: column; justify-content: space-between; flex: 1; position: relative; }
+.contents li { display: flex; justify-content: space-between; align-items: center; gap: 3mm; padding: 2.5mm 0; border-bottom: 1px solid rgba(255,250,230,.16); }
+.contents li:last-child { border-bottom: 0; }
+.ct { display: flex; flex-direction: column; }
+.ct strong { color: var(--white); font-family: "Fredoka"; font-weight: 500; font-size: 11pt; }
+.ct em { font-style: normal; font-size: 9.4pt; color: rgba(255,250,230,.72); }
+.cp { font-family: "Fredoka"; color: var(--jonquil); font-size: 12pt; }
+
+/* ---------- finding us ---------- */
+.find-grid { display: grid; grid-template-columns: 82mm 1fr; gap: 6mm; flex: 1; min-height: 0; }
+.map { display: flex; flex-direction: column; gap: 2.5mm; min-height: 0; }
+.map img { width: 100%; flex: 1; min-height: 0; object-fit: cover; border-radius: 5mm; border: 1.2mm solid var(--white); box-shadow: 0 0 0 0.25mm rgba(0,78,100,.12); }
+.map figcaption { display: flex; flex-direction: column; gap: 1mm; font-size: 9.6pt; color: var(--muted); }
+.map figcaption span { display: flex; align-items: center; gap: 2mm; }
+.key { display: inline-block; flex: none; }
+.key-pin { width: 3mm; height: 3mm; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #E2312B; }
+.key-line { width: 5mm; height: 1.4mm; border-radius: 1mm; background: var(--jonquil); }
+.key-star { width: 3.4mm; height: 3.4mm; background: #F2A900; clip-path: polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); }
+.find-side { display: flex; flex-direction: column; gap: 4mm; }
+.where { background: var(--green); color: var(--latte); border-radius: 5mm; padding: 5mm; }
+.where .k, .coord .k, .tile .k {
+  display: flex; align-items: center; gap: 1.6mm; font-size: 8.8pt; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+}
+.where .k { color: var(--jonquil); }
+.where .k .ico { color: var(--jonquil); width: 4.6mm; height: 4.6mm; }
+.where .v { display: block; font-family: "Fredoka"; font-weight: 600; font-size: 20pt; color: var(--white); margin-top: 1.2mm; line-height: 1.1; }
+.wed { margin-top: 2.6mm; background: rgba(254,206,0,.16); border-left: 1mm solid var(--jonquil); padding: 2mm 3mm; border-radius: 0 2mm 2mm 0; }
+.wed strong { color: var(--jonquil); }
+.coord {
+  background: var(--white); border-radius: 5mm; padding: 5mm; display: grid; grid-template-columns: 22mm 1fr; column-gap: 4mm; align-items: center;
+}
+.coord .avatar { grid-row: span 3; width: 22mm; height: 22mm; border-radius: 50%; object-fit: cover; border: 1mm solid var(--jonquil); }
+.avatar-i { display: grid; place-items: center; background: var(--chiffon); font-family: "Fredoka"; font-size: 18pt; color: var(--green); }
+.coord .k { color: var(--muted); }
+.coord .name { font-family: "Fredoka"; font-weight: 600; font-size: 17pt; color: var(--green); line-height: 1.1; }
+.coord p { font-size: 10pt; color: var(--muted); }
+.contact-tiles { display: grid; gap: 3mm; }
+.tile { display: grid; grid-template-columns: 9mm 1fr; column-gap: 3mm; align-items: center; background: var(--chiffon); border-radius: 4mm; padding: 3.6mm 4.4mm; }
+.tile .ico { grid-row: span 2; width: 9mm; height: 9mm; padding: 2mm; background: var(--jonquil); border-radius: 50%; }
+.tile .k { color: var(--muted); }
+.tile .v { font-weight: 700; color: var(--green); font-size: 11.5pt; word-break: break-all; }
+.tile .v.big { font-family: "Fredoka"; font-size: 17pt; font-weight: 600; }
+.hours { display: grid; gap: 2mm; background: var(--white); border-radius: 4mm; padding: 3.6mm 4.4mm; }
+.hours > div { display: flex; justify-content: space-between; align-items: center; gap: 3mm; }
+.hours > div + div { border-top: 1px solid var(--line); padding-top: 2mm; }
+.hours .k { display: flex; align-items: center; gap: 1.6mm; font-size: 8.8pt; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.hours .k .ico { width: 4.6mm; height: 4.6mm; }
+.hours .v { font-weight: 700; color: var(--green); }
+.spot { display: flex; gap: 3mm; align-items: flex-start; font-size: 10pt; color: var(--muted); padding: 0 1mm; }
+.spot .ico { color: var(--green); }
+
+/* ---------- getting started ---------- */
+.timeline { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; position: relative; margin-top: 2mm; }
+.timeline::before { content: ""; position: absolute; top: 6mm; left: 8%; right: 8%; height: 0.8mm; background: repeating-linear-gradient(90deg, var(--jonquil) 0 3mm, transparent 3mm 5mm); }
+.timeline li { position: relative; background: var(--white); border-radius: 4.5mm; padding: 15mm 4mm 4.5mm; display: flex; flex-direction: column; gap: 1.4mm; margin-top: 0; }
+.tl-num {
+  position: absolute; top: -1mm; left: 4mm; width: 13mm; height: 13mm; border-radius: 50%;
+  background: var(--green); color: var(--jonquil); font-family: "Fredoka"; font-weight: 600; font-size: 17pt; display: grid; place-items: center;
+  border: 1.2mm solid var(--latte);
+}
+.timeline strong { font-family: "Fredoka"; font-weight: 600; font-size: 12pt; }
+.timeline p { font-size: 10pt; }
+.first-day { flex: 1; background: var(--chiffon); border-radius: 6mm; padding: 7mm 6mm 6mm; display: flex; flex-direction: column; gap: 4mm; position: relative; overflow: hidden; }
+.first-day-head { position: relative; }
+.fd-burst { position: absolute; right: -6mm; top: -16mm; }
+.fd-burst svg { width: 44mm; height: 44mm; }
+.fd-items { display: flex; flex-direction: column; gap: 3mm; flex: 1; }
+.fd { flex: 1; background: var(--white); border-radius: 4.5mm; padding: 4.5mm 5mm 4.5mm 20mm; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 1.2mm; }
+.fd-n { position: absolute; left: 5mm; top: 50%; transform: translateY(-50%); font-family: "Fredoka"; font-size: 28pt; font-weight: 600; color: var(--jonquil); -webkit-text-stroke: .5mm var(--green); }
+.fd p { font-size: 11.6pt; }
+.fd h3 { font-size: 14pt; }
+
+/* ---------- fees ---------- */
+.callout { display: flex; gap: 3.5mm; align-items: flex-start; background: var(--white); border-left: 1.6mm solid var(--jonquil); border-radius: 0 4mm 4mm 0; padding: 4mm 5mm; }
+.callout .ico { margin-top: .4mm; }
+.receipt { background: var(--white); border-radius: 5mm; padding: 5.5mm; display: flex; flex-direction: column; gap: 3mm; position: relative; }
+.receipt::after { content: ""; position: absolute; left: 4mm; right: 4mm; bottom: -1.6mm; height: 3.2mm; background: radial-gradient(circle at 1.6mm 0, transparent 1.6mm, var(--white) 1.7mm) repeat-x; background-size: 3.2mm 3.2mm; transform: rotate(180deg); }
+.receipt-head p { margin-top: 1.4mm; font-size: 11pt; }
+.receipt-rows { border-top: 0.5mm dashed var(--line); }
+.r { display: flex; justify-content: space-between; align-items: center; padding: 2.4mm 0; border-bottom: 0.5mm dashed var(--line); font-size: 11pt; }
+.r span:last-child { font-weight: 700; font-variant-numeric: tabular-nums; }
+.r.minus span:last-child { color: #2E7D5B; }
+.r.total { border-bottom: 0; padding-top: 3mm; }
+.r.total span:first-child { font-weight: 700; color: var(--green); }
+.r.total span:last-child { font-family: "Fredoka"; font-size: 24pt; color: var(--green); background: var(--jonquil); padding: 1mm 3mm; border-radius: 2.5mm; }
+.gap-explain { background: var(--white); border-radius: 5mm; padding: 5.5mm; display: flex; flex-direction: column; gap: 2.4mm; }
+.gap-bar { display: grid; grid-template-columns: 9fr 2.4fr; height: 15mm; border-radius: 3mm; overflow: hidden; margin: 1mm 0; }
+.gap-bar > div { display: flex; flex-direction: column; justify-content: center; padding: 0 3mm; font-size: 8.6pt; line-height: 1.15; }
+.gap-bar strong { font-family: "Fredoka"; font-size: 11pt; }
+.gap-gov { background: var(--green); color: var(--latte); }
+.gap-gov strong { color: var(--jonquil); }
+.gap-you { background: var(--jonquil); color: var(--green); }
+
+/* ---------- ccs ---------- */
+.ccs-steps { display: grid; grid-template-columns: 1.15fr 1fr; gap: 4mm; }
+.ccs { border-radius: 5mm; padding: 5mm; display: flex; flex-direction: column; gap: 2mm; }
+.ccs-1 { background: var(--white); }
+.ccs-2 { background: var(--green); color: var(--latte); }
+.ccs-2 h3, .ccs-2 strong { color: var(--white); }
+.ccs-tag { align-self: flex-start; background: var(--jonquil); color: var(--green); border-radius: 99mm; padding: .8mm 3mm; font-size: 8.6pt; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.ccs-1 .ccs-tag { background: var(--chiffon); }
+.help { margin-top: auto; display: flex; gap: 3mm; background: rgba(255,250,230,.1); border-radius: 3.5mm; padding: 3.5mm; }
+.help .ico { color: var(--jonquil); }
+.help a { color: var(--jonquil); border-color: var(--jonquil); }
+table.fees { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--white); border-radius: 4.5mm; overflow: hidden; font-size: 11pt; }
+.fees th { text-align: left; background: var(--green); color: var(--latte); font-weight: 700; font-size: 9pt; letter-spacing: .14em; text-transform: uppercase; padding: 3mm 4mm; }
+.fees td { padding: 3.2mm 4mm; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.fees td strong { display: block; font-family: "Fredoka"; font-weight: 600; }
+.fees td em { font-style: normal; font-size: 9.4pt; color: var(--muted); }
+.fees th.hl { background: var(--jonquil); color: var(--green); }
+.fees td.hl { background: var(--chiffon); font-family: "Fredoka"; font-weight: 600; color: var(--green); font-size: 14pt; }
+
+/* ---------- pay ---------- */
+.pay-grid { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 3.5mm; }
+.pay { background: var(--white); border-radius: 5mm; padding: 11mm 4.6mm 4.6mm; position: relative; display: flex; flex-direction: column; gap: 1.8mm; }
+.pay-n { position: absolute; top: 4mm; left: 4.6mm; font-family: "Fredoka"; font-weight: 600; font-size: 10pt; color: var(--green); background: var(--jonquil); border-radius: 99mm; padding: .4mm 2.8mm; }
+.pay h3 { font-size: 11.6pt; }
+.pay p { font-size: 10pt; }
+dl.charges, dl.bank { display: grid; grid-template-columns: auto 1fr; gap: .9mm 3mm; font-size: 9.8pt; }
+dl dt { color: var(--muted); }
+dl dd { font-weight: 700; color: var(--green); text-align: right; }
+dl.bank dd { font-family: "Fredoka"; font-weight: 600; }
+.invoice { background: var(--white); border-radius: 5mm; padding: 5mm; display: flex; flex-direction: column; gap: 3mm; flex: 1; min-height: 0; }
+.invoice-head p { font-size: 10.2pt; color: var(--muted); margin-top: .8mm; }
+.invoice-body { display: grid; grid-template-columns: 40mm 1fr; gap: 5mm; }
+.inv-mock { background: var(--latte); border: 0.4mm solid var(--line); border-radius: 3mm; padding: 2.4mm; display: flex; flex-direction: column; gap: 1.8mm; }
+.im { position: relative; border-radius: 1.6mm; background: var(--white); border: 0.3mm solid var(--line); display: flex; flex-direction: column; gap: 1mm; padding: 2mm 2mm 2mm 7mm; }
+.im b { position: absolute; left: 1.4mm; top: 1.6mm; width: 4.2mm; height: 4.2mm; border-radius: 50%; background: var(--jonquil); color: var(--green); font-size: 7.5pt; display: grid; place-items: center; font-family: "Fredoka"; }
+.im i { display: block; height: 1.2mm; border-radius: 1mm; background: var(--line); }
+.im1 { height: 8mm; } .im2 { height: 18mm; } .im3 { height: 8mm; background: var(--chiffon); } .im4 { height: 9mm; } .im5 { flex: 1; min-height: 13mm; }
+
+/* ---------- booking ---------- */
+.owna { background: var(--white); border-radius: 5mm; padding: 4.6mm 5mm; display: flex; flex-direction: column; gap: 3mm; }
+.owna-head { display: grid; grid-template-columns: 1fr 1.1fr; gap: 5mm; align-items: end; padding-bottom: 3mm; border-bottom: 0.6mm solid var(--jonquil); }
+.owna-head h3 { font-size: 15pt; margin-top: 1mm; }
+.owna-head p { font-size: 10.2pt; color: var(--muted); }
+.steps.grid2 p { font-size: 9.8pt; }
+.owna .steps li { padding: 1.8mm 0; }
+.signin { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; counter-reset: s; }
+.signin li { background: var(--green); color: var(--latte); border-radius: 4.5mm; padding: 4.5mm; display: flex; flex-direction: column; gap: 1mm; position: relative; }
+.signin li span { width: 11mm; height: 11mm; border-radius: 50%; background: var(--jonquil); display: grid; place-items: center; margin-bottom: 1.5mm; }
+.signin li span .ico { width: 6mm; height: 6mm; }
+.signin strong { color: var(--white); font-family: "Fredoka"; font-weight: 600; font-size: 12pt; }
+.signin em { font-style: normal; font-size: 10pt; color: rgba(255,250,230,.8); }
+.signin li:not(:last-child)::after { content: "→"; position: absolute; right: -3mm; top: 50%; transform: translate(50%,-50%); z-index: 1; width: 6mm; height: 6mm; border-radius: 50%; background: var(--jonquil); color: var(--green); display: grid; place-items: center; font-weight: 700; font-size: 10pt; }
+.fill > .card:last-child:nth-child(odd) { grid-column: span 2; }
+.late { margin-top: auto; display: flex; align-items: center; gap: 4mm; background: var(--jonquil); color: var(--green); border-radius: 5mm; padding: 5mm 6mm; }
+.late .ico { width: 10mm; height: 10mm; }
+.late div { flex: 1; }
+.late strong { font-family: "Fredoka"; font-size: 14pt; display: block; }
+.late .num { font-family: "Fredoka"; font-weight: 600; font-size: 22pt; }
+.fill .card { padding: 6mm; gap: 2.6mm; }
+.fill .card p { font-size: 11.6pt; }
+.fill .card h3 { font-size: 14pt; }
+.more-owna { background: var(--chiffon); border-radius: 5mm; padding: 4mm 5mm; display: flex; flex-direction: column; gap: 1.8mm; }
+.more-owna .bullets { gap: .6mm; font-size: 10pt; }
+.more-owna h3 { display: flex; align-items: center; gap: 2mm; }
+.more-owna .bullets li::before { background: var(--green); }
+
+/* ---------- food ---------- */
+.feature .club { height: 20mm; align-self: flex-start; margin-bottom: 1mm; }
+.medical { background: var(--green); color: var(--latte); border-radius: 6mm; padding: 6mm; display: flex; flex-direction: column; gap: 4mm; flex: 1; }
+.medical h3, .medical h4, .medical strong { color: var(--white); }
+.medical h3 { font-size: 15pt; }
+.medical-head { display: flex; gap: 4mm; align-items: flex-start; }
+.medical-head .ico { color: var(--jonquil); flex: none; }
+.medical-head p { margin-top: 1.4mm; }
+.medical-body { display: grid; grid-template-columns: 1.15fr 1fr; gap: 6mm; }
+.medical h4 { margin: 0 0 2.4mm; color: var(--jonquil); font-size: 11pt; }
+.medical .checks li::before { background: var(--jonquil); color: var(--green); }
+.medical-note { background: rgba(255,250,230,.08); border-radius: 4mm; padding: 4.5mm; }
+.hl-note { background: var(--jonquil); color: var(--green); font-weight: 700; border-radius: 2.5mm; padding: 2.4mm 3mm; margin-top: 3mm !important; }
+
+/* ---------- programs ---------- */
+.clubs { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5mm; flex: 1; }
+.club-card { background: var(--white); border-radius: 5mm; padding: 4mm; display: grid; grid-template-columns: 34mm 1fr; gap: 4mm; align-items: center; }
+.club-art { height: 26mm; display: grid; place-items: center; background: var(--latte); border-radius: 3.5mm; padding: 2.4mm; }
+.club-art img { max-width: 100%; max-height: 100%; }
+.club-card h3 { font-size: 12.4pt; margin-bottom: .8mm; }
+.club-card p { font-size: 10pt; }
+.clubs.odd .club-card:last-child { grid-column: span 2; grid-template-columns: 34mm 1fr; background: var(--green); color: var(--latte); }
+.clubs.odd .club-card:last-child h3 { color: var(--jonquil); }
+.clubs.odd .club-card:last-child a { color: var(--white); }
+.clubs.odd .club-card:last-child .club-art { background: var(--latte); }
+
+/* ---------- good to know ---------- */
+.pills { list-style: none; display: flex; flex-wrap: wrap; gap: 1.4mm; }
+.pills li { background: var(--chiffon); color: var(--green); font-weight: 600; border-radius: 99mm; padding: .7mm 2.8mm; font-size: 9.8pt; }
+.safety { position: relative; overflow: hidden; background: var(--green); color: var(--latte); border-radius: 6mm; padding: 7mm 6mm 6mm; flex: 1; display: flex; flex-direction: column; gap: 3mm; }
+.safety h2 { color: var(--white); position: relative; }
+.safety-burst { position: absolute; right: -22mm; top: -30mm; }
+.safety-burst svg { width: 90mm; height: 90mm; }
+.safety-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; margin-top: 2mm; position: relative; }
+.safety-grid > div { background: rgba(255,250,230,.09); border-radius: 4mm; padding: 4mm; display: flex; gap: 3mm; align-items: center; font-size: 11pt; }
+.safety-grid .ico { color: var(--jonquil); }
+.safety-grid strong { color: var(--jonquil); }
+.safety-foot { margin-top: auto; font-size: 10.2pt; color: rgba(255,250,230,.85); }
+
+/* ---------- staying in touch ---------- */
+.wa { display: grid; grid-template-columns: 1fr 25mm; gap: 3mm; align-items: center; }
+.wa > div { display: flex; flex-direction: column; gap: 1.8mm; }
+.btn { align-self: flex-start; background: var(--jonquil); color: var(--green); font-weight: 700; border-radius: 99mm; padding: 1.4mm 4mm; font-size: 10pt; margin-top: 1mm; }
+.qr { width: 25mm; height: 25mm; background: var(--white); padding: 1.6mm; border-radius: 2.5mm; image-rendering: pixelated; }
+.contact-big { display: grid; grid-template-columns: 1fr 1.2fr; gap: 4mm; }
+.cb { border-radius: 5mm; padding: 5mm; display: flex; flex-direction: column; gap: 1mm; }
+.cb .k { font-size: 8.8pt; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.cb .t { font-family: "Fredoka"; font-weight: 500; font-size: 12pt; }
+.cb .num { display: flex; align-items: center; gap: 2.4mm; font-family: "Fredoka"; font-weight: 600; font-size: 22pt; margin-top: 1.4mm; }
+.cb .num .ico { width: 7mm; height: 7mm; }
+.cb .mail { font-weight: 700; font-size: 11pt; }
+.cb-centre { background: var(--jonquil); color: var(--green); }
+.cb-centre .ico { color: var(--green); }
+.cb-office { background: var(--green); color: var(--latte); }
+.cb-office .k, .cb-office .ico { color: var(--jonquil); }
+.cb-office .num { color: var(--white); }
+
+/* ---------- faq ---------- */
+.faq { column-count: 2; column-gap: 6mm; }
+.qa { break-inside: avoid; background: var(--white); border-radius: 4mm; padding: 3.6mm 4.2mm; margin-bottom: 3.2mm; }
+.qa h3 { font-size: 11pt; display: flex; gap: 2mm; align-items: flex-start; margin-bottom: 1.2mm; }
+.qa .q { flex: none; width: 5.4mm; height: 5.4mm; border-radius: 50%; background: var(--jonquil); color: var(--green); font-size: 8.5pt; display: grid; place-items: center; margin-top: .1mm; }
+.qa p { font-size: 10pt; }
+
+/* ---------- back cover ---------- */
+.back { background: var(--green); color: var(--latte); }
+.back-burst { position: absolute; left: 50%; top: -150mm; transform: translateX(-50%) rotate(180deg); opacity: .22; }
+.back-burst svg { width: 300mm; height: 300mm; }
+.back-main { position: absolute; top: 48mm; left: 20mm; right: 20mm; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.back-icon { height: 46mm; margin-bottom: 8mm; }
+.thanks { font-family: "Fredoka"; font-weight: 600; font-size: 34pt; color: var(--white); }
+.thanks-sub { font-size: 14pt; margin-top: 2mm; color: var(--latte); max-width: 130mm; }
+.back-contacts { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-top: 14mm; width: 100%; }
+.back-contacts > div { background: rgba(255,250,230,.08); border: 0.4mm solid rgba(254,206,0,.4); border-radius: 5mm; padding: 5mm; display: flex; flex-direction: column; gap: 1mm; }
+.back-contacts .k { font-size: 9pt; letter-spacing: .2em; text-transform: uppercase; font-weight: 700; color: var(--jonquil); }
+.back-contacts .v { font-family: "Fredoka"; font-weight: 600; font-size: 21pt; color: var(--white); }
+.back-contacts .s { font-size: 11pt; }
+.back-links { margin-top: 7mm; font-size: 11pt; letter-spacing: .06em; color: rgba(255,250,230,.85); }
+.back-foot { position: absolute; left: 20mm; right: 20mm; bottom: 16mm; display: flex; justify-content: space-between; align-items: flex-end; border-top: 0.4mm solid rgba(254,206,0,.4); padding-top: 6mm; }
+.back-foot img { height: 15mm; }
+.back-foot .btb { color: var(--jonquil); }
+`;
