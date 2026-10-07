@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isDefaultKeyPolicyTitle } from "@/lib/key-policy-summaries";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -71,6 +72,8 @@ export const GET = withApiAuth(async (req, session) => {
       isArchived: d.isArchived,
       state: d.state,
       requiresAcknowledgement: d.requiresAcknowledgement,
+      keyPolicy: d.keyPolicy,
+      summary: d.summary,
       fromSharepoint: !!d.sharepointItemId,
       createdAt: d.createdAt,
       updatedAt: d.updatedAt,
@@ -135,6 +138,8 @@ export const POST = withApiAuth(
           title: parsed.data.title,
           description: parsed.data.description ?? null,
           category: parsed.data.category,
+          // An uploaded Code of Conduct / Privacy Policy is a key policy.
+          keyPolicy: isDefaultKeyPolicyTitle(parsed.data.title),
         },
       });
 

@@ -32,6 +32,7 @@ import {
   Plus,
   AlertCircle,
   Folder,
+  Users,
   FolderPlus,
   ChevronRight,
   Home,
@@ -53,6 +54,7 @@ import { BulkUploadModal } from "@/components/documents/BulkUploadModal";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DocumentReviewPanel } from "@/components/documents/DocumentReviewPanel";
+import { StaffFilesBrowser } from "@/components/documents/StaffFilesBrowser";
 import { isAdminRole } from "@/lib/role-permissions";
 import { toast } from "@/hooks/useToast";
 import { uploadFileSmart } from "@/lib/upload-client";
@@ -139,6 +141,7 @@ export default function DocumentsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showModal, setShowModal] = useState(false);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [showStaffFiles, setShowStaffFiles] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [moveDocId, setMoveDocId] = useState<string | null>(null);
@@ -419,6 +422,11 @@ export default function DocumentsPage() {
         {/* Loose files (no centre, not org-wide, not assigned) — admins only. */}
         {isAdminRole(currentRole) && <DocumentReviewPanel />}
 
+        {/* 2026-10-08: personal files live in one folder per staff member. */}
+        {showStaffFiles ? (
+          <StaffFilesBrowser onBack={() => setShowStaffFiles(false)} />
+        ) : (
+        <>
         {/* Breadcrumbs */}
         <div className="flex items-center gap-1.5 text-sm">
           <button
@@ -557,6 +565,24 @@ export default function DocumentsPage() {
             </button>
           </div>
         </div>
+
+        {/* "Staff files" — one folder per staff member, admins only, at the root */}
+        {isAdminRole(currentRole) && !searchTerm && !currentFolderId && (
+          <button
+            type="button"
+            onClick={() => setShowStaffFiles(true)}
+            className="w-full sm:w-auto flex items-center gap-3 bg-card rounded-lg border border-border p-3 text-left hover:shadow-md hover:border-brand/30 transition-all"
+            data-testid="staff-files-folder"
+          >
+            <Users className="w-5 h-5 text-brand" aria-hidden />
+            <span>
+              <span className="block text-sm font-medium text-foreground">Staff files</span>
+              <span className="block text-xs text-muted">
+                Contracts, certificates and documents — a folder for each person
+              </span>
+            </span>
+          </button>
+        )}
 
         {/* Folder Cards */}
         {!searchTerm && currentSubfolders.length > 0 && (
@@ -841,6 +867,8 @@ export default function DocumentsPage() {
           </div>
         </div>
       )}
+        </>
+        )}
 
       {/* Move to Folder Modal */}
       {moveDocId && (

@@ -164,21 +164,30 @@ describe("GET /api/documents", () => {
   });
 
   it.each(["owner", "admin", "head_office"])(
-    "lists assigned (personal) documents for %s",
+    "keeps personal documents out of %s's library view — they live in Staff files",
     async (role) => {
-      mockSession({ id: `${role}-1`, name: "Admin", role });
+      mockSession({ id: `${role}-1`, name: "Admin", role: role as never });
       prismaMock.document.findMany.mockResolvedValue([]);
       prismaMock.document.count.mockResolvedValue(0);
 
       await GET(createRequest("GET", "/api/documents"));
+      const callArgs = prismaMock.document.findMany.mock.calls[0][0];
+      expect(visibilityClause(callArgs)?.assignedToId).toBeNull();
+      // ...and the assignee still comes back for search results.
+      expect(callArgs.include.assignedTo).toBeDefined();
+    },
+  );
 
-      // Admins keep one searchable view across everything — they can open
-      // any staff profile anyway, so the library grants no extra access.
+  it.each(["owner", "admin", "head_office"])(
+    "%s can still FIND personal documents by searching",
+    async (role) => {
+      mockSession({ id: `${role}-1`, name: "Admin", role: role as never });
+      prismaMock.document.findMany.mockResolvedValue([]);
+      prismaMock.document.count.mockResolvedValue(0);
+
+      await GET(createRequest("GET", "/api/documents?search=contract"));
       const callArgs = prismaMock.document.findMany.mock.calls[0][0];
       expect(visibilityClause(callArgs)).toBeUndefined();
-      // ...and the assignee comes back so the UI can label the row rather
-      // than burying an HR file among org resources.
-      expect(callArgs.include.assignedTo).toBeDefined();
     },
   );
 

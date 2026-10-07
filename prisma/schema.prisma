@@ -4952,6 +4952,13 @@ model PolicyDocument {
   /// behaviour); SharePoint-synced ones arrive false — a reading library —
   /// and an admin switches it on for the ones that need a signature.
   requiresAcknowledgement Boolean @default(true)
+  /// A KEY policy: every new starter reads its short version and signs it
+  /// before their first shift (My Training + the get-ready checklist).
+  /// Code of Conduct and Privacy by default (src/lib/key-policy-summaries.ts).
+  keyPolicy               Boolean @default(false)
+  /// Admin-written plain-English summary shown on the sign screen; null =
+  /// the built-in default for that policy (if any).
+  summary                 String? @db.Text
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
 

@@ -20,7 +20,7 @@ describe("GET /api/documents/review", () => {
   });
 
   it.each(["staff", "member", "marketing"])("403s for %s", async (role) => {
-    mockSession({ id: "u", name: "X", role, serviceId: "svc-1" });
+    mockSession({ id: "u", name: "X", role: role as never, serviceId: "svc-1" });
     const res = await GET(createRequest("GET", "/api/documents/review"));
     expect(res.status).toBe(403);
   });
