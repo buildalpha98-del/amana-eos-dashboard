@@ -22,6 +22,7 @@ import {
   Download,
   Wrench,
 } from "lucide-react";
+import { ProvenProcessView } from "@/components/handbook/ProvenProcessView";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -57,7 +58,7 @@ const TABS = [
   { key: "handbook", label: "Handbook", icon: BookOpen },
   { key: "employee-handbook", label: "Employee Handbook", icon: GraduationCap },
   { key: "amana-way", label: "The Amana Way", icon: BookOpenCheck },
-  { key: "one-pager", label: "One-Pager", icon: FileText },
+  { key: "one-pager", label: "Proven Process", icon: FileText },
   { key: "guides", label: "Guides", icon: Rocket },
   { key: "help", label: "Help", icon: HelpCircle },
 ] as const;
@@ -150,7 +151,7 @@ function HandbookHubInner({
             />
           </div>
         )}
-        {activeTab === "one-pager" && <OnePagerTab />}
+        {activeTab === "one-pager" && <ProvenProcessView />}
         {activeTab === "guides" && <GuidesContent />}
         {activeTab === "help" && <HelpContent />}
       </div>
@@ -179,45 +180,6 @@ function EmployeeHandbookTab() {
           src="/employee-handbook.html"
           className="w-full border-0 h-[60vh] min-h-[320px] md:h-[calc(100vh-200px)] md:min-h-[700px]"
           title="Amana OSHC Employee Handbook"
-        />
-      </div>
-    </div>
-  );
-}
-
-/** Inlined body of the retired /tools/amana-way-one-pager page. */
-const ONE_PAGER_IMAGE_PATH = "/Amana_PP.png";
-
-function OnePagerTab() {
-  return (
-    <div className="max-w-7xl mx-auto h-full overflow-hidden">
-      <PageHeader
-        title="The Amana Way — Proven Process"
-        description="Our 7-stage journey from enrolment to ongoing care"
-        secondaryActions={[
-          {
-            label: "Open Full Screen",
-            icon: ExternalLink,
-            onClick: () => window.open(ONE_PAGER_IMAGE_PATH, "_blank"),
-          },
-          {
-            label: "Download Image",
-            icon: Download,
-            onClick: () => {
-              const a = document.createElement("a");
-              a.href = ONE_PAGER_IMAGE_PATH;
-              a.download = "Amana_PP.png";
-              a.click();
-            },
-          },
-        ]}
-      />
-
-      <div className="mt-4 rounded-xl border border-border bg-card shadow-warm-sm w-full h-[60vh] min-h-[320px] md:h-[calc(100vh-200px)] md:min-h-[600px] flex items-center justify-center p-6 overflow-auto">
-        <img
-          src={ONE_PAGER_IMAGE_PATH}
-          alt="Amana OSHC Proven Process"
-          style={{ maxWidth: "100%", height: "auto", borderRadius: "12px" }}
         />
       </div>
     </div>

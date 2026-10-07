@@ -101,7 +101,7 @@ const STAFF_STEPS: TourStepDef[] = [
   {
     title: "Your menu",
     description:
-      "Tap More at the bottom of the screen (or the menu on a computer) to see everything: My Portal, My Day, your roster, pay, leave, expenses and training.",
+      "Tap More at the bottom of the screen (or the menu on a computer) to see everything: My Portal, My Day, your roster, pay, leave and training — plus the Staff Handbook, The Amana Way and our Proven Process.",
     icon: Menu,
     iconColor: "text-brand",
   },

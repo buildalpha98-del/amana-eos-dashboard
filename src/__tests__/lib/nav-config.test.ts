@@ -18,8 +18,24 @@ describe("filterNavItems", () => {
   it("gives staff only the My Portal list, in order", () => {
     const filtered = filterNavItems(navItems, "staff" as Role);
     expect(filtered.map((i) => i.href)).toEqual([...STAFF_NAV_HREFS]);
-    expect(new Set(filtered.map((i) => i.section))).toEqual(new Set(["My Portal"]));
+    expect(new Set(filtered.map((i) => i.section))).toEqual(new Set(["My Portal", "Handbook"]));
     expect(filtered.every((i) => i.core === true && !i.hidden)).toBe(true);
+  });
+
+  it("gives staff the handbook, Amana Way and Proven Process as their own items", () => {
+    const handbook = filterNavItems(navItems, "staff" as Role).filter((i) => i.section === "Handbook");
+    expect(handbook.map((i) => i.label)).toEqual([
+      "Staff Handbook",
+      "The Amana Way",
+      "Amana Proven Process",
+    ]);
+  });
+
+  it("keeps the staff-only reading items out of everyone else's sidebar", () => {
+    for (const role of ["admin", "member", "head_office"] as Role[]) {
+      const hrefs = filterNavItems(navItems, role).filter((i) => !i.hidden).map((i) => i.href);
+      expect(hrefs).not.toContain("/tools/the-amana-way");
+    }
   });
 
   it("labels compliance as the staff member's own", () => {
@@ -236,11 +252,11 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
 describe("nav consolidation phase 1 (2026-07-05)", () => {
   const RETIRED_HREFS = [
     // → /handbook hub tabs
+    // (/tools/handbook, /tools/the-amana-way and /tools/amana-way-one-pager
+    // came back 2026-10-07 as STAFF-ONLY hidden items — an Educator's own
+    // reading list. Office roles still get the hub; see the staff tests.)
     "/guides",
     "/help",
-    "/tools/the-amana-way",
-    "/tools/handbook",
-    "/tools/amana-way-one-pager",
     "/tools/employee-handbook",
     // → /feedback "Internal Feedback" tab
     "/admin/feedback",
@@ -289,7 +305,6 @@ describe("nav consolidation phase 1 (2026-07-05)", () => {
     "admin",
     "marketing",
     "member",
-    "staff",
     "eos_viewer",
     "eos_implementer",
   ] as Role[])("%s sees the Handbook & Help hub", (role) => {

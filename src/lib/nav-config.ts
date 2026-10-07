@@ -36,6 +36,8 @@ import {
   Wrench,
   Briefcase,
   BookOpen,
+  BookOpenCheck,
+  Route,
   Rocket,
   Contact,
   Crown,
@@ -319,6 +321,13 @@ export const navItems: NavItem[] = [
   // /tools/the-amana-way, /tools/handbook, /tools/amana-way-one-pager and
   // /tools/employee-handbook — collapsed into the /handbook hub (tabs).
   // The old routes redirect there, so deep links keep working.
+  // 2026-10-07: an Educator's own menu items for the three things they're
+  // asked to read — standalone pages (the /tools/* routes) rather than tabs
+  // of the six-tab hub below, which they couldn't find their way through.
+  // Hidden for everyone else (office roles keep the hub).
+  { href: "/tools/handbook", label: "Staff Handbook", icon: BookOpen, section: "Handbook", tooltip: "How we work — read before your first shift", roles: ["staff"], hidden: true },
+  { href: "/tools/the-amana-way", label: "The Amana Way", icon: BookOpenCheck, section: "Handbook", tooltip: "Our values and what makes Amana special", roles: ["staff"], hidden: true },
+  { href: "/tools/amana-way-one-pager", label: "Amana Proven Process", icon: Route, section: "Handbook", tooltip: "Our 7-stage journey from enrolment to ongoing care", roles: ["staff"], hidden: true },
   { href: "/handbook", label: "Handbook & Help", icon: BookOpen, section: "Admin", tooltip: "Handbooks, The Amana Way, quick-start guides and the help centre" , core: ["member", "staff"] },
   { href: "/automations", label: "Automations", icon: Activity, section: "Admin", tooltip: "Monitor the health and cadence of all automated tasks", roles: ALL_NON_MARKETING },
   { href: "/audit-log", label: "Audit Log", icon: ScrollText, section: "Admin", tooltip: "Security audit trail — who did what and when", roles: ALL_NON_MARKETING },
@@ -348,9 +357,8 @@ export const navItems: NavItem[] = [
  * reachable by URL (page permissions are unchanged) and from the My Portal
  * home page (contract, compliance, policies, profile).
  *
- * The list is also the ORDER, and every item is regrouped under one
- * "My Portal" heading (Handbook & Help is filed under Admin for everyone
- * else, which would read as nonsense to an Educator).
+ * The list is also the ORDER. Everything is regrouped under "My Portal"
+ * except the reading material, which gets its own "Handbook" heading.
  */
 export const STAFF_NAV_HREFS: readonly string[] = [
   "/my-portal",
@@ -364,7 +372,9 @@ export const STAFF_NAV_HREFS: readonly string[] = [
   // checklist all send new starters here (labelled "My Compliance").
   "/compliance",
   "/notifications",
-  "/handbook",
+  "/tools/handbook",
+  "/tools/the-amana-way",
+  "/tools/amana-way-one-pager",
 ];
 
 function staffNavItems(items: readonly NavItem[]): NavItem[] {
@@ -376,7 +386,8 @@ function staffNavItems(items: readonly NavItem[]): NavItem[] {
   return STAFF_NAV_HREFS.flatMap((href) => {
     const item = byHref.get(href);
     if (!item || !canAccessPage("staff", href)) return [];
-    return [{ ...item, section: "My Portal", core: true, hidden: false }];
+    const section = item.section === "Handbook" ? "Handbook" : "My Portal";
+    return [{ ...item, section, core: true, hidden: false }];
   });
 }
 
