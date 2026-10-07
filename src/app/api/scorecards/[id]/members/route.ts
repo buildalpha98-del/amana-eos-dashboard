@@ -28,6 +28,7 @@ async function loadScorecardCore(id: string) {
     select: {
       id: true,
       ownerId: true,
+      state: true,
       members: { select: { userId: true } },
     },
   });
@@ -38,7 +39,7 @@ export const GET = withApiAuth(async (_req: NextRequest, session, context) => {
   const sc = await loadScorecardCore(id);
   if (!sc) throw ApiError.notFound("Scorecard not found");
 
-  const viewer = { id: session!.user.id, role: session!.user.role };
+  const viewer = { id: session!.user.id, role: session!.user.role, state: session!.user.state };
   const memberIds = sc.members.map((m) => m.userId);
   if (!canViewScorecard(viewer, sc, memberIds)) {
     throw ApiError.forbidden("You don't have access to this scorecard");
@@ -62,7 +63,7 @@ export const POST = withApiAuth(async (req: NextRequest, session, context) => {
   const sc = await loadScorecardCore(id);
   if (!sc) throw ApiError.notFound("Scorecard not found");
 
-  const viewer = { id: session!.user.id, role: session!.user.role };
+  const viewer = { id: session!.user.id, role: session!.user.role, state: session!.user.state };
   if (!canManageScorecard(viewer, sc)) {
     throw ApiError.forbidden("Only the owner can invite members");
   }

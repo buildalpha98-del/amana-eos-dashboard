@@ -73,6 +73,32 @@ describe("GET /api/scorecards", () => {
   });
 });
 
+describe("GET /api/scorecards — state scorecards (2026-10-07)", () => {
+  it("a State Manager's list includes their state's scorecards", async () => {
+    mockSession({ id: "u-mirna", name: "Mirna", role: "head_office", state: "NSW" });
+    prismaMock.scorecard.findMany.mockResolvedValue([]);
+    await listGET(createRequest("GET", "/api/scorecards"));
+    const call = prismaMock.scorecard.findMany.mock.calls[0][0];
+    expect(call.where.OR).toContainEqual({ state: { equals: "NSW", mode: "insensitive" } });
+  });
+
+  it("a State Manager with no state set gets no state branch", async () => {
+    mockSession({ id: "u-x", name: "X", role: "head_office" });
+    prismaMock.scorecard.findMany.mockResolvedValue([]);
+    await listGET(createRequest("GET", "/api/scorecards"));
+    const call = prismaMock.scorecard.findMany.mock.calls[0][0];
+    expect(call.where.OR).toHaveLength(2);
+  });
+
+  it("a Director of Service never gets a state branch", async () => {
+    mockSession({ id: "u-coord", name: "Coord", role: "member", state: "NSW" });
+    prismaMock.scorecard.findMany.mockResolvedValue([]);
+    await listGET(createRequest("GET", "/api/scorecards"));
+    const call = prismaMock.scorecard.findMany.mock.calls[0][0];
+    expect(call.where.OR).toHaveLength(2);
+  });
+});
+
 describe("POST /api/scorecards", () => {
   it("creates scorecard with caller as owner", async () => {
     mockSession({ id: "u-admin", name: "Admin", role: "admin" });
@@ -197,6 +223,56 @@ describe("PATCH /api/scorecards/[id]", () => {
       ctx("sc-1") as never,
     );
     expect(res.status).toBe(200);
+  });
+});
+
+describe("PATCH /api/scorecards/[id] — state", () => {
+  beforeEach(() => {
+    prismaMock.scorecard.findUnique.mockResolvedValue({
+      id: "sc-1",
+      ownerId: "u-owner",
+      title: "NSW Scorecard",
+      state: null,
+      members: [],
+    } as never);
+    prismaMock.scorecard.update.mockResolvedValue({ id: "sc-1", title: "NSW Scorecard", state: "NSW" } as never);
+  });
+
+  it("the owner can set the state", async () => {
+    mockSession({ id: "u-owner", name: "Owner", role: "admin" });
+    const res = await itemPATCH(
+      createRequest("PATCH", "/api/scorecards/sc-1", { body: { state: "NSW" } }),
+      ctx("sc-1") as never,
+    );
+    expect(res.status).toBe(200);
+    expect(prismaMock.scorecard.update.mock.calls[0][0].data).toEqual({ state: "NSW" });
+  });
+
+  it("rejects a state that isn't Australian", async () => {
+    mockSession({ id: "u-owner", name: "Owner", role: "admin" });
+    const res = await itemPATCH(
+      createRequest("PATCH", "/api/scorecards/sc-1", { body: { state: "XYZ" } }),
+      ctx("sc-1") as never,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("the state's State Manager can view but not change it", async () => {
+    mockSession({ id: "u-mirna", name: "Mirna", role: "head_office", state: "NSW" });
+    prismaMock.scorecard.findUnique.mockResolvedValue({
+      id: "sc-1",
+      ownerId: "u-owner",
+      title: "NSW Scorecard",
+      state: "NSW",
+      members: [],
+    } as never);
+    const res = await itemPATCH(
+      createRequest("PATCH", "/api/scorecards/sc-1", { body: { state: null } }),
+      ctx("sc-1") as never,
+    );
+    expect(res.status).toBe(403);
+    const view = await itemGET(createRequest("GET", "/api/scorecards/sc-1"), ctx("sc-1") as never);
+    expect(view.status).toBe(200);
   });
 });
 

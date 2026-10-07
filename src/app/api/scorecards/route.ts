@@ -6,6 +6,7 @@
  *   - dashboard owner sees everything
  *   - per-scorecard owner sees their own
  *   - members see scorecards they were invited to
+ *   - State Managers see their state's scorecards (Scorecard.state)
  *
  * Stage 2 of the Bucket O overhaul. The singleton `/api/scorecard`
  * endpoint stays put for now — Stage 3 UI will migrate over and the
@@ -28,6 +29,9 @@ export const GET = withApiAuth(async (_req: NextRequest, session) => {
 
   // Dashboard owner gets every scorecard. Everyone else only sees
   // scorecards where they are the per-scorecard owner OR a member.
+  // A State Manager also sees every scorecard for their state, uninvited
+  // (2026-10-07 — Mirna → NSW, Tracie → VIC). Same rule as canViewScorecard.
+  const viewerState = session!.user.state?.trim().toUpperCase();
   const where =
     viewerRole === "owner"
       ? {}
@@ -35,6 +39,9 @@ export const GET = withApiAuth(async (_req: NextRequest, session) => {
           OR: [
             { ownerId: viewerId },
             { members: { some: { userId: viewerId } } },
+            ...(viewerRole === "head_office" && viewerState
+              ? [{ state: { equals: viewerState, mode: "insensitive" as const } }]
+              : []),
           ],
         };
 
@@ -44,6 +51,7 @@ export const GET = withApiAuth(async (_req: NextRequest, session) => {
       id: true,
       title: true,
       ownerId: true,
+      state: true,
       createdAt: true,
       updatedAt: true,
       owner: { select: { id: true, name: true, email: true, avatar: true } },

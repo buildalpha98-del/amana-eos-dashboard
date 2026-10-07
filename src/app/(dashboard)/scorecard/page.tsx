@@ -396,6 +396,7 @@ export default function ScorecardPage() {
           scorecardId={selectedSummary.id}
           scorecardTitle={selectedSummary.title}
           ownerId={selectedSummary.ownerId}
+          state={selectedSummary.state ?? null}
         />
       ) : null}
 

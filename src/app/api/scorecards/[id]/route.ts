@@ -1,6 +1,6 @@
 /**
  * GET    /api/scorecards/[id] — full scorecard (gated by canView)
- * PATCH  /api/scorecards/[id] — rename (gated by canManage)
+ * PATCH  /api/scorecards/[id] — rename / set state (gated by canManage)
  * DELETE /api/scorecards/[id] — delete (gated by canManage)
  *
  * Stage 2 of the scorecard overhaul (Bucket O).
@@ -15,10 +15,21 @@ import {
   canViewScorecard,
   canManageScorecard,
 } from "@/lib/scorecard-permissions";
+import { AUSTRALIAN_STATES } from "@/lib/service-scope";
 
-const patchSchema = z.object({
-  title: z.string().min(1).max(100),
-});
+const patchSchema = z
+  .object({
+    title: z.string().min(1).max(100).optional(),
+    // The state this scorecard reports on; null clears it. State Managers
+    // for that state see it automatically (scorecard-permissions.ts).
+    state: z
+      .enum(AUSTRALIAN_STATES.map((s) => s.value) as [string, ...string[]])
+      .nullable()
+      .optional(),
+  })
+  .refine((d) => d.title !== undefined || d.state !== undefined, {
+    message: "Nothing to update",
+  });
 
 async function loadScorecardWithMembers(id: string) {
   return prisma.scorecard.findUnique({
@@ -27,6 +38,7 @@ async function loadScorecardWithMembers(id: string) {
       id: true,
       title: true,
       ownerId: true,
+      state: true,
       createdAt: true,
       updatedAt: true,
       owner: { select: { id: true, name: true, email: true, avatar: true } },
@@ -40,7 +52,7 @@ export const GET = withApiAuth(async (_req: NextRequest, session, context) => {
   const scorecard = await loadScorecardWithMembers(id);
   if (!scorecard) throw ApiError.notFound("Scorecard not found");
 
-  const viewer = { id: session!.user.id, role: session!.user.role };
+  const viewer = { id: session!.user.id, role: session!.user.role, state: session!.user.state };
   const memberIds = scorecard.members.map((m) => m.userId);
   if (!canViewScorecard(viewer, scorecard, memberIds)) {
     throw ApiError.forbidden("You don't have access to this scorecard");
@@ -84,7 +96,7 @@ export const PATCH = withApiAuth(async (req: NextRequest, session, context) => {
   const scorecard = await loadScorecardWithMembers(id);
   if (!scorecard) throw ApiError.notFound("Scorecard not found");
 
-  const viewer = { id: session!.user.id, role: session!.user.role };
+  const viewer = { id: session!.user.id, role: session!.user.role, state: session!.user.state };
   if (!canManageScorecard(viewer, scorecard)) {
     throw ApiError.forbidden("Only the owner can edit this scorecard");
   }
@@ -97,11 +109,15 @@ export const PATCH = withApiAuth(async (req: NextRequest, session, context) => {
 
   const updated = await prisma.scorecard.update({
     where: { id },
-    data: { title: parsed.data.title.trim() },
+    data: {
+      ...(parsed.data.title !== undefined ? { title: parsed.data.title.trim() } : {}),
+      ...(parsed.data.state !== undefined ? { state: parsed.data.state } : {}),
+    },
     select: {
       id: true,
       title: true,
       ownerId: true,
+      state: true,
       updatedAt: true,
     },
   });
@@ -109,10 +125,14 @@ export const PATCH = withApiAuth(async (req: NextRequest, session, context) => {
   await prisma.activityLog.create({
     data: {
       userId: session!.user.id,
-      action: "scorecard.rename",
+      action: parsed.data.state !== undefined ? "scorecard.update" : "scorecard.rename",
       entityType: "Scorecard",
       entityId: id,
-      details: { from: scorecard.title, to: updated.title },
+      details: {
+        from: scorecard.title,
+        to: updated.title,
+        ...(parsed.data.state !== undefined ? { state: updated.state } : {}),
+      },
     },
   });
 
@@ -124,7 +144,7 @@ export const DELETE = withApiAuth(async (_req: NextRequest, session, context) =>
   const scorecard = await loadScorecardWithMembers(id);
   if (!scorecard) throw ApiError.notFound("Scorecard not found");
 
-  const viewer = { id: session!.user.id, role: session!.user.role };
+  const viewer = { id: session!.user.id, role: session!.user.role, state: session!.user.state };
   if (!canManageScorecard(viewer, scorecard)) {
     throw ApiError.forbidden("Only the owner can delete this scorecard");
   }

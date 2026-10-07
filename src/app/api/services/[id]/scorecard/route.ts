@@ -101,7 +101,7 @@ async function findOrCreateServiceScorecard(
 
   const existing = await prisma.scorecard.findFirst({
     where: { title },
-    select: { id: true, ownerId: true, members: { select: { userId: true } } },
+    select: { id: true, ownerId: true, state: true, members: { select: { userId: true } } },
   });
 
   if (existing) {
@@ -134,7 +134,7 @@ async function findOrCreateServiceScorecard(
           ? undefined
           : { create: { userId: creatorId } },
     },
-    select: { id: true, ownerId: true, members: { select: { userId: true } } },
+    select: { id: true, ownerId: true, state: true, members: { select: { userId: true } } },
   });
   return created;
 }
@@ -156,7 +156,7 @@ export const POST = withApiAuth(
 
     const scorecard = await findOrCreateServiceScorecard(id, session!.user.id);
     const memberIds = scorecard.members.map((m) => m.userId);
-    const viewer = { id: session!.user.id, role: session!.user.role };
+    const viewer = { id: session!.user.id, role: session!.user.role, state: session!.user.state };
 
     // Defensive: the auto-create flow above already makes the caller a
     // participant, but be explicit so a future refactor doesn't silently
