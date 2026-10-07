@@ -61,6 +61,7 @@ export const authOptions: NextAuthOptions = {
           inductionStatus: user.inductionStatus,
           inductionGraceUntil: user.inductionGraceUntil,
           isCentreAccount: user.isCentreAccount,
+          mustChangePassword: user.mustChangePassword,
           mfaRequired: !!user.mfaEnabledAt,
         };
       },
@@ -91,6 +92,10 @@ export const authOptions: NextAuthOptions = {
         token.essentialsPublished = await hasPublishedEssentials();
         token.isCentreAccount =
           (user as unknown as Record<string, unknown>).isCentreAccount === true;
+        // Someone else chose this password — middleware holds the user on
+        // /set-password until they choose their own.
+        token.mustChangePassword =
+          (user as unknown as Record<string, unknown>).mustChangePassword === true;
         token.mfaRequired = (user as unknown as Record<string, unknown>).mfaRequired ?? false;
         token.mfaVerified = false;
 

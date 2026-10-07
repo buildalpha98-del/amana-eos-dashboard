@@ -79,7 +79,7 @@ export const POST = withApiHandler(async (req) => {
     await prisma.$transaction([
       prisma.user.update({
         where: { id: resetToken.userId },
-        data: { passwordHash, tokenVersion: { increment: 1 } },
+        data: { passwordHash, tokenVersion: { increment: 1 }, mustChangePassword: false },
       }),
       prisma.passwordResetToken.update({
         where: { id: resetToken.id },

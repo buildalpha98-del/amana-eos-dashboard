@@ -5,28 +5,19 @@ import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useMyPortal } from "@/hooks/useMyPortal";
 import {
-  User,
   Mail,
   Phone,
   Building2,
   Calendar,
   Briefcase,
   Clock,
-  Shield,
   AlertTriangle,
-  CheckCircle2,
   ChevronRight,
-  BookOpen,
-  GraduationCap,
   FileText,
   ShieldCheck,
   UserCircle,
-  Plane,
   X,
-  ClipboardCheck,
   CircleDot,
-  Award,
-  DollarSign,
   CalendarDays,
   Loader2,
   ExternalLink,
@@ -38,33 +29,20 @@ import {
 } from "lucide-react";
 import { cn, toLocalIsoDate } from "@/lib/utils";
 import Link from "next/link";
-import { NotificationPreferences } from "@/components/settings/NotificationPreferences";
-import { SessionManagement } from "@/components/settings/SessionManagement";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { Button } from "@/components/ui/Button";
-import { MyComplianceCard } from "@/components/my-portal/MyComplianceCard";
-import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
 import { MyClockCard, clockWindowRange } from "@/components/my-portal/MyClockCard";
 import { MorningBriefCard } from "@/components/dashboard/MorningBriefCard";
-import { MyPayDiscrepancyCard } from "@/components/my-portal/MyPayDiscrepancyCard";
 import { useMyPayslips, formatCurrency } from "@/hooks/useMyPayslips";
 import { useOrgConfig } from "@/hooks/useOrgConfig";
 import { getRequiredCertTypes } from "@/lib/cert-requirements";
 import { totalAmount, type ExpenseRequest } from "@/components/my-portal/MyExpensesCard";
 import { CLOCK_IN_WINDOW_MS, shiftStartMs } from "@/lib/timeclock-pick";
-import { MyQuietHoursCard } from "@/components/my-portal/MyQuietHoursCard";
 import { MyPerformanceReviewsCard } from "@/components/my-portal/MyPerformanceReviewsCard";
-import { MyPositionDescriptionCard } from "@/components/my-portal/MyPositionDescriptionCard";
-import { MyDiversityCard } from "@/components/my-portal/MyDiversityCard";
-import {
-  ContractViewerModal,
-  type ContractViewerContract,
-} from "@/components/my-portal/ContractViewerModal";
-import { SetKioskPinCard } from "@/components/my-portal/SetKioskPinCard";
-import { OpenShiftsCard } from "@/components/my-portal/OpenShiftsCard";
 import { PushOptInCard } from "@/components/notifications/PushOptInCard";
+import { GetReadyChecklist } from "@/components/my-portal/GetReadyChecklist";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -100,24 +78,6 @@ function getFirstName(name: string): string {
   return name.split(" ")[0] || name;
 }
 
-const leaveTypeConfig: Record<string, { color: string; bgColor: string; borderColor: string }> = {
-  annual: { color: "text-blue-700", bgColor: "bg-blue-50 dark:bg-blue-950/40", borderColor: "border-blue-200" },
-  sick: { color: "text-amber-700", bgColor: "bg-amber-50 dark:bg-amber-950/40", borderColor: "border-amber-200" },
-  personal: { color: "text-purple-700", bgColor: "bg-purple-50 dark:bg-purple-950/40", borderColor: "border-purple-200" },
-  long_service: { color: "text-teal-700", bgColor: "bg-teal-50 dark:bg-teal-950/40", borderColor: "border-teal-200" },
-  unpaid: { color: "text-foreground/80", bgColor: "bg-surface/50", borderColor: "border-border" },
-};
-
-function getLeaveConfig(type: string) {
-  return leaveTypeConfig[type] || { color: "text-foreground/80", bgColor: "bg-surface/50", borderColor: "border-border" };
-}
-
-function formatLeaveType(type: string): string {
-  return type
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 const certTypeLabels: Record<string, string> = {
   wwcc: "WWCC",
   first_aid: "First Aid",
@@ -129,11 +89,6 @@ const certTypeLabels: Record<string, string> = {
   other: "Other",
 };
 
-function formatContractType(type: string): string {
-  return type
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 function formatEmploymentType(type: string | null | undefined): string {
   if (!type) return "Not specified";
@@ -668,39 +623,6 @@ function GlanceTiles({
   );
 }
 
-/* ---- Quick actions ---- */
-
-const QUICK_ACTIONS = [
-  { href: "/my-leave", label: "Apply leave", icon: Plane },
-  { href: "/my-expenses", label: "Claim expense", icon: Receipt },
-  { href: "/my-training", label: "My training", icon: GraduationCap },
-  { href: "/documents", label: "Documents", icon: FileText },
-] as const;
-
-function QuickActionsRow() {
-  return (
-    <div
-      className="grid grid-cols-4 gap-2 sm:gap-3"
-      data-testid="quick-actions"
-    >
-      {QUICK_ACTIONS.map((a) => (
-        <Link
-          key={a.href}
-          href={a.href}
-          className="flex flex-col items-center gap-1.5 rounded-xl border border-border bg-card px-2 py-3 hover:border-brand/30 transition-colors"
-        >
-          <span className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center">
-            <a.icon className="w-5 h-5 text-brand" aria-hidden />
-          </span>
-          <span className="text-2xs font-semibold text-foreground text-center">
-            {a.label}
-          </span>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
 /* ---- Needs your attention ---- */
 
 interface AttentionItem {
@@ -951,10 +873,6 @@ export default function MyPortalPage() {
   const [ackPolicyId, setAckPolicyId] = useState<string | null>(null);
   const [ackPolicyTitle, setAckPolicyTitle] = useState("");
 
-  /* ---- Inline contract viewer state ---- */
-  const [viewingContract, setViewingContract] =
-    useState<ContractViewerContract | null>(null);
-
   /* ---- Policy acknowledgement mutation ---- */
   const acknowledgePolicyMutation = useMutation({
     mutationFn: async (policyId: string) => {
@@ -1077,7 +995,7 @@ export default function MyPortalPage() {
     );
   }
 
-  const { profile, leaveBalances, activeContract, historicalContracts, pendingPolicies, onboardingProgress, offboardingProgress, lmsEnrollments, complianceCerts } = data;
+  const { profile, activeContract, pendingPolicies, offboardingProgress, lmsEnrollments, complianceCerts } = data;
   const firstName = getFirstName(profile.name);
 
   /* ---- "Needs your attention" — consolidated from data this page
@@ -1111,10 +1029,7 @@ export default function MyPortalPage() {
                 Your contract needs a <strong>signature</strong>
               </>
             ),
-            onClick: () =>
-              document
-                .getElementById("section-contract")
-                ?.scrollIntoView({ behavior: "smooth" }),
+            href: "/my-contract",
           },
         ]
       : []),
@@ -1197,6 +1112,18 @@ export default function MyPortalPage() {
           not dismissed. Renders null otherwise. */}
       <PushOptInCard />
 
+      {/* 2026-10-07: the ONE onboarding list — replaces the onboarding,
+          training, compliance, policy and contract cards that used to
+          stack below. Educators and Directors of Service only; hides
+          itself once everything is done. */}
+      {(profile.role === "staff" || profile.role === "member") &&
+        !session?.user?.isCentreAccount && (
+          <GetReadyChecklist
+            contract={activeContract}
+            hasTraining={lmsEnrollments.length > 0}
+          />
+        )}
+
       {/* ============================================================ */}
       {/* 2. HOME HUB — next-shift hero, glance tiles, quick actions,  */}
       {/* consolidated "Needs your attention" (Staff Portal v2 1.6).   */}
@@ -1206,8 +1133,6 @@ export default function MyPortalPage() {
       {session?.user?.id && <NextShiftHero userId={session.user.id} />}
 
       <GlanceTiles certStats={certStats} requiredCertStats={requiredCertStats} />
-
-      <QuickActionsRow />
 
       <AttentionCard items={attentionItems} />
 
@@ -1280,630 +1205,21 @@ export default function MyPortalPage() {
               href="/profile"
               className="inline-flex items-center gap-1.5 mt-2 text-sm font-medium text-brand hover:underline"
             >
-              Edit Profile
+              Edit my details
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
-            {session?.user?.id && (
-              <Link
-                href={`/staff/${session.user.id}`}
-                className="inline-flex items-center gap-1.5 mt-1 text-sm font-medium text-brand hover:underline"
-                data-testid="view-full-profile-link"
-              >
-                <UserCircle className="w-3.5 h-3.5" />
-                View my full profile
-              </Link>
-            )}
           </div>
         </div>
       </div>
 
-      {/* ============================================================ */}
-      {/* 3b. MY COMPLIANCE (self-service)                              */}
-      {/* EH payslips / leave / expenses moved to their own pages —     */}
-      {/* /my-pay, /my-leave, /my-expenses (Staff Portal v2 Phase 1).   */}
-      {/* ============================================================ */}
-      {session?.user?.id && <MyComplianceCard userId={session.user.id} />}
-
-      {/* ============================================================ */}
-      {/* 3b-iii-b. PAY DISCREPANCY (2026-09-08)                        */}
-      {/* "My pay didn't match my hours" — open to every role, instead  */}
-      {/* of emailing admin directly. Plain internal DB record, no EH   */}
-      {/* round-trip. Reviewed by admin/leadership.                    */}
-      {/* ============================================================ */}
-      {session?.user?.id && <MyPayDiscrepancyCard />}
-
-      {/* ============================================================ */}
-      {/* 3b-iv. QUIET HOURS — right to disconnect (s333M Fair Work)    */}
-      {/* Staff sets their own preference; admin sees it read-only on  */}
-      {/* the staff profile. Not enforced in messaging (v1) — purely a */}
-      {/* documented preference for legal evidence + manager calibration. */}
-      {/* ============================================================ */}
-      {session?.user?.id && <MyQuietHoursCard />}
-
-      {/* ============================================================ */}
-      {/* 3b-v. MY PERFORMANCE REVIEWS (2026-06-01 — phase 2)            */}
-      {/* Self-renders only when the user has reviews on file. Surfaces */}
-      {/* the self-assessment form when status=self_assessment and the  */}
-      {/* acknowledgement flow when status=awaiting_acknowledgement.    */}
-      {/* ============================================================ */}
+      {/* Performance reviews self-render only when one is waiting on the */}
+      {/* staff member (self-assessment or acknowledgement).             */}
       {session?.user?.id && <MyPerformanceReviewsCard />}
-
-      {/* ============================================================ */}
-      {/* 3b-vi. MY POSITION DESCRIPTION (2026-06-01)                   */}
-      {/* Renders only when the user has a published PD assigned.       */}
-      {/* Collapsed by default — staff can expand to read full content. */}
-      {/* ============================================================ */}
-      {session?.user?.id && <MyPositionDescriptionCard />}
-
-      {/* ============================================================ */}
-      {/* 3b-vii. MY DIVERSITY PROFILE (2026-06-01)                     */}
-      {/* Opt-in self-disclosed diversity register. Card expands on    */}
-      {/* click. Admin aggregate dashboard at /diversity-dashboard      */}
-      {/* never reveals individual values.                              */}
-      {/* ============================================================ */}
-      {session?.user?.id && <MyDiversityCard />}
-
-      {/* ============================================================ */}
-      {/* 3b0. SET KIOSK PIN (PR #62 — staff-set 4-digit PIN for the    */}
-      {/* front-desk tablet). Always visible — shows "Set" or "Change". */}
-      {/* ============================================================ */}
-      {session?.user?.id && <SetKioskPinCard />}
-
-      {/* ============================================================ */}
-      {/* 3c. MY UPCOMING SHIFTS (next 7 days)                          */}
-      {/* (Timeclock now lives in the NextShiftHero at the top.)        */}
-      {/* ============================================================ */}
-      {session?.user?.id && (
-        <MyUpcomingShiftsCard userId={session.user.id} />
-      )}
-
-      {/* ============================================================ */}
-      {/* 3d. OPEN SHIFTS (PR #54 — claimable unassigned shifts)        */}
-      {/* Quiet by default: card hides itself when there are none.      */}
-      {/* ============================================================ */}
-      {session?.user?.id && <OpenShiftsCard />}
-
-      {/* ============================================================ */}
-      {/* 4. LEAVE BALANCES                                            */}
-      {/* ============================================================ */}
-      {leaveBalances.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <Plane className="w-5 h-5 text-brand" />
-              Leave Balances
-            </h3>
-            {/* 2026-09-04: the leave request form moved to /my-leave
-                (Staff Portal v2 Phase 1) — link there, not an anchor. */}
-            <Link
-              href="/my-leave"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
-            >
-              Request Leave
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {leaveBalances.map((lb) => {
-              const config = getLeaveConfig(lb.leaveType);
-              return (
-                <div
-                  key={lb.leaveType}
-                  className={cn(
-                    "bg-card rounded-xl border p-4",
-                    config.borderColor
-                  )}
-                >
-                  <p className={cn("text-xs font-semibold uppercase tracking-wider mb-1", config.color)}>
-                    {formatLeaveType(lb.leaveType)}
-                  </p>
-                  <p className={cn("text-3xl font-bold", config.color)}>
-                    {lb.balance}
-                    <span className="text-sm font-normal ml-1 text-muted">days</span>
-                  </p>
-                  <p className="text-xs text-muted mt-1">
-                    accrued: {lb.accrued} &middot; taken: {lb.taken}
-                    {lb.pending > 0 && (
-                      <span className="text-amber-500"> &middot; pending: {lb.pending}</span>
-                    )}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ============================================================ */}
-      {/* 5. ACTIVE CONTRACT                                           */}
-      {/* ============================================================ */}
-      {activeContract && (
-        <div id="section-contract" className="bg-card rounded-xl border border-border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <FileText className="w-5 h-5 text-brand" />
-              Active Contract
-            </h3>
-            {activeContract.acknowledgedByStaff ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Signed
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                Action Required
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-            <div>
-              <p className="text-xs text-muted mb-0.5">Contract Type</p>
-              <p className="text-sm font-semibold text-foreground">
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold rounded-full bg-brand/10 text-brand">
-                  {formatContractType(activeContract.contractType)}
-                </span>
-              </p>
-            </div>
-            {activeContract.awardLevel && (
-              <div>
-                <p className="text-xs text-muted mb-0.5">Award Level</p>
-                <p className="text-sm font-medium text-foreground/80">{activeContract.awardLevel}</p>
-              </div>
-            )}
-            <div>
-              <p className="text-xs text-muted mb-0.5">Pay Rate</p>
-              <p className="text-sm font-medium text-foreground/80 flex items-center gap-1">
-                <DollarSign className="w-3.5 h-3.5 text-muted" />
-                {activeContract.payRate.toFixed(2)}/hr
-              </p>
-            </div>
-            {activeContract.hoursPerWeek !== null && (
-              <div>
-                <p className="text-xs text-muted mb-0.5">Hours/Week</p>
-                <p className="text-sm font-medium text-foreground/80 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-muted" />
-                  {activeContract.hoursPerWeek}h
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted mb-4">
-            <span className="flex items-center gap-1.5">
-              <CalendarDays className="w-3.5 h-3.5" />
-              Start: {formatDate(activeContract.startDate)}
-            </span>
-            {activeContract.endDate && (
-              <span className="flex items-center gap-1.5">
-                <CalendarDays className="w-3.5 h-3.5" />
-                End: {formatDate(activeContract.endDate)}
-              </span>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                setViewingContract({
-                  id: activeContract.id,
-                  contractType: activeContract.contractType,
-                  startDate: activeContract.startDate,
-                  endDate: activeContract.endDate,
-                  isTemplateBased: !!activeContract.templateId,
-                  hasDocument: !!activeContract.documentUrl,
-                  acknowledged: activeContract.acknowledgedByStaff,
-                  acknowledgedAt: activeContract.acknowledgedAt,
-                  canAcknowledge: !activeContract.acknowledgedByStaff,
-                })
-              }
-              className={cn(
-                "inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors",
-                !activeContract.acknowledgedByStaff
-                  ? "text-white bg-brand hover:bg-brand-hover"
-                  : "text-foreground bg-surface hover:bg-surface/70 border border-border",
-              )}
-            >
-              {!activeContract.acknowledgedByStaff ? (
-                <ClipboardCheck className="w-4 h-4" />
-              ) : (
-                <FileText className="w-4 h-4" />
-              )}
-              {!activeContract.acknowledgedByStaff
-                ? "Read & acknowledge"
-                : "View Contract"}
-            </button>
-            <Link
-              href="/my-contract"
-              className="text-sm text-brand hover:underline"
-            >
-              Contract history &amp; downloads
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* ============================================================ */}
-      {/* 5b. PAST CONTRACTS                                           */}
-      {/* ============================================================ */}
-      {historicalContracts && historicalContracts.length > 0 && (
-        <div className="bg-card rounded-xl border border-border p-6">
-          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2 mb-4">
-            <FileText className="w-5 h-5 text-muted" />
-            Past Contracts
-            <span className="text-xs font-normal text-muted">({historicalContracts.length})</span>
-          </h3>
-          <ul className="divide-y divide-border">
-            {historicalContracts.map((c) => (
-              <li
-                key={c.id}
-                className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold rounded-full bg-brand/10 text-brand">
-                      {formatContractType(c.contractType)}
-                    </span>
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wider rounded-full",
-                        c.status === "superseded"
-                          ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
-                          : "bg-surface text-muted border border-border",
-                      )}
-                    >
-                      {c.status}
-                    </span>
-                    {c.awardLevel && (
-                      <span className="text-xs text-muted">{c.awardLevel}</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted mt-1 flex items-center gap-1.5">
-                    <CalendarDays className="w-3 h-3" />
-                    {formatDate(c.startDate)}
-                    {c.endDate && ` – ${formatDate(c.endDate)}`}
-                    {c.acknowledgedAt && (
-                      <>
-                        <span className="mx-1">·</span>
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        Acknowledged {formatDate(c.acknowledgedAt)}
-                      </>
-                    )}
-                  </p>
-                </div>
-                {c.documentUrl || c.templateId ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setViewingContract({
-                        id: c.id,
-                        contractType: c.contractType,
-                        startDate: c.startDate,
-                        endDate: c.endDate,
-                        isTemplateBased: !!c.templateId,
-                        hasDocument: !!c.documentUrl,
-                        acknowledged: !!c.acknowledgedAt,
-                        acknowledgedAt: c.acknowledgedAt,
-                        canAcknowledge: false,
-                      })
-                    }
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground bg-surface hover:bg-surface/70 border border-border rounded-lg transition-colors shrink-0"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    View
-                  </button>
-                ) : (
-                  <span className="text-xs text-muted italic shrink-0">No document</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* ============================================================ */}
-      {/* 6. ONBOARDING PROGRESS                                       */}
-      {/* ============================================================ */}
-      {onboardingProgress.active && (
-        <div className="bg-card rounded-xl border border-border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <GraduationCap className="w-5 h-5 text-brand" />
-              Onboarding Progress
-            </h3>
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full",
-                onboardingProgress.status === "in_progress"
-                  ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
-                  : "bg-surface text-muted border border-border"
-              )}
-            >
-              {onboardingProgress.status === "in_progress" ? "In Progress" : "Not Started"}
-            </span>
-          </div>
-
-          <p className="text-sm text-muted mb-3">
-            <span className="font-medium text-foreground">{onboardingProgress.packName}</span>
-          </p>
-
-          {/* Progress bar */}
-          {onboardingProgress.totalTasks !== undefined && onboardingProgress.totalTasks > 0 && (
-            <>
-              <div className="flex items-center justify-between text-xs text-muted mb-1.5">
-                <span>
-                  {onboardingProgress.completedTasks} / {onboardingProgress.totalTasks} tasks complete
-                </span>
-                <span className="font-semibold text-brand">
-                  {Math.round(((onboardingProgress.completedTasks || 0) / onboardingProgress.totalTasks) * 100)}%
-                </span>
-              </div>
-              <div className="w-full h-2.5 bg-surface rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-brand rounded-full transition-all duration-500"
-                  style={{
-                    width: `${Math.round(((onboardingProgress.completedTasks || 0) / onboardingProgress.totalTasks) * 100)}%`,
-                  }}
-                />
-              </div>
-            </>
-          )}
-
-          {/* 2026-09-03: was /onboarding (the admin LMS console, which
-              bounces staff) — /my-training is the learner hub. */}
-          <Link
-            href="/my-training"
-            className="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-brand hover:underline"
-          >
-            Go to Onboarding
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      )}
-
-      {/* ============================================================ */}
-      {/* 7. TRAINING / LMS                                            */}
-      {/* ============================================================ */}
-      {lmsEnrollments.length > 0 && (
-        <div className="bg-card rounded-xl border border-border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-brand" />
-              Training &amp; Courses
-            </h3>
-            <Link
-              href="/my-training"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
-            >
-              View All
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          <div className="space-y-3">
-            {lmsEnrollments.map((enrollment) => {
-              const statusConfig =
-                enrollment.status === "completed"
-                  ? { bg: "bg-emerald-50 dark:bg-emerald-950/40", text: "text-emerald-700", border: "border-emerald-200", label: "Completed" }
-                  : enrollment.status === "in_progress"
-                  ? { bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-700", border: "border-blue-200", label: "In Progress" }
-                  : enrollment.status === "expired"
-                  ? { bg: "bg-red-50 dark:bg-red-950/40", text: "text-red-700", border: "border-red-200", label: "Expired" }
-                  : { bg: "bg-surface", text: "text-muted", border: "border-border", label: "Not Started" };
-
-              return (
-                <Link
-                  href="/my-training"
-                  key={enrollment.id}
-                  className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border border-border/50 hover:border-brand/30 hover:bg-brand/5 transition-colors cursor-pointer"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {enrollment.courseName}
-                    </p>
-                    <p className="text-xs text-muted mt-0.5">
-                      {enrollment.completedModules} / {enrollment.totalModules} modules
-                    </p>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <div className="w-24 h-2 bg-surface rounded-full overflow-hidden">
-                      <div
-                        className={cn(
-                          "h-full rounded-full transition-all",
-                          enrollment.status === "completed" ? "bg-emerald-500" : "bg-brand"
-                        )}
-                        style={{ width: `${enrollment.progress}%` }}
-                      />
-                    </div>
-                    <span className="text-xs font-medium text-muted w-8 text-right">
-                      {enrollment.progress}%
-                    </span>
-                  </div>
-
-                  <span
-                    className={cn(
-                      "inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full border flex-shrink-0",
-                      statusConfig.bg,
-                      statusConfig.text,
-                      statusConfig.border
-                    )}
-                  >
-                    {statusConfig.label}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ============================================================ */}
-      {/* 8. COMPLIANCE CERTIFICATES                                   */}
-      {/* ============================================================ */}
-      {complianceCerts.length > 0 && certStats && (
-        <div className="bg-card rounded-xl border border-border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-brand" />
-              Compliance Certificates
-            </h3>
-            <div className="flex items-center gap-2 text-xs">
-              {certStats.valid > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-medium">
-                  {certStats.valid} valid
-                </span>
-              )}
-              {certStats.expiring > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-medium">
-                  {certStats.expiring} expiring
-                </span>
-              )}
-              {certStats.expired > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 font-medium">
-                  {certStats.expired} expired
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            {complianceCerts.map((cert) => {
-              // No-expiry certs render in the "valid" colour with a clear
-              // "No expiry" label instead of running the days math on null.
-              const hasNoExpiry = !cert.expiryDate;
-              const days = cert.expiryDate ? daysUntilExpiry(cert.expiryDate) : null;
-              const isExpired = days !== null && days < 0;
-              const isExpiring = days !== null && days >= 0 && days <= 30;
-
-              return (
-                <div
-                  key={cert.id}
-                  className={cn(
-                    "flex items-center gap-3 p-3 rounded-lg border",
-                    isExpired
-                      ? "border-red-200 dark:border-red-800 bg-red-50/50"
-                      : isExpiring
-                      ? "border-amber-200 dark:border-amber-800 bg-amber-50/50"
-                      : "border-border/50"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "w-2 h-2 rounded-full flex-shrink-0",
-                      isExpired ? "bg-red-500" : isExpiring ? "bg-amber-500" : "bg-emerald-500"
-                    )}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">
-                      {certTypeLabels[cert.type] || cert.type}
-                      {cert.label && (
-                        <span className="text-muted font-normal ml-1.5">
-                          &middot; {cert.label}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs text-muted">
-                      {hasNoExpiry
-                        ? "No expiry"
-                        : `${isExpired ? "Expired" : "Expires"} ${formatDate(cert.expiryDate!)}`}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-xs font-semibold px-2 py-0.5 rounded-lg border",
-                        isExpired
-                          ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800"
-                          : isExpiring
-                          ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800"
-                          : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-                      )}
-                    >
-                      {hasNoExpiry
-                        ? "Valid"
-                        : isExpired
-                        ? `${Math.abs(days!)}d overdue`
-                        : `${days}d left`}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <Link
-            href="/compliance"
-            className="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-brand hover:underline"
-          >
-            Manage Certificates
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      )}
 
       {/* ============================================================ */}
       {/* 8b. PULSE SURVEY                                             */}
       {/* ============================================================ */}
       <PulseSurveySection />
-
-      {/* ============================================================ */}
-      {/* 9. PENDING POLICIES                                          */}
-      {/* ============================================================ */}
-      {pendingPolicies.length > 0 && (
-        <div id="section-policies" className="bg-card rounded-xl border border-border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <Shield className="w-5 h-5 text-amber-500" />
-              Pending Policies
-            </h3>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-              {pendingPolicies.length} to acknowledge
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            {pendingPolicies.map((policy) => (
-              <div
-                key={policy.id}
-                className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border border-amber-100 dark:border-amber-800 bg-amber-50/30"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {policy.title}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {policy.category && (
-                      <span className="text-xs text-muted capitalize">{policy.category}</span>
-                    )}
-                    <span className="text-xs text-muted">
-                      v{policy.version}
-                    </span>
-                    {policy.publishedAt && (
-                      <span className="text-xs text-muted">
-                        &middot; Published {formatDate(policy.publishedAt)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setAckPolicyId(policy.id);
-                    setAckPolicyTitle(policy.title);
-                  }}
-                  className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold text-brand border border-brand/20 rounded-lg hover:bg-brand/5 transition-colors flex-shrink-0"
-                >
-                  <ClipboardCheck className="w-3.5 h-3.5" />
-                  Acknowledge
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* ============================================================ */}
       {/* 10. OFFBOARDING PROGRESS                                     */}
@@ -1963,16 +1279,6 @@ export default function MyPortalPage() {
       )}
 
       {/* ============================================================ */}
-      {/* NOTIFICATION PREFERENCES                                     */}
-      {/* ============================================================ */}
-      <NotificationPreferences />
-
-      {/* ============================================================ */}
-      {/* SECURITY & SESSION MANAGEMENT                                */}
-      {/* ============================================================ */}
-      <SessionManagement />
-
-      {/* ============================================================ */}
       {/* POLICY ACKNOWLEDGEMENT MODAL                                 */}
       {/* ============================================================ */}
       {ackPolicyId && (
@@ -1989,15 +1295,6 @@ export default function MyPortalPage() {
         />
       )}
 
-      {/* ============================================================ */}
-      {/* INLINE CONTRACT VIEWER                                       */}
-      {/* ============================================================ */}
-      {viewingContract && (
-        <ContractViewerModal
-          contract={viewingContract}
-          onClose={() => setViewingContract(null)}
-        />
-      )}
     </div>
   );
 }

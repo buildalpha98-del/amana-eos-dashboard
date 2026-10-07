@@ -78,6 +78,9 @@ const { id } = await context!.params!;
       );
     }
     updateData.passwordHash = await hash(newPassword, 12);
+    // An admin setting someone else's password hands them a temporary one —
+    // they choose their own on next sign-in (2026-10-07).
+    if (id !== session!.user.id) updateData.mustChangePassword = true;
   }
 
   const updated = await prisma.user.update({

@@ -29,9 +29,10 @@ export function destinationForSession(
 
   const role = session?.user?.role;
   const serviceId = session?.user?.serviceId;
-  const serviceScoped =
-    (role === "staff" || role === "member") &&
-    !!serviceId;
+  // Directors of Service land on their centre. Educators (staff) land on
+  // My Portal via getLandingPage — 2026-10-07: a new starter dropped onto
+  // the centre's Today tab had no idea what was being asked of them.
+  const serviceScoped = role === "member" && !!serviceId;
 
   if (serviceScoped) return `/services/${serviceId}?tab=today`;
   // EOS roles → /rocks; everyone else → /dashboard.

@@ -50,17 +50,14 @@ test.describe("Staff portal flow", () => {
       "/compliance",
     );
 
-    // Next-shift/clock hero slot and the quick-actions row.
+    // Next-shift/clock hero slot. (The quick-actions row was removed
+    // 2026-10-07 — it duplicated the sidebar.)
     await expect(page.getByTestId("next-shift-hero")).toBeVisible();
-    await expect(page.getByTestId("quick-actions")).toBeVisible();
-    await expect(
-      page.getByTestId("quick-actions").getByRole("link", {
-        name: "Apply leave",
-      }),
-    ).toHaveAttribute("href", "/my-leave");
 
-    // Kept sections: profile summary still renders.
-    await expect(page.getByTestId("view-full-profile-link")).toBeVisible();
+    // Profile summary links to the editable details page.
+    await expect(
+      page.getByRole("link", { name: /edit my details/i }),
+    ).toHaveAttribute("href", "/profile");
 
     // No error states
     await expect(page.getByText("Something went wrong")).not.toBeVisible();

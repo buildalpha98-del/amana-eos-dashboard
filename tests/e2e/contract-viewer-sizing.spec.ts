@@ -19,17 +19,17 @@
 import { test, expect, type Page } from "@playwright/test";
 
 test.describe("Staff portal inline contract viewer — sizing", () => {
-  // The viewer is opened by the staff themselves from /my-portal, so we use
+  // The viewer is opened by the staff themselves from /my-contract, so we use
   // the staff storage state.
   test.use({ storageState: ".playwright/auth/staff.json" });
 
   async function openViewerIfAvailable(page: Page): Promise<boolean> {
-    await page.goto("/my-portal");
+    await page.goto("/my-contract");
     await page.waitForLoadState("networkidle");
 
     // Active contract path — primary CTA on the card.
     const primaryBtn = page
-      .getByRole("button", { name: /Read & acknowledge|View Contract/i })
+      .getByRole("button", { name: /Read (& sign )?your contract/i })
       .first();
 
     if (!(await primaryBtn.count())) {

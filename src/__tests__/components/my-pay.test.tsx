@@ -4,6 +4,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+// The pay-discrepancy card has its own session + query wiring and its own
+// tests; MyPayContent only needs to mount it.
+vi.mock("@/components/my-portal/MyPayDiscrepancyCard", () => ({
+  MyPayDiscrepancyCard: () => null,
+}));
+
 import { PayslipHeroCard } from "@/components/my-pay/PayslipHeroCard";
 import { MyPayContent } from "@/components/my-pay/MyPayContent";
 import type { PayslipSummary } from "@/hooks/useMyPayslips";

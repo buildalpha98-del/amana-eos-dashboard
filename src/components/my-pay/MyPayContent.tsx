@@ -16,6 +16,7 @@ import { useState } from "react";
 import { Download, Eye, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PayslipHeroCard } from "@/components/my-pay/PayslipHeroCard";
+import { MyPayDiscrepancyCard } from "@/components/my-portal/MyPayDiscrepancyCard";
 import { FileViewerModal } from "@/components/files/FileViewerModal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
@@ -158,6 +159,12 @@ export function MyPayContent() {
           </div>
         </div>
       )}
+
+      {/* "My pay didn't match my hours" — moved here from the My Portal
+          home page (2026-10-07); it belongs next to the payslips. */}
+      <div className="mt-6">
+        <MyPayDiscrepancyCard />
+      </div>
 
       {viewing && (
         <FileViewerModal

@@ -159,6 +159,7 @@ export const POST = withApiHandler(async (req) => {
             name: entry.name,
             email,
             passwordHash,
+            mustChangePassword: true,
             role,
             state: entry.state || null,
             serviceId,

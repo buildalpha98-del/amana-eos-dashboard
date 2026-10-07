@@ -143,6 +143,7 @@ export const POST = withApiAuth(
         email,
         phone: data.mobile,
         passwordHash,
+        mustChangePassword: true,
         role: "staff",
         serviceId: data.serviceId,
         notificationPrefs: getDefaultNotificationPrefs("staff"),
@@ -239,7 +240,6 @@ export const POST = withApiAuth(
       email,
       name: data.fullName,
       startDate: data.expectedStartDate,
-      checklistItems: defaultPack?.tasks.map((t) => t.title) ?? [],
     });
 
     // 90-day ramp: weekly check-ins + 30/60/90 manager checkpoints.

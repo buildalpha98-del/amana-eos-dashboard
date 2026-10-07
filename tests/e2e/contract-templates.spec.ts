@@ -300,16 +300,16 @@ test.describe("Contract-templates — admin issues, staff acknowledges", () => {
     const staffPage = await staffCtx.newPage();
     await loginAs(staffPage, staffEmail, STAFF_SESSION);
 
-    // Navigate to My Portal
-    await staffPage.goto("/my-portal");
+    // Contracts live on /my-contract (moved off the My Portal home 2026-10-07)
+    await staffPage.goto("/my-contract");
     await staffPage.waitForLoadState("networkidle");
     await expect(staffPage.locator("main")).toBeVisible({ timeout: 15_000 });
 
-    // Acknowledgement is now a read-first flow: the Active Contract card's
-    // "Read & acknowledge" CTA opens the inline contract viewer, and the
-    // acknowledge action lives inside it (contract-viewer-acknowledge).
+    // Acknowledgement is a read-first flow: "Read & sign your contract"
+    // opens the inline contract viewer, and the acknowledge action lives
+    // inside it (contract-viewer-acknowledge).
     const readBtn = staffPage
-      .getByRole("button", { name: /read & acknowledge/i })
+      .getByRole("button", { name: /read & sign your contract/i })
       .first();
     await expect(readBtn).toBeVisible({ timeout: 10_000 });
     await readBtn.click();

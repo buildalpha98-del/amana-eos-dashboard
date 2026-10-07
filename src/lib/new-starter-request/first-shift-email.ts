@@ -1,45 +1,81 @@
 /**
- * "Before your first shift" checklist email — sent once, right after a
- * new starter's account is created (alongside the standard login
- * invite from sendWelcomeInvite). Lists whatever the assigned
- * onboarding pack's tasks are, so it stays in sync with whatever admin
- * has configured on /onboarding — never a second, hand-typed list that
- * can drift from the real checklist.
+ * "Before your first shift" email — sent once, right after a new starter's
+ * account is created (alongside the login invite from sendWelcomeInvite).
+ *
+ * 2026-10-07: this used to paste the onboarding pack's task list straight
+ * in — 33 bullets ("Submit valid CPR certificate (HLTAID009)", "Read
+ * Behaviour Guidance policy" …) for someone who hasn't logged in yet. It
+ * read as a wall. Now it's the same five steps as the "Get ready for your
+ * first shift" checklist on My Portal (src/lib/get-ready-steps.ts), in the
+ * same order, so the email and the app tell one story. The detailed pack
+ * stays on /onboarding for the people running it.
  */
 import { baseLayout, buttonHtml } from "@/lib/email-templates/base";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 
+const STEPS: { title: string; detail: string }[] = [
+  {
+    title: "Sign in and choose your password",
+    detail:
+      "Use the temporary password from your welcome email. You'll be asked to pick your own straight away.",
+  },
+  {
+    title: "Upload all your documents to My Compliance",
+    detail:
+      "Your Working With Children Check, first aid, CPR, anaphylaxis and asthma certificates, and your qualification. A photo from your phone is fine.",
+  },
+  {
+    title: "Sign your employment contract",
+    detail: "It's waiting for you under My Contract — read it through and sign at the bottom.",
+  },
+  {
+    title: "Read the Staff Handbook and sign two policies",
+    detail: "The Child Safe Code of Conduct and the Privacy Policy.",
+  },
+  {
+    title: "Complete your essential training",
+    detail: "Short online courses under My Training, including child protection.",
+  },
+];
+
 export async function sendFirstShiftChecklistEmail(opts: {
   email: string;
   name: string;
   startDate: Date;
-  checklistItems: string[];
 }): Promise<void> {
   const firstName = opts.name.trim().split(/\s+/)[0] || opts.name;
   const startDateLabel = opts.startDate.toLocaleDateString("en-AU", {
     weekday: "long",
     day: "numeric",
     month: "long",
-    year: "numeric",
   });
-  const dashboardUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/my-training`;
+  const portalUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/my-portal`;
 
-  const listHtml = opts.checklistItems.length
-    ? `<ul style="padding-left:20px;margin:16px 0;">${opts.checklistItems
-        .map((item) => `<li style="margin-bottom:8px;">${escapeHtml(item)}</li>`)
-        .join("")}</ul>`
-    : `<p>Your onboarding checklist will appear on your Training page once it's set up — check back soon.</p>`;
+  const stepsHtml = STEPS.map(
+    (s, i) => `
+      <tr>
+        <td style="vertical-align:top;padding:0 12px 14px 0;width:28px;">
+          <div style="width:26px;height:26px;border-radius:13px;background:#004E64;color:#FECE00;font-weight:700;font-size:13px;line-height:26px;text-align:center;">${i + 1}</div>
+        </td>
+        <td style="vertical-align:top;padding:0 0 14px 0;">
+          <div style="font-weight:600;color:#004E64;">${s.title}</div>
+          <div style="font-size:14px;color:#555;margin-top:2px;">${s.detail}</div>
+        </td>
+      </tr>`,
+  ).join("");
 
   const html = baseLayout(
     `
-      <h2 style="margin:0 0 16px;">Welcome to Amana OSHC, ${escapeHtml(firstName)}!</h2>
-      <p>We're looking forward to having you start on <strong>${startDateLabel}</strong>. Before your
-      first shift, here's what to get done:</p>
-      ${listHtml}
-      <p>You can track your progress any time from the Training page in your dashboard.</p>
-      ${buttonHtml("Go to My Training", dashboardUrl)}
-      <p style="margin-top:24px;">See you soon,<br/>The Amana OSHC Team</p>
+      <h2 style="margin:0 0 12px;">Welcome to Amana OSHC, ${escapeHtml(firstName)}!</h2>
+      <p>We can't wait to see you on <strong>${startDateLabel}</strong>. Before your first
+      shift there are five quick things to do — most take a couple of minutes, and your
+      portal walks you through each one.</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 8px;width:100%;">${stepsHtml}</table>
+      ${buttonHtml("Open my portal", portalUrl)}
+      <p style="margin-top:20px;">On your first day your coordinator will show you around the centre.
+      Any questions before then, just reply to this email.</p>
+      <p style="margin-top:20px;">See you soon,<br/>The Amana OSHC Team</p>
     `,
     "staff",
   );

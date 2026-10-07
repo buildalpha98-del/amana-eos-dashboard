@@ -567,6 +567,10 @@ model User {
   // backfill. Max 20 per user enforced at the API layer.
   tags                     String[]  @default([])
   tokenVersion             Int       @default(0) // Bump to invalidate all existing sessions
+  // 2026-10-07: set whenever someone ELSE chose this password (every
+  // account-creation path + an admin password reset). Middleware holds the
+  // user on /set-password until they pick their own; cleared there.
+  mustChangePassword       Boolean   @default(false)
   mfaSecret                String? // Encrypted TOTP secret (null = MFA not enrolled)
   mfaBackupCodes           String[] // Hashed one-time recovery codes
   mfaEnabledAt             DateTime? // Non-null = MFA is active

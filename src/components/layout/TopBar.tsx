@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import { Plus, Search } from "lucide-react";
 import { getCurrentQuarter } from "@/lib/utils";
@@ -103,6 +104,11 @@ const navLabelMap: Record<string, string> = Object.fromEntries(
 
 export function TopBar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  // 2026-10-07: Educators get no command palette (button or ⌘K). Their
+  // whole menu is nine items — search across "people, services, pages"
+  // only surfaced pages they can't use.
+  const showSearch = session?.user?.role !== "staff";
   const { recentPages, trackPage } = useRecentPages();
 
   const title = useMemo(() => {
@@ -154,7 +160,7 @@ export function TopBar() {
   // Keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if (showSearch && (e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setSearchOpen((prev) => !prev);
       }
@@ -164,7 +170,7 @@ export function TopBar() {
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [quickAddOpen]);
+  }, [quickAddOpen, showSearch]);
 
   // Toggle quick-add and capture position from the clicked button
   const handleQuickAddClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
@@ -206,6 +212,7 @@ export function TopBar() {
         <div className="flex items-center gap-2">
           <OfflineSyncBadge />
           <DensityToggle />
+          {showSearch && (
           <button
             data-tour="search"
             onClick={() => setSearchOpen(true)}
@@ -218,6 +225,7 @@ export function TopBar() {
               ⌘K
             </kbd>
           </button>
+          )}
 
           <button data-tour="quick-add" onClick={handleQuickAddClick} className={quickAddBtnClasses} title="Quick Add" aria-label="Quick add">
             <Plus className="w-4 h-4" />
@@ -229,15 +237,17 @@ export function TopBar() {
 
       {/* Mobile utility buttons — portalled into the fixed header bar */}
       <MobileHeaderActions>
-        <button
-          onClick={() => setSearchOpen(true)}
-          className="p-2 rounded-lg text-muted hover:bg-surface transition-colors"
-          title="Search"
-          aria-label="Search"
-        >
-          <Search className="w-4 h-4" />
-        </button>
-        <button onClick={handleQuickAddClick} className="p-1.5 rounded-lg text-white bg-brand hover:bg-brand-hover transition-all" title="Quick Add" aria-label="Quick add">
+        {showSearch && (
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="p-2 rounded-lg text-muted hover:bg-surface transition-colors"
+            title="Search"
+            aria-label="Search"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+        )}
+        <button onClick={handleQuickAddClick} className="h-8 w-8 inline-flex items-center justify-center rounded-full text-white bg-brand hover:bg-brand-hover transition-colors" title="Quick Add" aria-label="Quick add">
           <Plus className="w-3.5 h-3.5" />
         </button>
         <NotificationBell />
@@ -246,7 +256,9 @@ export function TopBar() {
       {/* Single QuickAddMenu — rendered at root level to avoid stacking context issues */}
       <QuickAddMenu open={quickAddOpen} onClose={closeQuickAdd} position={menuPosition} />
 
-      <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} recentPages={recentPages} />
+      {showSearch && (
+        <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} recentPages={recentPages} />
+      )}
     </>
   );
 }

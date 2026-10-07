@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { filterNavItems, navItems, partitionNavSection, type NavItem } from "@/lib/nav-config";
+import { filterNavItems, navItems, partitionNavSection, STAFF_NAV_HREFS, type NavItem } from "@/lib/nav-config";
 import type { Role } from "@prisma/client";
 
 describe("filterNavItems", () => {
@@ -8,9 +8,51 @@ describe("filterNavItems", () => {
     expect(filtered.some((i) => i.href === "/contracts")).toBe(true);
   });
 
-  it("includes /contracts for staff (has contracts.view)", () => {
-    const filtered = filterNavItems(navItems, "staff" as Role);
+  it("includes /contracts for admin (has contracts.view)", () => {
+    const filtered = filterNavItems(navItems, "admin" as Role);
     expect(filtered.some((i) => i.href === "/contracts")).toBe(true);
+  });
+
+  // 2026-10-07: an Educator's sidebar is exactly STAFF_NAV_HREFS, in order,
+  // under one "My Portal" heading — no EOS, Operations, Growth or People.
+  it("gives staff only the My Portal list, in order", () => {
+    const filtered = filterNavItems(navItems, "staff" as Role);
+    expect(filtered.map((i) => i.href)).toEqual([...STAFF_NAV_HREFS]);
+    expect(new Set(filtered.map((i) => i.section))).toEqual(new Set(["My Portal", "Handbook"]));
+    expect(filtered.every((i) => i.core === true && !i.hidden)).toBe(true);
+  });
+
+  it("gives staff the handbook, Amana Way and Proven Process as their own items", () => {
+    const handbook = filterNavItems(navItems, "staff" as Role).filter((i) => i.section === "Handbook");
+    expect(handbook.map((i) => i.label)).toEqual([
+      "Staff Handbook",
+      "The Amana Way",
+      "Amana Proven Process",
+    ]);
+  });
+
+  it("keeps the staff-only reading items out of everyone else's sidebar", () => {
+    for (const role of ["admin", "member", "head_office"] as Role[]) {
+      const hrefs = filterNavItems(navItems, role).filter((i) => !i.hidden).map((i) => i.href);
+      expect(hrefs).not.toContain("/tools/the-amana-way");
+    }
+  });
+
+  it("labels compliance as the staff member's own", () => {
+    const item = filterNavItems(navItems, "staff" as Role).find((i) => i.href === "/compliance");
+    expect(item?.label).toBe("My Compliance");
+  });
+
+  it("every staff nav item is a page staff can open", () => {
+    for (const href of STAFF_NAV_HREFS) {
+      expect(navItems.some((i) => i.href === href), href).toBe(true);
+    }
+  });
+
+  it("leaves Directors of Service with their centre tools", () => {
+    const filtered = filterNavItems(navItems, "member" as Role).map((i) => i.href);
+    expect(filtered).toContain("/roster");
+    expect(filtered).toContain("/services");
   });
 
   it("excludes /contracts for marketing (no contracts.view)", () => {
@@ -210,11 +252,11 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
 describe("nav consolidation phase 1 (2026-07-05)", () => {
   const RETIRED_HREFS = [
     // → /handbook hub tabs
+    // (/tools/handbook, /tools/the-amana-way and /tools/amana-way-one-pager
+    // came back 2026-10-07 as STAFF-ONLY hidden items — an Educator's own
+    // reading list. Office roles still get the hub; see the staff tests.)
     "/guides",
     "/help",
-    "/tools/the-amana-way",
-    "/tools/handbook",
-    "/tools/amana-way-one-pager",
     "/tools/employee-handbook",
     // → /feedback "Internal Feedback" tab
     "/admin/feedback",
@@ -263,7 +305,6 @@ describe("nav consolidation phase 1 (2026-07-05)", () => {
     "admin",
     "marketing",
     "member",
-    "staff",
     "eos_viewer",
     "eos_implementer",
   ] as Role[])("%s sees the Handbook & Help hub", (role) => {

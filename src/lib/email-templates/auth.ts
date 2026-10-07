@@ -82,7 +82,7 @@ const WELCOME_DEFAULT_BODY = `
       </tr>
     </table>
     <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Please change your password after your first login.
+      This password is temporary — when you first sign in you&#39;ll be asked to choose your own.
     </p>
     {{signInButton}}
   `;

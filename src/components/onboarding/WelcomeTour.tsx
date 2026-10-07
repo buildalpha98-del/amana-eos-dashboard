@@ -11,6 +11,10 @@ import {
   HelpCircle,
   Rocket,
   Building2,
+  Menu,
+  ShieldCheck,
+  Sun,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -81,6 +85,56 @@ const ALL_STEPS: TourStepDef[] = [
   },
 ];
 
+// 2026-10-07: Educators (staff) get their own tour. The general one sold
+// them a "central hub for managing centres", described sidebar sections
+// they can't see, and taught ⌘K and "?" shortcuts that don't exist on a
+// phone — which is where most of them meet it. Theirs is about THEM: pay,
+// documents, clocking in, and the checklist waiting on My Portal.
+const STAFF_STEPS: TourStepDef[] = [
+  {
+    title: "Welcome!",
+    description:
+      "This is your Amana staff portal — your pay, your roster, your documents and your training, all in one place. Here's a quick look around.",
+    icon: LayoutDashboard,
+    iconColor: "text-brand",
+  },
+  {
+    title: "Your menu",
+    description:
+      "Tap More at the bottom of the screen (or the menu on a computer) to see everything: My Portal, My Day, your roster, pay, leave and training — plus the Staff Handbook, The Amana Way and our Proven Process.",
+    icon: Menu,
+    iconColor: "text-brand",
+  },
+  {
+    title: "Upload your documents",
+    description:
+      "Your Working With Children Check, first aid and other certificates all go in one place — My Compliance. Tap Upload and take a photo. That's it.",
+    icon: ShieldCheck,
+    iconColor: "text-brand",
+  },
+  {
+    title: "Clock in on My Day",
+    description:
+      "When you arrive for a shift, open My Day to clock in. It's also where you'll find today's roll call and checklists.",
+    icon: Sun,
+    iconColor: "text-brand",
+  },
+  {
+    title: "Pay and leave",
+    description:
+      "See your latest payslip and your leave balance, and send a leave request — straight from your portal.",
+    icon: Wallet,
+    iconColor: "text-brand",
+  },
+  {
+    title: "You're all set!",
+    description:
+      "Your home page shows a short checklist of what to do before your first shift. Work through it one step at a time — most take a couple of minutes.",
+    icon: Rocket,
+    iconColor: "text-brand",
+  },
+];
+
 // Post coordinator-collapse: "leader-tier" = member and above. Director
 // of Service (member) handles centre-level switching just like admins do.
 const LEADER_ROLES = ["member", "admin", "head_office", "owner"];
@@ -111,7 +165,10 @@ export function WelcomeTour({ onComplete }: WelcomeTourProps) {
   const userRole = (session?.user as { role?: string } | undefined)?.role ?? "";
   const isLeader = LEADER_ROLES.includes(userRole);
 
-  const steps = ALL_STEPS.filter((s) => !s.leaderOnly || isLeader);
+  const isStaff = userRole === "staff";
+  const steps = isStaff
+    ? STAFF_STEPS
+    : ALL_STEPS.filter((s) => !s.leaderOnly || isLeader);
 
   const step = steps[currentStep];
   const isFirst = currentStep === 0;
@@ -135,11 +192,12 @@ export function WelcomeTour({ onComplete }: WelcomeTourProps) {
   const goNext = useCallback(() => {
     if (isLast) {
       onComplete();
-      router.push("/getting-started");
+      // Staff finish on My Portal, where their one checklist lives.
+      router.push(isStaff ? "/my-portal" : "/getting-started");
       return;
     }
     animateTransition(() => setCurrentStep((s) => s + 1));
-  }, [isLast, onComplete, router, animateTransition]);
+  }, [isLast, isStaff, onComplete, router, animateTransition]);
 
   const goBack = useCallback(() => {
     if (isFirst) return;
@@ -246,7 +304,7 @@ export function WelcomeTour({ onComplete }: WelcomeTourProps) {
               onClick={goNext}
               className="px-5 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
             >
-              {isLast ? "Get Started" : "Next"}
+              {isLast ? (isStaff ? "Let's go" : "Get Started") : "Next"}
             </button>
           </div>
         </div>

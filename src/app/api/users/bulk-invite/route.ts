@@ -112,6 +112,7 @@ export const POST = withApiAuth(async (req, session) => {
             name,
             email,
             passwordHash,
+            mustChangePassword: true,
             role: userData.role,
             serviceId:
               userData.role === "staff" || userData.role === "member"

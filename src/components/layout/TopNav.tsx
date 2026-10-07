@@ -23,6 +23,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, LogOut, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navItems, filterNavItems, type NavItem } from "@/lib/nav-config";
+import { getLandingPage } from "@/lib/role-permissions";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { NavLayoutToggle } from "@/components/layout/NavLayoutToggle";
 import type { Role } from "@prisma/client";
@@ -119,7 +120,7 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
 
         {/* Brand */}
         <Link
-          href="/dashboard"
+          href={getLandingPage(session?.user?.role)}
           className="flex items-center gap-2 mr-4 shrink-0"
         >
           <Image

@@ -6,7 +6,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { indexDocument } from "@/lib/document-indexer";
 import { parseJsonBody } from "@/lib/api-error";
-import { isAdminRole } from "@/lib/role-permissions";
+import { documentVisibilityWhere } from "@/lib/document-visibility";
 const createDocumentSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -37,9 +37,6 @@ const { searchParams } = new URL(req.url);
   // Staff/member users can only see documents for their assigned service + company-wide docs
   const isServiceScoped = ["staff", "member"].includes(session!.user.role);
   const staffServiceId = session!.user.serviceId;
-  // Owner / admin / head_office. Governs whether personal HR documents are
-  // listed here — see the `assignedToId` note on the where clause.
-  const isAdmin = isAdminRole(session!.user.role);
 
   // Coerce the query-string category to the Prisma enum; unknown values are
   // ignored rather than reaching Prisma's where clause.
@@ -64,24 +61,6 @@ const { searchParams } = new URL(req.url);
 
   const where: Prisma.DocumentWhereInput = {
     deleted: false,
-    // Personal HR documents are listed to org admins ONLY.
-    //
-    // `assignedToId` marks a document as being *about* a staff member —
-    // their contract, WWCC, performance letter. Leaving these unfiltered is
-    // what let any Educator read a colleague's contract: DocumentsTab
-    // uploads them with no centreId, so they matched the `{ centreId: null }`
-    // org-wide branch below and rendered with a direct blob link.
-    //
-    // Admins keep one searchable view across everything (they can open any
-    // staff profile anyway, so the library adds no access they lack).
-    // Everyone else — Educators AND Directors — sees none of them here;
-    // a Director reaches their own centre's staff documents through
-    // /staff/[id], which enforces the centre check this listing cannot.
-    //
-    // The condition is deliberately positive-listing: anything that is not
-    // a known admin gets the exclusion, so a new role added to the enum is
-    // excluded by default rather than silently admitted.
-    ...(isAdmin ? {} : { assignedToId: null }),
     ...(categoryFilter ? { category: categoryFilter } : {}),
     ...(folderId === "root" ? { folderId: null } : folderId ? { folderId } : {}),
   };
@@ -93,25 +72,26 @@ const { searchParams } = new URL(req.url);
   const and: Prisma.DocumentWhereInput[] = [];
   if (searchClause) and.push(searchClause);
 
+  // Who may see what — the shared rule in src/lib/document-visibility.ts
+  // (also applied to the AI knowledge search). Admins see everything,
+  // personal HR files included; everyone else only deliberately published
+  // documents plus their own uploads. Loose files (no centre, not
+  // org-wide, not assigned) no longer count as everyone's.
+  const visibility = documentVisibilityWhere({
+    id: session!.user.id,
+    role: session!.user.role,
+    serviceId: staffServiceId,
+  });
+  if (Object.keys(visibility).length) and.push(visibility);
+
   if (isServiceScoped) {
-    // Educators and Directors see their own centre plus org-wide docs,
-    // never another centre's.
+    // Educators and Directors never see another centre's documents.
     if (centreId && centreId !== staffServiceId) {
       return NextResponse.json({ documents: [], total: 0, page, totalPages: 0 });
     }
-    and.push(
-      centreId
-        ? // Explicit centre filter narrows to that centre, but org-wide
-          // docs stay visible so the library isn't suddenly empty.
-          { OR: [{ centreId }, { allServices: true }] }
-        : {
-            OR: [
-              ...(staffServiceId ? [{ centreId: staffServiceId }] : []),
-              { centreId: null },
-              { allServices: true },
-            ],
-          },
-    );
+    // Explicit centre filter narrows to that centre, but org-wide docs stay
+    // visible so the library isn't suddenly empty.
+    if (centreId) and.push({ OR: [{ centreId }, { allServices: true }] });
   } else if (centreId) {
     and.push({ centreId });
   }

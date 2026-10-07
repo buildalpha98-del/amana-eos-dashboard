@@ -36,6 +36,8 @@ import {
   Wrench,
   Briefcase,
   BookOpen,
+  BookOpenCheck,
+  Route,
   Rocket,
   Contact,
   Crown,
@@ -319,6 +321,13 @@ export const navItems: NavItem[] = [
   // /tools/the-amana-way, /tools/handbook, /tools/amana-way-one-pager and
   // /tools/employee-handbook — collapsed into the /handbook hub (tabs).
   // The old routes redirect there, so deep links keep working.
+  // 2026-10-07: an Educator's own menu items for the three things they're
+  // asked to read — standalone pages (the /tools/* routes) rather than tabs
+  // of the six-tab hub below, which they couldn't find their way through.
+  // Hidden for everyone else (office roles keep the hub).
+  { href: "/tools/handbook", label: "Staff Handbook", icon: BookOpen, section: "Handbook", tooltip: "How we work — read before your first shift", roles: ["staff"], hidden: true },
+  { href: "/tools/the-amana-way", label: "The Amana Way", icon: BookOpenCheck, section: "Handbook", tooltip: "Our values and what makes Amana special", roles: ["staff"], hidden: true },
+  { href: "/tools/amana-way-one-pager", label: "Amana Proven Process", icon: Route, section: "Handbook", tooltip: "Our 7-stage journey from enrolment to ongoing care", roles: ["staff"], hidden: true },
   { href: "/handbook", label: "Handbook & Help", icon: BookOpen, section: "Admin", tooltip: "Handbooks, The Amana Way, quick-start guides and the help centre" , core: ["member", "staff"] },
   { href: "/automations", label: "Automations", icon: Activity, section: "Admin", tooltip: "Monitor the health and cadence of all automated tasks", roles: ALL_NON_MARKETING },
   { href: "/audit-log", label: "Audit Log", icon: ScrollText, section: "Admin", tooltip: "Security audit trail — who did what and when", roles: ALL_NON_MARKETING },
@@ -341,6 +350,48 @@ export const navItems: NavItem[] = [
 ];
 
 /**
+ * 2026-10-07: an Educator's whole sidebar. Before this, staff saw every item
+ * their page permissions allowed — Services, Documents, Communication,
+ * Activity Library, Design Requests, Ambassadors… — and new starters had no
+ * idea where to start. Everything about THEM lives here; the rest stays
+ * reachable by URL (page permissions are unchanged) and from the My Portal
+ * home page (contract, compliance, policies, profile).
+ *
+ * The list is also the ORDER. Everything is regrouped under "My Portal"
+ * except the reading material, which gets its own "Handbook" heading.
+ */
+export const STAFF_NAV_HREFS: readonly string[] = [
+  "/my-portal",
+  "/my-day",
+  "/roster/me",
+  "/my-pay",
+  "/my-leave",
+  "/my-expenses",
+  "/my-training",
+  // Where every certificate goes — the first-shift email, the tour and the
+  // checklist all send new starters here (labelled "My Compliance").
+  "/compliance",
+  "/notifications",
+  "/tools/handbook",
+  "/tools/the-amana-way",
+  "/tools/amana-way-one-pager",
+];
+
+function staffNavItems(items: readonly NavItem[]): NavItem[] {
+  // FIRST entry per href wins: /compliance is listed twice — "My
+  // Compliance" under My Portal, then the network-wide Operations
+  // "Compliance" — and an Educator should get the personal label.
+  const byHref = new Map<string, NavItem>();
+  for (const item of items) if (!byHref.has(item.href)) byHref.set(item.href, item);
+  return STAFF_NAV_HREFS.flatMap((href) => {
+    const item = byHref.get(href);
+    if (!item || !canAccessPage("staff", href)) return [];
+    const section = item.section === "Handbook" ? "Handbook" : "My Portal";
+    return [{ ...item, section, core: true, hidden: false }];
+  });
+}
+
+/**
  * Filter nav items by role: must pass `canAccessPage` AND (if tagged) the
  * `hasFeature` gate AND (if tagged) the `roles` allowlist. Keeps role logic
  * in one place so Sidebar stays declarative.
@@ -356,6 +407,7 @@ export function filterNavItems(
   items: readonly NavItem[],
   role: Role | undefined
 ): NavItem[] {
+  if (role === "staff") return staffNavItems(items);
   return items.filter((item) => {
     if (!canAccessPage(role, item.href)) return false;
     if (item.feature && !hasFeature(role, item.feature)) return false;

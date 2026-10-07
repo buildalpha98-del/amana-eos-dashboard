@@ -80,7 +80,11 @@ export const POST = withApiAuth(async (req, session) => {
   //   - When the knowledge base genuinely doesn't have the answer the
   //     bot says so plainly — no "ask your state manager / check
   //     training materials" boilerplate that masks a stale base.
-  const dashboardContext = await buildDashboardContext();
+  // Live org figures (financial periods, pipeline, rocks, board report) are
+  // for admin roles only — the same line the tool gate above draws. They
+  // used to go into EVERY chat, so an Educator could simply ask the bot
+  // for last month's revenue (2026-10-07).
+  const dashboardContext = isAdmin ? await buildDashboardContext() : "";
   const pageContext = currentPage ? getPageContext(currentPage) : "";
   const systemPrompt = [
     AMANA_SYSTEM_PROMPT,
@@ -220,6 +224,11 @@ export const POST = withApiAuth(async (req, session) => {
             const result = await executeToolCall(
               toolBlock.name,
               toolBlock.input as Record<string, unknown>,
+              {
+                id: session!.user.id,
+                role: session!.user.role,
+                serviceId: session!.user.serviceId,
+              },
             );
             toolResults.push({
               type: "tool_result",

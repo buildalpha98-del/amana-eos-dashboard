@@ -6,6 +6,7 @@
  * relying solely on the pre-loaded dashboard context.
  */
 
+import type { DocumentViewer } from "@/lib/document-visibility";
 import { prisma } from "@/lib/prisma";
 import type Anthropic from "@anthropic-ai/sdk";
 
@@ -159,6 +160,8 @@ export const ASSISTANT_TOOLS: Anthropic.Messages.Tool[] = [
 export async function executeToolCall(
   name: string,
   input: Record<string, unknown>,
+  /** Who is asking — scopes the knowledge-base search to what they may see. */
+  viewer: DocumentViewer,
 ): Promise<string> {
   try {
     switch (name) {
@@ -178,7 +181,7 @@ export async function executeToolCall(
         const { searchChunks, formatChunksForPrompt } = await import(
           "@/lib/document-indexer"
         );
-        const results = await searchChunks(input.query as string, 8);
+        const results = await searchChunks(input.query as string, 8, viewer);
         if (results.length === 0) {
           return JSON.stringify({
             message: "No matching documents found for this query.",

@@ -30,13 +30,11 @@ describe("destinationForSession", () => {
     ).toBe("/dashboard");
   });
 
-  it("routes staff with a serviceId directly to /services/[id]?tab=today", () => {
+  it("routes staff to My Portal even when they have a serviceId", () => {
     const session = {
       user: { role: "staff", serviceId: "svc-42" },
     };
-    expect(destinationForSession(session, "/dashboard")).toBe(
-      "/services/svc-42?tab=today",
-    );
+    expect(destinationForSession(session, "/dashboard")).toBe("/my-portal");
   });
 
   it("routes coordinator with serviceId to their service page", () => {
@@ -57,13 +55,13 @@ describe("destinationForSession", () => {
     );
   });
 
-  it("falls back to /dashboard for staff without a serviceId", () => {
+  it("routes staff without a serviceId to My Portal", () => {
     expect(
       destinationForSession(
         { user: { role: "staff", serviceId: null } },
         "/dashboard",
       ),
-    ).toBe("/dashboard");
+    ).toBe("/my-portal");
   });
 
   it("falls back to /dashboard when session is null", () => {

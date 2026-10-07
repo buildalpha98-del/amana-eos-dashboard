@@ -17,12 +17,15 @@ describe("getLandingPage", () => {
     expect(getLandingPage("eos_viewer")).toBe("/rocks");
   });
 
-  it("sends every non-EOS role to /dashboard", () => {
+  it("sends every non-EOS, non-staff role to /dashboard", () => {
     expect(getLandingPage("owner")).toBe("/dashboard");
     expect(getLandingPage("admin")).toBe("/dashboard");
     expect(getLandingPage("marketing")).toBe("/dashboard");
     expect(getLandingPage("member")).toBe("/dashboard");
-    expect(getLandingPage("staff")).toBe("/dashboard");
+  });
+
+  it("sends Educators (staff) to their own portal", () => {
+    expect(getLandingPage("staff")).toBe("/my-portal");
   });
 
   it("defaults to /dashboard when role is undefined", () => {
