@@ -1,5 +1,6 @@
 "use client";
 
+import { ServiceDocumentsTab } from "@/components/services/ServiceDocumentsTab";
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -34,6 +35,7 @@ import {
   ClipboardCheck,
   Activity,
   BookOpen,
+  FolderOpen,
   SlidersHorizontal,
   DoorOpen,
   FileSignature,
@@ -257,6 +259,19 @@ const tabGroups: TabGroup[] = [
       { key: "approvals", label: "Approvals", icon: CheckCircle2 },
     ],
   },
+  // 2026-10-08, per Daniel: everything for a regulator spot check in one
+  // place — the policy library (synced from SharePoint) and every staff
+  // member's files at this centre. Staff files: coordinators + admins only
+  // (filtered in visibleGroups; the API enforces it too).
+  {
+    key: "documents",
+    label: "Documents",
+    icon: FolderOpen,
+    subTabs: [
+      { key: "policies", label: "Policies & procedures", icon: BookOpen },
+      { key: "staff-files", label: "Staff files", icon: Users },
+    ],
+  },
 ];
 
 // Params owned by an individual sub-tab. The URL sync preserves them while
@@ -358,6 +373,7 @@ export default function ServiceDetailPage() {
   const canSeeCasualBookings = canManageThisService;
 
   const isAdminPlus = hasMinRole(role, "admin");
+  const canSeeStaffFiles = isAdminRole(role) || role === "member";
 
   const visibleGroups = useMemo(() => {
     return tabGroups
@@ -374,9 +390,13 @@ export default function ServiceDetailPage() {
         if (g.key === "daily" && canSeeCasualBookings) {
           subTabs = [...subTabs, CASUAL_BOOKINGS_SUBTAB];
         }
+        // Staff files are for the centre's Director and admins, not educators.
+        if (g.key === "documents" && !canSeeStaffFiles) {
+          subTabs = subTabs.filter((s) => s.key !== "staff-files");
+        }
         return subTabs === g.subTabs ? g : { ...g, subTabs };
       });
-  }, [isAdminPlus, canSeeCasualBookings]);
+  }, [isAdminPlus, canSeeCasualBookings, canSeeStaffFiles]);
 
   const currentGroup = visibleGroups.find((g) => g.key === activeGroup) || visibleGroups[0];
   const currentSubKey = activeSubTab[activeGroup] || currentGroup?.subTabs[0]?.key;
@@ -574,6 +594,13 @@ export default function ServiceDetailPage() {
 
         {/* Staff group (no subtabs) — assignments management */}
         {activeGroup === "staff" && <ServiceStaffTab serviceId={service.id} />}
+        {activeGroup === "documents" && (
+          <ServiceDocumentsTab
+            serviceId={service.id}
+            serviceState={service.state ?? null}
+            sub={currentSubKey ?? "policies"}
+          />
+        )}
 
         {/* Daily Ops group */}
         {activeGroup === "daily" && currentSubKey === "attendance" && (

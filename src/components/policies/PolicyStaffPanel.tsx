@@ -34,8 +34,21 @@ type Filter = "all" | "to_sign" | "policy" | "procedure";
 const needsSigning = (d: PolicyDocumentListItem) =>
   d.requiresAcknowledgement && !d.myAcknowledgedAt;
 
-export function PolicyStaffPanel() {
-  const { data: docs, isLoading, isError, error, refetch } = usePolicies();
+export function PolicyStaffPanel({
+  stateFilter,
+}: {
+  /** On a centre's Documents tab: hide the other state's state-only
+   *  policies (NSW centre → no "VIC only" documents). */
+  stateFilter?: string | null;
+} = {}) {
+  const { data: allDocs, isLoading, isError, error, refetch } = usePolicies();
+  const docs = useMemo(
+    () =>
+      stateFilter
+        ? allDocs?.filter((d) => !d.state || d.state.toUpperCase() === stateFilter.toUpperCase())
+        : allDocs,
+    [allDocs, stateFilter],
+  );
   const [openDocId, setOpenDocId] = useState<string | null>(null);
   // 2026-10-08: the whole SharePoint library lands here (~100 documents),
   // so staff get a search box and filters; only documents marked

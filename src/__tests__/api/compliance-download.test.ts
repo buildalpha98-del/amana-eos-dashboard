@@ -122,6 +122,8 @@ describe("GET /api/compliance/[id]/download", () => {
 
   it("streams the file for a coordinator in the same service", async () => {
     mockSession({ id: "coord-1", name: "Coord", role: "member", serviceId: "svc-1" });
+    prismaMock.service.findMany.mockResolvedValue([]);
+    prismaMock.userServiceMembership.findMany.mockResolvedValue([]);
     prismaMock.complianceCertificate.findUnique.mockResolvedValue({
       id: "cert-1",
       userId: "user-99",
@@ -147,6 +149,8 @@ describe("GET /api/compliance/[id]/download", () => {
 
   it("returns 403 for a coordinator in a different service", async () => {
     mockSession({ id: "coord-2", name: "Coord", role: "member", serviceId: "svc-2" });
+    prismaMock.service.findMany.mockResolvedValue([]);
+    prismaMock.userServiceMembership.findMany.mockResolvedValue([]);
     prismaMock.complianceCertificate.findUnique.mockResolvedValue({
       id: "cert-1",
       userId: "user-99",
@@ -164,6 +168,50 @@ describe("GET /api/compliance/[id]/download", () => {
     });
 
     const res = await callRoute("cert-1");
+    expect(res.status).toBe(403);
+  });
+
+  // 2026-10-08: personal certs usually have NO serviceId — a Director now
+  // sees them when they share a centre with the cert's owner.
+  it("streams a personal cert (no serviceId) to a Director who shares a centre with its owner", async () => {
+    mockSession({ id: "coord-1", name: "Coord", role: "member", serviceId: "svc-1" });
+    prismaMock.complianceCertificate.findUnique.mockResolvedValue({
+      id: "cert-2",
+      userId: "user-99",
+      serviceId: null,
+      fileUrl: "https://t3st.public.blob.vercel-storage.com/cert-2.pdf",
+    });
+    prismaMock.user.findUnique.mockImplementation(({ where, select }: { where?: { id?: string }; select?: { active?: boolean; serviceId?: boolean } }) => {
+      if (where?.id === "coord-1" && select?.active) return Promise.resolve({ active: true });
+      if (where?.id === "coord-1") return Promise.resolve({ serviceId: "svc-1" });
+      if (where?.id === "user-99") return Promise.resolve({ id: "user-99", serviceId: "svc-1" });
+      return Promise.resolve(null);
+    });
+    prismaMock.service.findMany.mockResolvedValue([]);
+    prismaMock.userServiceMembership.findMany.mockResolvedValue([]);
+
+    const res = await callRoute("cert-2");
+    expect(res.status).toBe(200);
+  });
+
+  it("refuses a personal cert to a Director at a different centre", async () => {
+    mockSession({ id: "coord-2", name: "Coord", role: "member", serviceId: "svc-2" });
+    prismaMock.complianceCertificate.findUnique.mockResolvedValue({
+      id: "cert-2",
+      userId: "user-99",
+      serviceId: null,
+      fileUrl: "https://t3st.public.blob.vercel-storage.com/cert-2.pdf",
+    });
+    prismaMock.user.findUnique.mockImplementation(({ where, select }: { where?: { id?: string }; select?: { active?: boolean; serviceId?: boolean } }) => {
+      if (where?.id === "coord-2" && select?.active) return Promise.resolve({ active: true });
+      if (where?.id === "coord-2") return Promise.resolve({ serviceId: "svc-2" });
+      if (where?.id === "user-99") return Promise.resolve({ id: "user-99", serviceId: "svc-1" });
+      return Promise.resolve(null);
+    });
+    prismaMock.service.findMany.mockResolvedValue([]);
+    prismaMock.userServiceMembership.findMany.mockResolvedValue([]);
+
+    const res = await callRoute("cert-2");
     expect(res.status).toBe(403);
   });
 
