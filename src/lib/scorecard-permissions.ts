@@ -13,6 +13,8 @@
  *   sees + manages the scorecards they created.
  * - **Scorecard member** (present in `ScorecardMember` for that
  *   scorecard) can view but NOT manage.
+ * - **State Manager** (`head_office`) whose `User.state` matches
+ *   `Scorecard.state` can view but NOT manage (2026-10-07).
  * - Everyone else: no access.
  *
  * "Manage" = rename, delete, invite/remove members, edit any measurable.
@@ -27,10 +29,28 @@
 export interface ViewerRef {
   id: string;
   role: string | null | undefined;
+  /** User.state — the state a State Manager (head_office) looks after. */
+  state?: string | null;
 }
 
 export interface ScorecardRef {
   ownerId: string;
+  /** Scorecard.state — set on a state's scorecard (e.g. "NSW"). */
+  state?: string | null;
+}
+
+/**
+ * 2026-10-07: a State Manager sees every scorecard for their state without
+ * being invited one by one — Mirna (NSW) sees the NSW scorecard, Tracie
+ * (VIC) the VIC one. View only: managing stays with the scorecard's owner.
+ */
+export function isStateManagerFor(viewer: ViewerRef, scorecard: ScorecardRef): boolean {
+  return (
+    viewer.role === "head_office" &&
+    !!viewer.state &&
+    !!scorecard.state &&
+    viewer.state.trim().toUpperCase() === scorecard.state.trim().toUpperCase()
+  );
 }
 
 /**
@@ -46,6 +66,7 @@ export function canViewScorecard(
 ): boolean {
   if (viewer.role === "owner") return true;
   if (viewer.id === scorecard.ownerId) return true;
+  if (isStateManagerFor(viewer, scorecard)) return true;
   const set =
     memberUserIds instanceof Set
       ? memberUserIds

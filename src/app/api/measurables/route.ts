@@ -47,12 +47,13 @@ export const POST = withApiAuth(
       select: {
         id: true,
         ownerId: true,
+        state: true,
         members: { select: { userId: true } },
       },
     });
     if (!scorecard) throw ApiError.notFound("Scorecard not found");
 
-    const viewer = { id: session!.user.id, role: session!.user.role };
+    const viewer = { id: session!.user.id, role: session!.user.role, state: session!.user.state };
     const memberIds = scorecard.members.map((m) => m.userId);
 
     if (!canViewScorecard(viewer, scorecard, memberIds)) {

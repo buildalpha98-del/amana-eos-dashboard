@@ -8,8 +8,10 @@ import {
   useScorecardMembers,
   useInviteScorecardMember,
   useRemoveScorecardMember,
+  useSetScorecardState,
 } from "@/hooks/useScorecards";
 import { fetchApi } from "@/lib/fetch-api";
+import { AUSTRALIAN_STATES } from "@/lib/service-scope";
 
 interface UserOption {
   id: string;
@@ -23,6 +25,8 @@ export interface ManageMembersDialogProps {
   scorecardId: string;
   scorecardTitle: string;
   ownerId: string;
+  /** Scorecard.state — the State Manager for it sees it automatically. */
+  state: string | null;
 }
 
 export function ManageMembersDialog({
@@ -31,7 +35,9 @@ export function ManageMembersDialog({
   scorecardId,
   scorecardTitle,
   ownerId,
+  state,
 }: ManageMembersDialogProps) {
+  const setState = useSetScorecardState();
   const members = useScorecardMembers(open ? scorecardId : null);
   const invite = useInviteScorecardMember(scorecardId);
   const remove = useRemoveScorecardMember(scorecardId);
@@ -71,6 +77,38 @@ export function ManageMembersDialog({
           Members can view this scorecard and own measurables within
           it. The scorecard owner is always a participant.
         </p>
+
+        {/* 2026-10-07: a state's scorecard is visible to that state's State
+            Manager automatically — no invite needed (Mirna → NSW). */}
+        <div className="mt-4 rounded-md border border-border bg-surface/50 p-3">
+          <label
+            htmlFor="scorecard-state"
+            className="block text-xs font-medium text-foreground/80 uppercase tracking-wide"
+          >
+            State
+          </label>
+          <p className="text-xs text-muted mt-0.5 mb-2">
+            Pick a state and that state&apos;s State Manager can see this
+            scorecard without being invited.
+          </p>
+          <select
+            id="scorecard-state"
+            value={state ?? ""}
+            disabled={setState.isPending}
+            onChange={(e) =>
+              setState.mutate({ id: scorecardId, state: e.target.value || null })
+            }
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-60"
+            data-testid="scorecard-state-picker"
+          >
+            <option value="">Not a state scorecard</option>
+            {AUSTRALIAN_STATES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label} ({s.value})
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="mt-4 flex gap-2">
           <select

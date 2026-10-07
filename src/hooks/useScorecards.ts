@@ -18,6 +18,8 @@ export interface ScorecardSummary {
   id: string;
   title: string;
   ownerId: string;
+  /** The state this scorecard reports on — its State Manager sees it. */
+  state: string | null;
   createdAt: string;
   updatedAt: string;
   owner: {
@@ -109,6 +111,27 @@ export function useRenameScorecard() {
         variant: "destructive",
         description: err.message || "Failed to rename",
       });
+    },
+  });
+}
+
+/** Set (or clear) the state a scorecard reports on. Owner-only server-side. */
+export function useSetScorecardState() {
+  const qc = useQueryClient();
+  return useMutation<unknown, Error, { id: string; state: string | null }>({
+    mutationFn: ({ id, state }) =>
+      mutateApi(`/api/scorecards/${id}`, { method: "PATCH", body: { state } }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["scorecards-list"] });
+      qc.invalidateQueries({ queryKey: ["scorecard-detail", vars.id] });
+      toast({
+        description: vars.state
+          ? `${vars.state} State Manager can now see this scorecard`
+          : "State removed from this scorecard",
+      });
+    },
+    onError: (err) => {
+      toast({ variant: "destructive", description: err.message || "Failed to update" });
     },
   });
 }

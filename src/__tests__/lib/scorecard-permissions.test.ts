@@ -103,3 +103,34 @@ describe("isScorecardParticipant", () => {
     expect(isScorecardParticipant("u-stranger", SCORECARD, [])).toBe(false);
   });
 });
+
+// 2026-10-07: State Managers see their state's scorecard uninvited.
+describe("state scorecards", () => {
+  const NSW = { ownerId: "u-daniel", state: "NSW" };
+
+  it("a State Manager sees their state's scorecard", () => {
+    expect(canViewScorecard({ id: "u-mirna", role: "head_office", state: "NSW" }, NSW, [])).toBe(true);
+  });
+
+  it("matching ignores case and whitespace", () => {
+    expect(canViewScorecard({ id: "u-mirna", role: "head_office", state: " nsw " }, NSW, [])).toBe(true);
+  });
+
+  it("a State Manager for another state does not", () => {
+    expect(canViewScorecard({ id: "u-tracie", role: "head_office", state: "VIC" }, NSW, [])).toBe(false);
+  });
+
+  it("a non-State-Manager in that state does not", () => {
+    expect(canViewScorecard({ id: "u-coord", role: "member", state: "NSW" }, NSW, [])).toBe(false);
+  });
+
+  it("a scorecard with no state grants nothing by state", () => {
+    expect(
+      canViewScorecard({ id: "u-mirna", role: "head_office", state: "NSW" }, { ownerId: "u-daniel", state: null }, []),
+    ).toBe(false);
+  });
+
+  it("seeing it does not mean managing it", () => {
+    expect(canManageScorecard({ id: "u-mirna", role: "head_office", state: "NSW" }, NSW)).toBe(false);
+  });
+});

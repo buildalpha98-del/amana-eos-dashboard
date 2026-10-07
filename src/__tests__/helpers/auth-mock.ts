@@ -15,6 +15,8 @@ import { vi } from "vitest";
 import type { Role } from "@prisma/client";
 
 interface MockUser {
+  /** User.state — a State Manager's state. */
+  state?: string | null;
   id: string;
   name: string;
   email?: string;
@@ -47,6 +49,7 @@ export function mockSession(user: MockUser) {
       email: user.email ?? `${user.id}@test.com`,
       role: user.role,
       serviceId: user.serviceId ?? null,
+      state: user.state ?? null,
     },
     expires: new Date(Date.now() + 86400000).toISOString(),
   } as any);
