@@ -180,6 +180,7 @@ const formData = await req.formData();
           name: user.name,
           email: user.email.toLowerCase().trim(),
           passwordHash: hash,
+          mustChangePassword: true,
           role: user.role as "owner" | "admin" | "member" | "staff",
           serviceId: user.serviceId,
           notificationPrefs: getDefaultNotificationPrefs(user.role),

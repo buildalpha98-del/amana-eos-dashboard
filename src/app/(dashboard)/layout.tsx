@@ -83,7 +83,11 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       {/* Mobile header — only when using the sidebar layout. In the
           top-bar layout the TopNav itself carries the hamburger. */}
       {!useTopBar && (
-        <div className="md:hidden fixed top-0 inset-x-0 h-12 bg-background border-b border-border z-30 flex items-center justify-between px-3">
+        // viewportFit "cover" (root layout) lets the page run under the iOS
+        // status bar, so the header must pad itself down by the safe-area
+        // inset — without it the logo and buttons sat under the clock and
+        // read as blurred (2026-10-07).
+        <div className="md:hidden fixed top-0 inset-x-0 h-[calc(3rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] bg-background border-b border-border z-30 flex items-center justify-between px-3">
           <button
             onClick={() => setMobileNavOpen(true)}
             aria-label="Open navigation menu"
@@ -92,14 +96,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-1.5">
+            {/* Brand: Jonquil icon (was the white icon inverted to black). */}
             <Image
-              src="/logo-icon-white.svg"
+              src="/logo-icon.svg"
               alt="Amana OSHC logo"
               width={16}
               height={22}
-              className="invert"
             />
-            <span className="text-xs font-heading font-semibold text-foreground">Amana</span>
+            <span className="text-xs font-heading font-semibold text-brand">Amana</span>
           </div>
           {/* Mobile utility buttons — pulled up from old sub-header */}
           <div className="flex items-center gap-1" id="mobile-header-actions" />
@@ -113,7 +117,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           // Top-bar layout: full width, no left offset.
           useTopBar
             ? "pt-0"
-            : ["pt-12 md:pt-0", collapsed ? "md:pl-16" : "md:pl-64"],
+            : ["pt-[calc(3rem+env(safe-area-inset-top))] md:pt-0", collapsed ? "md:pl-16" : "md:pl-64"],
         )}
       >
         {/* TopBar (breadcrumb / utility row) only on sidebar layout —

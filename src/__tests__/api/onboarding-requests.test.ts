@@ -235,7 +235,7 @@ describe("POST /api/onboarding-requests", () => {
       expect.objectContaining({ email: "amina@example.com", name: "Amina Yusuf" }),
     );
     expect(sendFirstShiftChecklistEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ email: "amina@example.com", checklistItems: [] }),
+      expect.objectContaining({ email: "amina@example.com", name: "Amina Yusuf" }),
     );
     expect(createStaffRamp).toHaveBeenCalledWith(
       expect.anything(),
@@ -257,10 +257,10 @@ describe("POST /api/onboarding-requests", () => {
     expect(assignOnboardingPack).toHaveBeenCalledWith(
       expect.objectContaining({ userId: "new-user-1", packId: "pack-1", actorId: "hq1" }),
     );
+    // The pack is assigned, but its task list no longer goes into the
+    // first-shift email (2026-10-07) — that's the fixed five-step version.
     expect(sendFirstShiftChecklistEmail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        checklistItems: ["Upload your WWCC", "Read the Code of Conduct"],
-      }),
+      expect.not.objectContaining({ checklistItems: expect.anything() }),
     );
   });
 

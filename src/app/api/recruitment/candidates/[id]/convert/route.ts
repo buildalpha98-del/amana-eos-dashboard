@@ -118,6 +118,7 @@ export const POST = withApiAuth(
         name: candidate.name,
         email,
         passwordHash,
+        mustChangePassword: true,
         role,
         serviceId,
         candidateId: candidate.id,

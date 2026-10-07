@@ -21,6 +21,27 @@ export default withAuth(
       return NextResponse.next();
     }
 
+    // 2026-10-07: signed in with a password someone else chose (welcome
+    // email / admin reset) — choosing their own comes before anything else.
+    // Runs first so neither induction locked-mode nor the role check can
+    // send them somewhere else. The page signs back in once it's done, so
+    // the fresh token no longer carries the flag.
+    if (token?.mustChangePassword === true) {
+      if (pathname !== "/set-password") {
+        const url = req.nextUrl.clone();
+        url.pathname = "/set-password";
+        url.search = "";
+        return NextResponse.redirect(url);
+      }
+      return NextResponse.next();
+    }
+    if (pathname === "/set-password") {
+      const url = req.nextUrl.clone();
+      url.pathname = "/";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+
     // Use the shared canAccessPage helper from role-permissions so dynamic
     // `[id]` route patterns (e.g. /children/[id]) match concrete paths
     // (/children/abc123) consistently with client-side sidebar filtering.

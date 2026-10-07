@@ -164,6 +164,7 @@ export const POST = withApiAuth(async (req, session) => {
       name,
       email,
       passwordHash,
+      mustChangePassword: true,
       role,
       serviceId: (role === "staff" || role === "member") ? (serviceId || null) : null,
       // 2026-07-13: state is a region hint for both admin (state-scoped

@@ -22,6 +22,11 @@ describe("filterNavItems", () => {
     expect(filtered.every((i) => i.core === true && !i.hidden)).toBe(true);
   });
 
+  it("labels compliance as the staff member's own", () => {
+    const item = filterNavItems(navItems, "staff" as Role).find((i) => i.href === "/compliance");
+    expect(item?.label).toBe("My Compliance");
+  });
+
   it("every staff nav item is a page staff can open", () => {
     for (const href of STAFF_NAV_HREFS) {
       expect(navItems.some((i) => i.href === href), href).toBe(true);

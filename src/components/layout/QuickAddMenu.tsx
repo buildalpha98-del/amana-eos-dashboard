@@ -4,7 +4,12 @@ import {
   CheckSquare,
   AlertCircle,
   Mountain,
+  Upload,
+  Plane,
+  Receipt,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useQuickAdd } from "@/components/quick-add/QuickAddProvider";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 
@@ -24,14 +29,32 @@ export function QuickAddMenu({
 }) {
   useEscapeClose(onClose, open);
   const { openTodoModal, openIssueModal, openRockModal } = useQuickAdd();
+  const { data: session } = useSession();
+  const router = useRouter();
 
   if (!open) return null;
 
-  const quickItems = [
-    { label: "New To-Do", icon: CheckSquare, action: () => { openTodoModal(); onClose(); } },
-    { label: "New Issue", icon: AlertCircle, action: () => { openIssueModal(); onClose(); } },
-    { label: "New Rock", icon: Mountain, action: () => { openRockModal(); onClose(); } },
-  ];
+  const go = (href: string) => () => {
+    router.push(href);
+    onClose();
+  };
+
+  // 2026-10-07: Educators don't own rocks or raise EOS issues — their
+  // "quick add" is the things they actually do: upload a certificate,
+  // ask for leave, claim an expense, jot a to-do.
+  const quickItems =
+    session?.user?.role === "staff"
+      ? [
+          { label: "New To-Do", icon: CheckSquare, action: () => { openTodoModal(); onClose(); } },
+          { label: "Upload a document", icon: Upload, action: go("/compliance") },
+          { label: "Apply for leave", icon: Plane, action: go("/my-leave") },
+          { label: "Claim an expense", icon: Receipt, action: go("/my-expenses") },
+        ]
+      : [
+          { label: "New To-Do", icon: CheckSquare, action: () => { openTodoModal(); onClose(); } },
+          { label: "New Issue", icon: AlertCircle, action: () => { openIssueModal(); onClose(); } },
+          { label: "New Rock", icon: Mountain, action: () => { openRockModal(); onClose(); } },
+        ];
 
   return (
     <>

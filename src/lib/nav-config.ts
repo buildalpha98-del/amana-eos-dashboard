@@ -360,12 +360,19 @@ export const STAFF_NAV_HREFS: readonly string[] = [
   "/my-leave",
   "/my-expenses",
   "/my-training",
+  // Where every certificate goes — the first-shift email, the tour and the
+  // checklist all send new starters here (labelled "My Compliance").
+  "/compliance",
   "/notifications",
   "/handbook",
 ];
 
 function staffNavItems(items: readonly NavItem[]): NavItem[] {
-  const byHref = new Map(items.map((item) => [item.href, item]));
+  // FIRST entry per href wins: /compliance is listed twice — "My
+  // Compliance" under My Portal, then the network-wide Operations
+  // "Compliance" — and an Educator should get the personal label.
+  const byHref = new Map<string, NavItem>();
+  for (const item of items) if (!byHref.has(item.href)) byHref.set(item.href, item);
   return STAFF_NAV_HREFS.flatMap((href) => {
     const item = byHref.get(href);
     if (!item || !canAccessPage("staff", href)) return [];

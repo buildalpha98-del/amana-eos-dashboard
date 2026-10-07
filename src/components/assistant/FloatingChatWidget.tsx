@@ -75,10 +75,14 @@ export function FloatingChatWidget() {
           aria-label="Open AI assistant"
           className={cn(
             "fixed z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-brand text-white shadow-lg hover:bg-brand/90 transition-colors",
-            // Mobile: sidebar hidden → flush left; sit above the
-            // bottom tab bar (65px, md:hidden) so it doesn't cover it
-            "left-4 bottom-20 md:bottom-4",
-            // Desktop: clear of the sidebar
+            // Phones (tab bar visible below md): stacked on the RIGHT above
+            // the feedback bubble, both clear of the tab bar AND the iOS
+            // home-indicator inset. The old bottom-20 (80px) ignored the
+            // inset, so on an iPhone the pill sat on top of the Home tab
+            // and was hard to tap (2026-10-07).
+            "right-4 bottom-[calc(8.25rem+env(safe-area-inset-bottom))]",
+            "md:right-auto md:bottom-4",
+            // Desktop: bottom-left, clear of the sidebar
             collapsed ? "md:left-20" : "md:left-72",
           )}
         >
@@ -99,7 +103,7 @@ export function FloatingChatWidget() {
             "inset-0 sm:inset-auto",
             // Desktop: bottom-left anchored panel, offset past sidebar;
             // above the bottom tab bar while it's visible (sm–md)
-            "sm:bottom-20 md:bottom-4 sm:w-[420px] sm:h-[600px] sm:max-h-[80vh] sm:rounded-xl",
+            "sm:bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-4 sm:w-[420px] sm:h-[600px] sm:max-h-[80vh] sm:rounded-xl",
             collapsed ? "sm:left-20" : "sm:left-72",
           )}
           role="dialog"
