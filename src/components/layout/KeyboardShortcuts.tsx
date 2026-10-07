@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useHelpEvent } from "@/lib/help-events";
 import { useRouter } from "next/navigation";
 import { X, Keyboard } from "lucide-react";
 import { useQuickAdd } from "@/components/quick-add/QuickAddProvider";
@@ -77,6 +78,8 @@ export function KeyboardShortcuts() {
   const router = useRouter();
   const { openTodoModal } = useQuickAdd();
   const [overlayOpen, setOverlayOpen] = useState(false);
+  // Help menu → "Keyboard shortcuts".
+  useHelpEvent("shortcuts", useCallback(() => setOverlayOpen(true), []));
   const [gPending, setGPending] = useState(false);
   const gTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 

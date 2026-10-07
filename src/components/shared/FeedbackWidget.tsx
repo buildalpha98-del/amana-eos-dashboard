@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useHelpEvent } from "@/lib/help-events";
 import { MessageSquarePlus, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
@@ -18,6 +19,8 @@ const CATEGORIES = [
 export function FeedbackWidget() {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState("general");
+  // Help menu → "Send feedback".
+  useHelpEvent("feedback", useCallback(() => setOpen(true), []));
   const [message, setMessage] = useState("");
   const pathname = usePathname();
 

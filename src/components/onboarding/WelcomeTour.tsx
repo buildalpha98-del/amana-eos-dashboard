@@ -72,7 +72,7 @@ const ALL_STEPS: TourStepDef[] = [
   {
     title: "Get Help Anytime",
     description:
-      "Press ? to see all keyboard shortcuts. Visit the Help Centre for guides, FAQs, and video walkthroughs tailored to your role.",
+      "Tap the ? at the top of the screen any time — guides and FAQs, Ask Amana AI, this tour again, or send us feedback.",
     icon: HelpCircle,
     iconColor: "text-sky-500",
   },

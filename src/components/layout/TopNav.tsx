@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { navItems, filterNavItems, type NavItem } from "@/lib/nav-config";
 import { getLandingPage } from "@/lib/role-permissions";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { HelpMenu } from "@/components/layout/HelpMenu";
 import { NavLayoutToggle } from "@/components/layout/NavLayoutToggle";
 import type { Role } from "@prisma/client";
 
@@ -186,6 +187,7 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
         {/* Right-side utility actions */}
         <div className="flex items-center gap-1 ml-auto pl-2 shrink-0">
           <NavLayoutToggle className="hidden md:inline-flex" />
+          <HelpMenu compact onDark />
           <ThemeToggle />
           <Link
             href="/profile"
