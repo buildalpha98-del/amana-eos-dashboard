@@ -1,11 +1,12 @@
 "use client";
 
+import { CentreSidebarNav } from "@/components/layout/CentreSidebarNav";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useRoleLabel } from "@/contexts/RoleLabelsContext";
-import { useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import { useSidebar } from "@/components/layout/SidebarContext";
 import {
   LogOut,
@@ -80,6 +81,9 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     if (pendingPoliciesCountValue != null && pendingPoliciesCountValue > 0) hrefs.push("/policies");
     return hrefs;
   }, [bookingRequestCount, unreadMessageCount, pendingPoliciesCountValue]);
+
+  const centreServiceId =
+    session?.user?.isCentreAccount === true ? session.user.serviceId ?? null : null;
 
   const groupedItems = useMemo(() => {
     const filtered = filterNavItems(
@@ -170,6 +174,13 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
         {/* Navigation */}
         <nav aria-label="Main navigation" className="flex-1 py-4 px-2 space-y-1 overflow-y-auto scrollbar-hide">
+          {/* 2026-10-08: a centre mailbox login's sidebar IS its centre. */}
+          {centreServiceId ? (
+            <Suspense fallback={null}>
+              <CentreSidebarNav serviceId={centreServiceId} collapsed={collapsed} onNavigate={onMobileClose} />
+            </Suspense>
+          ) : (
+          <>
           {/* Favourites section — only when expanded and has items */}
           {!collapsed && favouriteItems.length > 0 && (
             <div>
@@ -405,6 +416,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
               </div>
             );
           })}
+          </>
+          )}
         </nav>
 
         {/*
