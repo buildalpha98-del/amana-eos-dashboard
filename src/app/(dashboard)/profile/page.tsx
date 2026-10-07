@@ -12,8 +12,6 @@ import {
   Loader2,
   Save,
   ArrowLeft,
-  Shield,
-  Landmark,
   Camera,
   Trash2,
 } from "lucide-react";
@@ -26,6 +24,7 @@ import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { EmergencyContactsSection } from "@/components/profile/EmergencyContactsSection";
 import { MyCertificatesSection } from "@/components/profile/MyCertificatesSection";
 import { MyAvailabilitySection } from "@/components/profile/MyAvailabilitySection";
+import { MyPayrollDetailsSection } from "@/components/profile/MyPayrollDetailsSection";
 import { SetKioskPinCard } from "@/components/my-portal/SetKioskPinCard";
 import { MyQuietHoursCard } from "@/components/my-portal/MyQuietHoursCard";
 import { MyPositionDescriptionCard } from "@/components/my-portal/MyPositionDescriptionCard";
@@ -146,13 +145,6 @@ export default function ProfilePage() {
   const [addressSuburb, setAddressSuburb] = useState("");
   const [addressState, setAddressState] = useState("");
   const [addressPostcode, setAddressPostcode] = useState("");
-  const [superFundName, setSuperFundName] = useState("");
-  const [superMemberNumber, setSuperMemberNumber] = useState("");
-  const [superUSI, setSuperUSI] = useState("");
-  const [bankDetailsNote, setBankDetailsNote] = useState("");
-  const [bankAccountName, setBankAccountName] = useState("");
-  const [bankBSB, setBankBSB] = useState("");
-  const [bankAccountNumber, setBankAccountNumber] = useState("");
 
   // Populate form when profile loads —
   // adjust-state-during-render pattern, see react.dev "You Might Not Need an Effect"
@@ -164,13 +156,6 @@ export default function ProfilePage() {
       setAddressSuburb(profile.addressSuburb ?? "");
       setAddressState(profile.addressState ?? "");
       setAddressPostcode(profile.addressPostcode ?? "");
-      setSuperFundName(profile.superFundName ?? "");
-      setSuperMemberNumber(profile.superMemberNumber ?? "");
-      setSuperUSI(profile.superUSI ?? "");
-      setBankDetailsNote(profile.bankDetailsNote ?? "");
-      setBankAccountName(profile.bankAccountName ?? "");
-      setBankBSB(profile.bankBSB ?? "");
-      setBankAccountNumber(profile.bankAccountNumber ?? "");
   }
 
   const updateMutation = useMutation({
@@ -203,13 +188,6 @@ export default function ProfilePage() {
       addressSuburb,
       addressState,
       addressPostcode,
-      superFundName,
-      superMemberNumber,
-      superUSI,
-      bankDetailsNote,
-      bankAccountName,
-      bankBSB,
-      bankAccountNumber,
     });
   };
 
@@ -220,14 +198,7 @@ export default function ProfilePage() {
       addressStreet !== (profile.addressStreet ?? "") ||
       addressSuburb !== (profile.addressSuburb ?? "") ||
       addressState !== (profile.addressState ?? "") ||
-      addressPostcode !== (profile.addressPostcode ?? "") ||
-      superFundName !== (profile.superFundName ?? "") ||
-      superMemberNumber !== (profile.superMemberNumber ?? "") ||
-      superUSI !== (profile.superUSI ?? "") ||
-      bankDetailsNote !== (profile.bankDetailsNote ?? "") ||
-      bankAccountName !== (profile.bankAccountName ?? "") ||
-      bankBSB !== (profile.bankBSB ?? "") ||
-      bankAccountNumber !== (profile.bankAccountNumber ?? ""));
+      addressPostcode !== (profile.addressPostcode ?? ""));
 
   // Warn about unsaved changes on navigation / tab close
   useUnsavedChanges(!!hasChanges);
@@ -529,98 +500,10 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Superannuation */}
-      <div className="bg-card rounded-xl border border-border p-6">
-        <h3 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
-          <Shield className="w-4 h-4 text-muted" />
-          Superannuation
-        </h3>
-        <div className="space-y-4">
-          <FieldRow label="Fund Name">
-            <input
-              type="text"
-              value={superFundName}
-              onChange={(e) => setSuperFundName(e.target.value)}
-              placeholder="e.g. AustralianSuper"
-              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-            />
-          </FieldRow>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FieldRow label="Member Number">
-              <input
-                type="text"
-                value={superMemberNumber}
-                onChange={(e) => setSuperMemberNumber(e.target.value)}
-                placeholder="Member number"
-                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-              />
-            </FieldRow>
-            <FieldRow label="USI">
-              <input
-                type="text"
-                value={superUSI}
-                onChange={(e) => setSuperUSI(e.target.value)}
-                placeholder="Unique Superannuation Identifier"
-                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-              />
-            </FieldRow>
-          </div>
-        </div>
-      </div>
-
-      {/* Bank Details */}
-      <div className="bg-card rounded-xl border border-border p-6">
-        <h3 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
-          <Landmark className="w-4 h-4 text-muted" />
-          Bank Details
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-          <FieldRow label="Account Name">
-            <input
-              type="text"
-              value={bankAccountName}
-              onChange={(e) => setBankAccountName(e.target.value)}
-              placeholder="e.g. John Smith"
-              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-            />
-          </FieldRow>
-          <FieldRow label="BSB">
-            <input
-              type="text"
-              value={bankBSB}
-              onChange={(e) => setBankBSB(e.target.value)}
-              placeholder="e.g. 062-000"
-              maxLength={7}
-              inputMode="numeric"
-              pattern="\d{3}-?\d{3}"
-              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-            />
-          </FieldRow>
-          <FieldRow label="Account Number">
-            <input
-              type="text"
-              value={bankAccountNumber}
-              onChange={(e) => setBankAccountNumber(e.target.value)}
-              placeholder="e.g. 12345678"
-              inputMode="numeric"
-              pattern="\d{5,10}"
-              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-            />
-          </FieldRow>
-        </div>
-        <FieldRow label="Additional Notes">
-          <textarea
-            value={bankDetailsNote}
-            onChange={(e) => setBankDetailsNote(e.target.value)}
-            placeholder="Any additional bank details or notes for payroll..."
-            rows={2}
-            className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand resize-none"
-          />
-        </FieldRow>
-        <p className="text-xs text-muted mt-2">
-          Bank details are visible to administrators only for payroll processing.
-        </p>
-      </div>
+      {/* Bank, super and tax — live from Employment Hero and written straight
+          back to it; none of it is stored in this dashboard (2026-10-07).
+          Replaces the local bank/super fields payroll then had to re-key. */}
+      <MyPayrollDetailsSection />
 
       {/* 2026-10-07: moved here from the My Portal home page, which had
           become a 26-card scroll. These are settings about you, so they

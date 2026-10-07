@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { setUpInEmploymentHeroSafely } from "@/lib/eh-onboarding";
 import { hash } from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -225,9 +226,18 @@ export const POST = withApiAuth(async (req, session) => {
     await createStaffRamp(prisma, user.id, new Date(startDate));
   }
 
+  // New starters go straight into Employment Hero payroll and get EH's
+  // own setup email (TFN, bank, super) — no hand-copied EH id (2026-10-07).
+  const employmentHero = newStarter
+    ? await setUpInEmploymentHeroSafely(user.id, { actorId: session!.user.id })
+    : null;
+
   // Send welcome email with temporary password (shared with the
   // hire→employee conversion route — swallow-and-log on failure).
   await sendWelcomeInvite({ email, name, tempPassword: password });
 
-  return NextResponse.json(user, { status: 201 });
+  return NextResponse.json(
+    { ...user, employmentHero: employmentHero?.message ?? null },
+    { status: 201 },
+  );
 }, { roles: ["owner", "admin"] });

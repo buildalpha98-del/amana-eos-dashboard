@@ -1,81 +1,138 @@
 import { describe, it, expect } from "vitest";
 import { buildGetReadySteps, type GetReadyInput } from "@/lib/get-ready-steps";
 
-const base = (over: Partial<GetReadyInput["readiness"]> = {}): GetReadyInput["readiness"] => ({
-  status: "new_starter",
-  blockers: [],
-  practical: [],
-  practicalAllSigned: false,
-  ...over,
-});
-
-const keys = (input: GetReadyInput) => buildGetReadySteps(input).map((s) => s.key);
-const step = (input: GetReadyInput, key: string) =>
-  buildGetReadySteps(input).find((s) => s.key === key);
+function input(over: Partial<GetReadyInput> = {}): GetReadyInput {
+  return {
+    status: "new_starter",
+    contract: { acknowledgedByStaff: false },
+    details: { missing: [] },
+    payroll: { applicable: true, linked: true, complete: true },
+    documents: { missing: [] },
+    reading: { handbook: true, amanaWay: true, policiesOutstanding: [] },
+    training: { total: 0, remaining: 0 },
+    practical: { items: 0, allSigned: false },
+    ...over,
+  };
+}
+const step = (i: GetReadyInput, key: string) => buildGetReadySteps(i).find((s) => s.key === key);
 
 describe("buildGetReadySteps", () => {
   it("a brand-new starter sees every step, in order, none done", () => {
-    const input: GetReadyInput = {
-      readiness: base({
-        blockers: [
-          { kind: "profile", label: "Profile incomplete" },
-          { kind: "wwcc", label: "WWCC not uploaded" },
-          { kind: "policies", label: "2 policy acknowledgements outstanding" },
-          { kind: "courses", label: "3 training courses left" },
-        ],
-        practical: [{}],
+    const steps = buildGetReadySteps(
+      input({
+        details: { missing: ["a profile photo", "an emergency contact"] },
+        payroll: { applicable: true, linked: false, complete: false },
+        documents: { missing: ["Working With Children Check", "First Aid"] },
+        reading: { handbook: false, amanaWay: false, policiesOutstanding: [] },
+        training: { total: 8, remaining: 8 },
+        practical: { items: 6, allSigned: false },
       }),
-      contract: { acknowledgedByStaff: false },
-      hasTraining: false,
-    };
-    const steps = buildGetReadySteps(input);
+    );
     expect(steps.map((s) => s.key)).toEqual([
-      "contract", "details", "wwcc", "policies", "training", "practical",
+      "contract", "details", "documents", "reading", "training", "practical",
     ]);
     expect(steps.every((s) => !s.done)).toBe(true);
-    expect(step(input, "training")?.hint).toBe("3 training courses left");
   });
 
-  it("a cleared blocker reads as done", () => {
-    const input: GetReadyInput = {
-      readiness: base({ blockers: [{ kind: "wwcc", label: "x" }] }),
-      contract: { acknowledgedByStaff: true },
-      hasTraining: false,
-    };
-    expect(step(input, "details")?.done).toBe(true);
-    expect(step(input, "wwcc")?.done).toBe(false);
-    expect(step(input, "contract")?.done).toBe(true);
+  describe("details include payroll (bank, super, tax via Employment Hero)", () => {
+    it("isn't done until Employment Hero setup is complete", () => {
+      const s = step(input({ payroll: { applicable: true, linked: true, complete: false } }), "details");
+      expect(s?.done).toBe(false);
+      expect(s?.hint).toMatch(/tax file declaration, bank and super/);
+      expect(s?.href).toBe("/profile#payroll");
+    });
+
+    it("lists personal and payroll gaps together", () => {
+      const s = step(
+        input({
+          details: { missing: ["your phone number"] },
+          payroll: { applicable: true, linked: false, complete: false },
+        }),
+        "details",
+      );
+      expect(s?.hint).toMatch(/^Still needed: your phone number and your bank, super and tax/);
+      expect(s?.href).toBe("/profile");
+    });
+
+    it("ignores payroll when Employment Hero isn't connected", () => {
+      expect(step(input({ payroll: { applicable: false, linked: false, complete: false } }), "details")?.done).toBe(true);
+    });
+  });
+
+  it("documents covers every required certificate, not just the WWCC", () => {
+    const s = step(input({ documents: { missing: ["First Aid", "CPR"] } }), "documents");
+    expect(s?.label).toBe("Upload your compliance documents");
+    expect(s?.hint).toBe("Still needed: First Aid and CPR");
+    expect(s?.done).toBe(false);
+  });
+
+  describe("reading", () => {
+    it("asks for the Staff Handbook and The Amana Way", () => {
+      const s = step(input({ reading: { handbook: false, amanaWay: false, policiesOutstanding: [] } }), "reading");
+      expect(s?.done).toBe(false);
+      expect(s?.hint).toBe("Still to read: the Staff Handbook and The Amana Way");
+      expect(s?.href).toBe("/tools/handbook");
+    });
+
+    it("sends them to The Amana Way once the handbook is done", () => {
+      expect(step(input({ reading: { handbook: true, amanaWay: false, policiesOutstanding: [] } }), "reading")?.href).toBe(
+        "/tools/the-amana-way",
+      );
+    });
+
+    it("folds outstanding required policies into the same step", () => {
+      const s = step(
+        input({ reading: { handbook: true, amanaWay: true, policiesOutstanding: ["Privacy Policy"] } }),
+        "reading",
+      );
+      expect(s?.done).toBe(false);
+      expect(s?.hint).toBe("Still to sign: Privacy Policy");
+      expect(s?.href).toBe("/policies");
+    });
+
+    // The bug Daniel hit: "Read and sign two policies" showed ticked on an
+    // account that had signed nothing, because the policies didn't exist.
+    it("is never done just because there was nothing to check", () => {
+      const s = step(input({ reading: { handbook: false, amanaWay: true, policiesOutstanding: [] } }), "reading");
+      expect(s?.done).toBe(false);
+    });
+  });
+
+  it("training counts down and links to My Training", () => {
+    const s = step(input({ training: { total: 8, remaining: 3 } }), "training");
+    expect(s?.hint).toBe("3 of 8 courses left");
+    expect(s?.href).toBe("/my-training");
+  });
+
+  it("training only appears when there are essential courses", () => {
+    expect(step(input({ training: { total: 0, remaining: 0 } }), "training")).toBeUndefined();
   });
 
   it("a new starter without a contract waits on it rather than being sent nowhere", () => {
-    const s = step({ readiness: base(), contract: null, hasTraining: false }, "contract");
+    const s = step(input({ contract: null }), "contract");
     expect(s?.waiting).toBe(true);
     expect(s?.href).toBeUndefined();
   });
 
-  it("long-standing staff are not nagged about a contract or practical that never existed", () => {
-    const k = keys({
-      readiness: base({ status: "cleared", practical: [{}] }),
-      contract: null,
-      hasTraining: false,
-    });
-    expect(k).not.toContain("contract");
-    expect(k).not.toContain("practical");
+  it("long-standing staff aren't nagged about a contract or practical that never existed", () => {
+    const keys = buildGetReadySteps(
+      input({ status: "cleared", contract: null, practical: { items: 6, allSigned: false } }),
+    ).map((s) => s.key);
+    expect(keys).not.toContain("contract");
+    expect(keys).not.toContain("practical");
   });
 
-  it("training only appears when there is training to do or done", () => {
-    expect(keys({ readiness: base(), contract: null, hasTraining: false })).not.toContain("training");
-    expect(step({ readiness: base(), contract: null, hasTraining: true }, "training")?.done).toBe(true);
-  });
-
-  it("every actionable step links somewhere a locked starter can reach", () => {
-    const steps = buildGetReadySteps({
-      readiness: base({ blockers: [{ kind: "courses", label: "1 left" }] }),
-      contract: { acknowledgedByStaff: false },
-      hasTraining: true,
-    });
+  it("every actionable step links somewhere a starter can reach", () => {
+    const steps = buildGetReadySteps(
+      input({
+        details: { missing: ["a profile photo"] },
+        documents: { missing: ["CPR"] },
+        reading: { handbook: false, amanaWay: false, policiesOutstanding: [] },
+        training: { total: 2, remaining: 2 },
+      }),
+    );
     for (const s of steps.filter((x) => !x.waiting)) {
-      expect(s.href, s.key).toMatch(/^\/(my-contract|profile|compliance|policies|my-training)$/);
+      expect(s.href, s.key).toMatch(/^\/(my-contract|profile(#payroll)?|compliance|tools\/handbook|tools\/the-amana-way|policies|my-training)$/);
     }
   });
 });

@@ -995,7 +995,7 @@ export default function MyPortalPage() {
     );
   }
 
-  const { profile, activeContract, pendingPolicies, offboardingProgress, lmsEnrollments, complianceCerts } = data;
+  const { profile, pendingPolicies, offboardingProgress, complianceCerts } = data;
   const firstName = getFirstName(profile.name);
 
   /* ---- "Needs your attention" — consolidated from data this page
@@ -1118,10 +1118,7 @@ export default function MyPortalPage() {
           itself once everything is done. */}
       {(profile.role === "staff" || profile.role === "member") &&
         !session?.user?.isCentreAccount && (
-          <GetReadyChecklist
-            contract={activeContract}
-            hasTraining={lmsEnrollments.length > 0}
-          />
+          <GetReadyChecklist />
         )}
 
       {/* ============================================================ */}

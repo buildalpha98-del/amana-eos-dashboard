@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { ensureEssentialEnrolments } from "@/lib/essential-enrolment";
 // GET /api/lms/my-enrollments — get current user's enrollments with course + module data
 export const GET = withApiAuth(async (req, session) => {
-const enrollments = await prisma.lMSEnrollment.findMany({
+  // Published essentials are always on a learner's list (2026-10-07).
+  await ensureEssentialEnrolments(session!.user.id);
+  const enrollments = await prisma.lMSEnrollment.findMany({
     // A deleted course used to keep appearing in My Training with a
     // Start button that opened nothing. Draft courses DO stay — a
     // learner is genuinely enrolled in those, and hiding them here

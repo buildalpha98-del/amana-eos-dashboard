@@ -15,6 +15,7 @@ import { createOnboardingOwnerTodo } from "@/lib/new-starter-request/owner-todo"
 import { getOrgSettings } from "@/lib/org-settings";
 import { sendFirstShiftChecklistEmail } from "@/lib/new-starter-request/first-shift-email";
 import { createStaffRamp } from "@/lib/ramp/create";
+import { setUpInEmploymentHeroSafely } from "@/lib/eh-onboarding";
 import { logger } from "@/lib/logger";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 
@@ -245,6 +246,12 @@ export const POST = withApiAuth(
     // 90-day ramp: weekly check-ins + 30/60/90 manager checkpoints.
     await createStaffRamp(prisma, user.id, data.expectedStartDate);
 
+    // Straight into Employment Hero payroll + EH's own setup email (TFN,
+    // bank, super) — replaces creating them in EH by hand (2026-10-07).
+    const employmentHero = await setUpInEmploymentHeroSafely(user.id, {
+      actorId: session!.user.id,
+    });
+
     // The paperwork now has an owner as well as an audience: an assigned
     // to-do for whoever runs onboarding, plus the existing heads-up email
     // to the rest of the admin tier.
@@ -256,6 +263,8 @@ export const POST = withApiAuth(
       createdById: session.user.id,
       serviceId: created.serviceId,
       expectedStartDate: data.expectedStartDate,
+      payrollSetUp:
+        employmentHero?.status === "invited" || employmentHero?.status === "linked_existing",
     });
 
     await notifyNewStarterRequestSubmitted(prisma, {

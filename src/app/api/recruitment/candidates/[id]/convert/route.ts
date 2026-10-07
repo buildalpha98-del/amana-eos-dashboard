@@ -208,6 +208,9 @@ export const POST = withApiAuth(
     if (newStarter && startDate) {
       const { createStaffRamp } = await import("@/lib/ramp/create");
       await createStaffRamp(prisma, user.id, new Date(startDate));
+      // Hired → straight into Employment Hero payroll (2026-10-07).
+      const { setUpInEmploymentHeroSafely } = await import("@/lib/eh-onboarding");
+      await setUpInEmploymentHeroSafely(user.id, { actorId: session!.user.id });
     }
 
     // Optional onboarding pack — shared helper with /api/onboarding/assign

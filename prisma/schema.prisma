@@ -571,6 +571,10 @@ model User {
   // account-creation path + an admin password reset). Middleware holds the
   // user on /set-password until they pick their own; cleared there.
   mustChangePassword       Boolean   @default(false)
+  // 2026-10-07: "I've read it" on the Staff Handbook / The Amana Way —
+  // a step on the My Portal get-ready checklist.
+  handbookReadAt           DateTime?
+  amanaWayReadAt           DateTime?
   mfaSecret                String? // Encrypted TOTP secret (null = MFA not enrolled)
   mfaBackupCodes           String[] // Hashed one-time recovery codes
   mfaEnabledAt             DateTime? // Non-null = MFA is active
