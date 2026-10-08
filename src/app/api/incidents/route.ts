@@ -7,7 +7,7 @@ import { assertServiceAccess } from "@/lib/authz-scope";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
-import { parseJsonBody } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 const postSchema = z.object({
   serviceId: z.string().min(1),
   incidentDate: z.string().min(1),
@@ -144,7 +144,8 @@ try {
 
     return NextResponse.json(record, { status: 201 });
   } catch (err) {
+    if (err instanceof ApiError) throw err;
     logger.error("Incidents POST", { err });
     return NextResponse.json({ error: "Failed to create incident" }, { status: 500 });
   }
-}, { roles: ["owner", "head_office", "admin", "member"] });
+}, { roles: ["owner", "head_office", "admin", "member", "staff"] });

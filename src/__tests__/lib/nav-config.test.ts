@@ -615,3 +615,15 @@ describe("OSHC Coordinator sidebar", () => {
     expect(coordinatorNav().hrefs).not.toContain("/children");
   });
 });
+
+describe("educator's centre link (2026-10-08)", () => {
+  it("puts My Centre right under My Portal when they have a centre", () => {
+    const hrefs = filterNavItems(navItems, "staff" as Role, { serviceId: "svc-1" }).map((i) => i.href);
+    expect(hrefs.slice(0, 2)).toEqual(["/my-portal", "/services/svc-1"]);
+  });
+
+  it("leaves it out for an educator with no centre", () => {
+    const hrefs = filterNavItems(navItems, "staff" as Role).map((i) => i.href);
+    expect(hrefs.some((h) => h.startsWith("/services"))).toBe(false);
+  });
+});

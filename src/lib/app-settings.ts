@@ -124,10 +124,21 @@ export function resolveAppSettings(raw: unknown): ResolvedAppSettings {
   };
 }
 
-/** Roles that may publish when `onlyApproversPublish` is on. */
+/**
+ * Who may PUBLISH a post — i.e. release it to families (2026-10-08).
+ *
+ * Educators (`staff`) never publish: they write, and their post waits as
+ * a draft for the Director of Service or the office to release. That rule
+ * used to live inline in the create route (and nowhere in edit, so a
+ * draft could be published by re-saving it). Directors (`member`) publish
+ * unless the centre has turned on "only admins publish". The office
+ * always can.
+ */
 const APPROVER_ROLES = new Set(["owner", "head_office", "admin"]);
 export function canPublishPosts(role: string, onlyApprovers: boolean): boolean {
-  return onlyApprovers ? APPROVER_ROLES.has(role) : true;
+  if (APPROVER_ROLES.has(role)) return true;
+  if (role === "member") return !onlyApprovers;
+  return false;
 }
 
 /** What an educator sees when their centre has phone clock-in switched off. */

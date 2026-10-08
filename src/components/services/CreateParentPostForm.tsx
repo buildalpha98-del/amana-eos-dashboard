@@ -32,6 +32,12 @@ interface CreateParentPostFormProps {
    * what turns a feed into the planning cycle.
    */
   extendingPost?: ParentPost | null;
+  /**
+   * May this viewer release posts to families? Educators can't: their
+   * post goes to the Director as a draft, and the form says so instead
+   * of offering a Publish button the server would quietly ignore.
+   */
+  canPublish?: boolean;
 }
 
 export function CreateParentPostForm({
@@ -40,6 +46,7 @@ export function CreateParentPostForm({
   onClose,
   editingPost,
   extendingPost,
+  canPublish = true,
 }: CreateParentPostFormProps) {
   const createPost = useCreateParentPost(serviceId);
   const updatePost = useUpdateParentPost(serviceId);
@@ -49,6 +56,8 @@ export function CreateParentPostForm({
   const [nqs, setNqs] = useState<string[]>([]);
   // Scheduling. Empty = publish now; a local datetime string otherwise.
   const [publishAt, setPublishAt] = useState<string>("");
+  // Set by the "Save as draft" button just before submit.
+  const [asDraft, setAsDraft] = useState(false);
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -215,7 +224,9 @@ export function CreateParentPostForm({
       // datetime-local has no timezone, so it's read as LOCAL time and
       // converted to an instant here. Sending the raw string would be
       // interpreted as UTC and shift the post by the offset.
-      ...(publishAt
+      ...(!canPublish || asDraft
+        ? { status: "draft" as const }
+        : publishAt
         ? {
             status: "scheduled" as const,
             publishAt: new Date(publishAt).toISOString(),
@@ -269,6 +280,12 @@ export function CreateParentPostForm({
             </strong>
             . Families see this as its own post; the link is what shows the
             planning cycle.
+          </p>
+        )}
+        {!canPublish && (
+          <p className="mt-2 rounded-lg bg-surface px-3 py-2 text-sm text-muted">
+            Your Director reads it before families see it. You can change or
+            delete it until then.
           </p>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
@@ -543,6 +560,7 @@ export function CreateParentPostForm({
             </div>
           </FormField>
 
+          {canPublish && (
           <FormField label="Schedule">
             <input
               type="datetime-local"
@@ -555,13 +573,39 @@ export function CreateParentPostForm({
               publishes straight away rather than sitting pending.
             </p>
           </FormField>
+          )}
 
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit" loading={mutation.isPending} disabled={uploading > 0}>
-              {isEditing ? "Save Changes" : "Create Post"}
+            {canPublish && (
+              <Button
+                type="submit"
+                variant="secondary"
+                onClick={() => setAsDraft(true)}
+                disabled={mutation.isPending || uploading > 0}
+              >
+                Save as draft
+              </Button>
+            )}
+            <Button
+              type="submit"
+              onClick={() => setAsDraft(false)}
+              loading={mutation.isPending}
+              disabled={uploading > 0}
+            >
+              {!canPublish
+                ? isEditing
+                  ? "Save draft"
+                  : "Send for approval"
+                : isEditing && editingPost?.status === "draft"
+                  ? "Publish"
+                  : isEditing
+                    ? "Save Changes"
+                    : publishAt
+                      ? "Schedule post"
+                      : "Publish"}
             </Button>
           </div>
         </form>

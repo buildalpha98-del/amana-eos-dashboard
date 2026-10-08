@@ -55,6 +55,20 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     throw ApiError.badRequest("Invalid app settings", parsed.error.flatten());
   }
 
+  // "Only admins publish" restrains the Director of Service, so the
+  // Director can't be the one to switch it off (or on) — 2026-10-08.
+  if (!isAdminRole(role)) {
+    const current = await prisma.service.findUnique({
+      where: { id },
+      select: { appSettings: true },
+    });
+    const before = resolveAppSettings(current?.appSettings).posts.onlyApproversPublish;
+    const after = parsed.data.posts?.onlyApproversPublish ?? false;
+    if (before !== after) {
+      throw ApiError.forbidden("Only an admin can change who may publish posts.");
+    }
+  }
+
   const updated = await prisma.service.update({
     where: { id },
     data: { appSettings: parsed.data as Prisma.InputJsonValue },

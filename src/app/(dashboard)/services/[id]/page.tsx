@@ -2,7 +2,7 @@
 
 import { tabGroups, visibleServiceSections } from "@/lib/service-sections";
 import { ServiceDocumentsTab } from "@/components/services/ServiceDocumentsTab";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -180,20 +180,36 @@ export default function ServiceDetailPage() {
   const canSeeStaffFiles = isAdminRole(role) || role === "member";
   const ownCentreAccount = session?.user?.isCentreAccount === true && sessionServiceId === id;
 
+  const isEducator = role === "staff";
   const visibleGroups = useMemo(
-    () => visibleServiceSections({ isAdminPlus, canSeeCasualBookings, canSeeStaffFiles }),
-    [isAdminPlus, canSeeCasualBookings, canSeeStaffFiles],
+    () => visibleServiceSections({ isEducator, isAdminPlus, canSeeCasualBookings, canSeeStaffFiles }),
+    [isEducator, isAdminPlus, canSeeCasualBookings, canSeeStaffFiles],
   );
 
+  // Render what is VISIBLE, never what the URL merely asked for: a
+  // bookmarked ?tab=eos must not draw EOS for an educator whose menu has
+  // no EOS, and a remembered sub-tab that isn't in this viewer's list
+  // falls back to the first one they do have.
   const currentGroup = visibleGroups.find((g) => g.key === activeGroup) || visibleGroups[0];
-  const currentSubKey = activeSubTab[activeGroup] || currentGroup?.subTabs[0]?.key;
+  const shownGroup = currentGroup?.key;
+  const rememberedSub = shownGroup ? activeSubTab[shownGroup] : undefined;
+  const currentSubKey =
+    currentGroup?.subTabs.find((s) => s.key === rememberedSub)?.key ??
+    currentGroup?.subTabs[0]?.key;
 
+  // The nav moves group and sub-page in ONE click (group, then sub) —
+  // both handlers run before a re-render, so the sub must be filed under
+  // the group just chosen, not the one this render still shows.
+  const pendingGroup = useRef<string | null>(null);
   function handleGroupChange(groupKey: string) {
+    pendingGroup.current = groupKey;
     setActiveGroup(groupKey);
   }
 
   function handleSubTabChange(subKey: string) {
-    setActiveSubTab((prev) => ({ ...prev, [activeGroup]: subKey }));
+    const group = pendingGroup.current ?? shownGroup ?? activeGroup;
+    pendingGroup.current = null;
+    setActiveSubTab((prev) => ({ ...prev, [group]: subKey }));
   }
 
   // Badge counts per group
@@ -303,7 +319,7 @@ export default function ServiceDetailPage() {
       <div className={cn("lg:hidden", ownCentreAccount && "hidden")}>
         <ServiceTabBarV2
           groups={visibleGroups}
-          activeGroup={activeGroup}
+          activeGroup={shownGroup ?? activeGroup}
           onGroupChange={handleGroupChange}
           activeSub={currentSubKey}
           onSubChange={handleSubTabChange}
@@ -325,7 +341,7 @@ export default function ServiceDetailPage() {
           <div className="mt-3 max-h-[70vh] overflow-y-auto">
             <ServiceNavTree
               groups={visibleGroups}
-              activeGroup={activeGroup}
+              activeGroup={shownGroup ?? activeGroup}
               activeSub={currentSubKey}
               onGroupChange={handleGroupChange}
               onSubChange={(k) => {
@@ -346,7 +362,7 @@ export default function ServiceDetailPage() {
         <div className={cn("hidden", !ownCentreAccount && "lg:block")}>
           <ServiceNavTree
             groups={visibleGroups}
-            activeGroup={activeGroup}
+            activeGroup={shownGroup ?? activeGroup}
             activeSub={currentSubKey}
             onGroupChange={handleGroupChange}
             onSubChange={handleSubTabChange}
@@ -357,17 +373,17 @@ export default function ServiceDetailPage() {
       {/* ── Tab Content ──────────────────────────────────────── */}
       <div className="min-h-[40vh] lg:min-w-0 lg:flex-1">
         {/* Today group (no subtabs) — live ops snapshot */}
-        {activeGroup === "today" && (
+        {shownGroup === "today" && (
           <ServiceTodayTab serviceId={service.id} serviceName={service.name} />
         )}
 
         {/* Service Information — one subject per sub-tab. */}
-        {activeGroup === "overview" && currentSubKey === "info" && (
+        {shownGroup === "overview" && currentSubKey === "info" && (
           <div className="space-y-6">
             <ServiceOverviewTab service={service} users={users || []} />
           </div>
         )}
-        {activeGroup === "overview" &&
+        {shownGroup === "overview" &&
           (currentSubKey === "settings" ||
             currentSubKey === "rooms" ||
             currentSubKey === "forms") && (
@@ -379,13 +395,13 @@ export default function ServiceDetailPage() {
               />
             </div>
           )}
-        {activeGroup === "overview" && currentSubKey === "about" && (
+        {shownGroup === "overview" && currentSubKey === "about" && (
           <ServiceContentTab serviceId={service.id} />
         )}
 
         {/* Staff group (no subtabs) — assignments management */}
-        {activeGroup === "staff" && <ServiceStaffTab serviceId={service.id} />}
-        {activeGroup === "documents" && (
+        {shownGroup === "staff" && <ServiceStaffTab serviceId={service.id} />}
+        {shownGroup === "documents" && (
           <ServiceDocumentsTab
             serviceId={service.id}
             serviceState={service.state ?? null}
@@ -394,79 +410,79 @@ export default function ServiceDetailPage() {
         )}
 
         {/* Daily Ops group */}
-        {activeGroup === "daily" && currentSubKey === "attendance" && (
+        {shownGroup === "daily" && currentSubKey === "attendance" && (
           <ServiceAttendanceTab
             serviceId={service.id}
             serviceName={service.name}
           />
         )}
-        {activeGroup === "daily" && currentSubKey === "posts" && (
+        {shownGroup === "daily" && currentSubKey === "posts" && (
           <ParentCommunicationPanel serviceId={service.id} embedded />
         )}
-        {activeGroup === "daily" && currentSubKey === "sign-in-out" && (
+        {shownGroup === "daily" && currentSubKey === "sign-in-out" && (
           <ServiceSignInOutTab serviceId={service.id} serviceName={service.name} />
         )}
-        {activeGroup === "daily" && currentSubKey === "roll-call" && (
+        {shownGroup === "daily" && currentSubKey === "roll-call" && (
           <ServiceRollCallTab serviceId={service.id} serviceName={service.name} />
         )}
-        {activeGroup === "family" && currentSubKey === "families" && (
+        {shownGroup === "family" && currentSubKey === "families" && (
           <ServiceFamiliesTab serviceId={service.id} serviceName={service.name} />
         )}
-        {activeGroup === "family" && currentSubKey === "children" && (
+        {shownGroup === "family" && currentSubKey === "children" && (
           <ServiceChildrenTab serviceId={service.id} serviceName={service.name} />
         )}
-        {activeGroup === "daily" && currentSubKey === "children" && (
+        {shownGroup === "daily" && currentSubKey === "children" && (
           <ServiceChildrenTab serviceId={service.id} serviceName={service.name} />
         )}
-        {activeGroup === "daily" && currentSubKey === "roster" && (
+        {shownGroup === "daily" && currentSubKey === "roster" && (
           <ServiceWeeklyRosterTab serviceId={service.id} serviceName={service.name} />
         )}
-        {activeGroup === "daily" && currentSubKey === "checklists" && (
+        {shownGroup === "daily" && currentSubKey === "checklists" && (
           <ServiceChecklistsTab serviceId={service.id} serviceName={service.name} />
         )}
-        {activeGroup === "daily" && currentSubKey === "medication" && (
+        {shownGroup === "daily" && currentSubKey === "medication" && (
           <ServiceMedicationTab serviceId={service.id} />
         )}
-        {activeGroup === "daily" && currentSubKey === "ratios" && (
+        {shownGroup === "daily" && currentSubKey === "ratios" && (
           <ServiceRatiosTab serviceId={service.id} />
         )}
-        {activeGroup === "daily" &&
+        {shownGroup === "daily" &&
           currentSubKey === "casual-bookings" &&
           canSeeCasualBookings && (
             <ServiceCasualBookingsTab service={service} />
           )}
 
         {/* Program group */}
-        {activeGroup === "program" && currentSubKey === "activities" && (
+        {shownGroup === "program" && currentSubKey === "activities" && (
           <ServiceProgramTab serviceId={service.id} />
         )}
-        {activeGroup === "program" && currentSubKey === "library" && (
+        {shownGroup === "program" && currentSubKey === "library" && (
           <ActivityLibraryPage />
         )}
-        {activeGroup === "program" && currentSubKey === "menu" && (
+        {shownGroup === "program" && currentSubKey === "menu" && (
           <ServiceMenuTab serviceId={service.id} />
         )}
-        {activeGroup === "program" && currentSubKey === "observations" && (
+        {shownGroup === "program" && currentSubKey === "observations" && (
           <ServiceObservationsTab serviceId={service.id} />
         )}
 
         {/* EOS group */}
-        {activeGroup === "eos" && currentSubKey === "scorecard" && (
+        {shownGroup === "eos" && currentSubKey === "scorecard" && (
           <ServiceScorecardTab serviceId={service.id} />
         )}
-        {activeGroup === "eos" && currentSubKey === "rocks" && (
+        {shownGroup === "eos" && currentSubKey === "rocks" && (
           <ServiceRocksTab serviceId={service.id} />
         )}
-        {activeGroup === "eos" && currentSubKey === "todos" && (
+        {shownGroup === "eos" && currentSubKey === "todos" && (
           <ServiceTodosTab serviceId={service.id} />
         )}
-        {activeGroup === "eos" && currentSubKey === "issues" && (
+        {shownGroup === "eos" && currentSubKey === "issues" && (
           <ServiceIssuesTab serviceId={service.id} />
         )}
-        {activeGroup === "eos" && currentSubKey === "projects" && (
+        {shownGroup === "eos" && currentSubKey === "projects" && (
           <ServiceProjectsTab serviceId={service.id} />
         )}
-        {activeGroup === "eos" && currentSubKey === "weekly" && isAdminPlus && (
+        {shownGroup === "eos" && currentSubKey === "weekly" && isAdminPlus && (
           <WeeklyDataEntry
             serviceId={service.id}
             bscRate={service.bscDailyRate || 0}
@@ -476,53 +492,53 @@ export default function ServiceDetailPage() {
         )}
 
         {/* Compliance group */}
-        {activeGroup === "compliance" && (
+        {shownGroup === "compliance" && (
           // Always render the cert-expiry banner above the active
           // compliance sub-tab. The card hides itself when there are
           // no expiring/expired certs at this service, so it's quiet
           // by default and only shouts when there's something to do.
           <ServiceCertExpiryCard serviceId={service.id} />
         )}
-        {activeGroup === "compliance" && currentSubKey === "audits" && (
+        {shownGroup === "compliance" && currentSubKey === "audits" && (
           <ServiceAuditsTab serviceId={service.id} />
         )}
-        {activeGroup === "compliance" && currentSubKey === "qip" && (
+        {shownGroup === "compliance" && currentSubKey === "qip" && (
           <ServiceQIPTab serviceId={service.id} />
         )}
-        {activeGroup === "compliance" && currentSubKey === "reflections" && (
+        {shownGroup === "compliance" && currentSubKey === "reflections" && (
           <ServiceReflectionsTab serviceId={service.id} />
         )}
-        {activeGroup === "compliance" && currentSubKey === "incidents" && (
+        {shownGroup === "compliance" && currentSubKey === "incidents" && (
           <ServiceIncidentsTab serviceId={service.id} />
         )}
-        {activeGroup === "compliance" && currentSubKey === "risk" && (
+        {shownGroup === "compliance" && currentSubKey === "risk" && (
           <ServiceRiskTab serviceId={service.id} />
         )}
-        {activeGroup === "compliance" && currentSubKey === "headcounts" && (
+        {shownGroup === "compliance" && currentSubKey === "headcounts" && (
           <ServiceHeadcountsTab serviceId={service.id} />
         )}
-        {activeGroup === "compliance" && currentSubKey === "registers" && (
+        {shownGroup === "compliance" && currentSubKey === "registers" && (
           <ServiceRegistersTab
             serviceId={service.id}
             /* A staff injury register isn't for the whole floor to read. */
             canSeeStaffIncidents={role === "member" || hasMinRole(role, "admin")}
           />
         )}
-        {activeGroup === "compliance" && currentSubKey === "comms" && (
+        {shownGroup === "compliance" && currentSubKey === "comms" && (
           <ServiceCommTab serviceId={service.id} />
         )}
 
         {/* Finance group */}
-        {activeGroup === "finance" && currentSubKey === "budget" && (
+        {shownGroup === "finance" && currentSubKey === "budget" && (
           <ServiceBudgetTab serviceId={service.id} />
         )}
-        {activeGroup === "finance" && currentSubKey === "billing" && (
+        {shownGroup === "finance" && currentSubKey === "billing" && (
           <FamilyBillingSection
             serviceId={service.id}
             serviceName={service.name}
           />
         )}
-        {activeGroup === "finance" && currentSubKey === "approvals" && (
+        {shownGroup === "finance" && currentSubKey === "approvals" && (
           <ServicePurchaseApprovalsTab
             serviceId={service.id}
             serviceName={service.name}

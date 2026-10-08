@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { z } from "zod";
 
@@ -8,7 +9,7 @@ import { z } from "zod";
 // Mirrors the documents-delete pattern (src/app/api/documents/[id]/route.ts):
 // only owner + admin override; head_office (State Manager) is intentionally
 // NOT in this set so they can't quietly modify reports filed by other staff.
-const INCIDENT_ADMIN_ROLES = new Set(["owner", "admin"]);
+const INCIDENT_ADMIN_ROLES: ReadonlySet<string> = new Set(ADMIN_ROLES);
 
 const patchSchema = z.object({
   childName: z.string().nullable().optional(),
@@ -70,15 +71,23 @@ async function loadIncident(incidentId: string) {
   return ref;
 }
 
+/**
+ * The office anywhere; the centre's Director for any report at their
+ * centre (they review and complete what educators log — 2026-10-08);
+ * otherwise only the person who wrote it.
+ */
 function ensureCanModify(
   role: string,
   userId: string,
   reporterId: string | null,
+  incidentServiceId?: string | null,
+  viewerServiceId?: string | null,
 ) {
   if (INCIDENT_ADMIN_ROLES.has(role)) return;
+  if (role === "member" && incidentServiceId && incidentServiceId === viewerServiceId) return;
   if (reporterId && reporterId === userId) return;
   throw ApiError.forbidden(
-    "Only the original reporter or an owner/admin can modify this incident.",
+    "Only the person who wrote this report, the centre's Director or head office can change it.",
   );
 }
 
@@ -86,7 +95,13 @@ function ensureCanModify(
 export const PATCH = withApiAuth(async (req, session, context) => {
   const { id } = await (context as unknown as RouteCtx).params;
   const ref = await loadIncident(id);
-  ensureCanModify(session.user.role, session.user.id, ref.createdById);
+  ensureCanModify(
+    session.user.role,
+    session.user.id,
+    ref.createdById,
+    ref.serviceId,
+    (session.user as { serviceId?: string | null }).serviceId ?? null,
+  );
 
   const body = await parseJsonBody(req);
   const parsed = patchSchema.safeParse(body);
@@ -97,6 +112,11 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     );
   }
   const patch = parsed.data;
+  // Educators write the report; sending it to the family is the
+  // Director's (or office's) call.
+  if (patch.shareWithParent !== undefined && session.user.role === "staff") {
+    throw ApiError.forbidden("Your Director shares incident reports with families.");
+  }
 
   const updated = await prisma.incidentRecord.update({
     where: { id },

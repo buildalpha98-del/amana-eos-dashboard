@@ -12,6 +12,8 @@
  */
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { isAdminRole } from "@/lib/role-permissions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -31,6 +33,8 @@ interface Row {
   help: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  /** Only the office may change it (it restrains the Director). */
+  adminOnly?: boolean;
 }
 
 const TABS = [
@@ -52,6 +56,8 @@ export function AppSettingsCard({
   const key = ["service", serviceId, "app-settings"];
   const [draft, setDraft] = useState<Settings | null>(null);
   const [tab, setTab] = useState<TabKey>("families");
+  const { data: session } = useSession();
+  const isAdmin = isAdminRole(session?.user?.role);
 
   const { data, isLoading } = useQuery<{ settings: Settings }>({
     queryKey: key,
@@ -97,15 +103,16 @@ export function AppSettingsCard({
     posts: [
       {
         label: "New posts start as drafts",
-        help: "Everything written here waits for someone to release it. Educators' posts already do this.",
+        help: "Everything written here waits for someone to release it. Educators' posts always wait for the Director, whatever this says.",
         checked: current.posts.draftByDefault,
         onChange: (v) => set("posts", { draftByDefault: v }),
       },
       {
         label: "Only admins can publish posts",
-        help: "Coordinators can still write; their posts wait as drafts. Only worth turning on if someone actually checks them.",
+        help: "The Director can still write; their posts wait for head office to release. Only an admin can change this.",
         checked: current.posts.onlyApproversPublish,
         onChange: (v) => set("posts", { onlyApproversPublish: v }),
+        adminOnly: true,
       },
     ],
     signInOut: [
@@ -155,7 +162,7 @@ export function AppSettingsCard({
             <input
               type="checkbox"
               checked={r.checked}
-              disabled={!canEdit}
+              disabled={!canEdit || (r.adminOnly && !isAdmin)}
               onChange={(e) => r.onChange(e.target.checked)}
               className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
             />

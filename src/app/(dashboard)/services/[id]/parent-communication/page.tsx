@@ -16,10 +16,13 @@ import {
   ChevronDown,
   ChevronUp,
   Send,
+  Clock,
+  CheckCircle2,
 } from "lucide-react";
 import {
   useParentPosts,
   useDeleteParentPost,
+  useUpdateParentPost,
   useStaffPostComments,
   useStaffReplyToPost,
   useDeleteStaffPostComment,
@@ -54,7 +57,6 @@ const typeBadgeColors: Record<string, string> = {
   reminder: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
 };
 
-const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
 
 /**
  * Renders as BOTH a standalone page and a tab inside the service detail
@@ -82,6 +84,7 @@ export function ParentCommunicationPanel({
   const { data: session } = useSession();
   const { data, isLoading, error } = useParentPosts(id);
   const deletePost = useDeleteParentPost(id);
+  const updatePost = useUpdateParentPost(id);
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingPost, setEditingPost] = useState<ParentPost | null>(null);
@@ -93,19 +96,31 @@ export function ParentCommunicationPanel({
 
   const posts = data?.items ?? [];
   const userId = session?.user?.id;
-  const userRole = (session?.user as { role?: string })?.role ?? "";
+  // The server works out whether this viewer may release posts here
+  // (Director / office, minus "only admins publish") — one source of truth.
+  const canPublish = data?.canPublish ?? false;
+  const waiting = posts.filter((p) => p.status === "draft");
 
+  // Publishers may change any post; everyone else only their own draft.
   function canModify(post: ParentPost) {
-    return ORG_WIDE_ROLES.has(userRole) || post.authorId === userId;
+    return canPublish || (post.authorId === userId && post.status === "draft");
+  }
+
+  function release(post: ParentPost) {
+    updatePost.mutate({ postId: post.id, status: "published" });
   }
 
   return (
     <div>
       <PageHeader
         title={embedded ? "Posts" : "Parent Communication"}
-        description="Create posts and announcements families see in their portal feed"
+        description={
+          canPublish
+            ? "Create posts and announcements families see in their portal feed"
+            : "Share what the children got up to. Your Director checks each post before families see it."
+        }
         primaryAction={{
-          label: "Create Post",
+          label: canPublish ? "Create Post" : "Write a post",
           icon: Plus,
           onClick: () => setShowCreate(true),
         }}
@@ -130,6 +145,38 @@ export function ParentCommunicationPanel({
         />
       ) : (
         <div className="mt-6 space-y-4">
+          {canPublish && waiting.length > 0 && (
+            <section
+              aria-label="Waiting for approval"
+              className="rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4 space-y-3"
+            >
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                Waiting for your approval ({waiting.length})
+              </h3>
+              <ul className="space-y-2">
+                {waiting.map((p) => (
+                  <li key={p.id} className="flex flex-wrap items-center gap-3 rounded-lg bg-card border border-border px-3 py-2">
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-foreground truncate">{p.title}</span>
+                      <span className="block text-xs text-muted">by {p.author?.name ?? "someone"}</span>
+                    </span>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingPost(p)}>
+                      Read &amp; edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      iconLeft={<CheckCircle2 className="w-3.5 h-3.5" />}
+                      onClick={() => release(p)}
+                      disabled={updatePost.isPending}
+                    >
+                      Publish
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <NeedsFollowUpCard
             serviceId={id}
             posts={posts}
@@ -152,6 +199,18 @@ export function ParentCommunicationPanel({
                     >
                       {typeLabels[post.type] ?? post.type}
                     </span>
+                    {post.status === "draft" && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 font-medium flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {canPublish ? "Draft — not visible to families" : "Waiting for approval"}
+                      </span>
+                    )}
+                    {post.status === "scheduled" && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-foreground/80 font-medium flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Scheduled
+                      </span>
+                    )}
                     {post.isCommunity && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 font-medium flex items-center gap-1">
                         <Users className="w-3 h-3" />
@@ -162,6 +221,7 @@ export function ParentCommunicationPanel({
                   {editable && (
                     <div className="flex items-center gap-1 shrink-0">
                       {/* The planning cycle: what did we DO about this. */}
+                      {canPublish && (
                       <Button
                         size="xs"
                         variant="ghost"
@@ -170,6 +230,7 @@ export function ParentCommunicationPanel({
                         aria-label={`Follow up on ${post.title}`}
                         title="Follow up on this"
                       />
+                      )}
                       <Button
                         size="xs"
                         variant="ghost"
@@ -277,6 +338,7 @@ export function ParentCommunicationPanel({
         }}
         editingPost={editingPost}
         extendingPost={extendingPost}
+        canPublish={canPublish}
       />
 
       <ConfirmDialog
