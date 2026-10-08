@@ -50,6 +50,7 @@ export const CENTRES: WelcomePackCentre[] = [
     email: "altaqwa@amanaoshc.com.au",
     hasBsc: true,
     map: "al-taqwa-college-map.jpg",
+    photo: "al-taqwa-college-photo.jpg",
   },
   {
     slug: "Arkana-College",
