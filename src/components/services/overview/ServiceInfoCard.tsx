@@ -7,6 +7,7 @@ import { ExcursionsCard } from "./ExcursionsCard";
 import { BlockOutDatesCard } from "@/components/services/BlockOutDatesCard";
 import { FeeChangesCard } from "./FeeChangesCard";
 import { AppSettingsCard } from "./AppSettingsCard";
+import { RoomConfigurationSuggestions } from "./RoomConfigurationSuggestions";
 
 /**
  * Which slice of Service Information to render.
@@ -43,21 +44,29 @@ export function ServiceInfoCard({
           step into the future. */}
       {section === "rooms" && (
         <>
+          {/* OWNA-style advisor, always visible (2026-10-08). */}
+          <RoomConfigurationSuggestions service={service} />
           <RoomsAndFeesCard service={service} canEdit={canEdit} />
           {/* Directly under the room prices, because it answers the
               questions those prices don't: late pickup, absence,
               cancellation. */}
-          <FeePolicyCard serviceId={service.id} canEdit={canEdit} />
+          <div id="fee-policy" className="scroll-mt-24">
+            <FeePolicyCard serviceId={service.id} canEdit={canEdit} />
+          </div>
+          <div id="fee-changes" className="scroll-mt-24">
           <FeeChangesCard
             serviceId={service.id}
             sessionTimes={service.sessionTimes}
             canEdit={canEdit}
           />
+          </div>
+          <div id="blockout-dates" className="scroll-mt-24">
           <BlockOutDatesCard
             serviceId={service.id}
             sessionTimes={service.sessionTimes}
             canEdit={canEdit}
           />
+          </div>
         </>
       )}
 

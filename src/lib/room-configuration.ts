@@ -164,3 +164,28 @@ export function analyseRoomConfiguration(
 
   return out;
 }
+
+/**
+ * The advisor over a centre's SAVED room setup — for the always-visible
+ * "Room configuration suggestions" box on Rooms & fees (2026-10-08, after
+ * OWNA's). Rooms carry their own capacity and ratio inside sessionTimes;
+ * the editor runs analyseRoomConfiguration over its draft instead.
+ */
+export function analyseSavedRooms(service: {
+  sessionTimes?: unknown;
+  capacity?: number | null;
+  ratioSettings?: unknown;
+}): RoomAdvisory[] {
+  const sessionTimes = (service.sessionTimes ?? null) as SessionTimes | null;
+  const rs = service.ratioSettings as { default?: { ratio?: unknown } } | null | undefined;
+  const defaultRatio = typeof rs?.default?.ratio === "string" ? rs.default.ratio : "1:15";
+  const keys = activeSessionKeys(sessionTimes);
+  const room = (k: SessionKey) => sessionTimes?.[k] as { capacity?: number; ratio?: string } | undefined;
+  return analyseRoomConfiguration({
+    sessionTimes,
+    approvedPlaces: service.capacity ?? null,
+    capacities: Object.fromEntries(keys.map((k) => [k, room(k)?.capacity ?? null])),
+    ratios: Object.fromEntries(keys.map((k) => [k, room(k)?.ratio ?? null])),
+    defaultRatio,
+  });
+}
