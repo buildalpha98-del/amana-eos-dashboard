@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { isAdminRole } from "@/lib/role-permissions";
 import { PolicyAdminPanel } from "@/components/policies/PolicyAdminPanel";
 import { PolicyStaffPanel } from "@/components/policies/PolicyStaffPanel";
+import { SharePointSyncButton } from "@/components/policies/SharePointSyncButton";
 
 export default function PoliciesPage() {
   const { data: session, status } = useSession();
@@ -26,7 +27,10 @@ export default function PoliciesPage() {
           Loading…
         </div>
       ) : isAdmin ? (
-        <PolicyAdminPanel />
+        <>
+          <SharePointSyncButton />
+          <PolicyAdminPanel />
+        </>
       ) : (
         <PolicyStaffPanel />
       )}
