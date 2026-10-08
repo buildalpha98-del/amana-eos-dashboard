@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { generateStatementPdf } from "@/lib/billing/statement-pdf";
@@ -45,4 +46,4 @@ export const POST = withApiAuth(async (_req, _session, context) => {
   })();
 
   return NextResponse.json(statement);
-});
+}, { roles: [...ADMIN_ROLES] });

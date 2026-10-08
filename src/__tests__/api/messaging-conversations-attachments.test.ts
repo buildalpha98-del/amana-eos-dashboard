@@ -48,7 +48,7 @@ describe("Staff /api/messaging/conversations — attachment validation", () => {
     vi.clearAllMocks();
     _clearUserActiveCache();
     prismaMock.user.findUnique.mockResolvedValue({ active: true });
-    prismaMock.centreContact.findUnique.mockResolvedValue({ id: "fam-1" });
+    prismaMock.centreContact.findUnique.mockResolvedValue({ id: "fam-1", serviceId: "svc-1" });
     prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });
     prismaMock.conversation.create.mockResolvedValue({
       id: "conv-1",

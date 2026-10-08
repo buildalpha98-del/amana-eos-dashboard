@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { sendPaymentReceivedNotification } from "@/lib/notifications/billing";
@@ -102,4 +103,4 @@ export const POST = withApiAuth(async (req, session) => {
   });
 
   return NextResponse.json(result, { status: 201 });
-});
+}, { roles: [...ADMIN_ROLES] });

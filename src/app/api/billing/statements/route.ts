@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { $Enums } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { resolveServiceIdFilter } from "@/lib/authz-scope";
@@ -166,4 +167,4 @@ export const POST = withApiAuth(async (req) => {
   });
 
   return NextResponse.json(statement, { status: 201 });
-});
+}, { roles: [...ADMIN_ROLES] });

@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { generateEnrolmentPdf } from "@/lib/enrolment-pdf";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
+import { assertEnrolmentAccess } from "@/lib/enrolment-access";
 import { logger } from "@/lib/logger";
 
-export const GET = withApiAuth(async (_req, _session, context) => {
+export const GET = withApiAuth(async (_req, session, context) => {
   const { id } = await context!.params!;
 
   const submission = await prisma.enrolmentSubmission.findUnique({
@@ -15,6 +16,7 @@ export const GET = withApiAuth(async (_req, _session, context) => {
   if (!submission) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  assertEnrolmentAccess(session, submission.serviceId);
 
   /**
    * Wrapped so a rendering failure names itself.

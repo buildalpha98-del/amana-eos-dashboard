@@ -107,6 +107,7 @@ describe("PATCH /api/children/[id] — role narrowing", () => {
 
   it("staff role patching schoolName (non-restricted) → 200", async () => {
     mockSession({ id: "u1", name: "Staff", role: "staff", serviceId: "svc-1" });
+    prismaMock.child.findUnique.mockResolvedValue({ serviceId: "svc-1" });
     prismaMock.child.update.mockResolvedValue({
       id: "child-1",
       schoolName: "New School",

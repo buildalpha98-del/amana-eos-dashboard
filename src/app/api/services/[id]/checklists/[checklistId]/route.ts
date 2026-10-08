@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { assertServiceAccess } from "@/lib/authz-scope";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { z } from "zod";
 
@@ -19,6 +20,7 @@ const patchSchema = z.object({
 export const PATCH = withApiAuth(async (req, session, context) => {
   const userId = session!.user.id;
   const { id, checklistId } = await context!.params!;
+  assertServiceAccess(session, id);
 
   // Verify the checklist exists and belongs to this service
   const checklist = await prisma.dailyChecklist.findFirst({

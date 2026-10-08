@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
+import { assertServiceAccess } from "@/lib/authz-scope";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 
@@ -8,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 // GET — Conversation detail with messages; mark parent messages read
 // ---------------------------------------------------------------------------
 
-export const GET = withApiAuth(async (_req, _session, context) => {
+export const GET = withApiAuth(async (_req, session, context) => {
   const { id } = await context!.params!;
 
   const conversation = await prisma.conversation.findUnique({
@@ -23,6 +24,7 @@ export const GET = withApiAuth(async (_req, _session, context) => {
   });
 
   if (!conversation) throw ApiError.notFound("Conversation not found");
+  assertServiceAccess(session, conversation.serviceId);
 
   // Mark all parent messages as read
   const unreadParentMsgIds = conversation.messages
@@ -55,7 +57,7 @@ const patchSchema = z.object({
   status: z.enum(["resolved", "archived"]),
 });
 
-export const PATCH = withApiAuth(async (req, _session, context) => {
+export const PATCH = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
   const raw = await parseJsonBody(req);
   const parsed = patchSchema.safeParse(raw);
@@ -65,9 +67,10 @@ export const PATCH = withApiAuth(async (req, _session, context) => {
 
   const existing = await prisma.conversation.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, serviceId: true },
   });
   if (!existing) throw ApiError.notFound("Conversation not found");
+  assertServiceAccess(session, existing.serviceId);
 
   const updated = await prisma.conversation.update({
     where: { id },

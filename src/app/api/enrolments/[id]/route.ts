@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { ApiError } from "@/lib/api-error";
+import { assertEnrolmentAccess } from "@/lib/enrolment-access";
 import { generateBookings } from "@/lib/booking-generator";
 import { logger } from "@/lib/logger";
 import { syncParentJourney } from "@/lib/parent-journey";
@@ -39,6 +41,7 @@ export const GET = withApiAuth(async (req, session, context) => {
   if (!submission) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  assertEnrolmentAccess(session, submission.serviceId);
 
   // EnrolmentSubmission holds serviceId as a plain column with no relation,
   // so the name is a second lookup rather than an include.
@@ -66,6 +69,13 @@ const { id } = await context!.params!;
       { status: 400 }
     );
   }
+
+  const existing = await prisma.enrolmentSubmission.findUnique({
+    where: { id },
+    select: { serviceId: true },
+  });
+  if (!existing) throw ApiError.notFound("Enrolment not found");
+  assertEnrolmentAccess(session, existing.serviceId);
 
   const updateData: Record<string, unknown> = { ...parsed.data };
 

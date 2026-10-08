@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { assertServiceAccess } from "@/lib/authz-scope";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { primaryParentSchema } from "@/lib/schemas/json-fields";
 import { createInAppNotification } from "@/lib/parent-notifications";
@@ -57,6 +58,8 @@ export const POST = withApiAuth(async (req, session, context) => {
       service: { select: { name: true } },
     },
   });
+  // Emails a photo to a family — only for a child at your own centre.
+  if (record) assertServiceAccess(session, record.serviceId);
 
   if (!record) throw ApiError.notFound("Attendance record not found");
   if (record.firstDayPhotoSentAt) {

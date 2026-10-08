@@ -84,9 +84,17 @@ export default async function ChildDetailPage({ params, searchParams }: PageProp
 
   const canEdit = isAdminRole(role) || role === "member";
 
+  // Payment hints and the enrolment token are office data — nothing on
+  // the profile renders them, so they never need to reach a centre's
+  // browser (2026-10-08).
+  const visibleChild =
+    isAdminRole(role) || !child.enrolment
+      ? child
+      : { ...child, enrolment: { ...child.enrolment, paymentDetails: null, paymentMethod: null, token: "" } };
+
   return (
     <ChildProfileTabs
-      child={child}
+      child={visibleChild}
       activeTab={tab}
       canEdit={canEdit}
     />

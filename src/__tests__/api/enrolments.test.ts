@@ -311,6 +311,7 @@ describe("PATCH /api/enrolments/[id]", () => {
       childName: "Billy Doe",
       createdAt: new Date(),
     };
+    prismaMock.enrolmentSubmission.findUnique.mockResolvedValue({ serviceId: "svc-1" });
     prismaMock.enrolmentSubmission.update.mockResolvedValue(updatedSubmission);
 
     const req = createRequest("PATCH", "/api/enrolments/es-1", {
