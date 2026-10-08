@@ -61,6 +61,7 @@ import { ServiceInfoCard } from "@/components/services/overview/ServiceInfoCard"
 import { ServiceNavTree } from "@/components/services/ServiceNavTree";
 import { ServiceTabBarV2 } from "@/components/services/ServiceTabBarV2";
 import { isAdminRole } from "@/lib/role-permissions";
+import { useNavLayout } from "@/hooks/useNavLayout";
 
 /* ------------------------------------------------------------------ */
 /* Grouped tab definitions — 16 tabs consolidated into 6 groups       */
@@ -184,6 +185,7 @@ export default function ServiceDetailPage() {
     (session?.user?.isCentreAccount === true || role === "staff") && sessionServiceId === id;
 
   const isEducator = role === "staff";
+  const { layout: navLayout } = useNavLayout();
   const visibleGroups = useMemo(
     () => visibleServiceSections({ isEducator, isAdminPlus, canSeeCasualBookings, canSeeStaffFiles }),
     [isEducator, isAdminPlus, canSeeCasualBookings, canSeeStaffFiles],
@@ -317,9 +319,11 @@ export default function ServiceDetailPage() {
           opens the SAME tree in a sheet, so "see everything at once"
           isn't a desktop-only privilege. iPad portrait is 820px wide,
           which lands here, and it's the device this is used on most. */}
-      {/* Centre accounts navigate from the main sidebar (the phone drawer
-          too) — a second row of section buttons was a duplicate. */}
-      <div className={cn("lg:hidden", ownCentreAccount && "hidden")}>
+      {/* 2026-10-09 (staff-UX Round 2): ALWAYS shown below desktop width.
+          Hiding it for a centre's own staff meant every section past Today
+          cost 3–4 taps through More → drawer on a phone — the sidebar
+          carrying the same menu is a desktop affordance, not a phone one. */}
+      <div className="lg:hidden">
         <ServiceTabBarV2
           groups={visibleGroups}
           activeGroup={shownGroup ?? activeGroup}
@@ -362,7 +366,10 @@ export default function ServiceDetailPage() {
       <div className="lg:flex lg:gap-6">
         {/* A centre account viewing its own centre navigates from the main
             sidebar (CentreSidebarNav) — no second menu beside it. */}
-        <div className={cn("hidden", !ownCentreAccount && "lg:block")}>
+        {/* Desktop: the sidebar carries this centre's menu for its own
+            staff — unless they use the top-bar layout, where there is no
+            sidebar and this tree is their only way between sections. */}
+        <div className={cn("hidden", (!ownCentreAccount || navLayout === "topbar") && "lg:block")}>
           <ServiceNavTree
             groups={visibleGroups}
             activeGroup={shownGroup ?? activeGroup}

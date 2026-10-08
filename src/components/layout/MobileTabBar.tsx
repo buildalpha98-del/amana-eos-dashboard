@@ -75,9 +75,18 @@ export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
           { href: "/my-day", label: "Shifts", icon: CalendarDays },
           { href: "/my-pay", label: "Pay & Leave", icon: Wallet },
         ]
-      : role && STAFF_TIER_ROLES.has(role)
-        ? staffTabs
-        : defaultTabs;
+      : role === "member" && session?.user?.serviceId
+        ? // Coordinators (staff-UX Round 2, 2026-10-09): their centre and its
+          // roster were a More → Operations hunt on a phone.
+          [
+            { href: "/my-portal", label: "Home", icon: Home },
+            { href: `/services/${session.user.serviceId}`, label: "Centre", icon: Building2 },
+            { href: "/roster", label: "Roster", icon: CalendarDays },
+            { href: "/my-pay", label: "Pay & Leave", icon: Wallet },
+          ]
+        : role && STAFF_TIER_ROLES.has(role)
+          ? staffTabs
+          : defaultTabs;
 
   const { data: unreadData } = useUnreadNotificationCount({
     refetchInterval: NOTIFICATION_POLL_INTERVAL_MS,

@@ -75,6 +75,9 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
     openIncidents,
     expiringCerts,
     unreadHandovers,
+    postsAwaitingApproval,
+    purchaseApprovalsPending,
+    visitorsOnSite,
   ] = await Promise.all([
     prisma.attendanceRecord.findMany({
       where: { serviceId: id, date: dateOnly },
@@ -150,6 +153,12 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
     prisma.shiftHandover.count({
       where: { serviceId: id, createdAt: { gte: start, lt: end } },
     }),
+    // ── For the Today screen (staff-UX Round 2, 2026-10-09) ──
+    // Educators' posts land as drafts for the Coordinator to release.
+    prisma.parentPost.count({ where: { serviceId: id, status: "draft" } }),
+    prisma.purchaseApproval.count({ where: { serviceId: id, status: "pending" } }),
+    // Visitors still signed in — the register is a regulatory record.
+    prisma.serviceVisitor.count({ where: { serviceId: id, signedOutAt: null } }),
   ]);
 
   // ── Per-programme snapshot ──────────────────────────────────────────
@@ -269,6 +278,9 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
       openIncidents,
       expiringCerts,
       handoversToday: unreadHandovers,
+      postsAwaitingApproval,
+      purchaseApprovalsPending,
+      visitorsOnSite,
     },
   });
 });
@@ -318,5 +330,8 @@ export type ServiceDashboardResponse = {
     openIncidents: number;
     expiringCerts: number;
     handoversToday: number;
+    postsAwaitingApproval: number;
+    purchaseApprovalsPending: number;
+    visitorsOnSite: number;
   };
 };

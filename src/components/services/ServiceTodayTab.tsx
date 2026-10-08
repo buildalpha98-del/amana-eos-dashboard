@@ -1,40 +1,19 @@
 "use client";
 
-import { ServiceTodayPanel } from "./ServiceTodayPanel";
-import { RatioWidget } from "./RatioWidget";
-import { ShiftHandoverWidget } from "./ShiftHandoverWidget";
-import { ServiceActivityWidget } from "./ServiceActivityWidget";
-import { ShiftQuickActions } from "./ShiftQuickActions";
-import { ChecklistsTodayWidget } from "./ChecklistsTodayWidget";
+import { ServiceTodayHome } from "./ServiceTodayHome";
 
 interface ServiceTodayTabProps {
   serviceId: string;
-  /**
-   * Reserved for future panel header enhancements. The current
-   * {@link ServiceTodayPanel} only needs `serviceId` — accepting the name
-   * here keeps the tab API forward-compatible without touching the panel.
-   */
+  /** Kept for the tab API; the Today screen reads its own data. */
   serviceName?: string | null;
 }
 
 /**
- * Thin wrapper that composes {@link ServiceTodayPanel} into a tab-friendly
- * container.
+ * The centre's Today tab. 2026-10-09 (staff-UX Round 2): one screen that
+ * runs the shift — see {@link ServiceTodayHome}. The old stack (quick
+ * actions + activity feed + a panel whose attendance and "staff on duty"
+ * counted differently from the Coordinator dashboard) is retired.
  */
 export function ServiceTodayTab({ serviceId }: ServiceTodayTabProps) {
-  return (
-    <div className="space-y-6">
-      <ShiftQuickActions serviceId={serviceId} />
-      <div>
-        <h3 className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em] mb-2">
-          Live ratio
-        </h3>
-        <RatioWidget serviceId={serviceId} compact />
-      </div>
-      <ChecklistsTodayWidget serviceId={serviceId} />
-      <ShiftHandoverWidget serviceId={serviceId} />
-      <ServiceActivityWidget serviceId={serviceId} />
-      <ServiceTodayPanel serviceId={serviceId} />
-    </div>
-  );
+  return <ServiceTodayHome serviceId={serviceId} />;
 }
