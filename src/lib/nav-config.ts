@@ -386,7 +386,9 @@ function staffNavItems(items: readonly NavItem[], serviceId: string | null): Nav
   const own = STAFF_NAV_HREFS.flatMap((href) => {
     const item = byHref.get(href);
     if (!item || !canAccessPage("staff", href)) return [];
-    const section = item.section === "Handbook" ? "Handbook" : "My Portal";
+    // "Home" is the heading over their own pages (Daniel, 2026-10-08) —
+    // "My Portal" is the first page in it, not the name of the section.
+    const section = item.section === "Handbook" ? "Handbook" : "Home";
     return [{ ...item, section, core: true, hidden: false }];
   });
   // 2026-10-08: the centre they work at — sign in/out, roll call,
@@ -397,7 +399,7 @@ function staffNavItems(items: readonly NavItem[], serviceId: string | null): Nav
     href: `/services/${serviceId}`,
     label: "My Centre",
     icon: Building2,
-    section: "My Portal",
+    section: "Home",
     tooltip: "Sign in/out, roll call, checklists and posts for your centre",
     core: true,
     hidden: false,

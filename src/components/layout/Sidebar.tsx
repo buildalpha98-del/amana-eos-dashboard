@@ -129,6 +129,47 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     return filtered;
   }, [favourites, session?.user?.role, session?.user?.isCentreAccount, session?.user?.serviceId, inductionLocked]);
 
+
+  // The educator's centre, as a yellow dropdown heading like HANDBOOK
+  // (Daniel, 2026-10-08) with the centre's own sections inside it.
+  const centreSectionKey = "My Centre";
+  const centreSectionCollapsed = collapsedSections.has(centreSectionKey);
+  const educatorCentreBlock = educatorServiceId ? (
+    <div>
+      <div className={cn("mt-4 mb-1 pt-2 border-t border-white/[0.08]", collapsed ? "px-2" : "px-3")}>
+        {collapsed ? (
+          <div className="h-px bg-white/[0.06]" />
+        ) : (
+          <button
+            type="button"
+            onClick={() => toggleSection(centreSectionKey)}
+            aria-label={`${centreSectionCollapsed ? "Expand" : "Collapse"} My Centre section`}
+            aria-expanded={!centreSectionCollapsed}
+            className="flex items-center justify-between w-full group py-1"
+          >
+            <h3 className="text-xs font-bold text-accent uppercase tracking-widest pl-1">My Centre</h3>
+            <ChevronDown
+              className={cn(
+                "w-3.5 h-3.5 text-white/40 transition-transform duration-200 group-hover:text-white/70",
+                centreSectionCollapsed && "-rotate-90",
+              )}
+            />
+          </button>
+        )}
+      </div>
+      {(collapsed || !centreSectionCollapsed) && (
+        <Suspense fallback={null}>
+          <CentreSidebarNav
+            serviceId={educatorServiceId}
+            collapsed={collapsed}
+            onNavigate={onMobileClose}
+            footerLinks={false}
+            showLabel={false}
+          />
+        </Suspense>
+      )}
+    </div>
+  ) : null;
   return (
     <>
       {/* Mobile backdrop */}
@@ -268,18 +309,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
             return (
               <div key={group.key}>
-                {educatorServiceId && groupIndex === 1 && (
-                  <div className="mt-4 pt-2 border-t border-white/[0.08]">
-                    <Suspense fallback={null}>
-                      <CentreSidebarNav
-                        serviceId={educatorServiceId}
-                        collapsed={collapsed}
-                        onNavigate={onMobileClose}
-                        footerLinks={false}
-                      />
-                    </Suspense>
-                  </div>
-                )}
+                {educatorServiceId && groupIndex === 1 && educatorCentreBlock}
                 {/* Section header / separator */}
                 {(groupIndex > 0 || educatorServiceId) && (
                   <div
@@ -438,18 +468,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             );
           })}
           {/* No section after My Portal to sit before — still show the centre. */}
-          {educatorServiceId && groupedItems.length < 2 && (
-            <div className="mt-4 pt-2 border-t border-white/[0.08]">
-              <Suspense fallback={null}>
-                <CentreSidebarNav
-                  serviceId={educatorServiceId}
-                  collapsed={collapsed}
-                  onNavigate={onMobileClose}
-                  footerLinks={false}
-                />
-              </Suspense>
-            </div>
-          )}
+          {educatorServiceId && groupedItems.length < 2 && educatorCentreBlock}
           </>
           )}
         </nav>

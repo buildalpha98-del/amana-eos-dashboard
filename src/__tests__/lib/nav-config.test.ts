@@ -18,7 +18,7 @@ describe("filterNavItems", () => {
   it("gives staff only the My Portal list, in order", () => {
     const filtered = filterNavItems(navItems, "staff" as Role);
     expect(filtered.map((i) => i.href)).toEqual([...STAFF_NAV_HREFS]);
-    expect(new Set(filtered.map((i) => i.section))).toEqual(new Set(["My Portal", "Handbook"]));
+    expect(new Set(filtered.map((i) => i.section))).toEqual(new Set(["Home", "Handbook"]));
     expect(filtered.every((i) => i.core === true && !i.hidden)).toBe(true);
   });
 
