@@ -194,7 +194,7 @@ function welcomePage(c: WelcomePackCentre, a: TemplateAssets): string {
     ["Drop-off and pick-up", "Handing over safely", 9],
     ["Food and health", "Halal, nut-free and safe", 10],
     ["Our programs", "What your child will get up to", 11],
-    ["Good to know", "Safety, injuries and excursions", 12],
+    ["Good to know", "Belongings, excursions and safety", 12],
     ["Staying in touch", "Who to contact and how", 13],
     ["Questions", "Frequently asked questions", 14],
   ];
@@ -652,7 +652,7 @@ function goodToKnowPage(c: WelcomePackCentre): string {
   return page(
     c,
     12,
-    `${sectionHead("Good to know", "Belongings, safety and excursions")}
+    `${sectionHead("Good to know", "How we look after each other")}
     <div class="two">
       ${card("Devices and belongings", "<p>Phones, smart watches, tablets and laptops are not permitted unless used for homework. Please speak to your Service Coordinator about our BYOD policy.</p><p>Amana cannot be responsible for lost or stolen items, so please consider this when choosing what your child brings.</p>", { icon: "device" })}
       <div class="card card-white">
@@ -671,16 +671,6 @@ function goodToKnowPage(c: WelcomePackCentre): string {
       "<p>During Holiday Quest we sometimes head out on excursions. We send you an excursion form before the day, with where we are going, how we will travel and what your child needs. <strong>Please sign and return it</strong>, because your child can only join an excursion with your written permission.</p>",
       { tone: "chiffon" },
     )}
-    <div class="two">
-      ${card(
-        "If your child is hurt or unwell",
-        "<p>Our first-aid trained team looks after your child straight away. We let you know the same day, and if your child needs to go home or see a doctor, we call you to collect them. In an emergency we call 000 first, then you.</p><p>You will be asked to sign the incident report in OWNA.</p>",
-      )}
-      ${card(
-        "Emergencies and drills",
-        "<p>Every centre has an emergency and evacuation plan, and we practise evacuation and lockdown drills with the children regularly, so they know exactly what to do.</p><p>If an emergency affects your child's session, we contact you straight away and tell you where to collect your child.</p>",
-      )}
-    </div>
 
     <div class="safety">
       <h2>Your child's safety comes first</h2>
@@ -801,21 +791,12 @@ function faqPages(c: WelcomePackCentre): string {
   );
 }
 
-function backCover(c: WelcomePackCentre): string {
+function backCover(_c: WelcomePackCentre): string {
   return `<section class="page back">
     <div class="back-brand">
       <img class="back-logo" src="__ASSETS__/brand/logo-colour.svg" alt="Amana OSHC"/>
       <img class="back-lockup" src="__ASSETS__/brand/beyond-the-bell.png" alt="Beyond The Bell"/>
     </div>
-    <div class="back-main">
-      <p class="thanks">Jazak Allahu Khairan</p>
-      <p class="thanks-sub">Thank you for trusting us with your child. We can't wait to meet them.</p>
-      <div class="back-contacts">
-        <div><span class="k">Your centre</span><span class="v">${esc(c.phone)}</span><span class="s">${esc(c.email)}</span></div>
-        <div><span class="k">Head office</span><span class="v">${HEAD_OFFICE}</span><span class="s">${ENROL_EMAIL}</span></div>
-      </div>
-    </div>
-    <div class="back-foot">amanaoshc.com.au &nbsp;&middot;&nbsp; @AmanaOSHC on Facebook and Instagram</div>
   </section>`;
 }
 
@@ -1223,9 +1204,9 @@ dl.bank dd { font-family: "Fredoka"; font-weight: 600; }
 
 /* ---------- back cover ---------- */
 .back { background: var(--latte); }
-.back-brand { position: absolute; top: 30mm; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 12mm; }
-.back-logo { width: 104mm; }
-.back-lockup { width: 36mm; }
+.back-brand { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22mm; }
+.back-logo { width: 120mm; }
+.back-lockup { width: 44mm; }
 .back-main { position: absolute; top: 182mm; left: 20mm; right: 20mm; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .thanks { font-family: "Fredoka"; font-weight: 600; font-size: 30pt; color: var(--green); }
 .thanks-sub { font-size: 13pt; margin-top: 2mm; max-width: 130mm; }
