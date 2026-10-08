@@ -31,12 +31,16 @@ export function CentreSidebarNav({
   collapsed,
   onNavigate,
   footerLinks = true,
+  showLabel = true,
 }: {
   serviceId: string;
   collapsed: boolean;
   /** Notifications + Handbook & Help under the centre. An educator's
    *  sidebar already has both in its own sections, so it turns them off. */
   footerLinks?: boolean;
+  /** The small "My Centre" label. Off when the sidebar draws its own
+   *  collapsible heading above this (the educator layout). */
+  showLabel?: boolean;
   /** Closes the phone drawer — links here change ?tab= on the same page,
    *  which the sidebar's pathname-based auto-close doesn't notice. */
   onNavigate?: () => void;
@@ -75,7 +79,7 @@ export function CentreSidebarNav({
 
   return (
     <div className="space-y-1" data-testid="centre-sidebar-nav">
-      {!collapsed && (
+      {!collapsed && showLabel && (
         <p className="px-3 pb-1 text-2xs font-semibold uppercase tracking-wider text-accent">My Centre</p>
       )}
       {sections.map((g) => {
