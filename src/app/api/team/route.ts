@@ -36,6 +36,7 @@ export const GET = withApiAuth(async (req, session) => {
       email: true,
       role: true,
       avatar: true,
+      positions: true,
       service: { select: { id: true, name: true } },
       _count: {
         select: {
@@ -114,6 +115,7 @@ export const GET = withApiAuth(async (req, session) => {
     ...(includeEmail ? { email: u.email } : {}),
     role: u.role,
     avatar: u.avatar,
+    positions: u.positions,
     service: u.service ? { id: u.service.id, name: u.service.name } : null,
     activeRocks: u._count.ownedRocks,
     totalTodos: todoMap[u.id]?.total || 0,

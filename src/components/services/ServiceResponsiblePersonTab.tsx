@@ -133,11 +133,16 @@ export function ServiceResponsiblePersonTab({
   const { data: team } = useTeam({ service: serviceId });
   const staffOptions = useMemo<TeamMember[]>(() => {
     if (!team) return [];
-    return team.filter((m) => {
-      const atService = m.service?.id === serviceId;
-      const active = (m as { active?: boolean }).active !== false;
-      return atService && active;
-    });
+    const isRp = (m: TeamMember) => m.positions?.includes("responsible_person") ?? false;
+    // People registered as a Responsible Person first (2026-10-08) — they
+    // are who the regulator expects to see in this register.
+    return team
+      .filter((m) => {
+        const atService = m.service?.id === serviceId;
+        const active = (m as { active?: boolean }).active !== false;
+        return atService && active;
+      })
+      .sort((a, b) => Number(isRp(b)) - Number(isRp(a)));
   }, [team, serviceId]);
 
   const [assignTarget, setAssignTarget] = useState<{
@@ -478,6 +483,7 @@ function AssignRpDialog({
               {staffOptions.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}
+                  {m.positions?.includes("responsible_person") ? " — Responsible Person" : ""}
                 </option>
               ))}
             </select>

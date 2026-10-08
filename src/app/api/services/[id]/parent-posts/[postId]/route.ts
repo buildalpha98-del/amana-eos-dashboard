@@ -6,12 +6,13 @@ import { updateParentPostSchema } from "@/lib/schemas/parent-post";
 import { notifyPostPublished } from "@/lib/notifications/posts";
 import { notifyParentNewPost } from "@/lib/parent-notifications";
 import { canAccessService } from "@/lib/authz-scope";
-import { canPublishPosts, resolveAppSettings } from "@/lib/app-settings";
+import { canPublishAtService } from "@/lib/post-publish";
 import { logger } from "@/lib/logger";
 
 /**
  * Who may touch a post (2026-10-08):
- *  - a PUBLISHER (Director, or the office — see canPublishPosts) may edit,
+ *  - a PUBLISHER (Director, the office, or anyone with the `posts.publish`
+ *    tick — see canPublishAtService) may edit,
  *    release and delete any post at the centre. That is what makes them
  *    the approver: an educator's draft is theirs to release.
  *  - an author who can't publish (educators) may edit and delete their
@@ -20,13 +21,6 @@ import { logger } from "@/lib/logger";
  * A non-publisher asking for "published" keeps the post a draft, the same
  * as on create — re-saving a draft must never be a way round approval.
  */
-async function publishRights(serviceId: string, role: string): Promise<boolean> {
-  const row = await prisma.service.findUnique({
-    where: { id: serviceId },
-    select: { appSettings: true },
-  });
-  return canPublishPosts(role, resolveAppSettings(row?.appSettings).posts.onlyApproversPublish);
-}
 
 // PATCH /api/services/[id]/parent-posts/[postId]
 export const PATCH = withApiAuth(
@@ -38,7 +32,7 @@ export const PATCH = withApiAuth(
     if (!canAccessService(session, serviceId)) {
       throw ApiError.forbidden("You do not have access to this service");
     }
-    const canPublish = await publishRights(serviceId, session.user.role ?? "");
+    const canPublish = await canPublishAtService(session, serviceId);
 
     const body = await parseJsonBody(req);
     const parsed = updateParentPostSchema.safeParse(body);
@@ -162,7 +156,7 @@ export const DELETE = withApiAuth(
     if (!canAccessService(session, serviceId)) {
       throw ApiError.forbidden("You do not have access to this service");
     }
-    const canPublish = await publishRights(serviceId, session.user.role ?? "");
+    const canPublish = await canPublishAtService(session, serviceId);
 
     // Verify post exists, belongs to service, and user has permission
     const existing = await prisma.parentPost.findUnique({

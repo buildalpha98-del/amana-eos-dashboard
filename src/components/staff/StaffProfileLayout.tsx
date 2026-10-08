@@ -32,6 +32,7 @@ import { DocumentsSection } from "./sections/DocumentsSection";
 import { RampSection } from "./sections/RampSection";
 import { PerformanceSection } from "./sections/PerformanceSection";
 import { HealthWHSSection } from "./sections/HealthWHSSection";
+import { AccessPositionsCard } from "./sections/AccessPositionsCard";
 import type { StaffProfileData } from "./types";
 import type { SnapshotStats } from "@/lib/staff/snapshot-stats";
 
@@ -134,6 +135,7 @@ export function StaffProfileLayout({
               viewerIsOwner={viewerIsOwner}
               canManageSeparation={isAdmin}
             />
+            <AccessPositionsCard userId={data.targetUser.id} />
             {canViewPay && (
               <PayCompensationSection
                 data={data}

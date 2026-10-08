@@ -135,8 +135,14 @@ export function resolveAppSettings(raw: unknown): ResolvedAppSettings {
  * always can.
  */
 const APPROVER_ROLES = new Set(["owner", "head_office", "admin"]);
-export function canPublishPosts(role: string, onlyApprovers: boolean): boolean {
+export function canPublishPosts(
+  role: string,
+  onlyApprovers: boolean,
+  /** The person's own ticks (User.permissions) — `posts.publish` grants. */
+  permissions?: readonly string[] | null,
+): boolean {
   if (APPROVER_ROLES.has(role)) return true;
+  if (Array.isArray(permissions) && permissions.includes("posts.publish")) return true;
   if (role === "member") return !onlyApprovers;
   return false;
 }

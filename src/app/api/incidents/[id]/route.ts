@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { hasStaffPermission } from "@/lib/staff-permissions";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { z } from "zod";
 
@@ -114,8 +115,15 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   const patch = parsed.data;
   // Educators write the report; sending it to the family is the
   // Director's (or office's) call.
+  // …unless they carry the `incidents.share` tick.
   if (patch.shareWithParent !== undefined && session.user.role === "staff") {
-    throw ApiError.forbidden("Your Director shares incident reports with families.");
+    const me = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { permissions: true },
+    });
+    if (!hasStaffPermission(me?.permissions, "incidents.share")) {
+      throw ApiError.forbidden("Your Director shares incident reports with families.");
+    }
   }
 
   const updated = await prisma.incidentRecord.update({
