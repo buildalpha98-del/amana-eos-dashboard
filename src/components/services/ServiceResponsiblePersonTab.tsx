@@ -62,7 +62,7 @@ const ROLE_TITLES: Record<string, string> = {
   head_office: "State Manager",
   admin: "Administrator",
   marketing: "Marketing",
-  member: "Director of Service",
+  member: "Service Coordinator",
   staff: "Educator",
 };
 
@@ -513,7 +513,7 @@ function AssignRpDialog({
               type="text"
               value={personRole}
               onChange={(e) => setPersonRole(e.target.value)}
-              placeholder="e.g. Director of Service"
+              placeholder="e.g. Service Coordinator"
               className={INPUT_CLS}
             />
           </div>

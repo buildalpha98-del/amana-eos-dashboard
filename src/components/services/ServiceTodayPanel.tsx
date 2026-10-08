@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
@@ -120,6 +121,8 @@ function getInitials(name: string): string {
 }
 
 export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
+  const { data: session } = useSession();
+  const isEducator = session?.user?.role === "staff";
   const [collapsed, setCollapsed] = useState(false);
   const router = useRouter();
 
@@ -305,7 +308,8 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                       </div>
                     </li>
                   ))}
-                  {data.todosToday.length > 3 && (
+                  {/* Educators have no EOS section — "View all" led nowhere. */}
+                  {data.todosToday.length > 3 && !isEducator && (
                     <li>
                       <button
                         onClick={() => navigateToTab("eos", "todos")}
@@ -366,14 +370,10 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                       </div>
                     </li>
                   ))}
+                  {/* "View all" opened Issues, a different list — show the count. */}
                   {data.openTickets.length > 3 && (
-                    <li>
-                      <button
-                        onClick={() => navigateToTab("eos", "issues")}
-                        className="text-2xs text-brand hover:underline font-medium"
-                      >
-                        +{data.openTickets.length - 3} more &rarr; View all
-                      </button>
+                    <li className="text-2xs text-muted">
+                      +{data.openTickets.length - 3} more
                     </li>
                   )}
                 </ul>

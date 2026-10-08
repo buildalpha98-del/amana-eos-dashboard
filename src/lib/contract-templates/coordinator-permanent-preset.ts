@@ -22,7 +22,7 @@ export const COORDINATOR_PERMANENT_TEMPLATE_NAME =
   "OSHC Coordinator — Part-Time Permanent";
 
 export const COORDINATOR_PERMANENT_TEMPLATE_DESCRIPTION =
-  "Part-time permanent OSHC Coordinator (Director of Service) — rebuilt " +
+  "Part-time permanent OSHC Coordinator (Service Coordinator) — rebuilt " +
   "from the Employment Hero source contract (2026-02-03). Governed by " +
   "the Children's Services Award 2010 (MA000120). 6-month probation, " +
   "NES notice table, NES leave, fortnightly pay, standard Amana clauses.";

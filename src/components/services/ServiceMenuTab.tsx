@@ -26,6 +26,7 @@ import {
   useUploadMenuFile,
   type MenuItemData,
 } from "@/hooks/useMenu";
+import { useSession } from "next-auth/react";
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 const SLOTS = ["morning_tea", "lunch", "afternoon_tea"] as const;
@@ -87,6 +88,10 @@ function cellKey(day: string, slot: string): CellKey {
 }
 
 export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
+  // Coordinators and office write the menu (the API refuses educators);
+  // educators get it read-only instead of a Save that only ever errors.
+  const { data: session } = useSession();
+  const canEdit = session?.user?.role !== "staff";
   const [weekOffset, setWeekOffset] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -268,6 +273,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
               </button>
             )}
           </div>
+          {canEdit && (
           <Button
             variant="primary"
             size="xs"
@@ -278,8 +284,12 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
           >
             Save
           </Button>
+          )}
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        {!canEdit && (
+          <p className="text-xs text-muted">View only — your Coordinator updates the menu.</p>
+        )}
+        <div className={canEdit ? "flex items-center gap-2 flex-wrap" : "hidden"}>
           <input
             ref={fileInputRef}
             type="file"
@@ -521,6 +531,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
                       )}
                     >
                       <textarea
+                        readOnly={!canEdit}
                         value={cell.description}
                         onChange={(e) =>
                           updateCell(key, "description", e.target.value)
@@ -617,6 +628,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
                             )}
                           >
                             <textarea
+                        readOnly={!canEdit}
                               value={cell.description}
                               onChange={(e) =>
                                 updateCell(key, "description", e.target.value)
@@ -684,6 +696,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
           Weekly Notes
         </label>
         <textarea
+                        readOnly={!canEdit}
           value={notes}
           onChange={(e) => {
             setNotes(e.target.value);

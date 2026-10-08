@@ -17,6 +17,8 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, LogIn, LogOut, Loader2, Check, Sparkles } from "lucide-react";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { MedicalAlertBadge } from "@/components/children/MedicalAlertBadge";
+import { CustodyChip } from "@/components/children/CustodyChip";
 import { toast } from "@/hooks/useToast";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -43,7 +45,14 @@ import { useServiceRooms } from "@/hooks/useServiceRooms";
 /** Matches GET /api/attendance/roll-call → { records, summary }. */
 interface RollRecord {
   childId: string;
-  child: { firstName: string; surname: string };
+  child: {
+    firstName: string;
+    surname: string;
+    medicalConditions?: string[];
+    dietaryRequirements?: string[];
+    anaphylaxisActionPlan?: boolean;
+    custodyArrangements?: unknown;
+  };
   status: string;
   signInTime: string | null;
   signOutTime: string | null;
@@ -193,6 +202,29 @@ export function ServiceSignInOutTab({
                   <p className="text-base font-semibold text-foreground truncate">
                     {c.child.firstName} {c.child.surname}
                   </p>
+                  {/* The hand-over is where a medical or custody alert
+                      matters most — same flags as Roll Call (2026-10-09). */}
+                  {(c.child.anaphylaxisActionPlan ||
+                    (c.child.medicalConditions?.length ?? 0) > 0 ||
+                    (c.child.dietaryRequirements?.length ?? 0) > 0 ||
+                    Boolean(c.child.custodyArrangements)) && (
+                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                      {c.child.anaphylaxisActionPlan && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-600 text-white text-2xs font-bold uppercase tracking-wide">
+                          Anaphylaxis
+                        </span>
+                      )}
+                      {((c.child.medicalConditions?.length ?? 0) > 0 ||
+                        (c.child.dietaryRequirements?.length ?? 0) > 0) && (
+                        <MedicalAlertBadge child={c.child} compact />
+                      )}
+                      <CustodyChip
+                        custody={c.child.custodyArrangements as never}
+                        childName={`${c.child.firstName} ${c.child.surname}`}
+                        compact
+                      />
+                    </div>
+                  )}
                   {/* Their first ever session. Above the times, because
                       it changes how you greet them and who you check the
                       handover with — and there's nobody at the door who

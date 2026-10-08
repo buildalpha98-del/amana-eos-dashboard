@@ -172,6 +172,11 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
   const [showInterests, setShowInterests] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
 
+  // Coordinators and office plan the program (the API refuses educators),
+  // so educators get it read-only rather than buttons that only ever error.
+  const { data: authSession } = useSession();
+  const canEdit = authSession?.user?.role !== "staff";
+
   const currentWeek = getWeekStart();
   const selectedWeek = new Date(currentWeek);
   selectedWeek.setDate(selectedWeek.getDate() - weekOffset * 7);
@@ -305,6 +310,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
               </button>
             )}
           </div>
+          {canEdit && (
           <button
             onClick={() => {
               setEditingActivity(null);
@@ -317,8 +323,10 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
             <span className="hidden sm:inline">Add Activity</span>
             <span className="sm:hidden">Add</span>
           </button>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {canEdit && (
           <button
             onClick={handleCopyPrevious}
             disabled={bulkMutation.isPending}
@@ -327,6 +335,8 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
             <Copy className="w-3.5 h-3.5" />
             Copy Prev Week
           </button>
+          )}
+          {canEdit && (
           <button
             onClick={() => setShowImport(true)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground/80 bg-card border border-border rounded-lg hover:bg-surface/50 transition-colors"
@@ -334,6 +344,8 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
             <Upload className="w-3.5 h-3.5" />
             Import
           </button>
+          )}
+          {canEdit && (
           <button
             onClick={() => setShowLibraryPicker(true)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground/80 bg-card border border-border rounded-lg hover:bg-surface/50 transition-colors"
@@ -341,6 +353,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
             <Library className="w-3.5 h-3.5" />
             Library
           </button>
+          )}
           <a
             href={`/services/${serviceId}/program/print?weekStart=${weekKey}`}
             target="_blank"
@@ -401,6 +414,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
                   </div>
                   <button
                     type="button"
+                    hidden={!canEdit}
                     onClick={() => openCreate(session)}
                     className="text-xs font-medium text-brand hover:underline"
                   >
@@ -426,6 +440,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
                           <ActivityCard
                             key={activity.id}
                             activity={activity}
+                            canEdit={canEdit}
                             onEdit={() => {
                               setEditingActivity(activity);
                               setDefaultSession(null);
@@ -439,7 +454,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
                             }
                           />
                         ))}
-                        {sessionDays[day].length === 0 && (
+                        {sessionDays[day].length === 0 && canEdit && (
                           <button
                             onClick={() => openCreate(session)}
                             className="w-full py-5 border-2 border-dashed border-border rounded-lg text-xs text-muted hover:border-brand hover:text-brand transition-colors"
@@ -588,10 +603,12 @@ function ActivityCard({
   activity,
   onEdit,
   onDelete,
+  canEdit = true,
 }: {
   activity: ProgramActivity;
   onEdit: () => void;
   onDelete: () => void;
+  canEdit?: boolean;
 }) {
   return (
     <div
@@ -601,7 +618,7 @@ function ActivityCard({
       )}
     >
       {/* Actions */}
-      <div className="absolute top-2 right-2 hidden group-hover:flex items-center gap-1">
+      <div className={cn("absolute top-2 right-2 hidden items-center gap-1", canEdit && "group-hover:flex")}>
         <button aria-label="Edit activity"
           onClick={onEdit}
           className="p-1 rounded bg-card/80 hover:bg-card text-muted hover:text-brand"

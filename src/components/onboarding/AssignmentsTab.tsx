@@ -72,7 +72,7 @@ const ROLES = [
   { value: "owner", label: "Owner" },
   { value: "head_office", label: "Head office" },
   { value: "admin", label: "Admin" },
-  { value: "member", label: "Director of Service" },
+  { value: "member", label: "Service Coordinator" },
   { value: "staff", label: "Educator" },
   { value: "marketing", label: "Marketing" },
 ];

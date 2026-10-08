@@ -81,7 +81,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     throw ApiError.forbidden(
       target.id === session.user.id
         ? "You can't change your own access."
-        : "Only head office, or the Director for an educator at their centre, can change this.",
+        : "Only head office, or the Coordinator for an educator at their centre, can change this.",
     );
   }
 

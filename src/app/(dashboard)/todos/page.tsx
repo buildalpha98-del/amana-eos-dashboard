@@ -262,9 +262,9 @@ function TodosPageContent() {
       {/* Header */}
       <PageHeader
         title="To-Dos"
-        description="Leadership action items across every week — Educator + Director of Service to-dos live on each service"
+        description="Leadership action items across every week — Educator + Coordinator to-dos live on each service"
         helpTooltipId="todos-heading"
-        helpTooltipContent="This board shows to-dos assigned to admin, marketing, and state-manager roles. Educator and Director of Service to-dos are managed inside each service's EOS To-Dos tab."
+        helpTooltipContent="This board shows to-dos assigned to admin, marketing, and state-manager roles. Educator and Service Coordinator to-dos are managed inside each service's EOS To-Dos tab."
         primaryAction={{ label: "Add To-Do", icon: Plus, onClick: () => setShowCreate(true) }}
         toggles={[{
           options: [

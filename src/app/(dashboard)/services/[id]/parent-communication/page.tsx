@@ -117,7 +117,7 @@ export function ParentCommunicationPanel({
         description={
           canPublish
             ? "Create posts and announcements families see in their portal feed"
-            : "Share what the children got up to. Your Director checks each post before families see it."
+            : "Share what the children got up to. Your Coordinator checks each post before families see it."
         }
         primaryAction={{
           label: canPublish ? "Create Post" : "Write a post",

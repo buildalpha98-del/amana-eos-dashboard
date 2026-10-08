@@ -13,6 +13,8 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Search, ChevronRight, Users } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
+import { useSession } from "next-auth/react";
+import { isAdminRole } from "@/lib/role-permissions";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 
@@ -57,6 +59,8 @@ export function ServiceFamiliesTab({
   serviceName?: string;
 }) {
   const [search, setSearch] = useState("");
+  const { data: session } = useSession();
+  const canOpenFamily = isAdminRole(session?.user?.role ?? "");
 
   const { data, isLoading } = useQuery<{ families: FamilyRow[] }>({
     queryKey: ["families", { serviceId, search }],
@@ -117,10 +121,19 @@ export function ServiceFamiliesTab({
               const here = f.children.filter(
                 (c) => !c.serviceName || c.serviceName === serviceName,
               );
+              // The family account page is office-only; a Coordinator who
+              // tapped it was bounced to the dashboard. Below office level,
+              // open their child at this centre instead.
+              const href = canOpenFamily
+                ? `/families/${f.id}`
+                : here[0]
+                  ? `/children/${here[0].id}`
+                  : null;
+              const RowTag = href ? Link : "div";
               return (
                 <li key={f.id}>
-                  <Link
-                    href={`/families/${f.id}`}
+                  <RowTag
+                    href={href ?? ""}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-surface transition-colors"
                   >
                     <div className="min-w-0 flex-1">
@@ -141,7 +154,7 @@ export function ServiceFamiliesTab({
                       {meta.label}
                     </span>
                     <ChevronRight className="w-4 h-4 text-muted shrink-0" />
-                  </Link>
+                  </RowTag>
                 </li>
               );
             })}

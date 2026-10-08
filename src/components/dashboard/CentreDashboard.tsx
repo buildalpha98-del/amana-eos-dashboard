@@ -258,7 +258,7 @@ export function CentreDashboard({
             {attention.pendingBookingRequests > 0 && (
               <li>
                 <Link
-                  href={`${svc}?tab=daily&sub=casual-bookings`}
+                  href="/bookings"
                   className="underline underline-offset-2"
                 >
                   {attention.pendingBookingRequests} casual booking{" "}
@@ -272,7 +272,7 @@ export function CentreDashboard({
             {attention.openIncidents > 0 && (
               <li>
                 <Link
-                  href={`${svc}?tab=safety&sub=incidents`}
+                  href={`${svc}?tab=compliance&sub=incidents`}
                   className="underline underline-offset-2"
                 >
                   {attention.openIncidents} incident{" "}
@@ -283,7 +283,7 @@ export function CentreDashboard({
             {attention.expiringCerts > 0 && (
               <li>
                 <Link
-                  href={`${svc}?tab=people&sub=compliance`}
+                  href="/compliance"
                   className="underline underline-offset-2"
                 >
                   {attention.expiringCerts} staff{" "}
@@ -312,25 +312,25 @@ export function CentreDashboard({
           badge={attention.checklistsOutstanding}
         />
         <QuickAction
-          href={`${svc}?tab=safety&sub=incidents`}
+          href={`${svc}?tab=compliance&sub=incidents`}
           label="Incidents"
           icon={ShieldAlert}
           badge={attention.openIncidents}
         />
         <QuickAction
-          href={`${svc}?tab=daily&sub=medications`}
+          href={`${svc}?tab=daily&sub=medication`}
           label="Medication"
           icon={Pill}
         />
-        <QuickAction href="/communication" label="Post to families" icon={Megaphone} />
+        <QuickAction href={`${svc}?tab=daily&sub=posts`} label="Post to families" icon={Megaphone} />
         <QuickAction
-          href={`${svc}?tab=daily&sub=casual-bookings`}
+          href="/bookings"
           label="Bookings"
           icon={CalendarPlus}
           badge={attention.pendingBookingRequests}
         />
         <QuickAction
-          href={`${svc}?tab=people&sub=compliance`}
+          href="/compliance"
           label="Expiring docs"
           icon={FileWarning}
           badge={attention.expiringCerts}
@@ -369,7 +369,7 @@ export function CentreDashboard({
                     <strong className="text-foreground">{p.leader}</strong>
                   ) : (
                     <Link
-                      href={`${svc}?tab=daily&sub=responsible-person`}
+                      href={`${svc}?tab=daily&sub=roster`}
                       className="text-brand underline underline-offset-2"
                     >
                       not set

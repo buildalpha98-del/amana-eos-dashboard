@@ -135,7 +135,7 @@ function MyContractContent() {
         <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-3" />
         <p className="text-sm text-foreground">
           We couldn&apos;t load your contracts just now. Please refresh, and
-          let your Director know if it keeps happening.
+          let your Coordinator know if it keeps happening.
         </p>
       </div>
     );
@@ -239,7 +239,7 @@ function MyContractContent() {
           </h2>
           <p className="text-sm text-muted max-w-md mx-auto">
             We don&apos;t have an employment contract recorded for you. If you
-            believe this is wrong, please speak with your Director of Service
+            believe this is wrong, please speak with your Service Coordinator
             or the office.
           </p>
         </div>
@@ -286,7 +286,7 @@ function MyContractContent() {
       )}
 
       <p className="text-xs text-muted text-center">
-        Questions about your pay rate or hours? Speak with your Director of
+        Questions about your pay rate or hours? Speak with your Coordinator of
         Service, or see{" "}
         <Link href="/my-pay" className="text-brand hover:underline">
           My Pay

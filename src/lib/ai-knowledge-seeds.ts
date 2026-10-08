@@ -74,8 +74,8 @@ We are an Australian **Outside School Hours Care (OSHC)** provider delivering su
 ## Our team structure
 
 1. **Area Manager / Director (Daniel)** — overall responsibility, ensures safety and compliance, owns the strategy
-2. **Director of Service** (also called OSHC Coordinator) — experienced in childcare/OSHC, Educational Leader of the programme at a specific centre
-3. **2IC Educators** — second-in-charge at larger services, supports the Director of Service, working towards becoming a Director themselves
+2. **Service Coordinator** (also called OSHC Coordinator) — experienced in childcare/OSHC, Educational Leader of the programme at a specific centre
+3. **2IC Educators** — second-in-charge at larger services, supports the Service Coordinator, working towards becoming a Director themselves
 4. **Educators** (OSHC Educators) — make up the largest part of the team. Priority is engaging with children, helps run the programme.
 5. **State Manager (head_office role)** — portfolio of services across a state, handles regional operations
 
@@ -106,7 +106,7 @@ Daily, educators post updates to families through OWNA, also called the OWNA Fam
 
 ### Within the team
 
-We use the dashboard's internal communication tools and WhatsApp for centre-level coordination. The State Manager runs weekly check-ins with each Director of Service.
+We use the dashboard's internal communication tools and WhatsApp for centre-level coordination. The State Manager runs weekly check-ins with each Service Coordinator.
 
 ### With external parties (regulators, suppliers, the community)
 
@@ -150,13 +150,13 @@ Educators don't directly participate in EOS but should know it exists so they un
 A: Our tagline — it captures that we extend meaningful learning, play, and growth beyond the school day.
 
 **Q: Who's the Director / who do I report to?**
-A: Daniel is the overall Director / Area Manager. Your direct manager is your Director of Service (your centre lead, also called the OSHC Coordinator). The State Manager covers your state.
+A: Daniel is the overall Director / Area Manager. Your direct manager is your Service Coordinator (your centre lead, also called the OSHC Coordinator). The State Manager covers your state.
 
 **Q: What's the OSHC educator priority?**
 A: Engaging with children. Programming, family communication, and admin support that priority.
 
 **Q: How do I post to families / send a parent update / post to OWNA?**
-A: Use the OWNA Family App. See the "How we communicate" section above for the procedure, and your Director of Service for the centre-specific steps.
+A: Use the OWNA Family App. See the "How we communicate" section above for the procedure, and your Service Coordinator for the centre-specific steps.
 
 **Q: What's MTOP?**
 A: My Time Our Place — the national learning framework for school-age children. Every Amana programme is planned against MTOP outcomes.
@@ -176,7 +176,7 @@ This handbook covers your conditions of employment, leave, pay, performance, con
 ### Roles at Amana
 
 - **OSHC Educator** (Cert III or working towards) — entry-level educator
-- **OSHC Coordinator** (Diploma-qualified) — also called Director of Service, leads a centre
+- **OSHC Coordinator** (Diploma-qualified) — also called Service Coordinator, leads a centre
 - **State Manager** — portfolio of centres
 - **Marketing / Admin / Owner** — head office support
 
@@ -218,7 +218,7 @@ A: Fortnightly, Thursday after the Mon-Sun cycle.
 A: Update them in Employment Hero directly (talk to admin for an EH invite if you haven't been set up).
 
 **Q: My payslip looks wrong / I missed a shift on it.**
-A: Speak to your Director of Service within 48 hours of the payslip dropping. They'll flag the correction to admin.
+A: Speak to your Service Coordinator within 48 hours of the payslip dropping. They'll flag the correction to admin.
 
 ## Leave
 
@@ -239,7 +239,7 @@ Casual staff don't accrue paid leave (it's loaded into the casual rate) but can 
 2. Click "New leave request"
 3. Choose leave type, dates, and reason (optional for annual / personal)
 4. Submit
-5. Your Director of Service approves in Employment Hero
+5. Your Service Coordinator approves in Employment Hero
 6. You'll be notified when it's approved or declined
 
 > **[FILL IN YOUR SPECIFICS]**: Add your notice periods, blackout dates (e.g. school holidays for vacation care), and any leave-specific procedures.
@@ -250,13 +250,13 @@ Casual staff don't accrue paid leave (it's loaded into the casual rate) but can 
 A: My Portal → My Leave Requests → New leave request.
 
 **Q: How much notice do I need to give?**
-A: As much as possible, ideally 4+ weeks for annual leave. Personal leave can be same-day if you're unwell — call your Director of Service before your shift starts.
+A: As much as possible, ideally 4+ weeks for annual leave. Personal leave can be same-day if you're unwell — call your Service Coordinator before your shift starts.
 
 **Q: Can casuals take leave?**
-A: Unpaid only — speak to your Director.
+A: Unpaid only — speak to your Coordinator.
 
 **Q: I'm sick today and can't come in.**
-A: Call your Director of Service ASAP — ideally before 6am if you have a BSC shift, before 2:30pm for an ASC shift. Then submit a Personal leave request via My Portal.
+A: Call your Service Coordinator ASAP — ideally before 6am if you have a BSC shift, before 2:30pm for an ASC shift. Then submit a Personal leave request via My Portal.
 
 ## Performance
 
@@ -272,7 +272,7 @@ You'll be notified via the dashboard when your review opens. Complete your self-
 
 ### Goals
 
-Goals from your last review carry forward. Your Director of Service sets new goals at each review. Goals are tracked in the dashboard so you can see them anytime.
+Goals from your last review carry forward. Your Service Coordinator sets new goals at each review. Goals are tracked in the dashboard so you can see them anytime.
 
 ### Common performance questions
 
@@ -290,7 +290,7 @@ A: Write your disagreement in the "Acknowledgement notes" field when you sign of
 ### Professional conduct
 
 - Punctual — arrive at least 10 minutes before your shift
-- Professional dress code (your Director of Service will brief you on the centre standard)
+- Professional dress code (your Service Coordinator will brief you on the centre standard)
 - Phones off-floor during programme delivery — emergencies via the centre phone
 - No social media posts about children, families, or work matters
 - Maintain confidentiality of all child, family, and staff information
@@ -302,7 +302,7 @@ Every staff member must:
 - Treat all children with respect and dignity
 - Avoid being alone with a child in a private space — keep doors open, stay in eyeline of another educator
 - Never physically discipline or restrain a child except in immediate safety
-- Report any concerns about another staff member's behaviour to the Director of Service
+- Report any concerns about another staff member's behaviour to the Service Coordinator
 - Complete **Child Safe Code of Conduct training** annually
 
 ### Right to disconnect
@@ -343,9 +343,9 @@ ALL incidents — child injury, staff injury, near-miss, behavioural incident �
 2. Select the child (if applicable)
 3. Document what happened, when, who was involved
 4. Record any action taken (first aid, family notified)
-5. Notify the Director of Service immediately
+5. Notify the Service Coordinator immediately
 
-Serious incidents (any incident requiring medical attention, any allegation of misconduct, any death) must be reported to your Director AND to the Director (Daniel) within 1 hour.
+Serious incidents (any incident requiring medical attention, any allegation of misconduct, any death) must be reported to your Coordinator AND to the Coordinator (Daniel) within 1 hour.
 
 > **[FILL IN YOUR SPECIFICS]**: Add your full Incident Reporting Procedure, with state-specific notifiable incident timelines.
 
@@ -354,7 +354,7 @@ Serious incidents (any incident requiring medical attention, any allegation of m
 If you're injured at work:
 
 1. Get medical attention first
-2. Tell your Director of Service
+2. Tell your Service Coordinator
 3. Lodge a Workers Compensation claim — admin will assist
 4. Your claim is tracked in your staff profile → Health & WHS
 
@@ -366,8 +366,8 @@ Amana has a legal positive duty under the *Sex Discrimination and Fair Work (Res
 
 ### How to raise a concern
 
-- Speak to your Director of Service first if you're comfortable
-- If you're not comfortable, contact the State Manager or the Director (Daniel)
+- Speak to your Service Coordinator first if you're comfortable
+- If you're not comfortable, contact the State Manager or the Coordinator (Daniel)
 - For anonymous reporting: use the dashboard's **Safe Report** channel — your identity is never recorded
 
 We do NOT tolerate retaliation against anyone who raises a concern in good faith.
@@ -387,7 +387,7 @@ A: My Portal → My Position Description (read-only, expand to view full content
 A: Roster → Me (or My Portal).
 
 **Q: How do I swap a shift?**
-A: Roster → Swaps inbox. Post the shift; another staff member can claim it. Director of Service approves.
+A: Roster → Swaps inbox. Post the shift; another staff member can claim it. Service Coordinator approves.
 `;
 
 // ─── 3. The Proven Process ─────────────────────────────────────────
@@ -400,7 +400,7 @@ The Proven Process is the **operational playbook** that runs Amana OSHC. It's ho
 
 Every centre, every shift, every interaction with a family should feel like Amana — same warmth, same professionalism, same standards. The Proven Process is what makes that consistent.
 
-If a Director of Service follows this process, the centre runs well. If multiple Directors follow it, the org scales without quality dropping.
+If a Service Coordinator follows this process, the centre runs well. If multiple Directors follow it, the org scales without quality dropping.
 
 ## The daily centre rhythm
 
@@ -434,7 +434,7 @@ A: See the BSC section above — open, greet, sign in, run activity, supervise b
 A: Use OWNA's roll-call screen. Tap the child, confirm time. The system enforces ratio calculations.
 
 **Q: A parent isn't on the authorised pickup list — what do I do?**
-A: Do NOT release the child. Call the parent on the file. If unresolved, call your Director of Service immediately.
+A: Do NOT release the child. Call the parent on the file. If unresolved, call your Service Coordinator immediately.
 
 ## The weekly cadence
 
@@ -442,10 +442,10 @@ A: Do NOT release the child. Call the parent on the file. If unresolved, call yo
 
 - **Daily reflection** at end of shift (OWNA)
 - **Weekly programme planning** — review next week's activities, link to MTOP outcomes
-- **Weekly 1:1 with Director of Service** (15 min) — your priorities, blockers, anything you need
+- **Weekly 1:1 with Service Coordinator** (15 min) — your priorities, blockers, anything you need
 - **Friday afternoon family update** — week-in-review post via OWNA
 
-### Director of Service level
+### Service Coordinator level
 
 - **Weekly L10 meeting** with State Manager (90 min)
 - **Scorecard update** in the dashboard before L10 — weekly KPIs for your centre
@@ -454,7 +454,7 @@ A: Do NOT release the child. Call the parent on the file. If unresolved, call yo
 
 ### State Manager / head office level
 
-- **Weekly L10** with the Director (Daniel)
+- **Weekly L10** with the Coordinator (Daniel)
 - **Portfolio scorecard review** — all centres in the state
 - **Centre visits** — at least one centre visit per week
 
@@ -477,7 +477,7 @@ Rocks are stored in the dashboard's Rocks module.
 2. **Link a Position Description** — pulls in selection criteria + qualifications
 3. **Post the job** (channels: Indeed, Seek, community, referrals)
 4. **Screen applications** as they come in
-5. **Interview** shortlist (panel of 2 — Director of Service + State Manager)
+5. **Interview** shortlist (panel of 2 — Service Coordinator + State Manager)
 6. **Reference checks** — capture in the dashboard → Staff profile → Employment Records → References. Minimum 2 references.
 7. **Offer** — issue contract via Contracts module; admin signs, candidate signs
 8. **Onboarding** — auto-seeded onboarding pack (7 todos + welcome announcement)
@@ -510,11 +510,11 @@ The seven NQS Quality Areas — every Amana centre is assessed against these:
 - **QA6**: Collaborative Partnerships with Families and Communities
 - **QA7**: Governance and Leadership
 
-Each Director of Service maintains a current **Quality Improvement Plan (QIP)** for their centre.
+Each Service Coordinator maintains a current **Quality Improvement Plan (QIP)** for their centre.
 
 ### Audits
 
-- Monthly internal compliance audit (your Director of Service runs this)
+- Monthly internal compliance audit (your Service Coordinator runs this)
 - Annual external audit
 - ACECQA visits — every Amana centre will be assessed within the rating cycle
 
@@ -523,7 +523,7 @@ Each Director of Service maintains a current **Quality Improvement Plan (QIP)** 
 If you suspect a child is being abused or neglected, you MUST report. Process:
 
 1. Recognise signs/concerns (refer to Child Protection training)
-2. Report to your Director of Service immediately
+2. Report to your Service Coordinator immediately
 3. Director (with State Manager support) reports to the appropriate state agency:
    - **NSW**: Child Protection Hotline — 13 2111
    - **VIC**: Child Protection Crisis Line — 131 278
@@ -562,7 +562,7 @@ A: L10 format (90 min, fixed agenda). Segue (5) → Scorecard (5) → Rock revie
 A: Dashboard → Rocks. Personal rocks for what YOU own this quarter.
 
 **Q: What happens at an annual NQS rating?**
-A: ACECQA assesses against the 7 Quality Areas. Director of Service is the main point of contact during the visit; State Manager attends; we present our QIP.
+A: ACECQA assesses against the 7 Quality Areas. Service Coordinator is the main point of contact during the visit; State Manager attends; we present our QIP.
 `;
 
 export const KNOWLEDGE_SEEDS: KnowledgeSeed[] = [
