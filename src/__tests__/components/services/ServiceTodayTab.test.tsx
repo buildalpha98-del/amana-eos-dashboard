@@ -31,6 +31,9 @@ vi.mock("@/components/services/ServiceActivityWidget", () => ({
 vi.mock("@/components/services/ShiftHandoverWidget", () => ({
   ShiftHandoverWidget: () => <div data-testid="handover-stub" />,
 }));
+vi.mock("@/components/services/ChecklistsTodayWidget", () => ({
+  ChecklistsTodayWidget: () => <div data-testid="checklists-stub" />,
+}));
 
 import { ServiceTodayTab } from "@/components/services/ServiceTodayTab";
 
@@ -61,5 +64,16 @@ describe("ServiceTodayTab", () => {
     const wrapper = container.firstElementChild as HTMLElement;
     expect(wrapper).toBeTruthy();
     expect(wrapper.className).toContain("space-y-6");
+  });
+});
+
+describe("ServiceTodayTab shift actions (2026-10-08)", () => {
+  it("leads with one-tap links to the jobs of a shift", () => {
+    render(<ServiceTodayTab serviceId="svc-1" />);
+    const signIn = screen.getByRole("link", { name: /sign in \/ out/i });
+    expect(signIn.getAttribute("href")).toBe("/services/svc-1?tab=daily&sub=sign-in-out");
+    expect(screen.getByRole("link", { name: /headcount/i }).getAttribute("href")).toBe(
+      "/services/svc-1?tab=compliance&sub=headcounts",
+    );
   });
 });

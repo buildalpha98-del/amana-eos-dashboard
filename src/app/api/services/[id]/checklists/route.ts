@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { assertServiceAccess } from "@/lib/authz-scope";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -10,6 +11,8 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
  */
 export const GET = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
+  // Centre scope — this listed any centre's checklists (2026-10-08).
+  assertServiceAccess(session, id);
 
   const service = await prisma.service.findUnique({
     where: { id },
