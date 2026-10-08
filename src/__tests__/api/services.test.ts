@@ -472,6 +472,42 @@ describe("PATCH /api/services/[id]", () => {
     expect(updateCall.data.providerApprovalNumber).toBe("PR-00088888");
   });
 
+  it("records the centre's NQS rating and dates (2026-10-08)", async () => {
+    mockSession({ id: "coord-1", name: "Coordinator", role: "member", serviceId: "svc-1" });
+    prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });
+    prismaMock.service.update.mockResolvedValue({ id: "svc-1", manager: null });
+    prismaMock.activityLog.create.mockResolvedValue({});
+    const res = await PATCH(
+      createRequest("PATCH", "/api/services/svc-1", {
+        body: { nqsRating: "Exceeding", nqsLastAssessedAt: "2025-05-01", nqsQaRatings: { QA1: "Meeting" } },
+      }),
+      { params: Promise.resolve({ id: "svc-1" }) },
+    );
+    expect(res.status).toBe(200);
+    const data = prismaMock.service.update.mock.calls[0][0].data;
+    expect(data.nqsRating).toBe("Exceeding");
+    expect(data.nqsLastAssessedAt).toBeInstanceOf(Date);
+  });
+
+  it("refuses a made-up rating", async () => {
+    mockSession({ id: "coord-1", name: "Coordinator", role: "member", serviceId: "svc-1" });
+    const res = await PATCH(
+      createRequest("PATCH", "/api/services/svc-1", { body: { nqsRating: "Amazing" } }),
+      { params: Promise.resolve({ id: "svc-1" }) },
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("refuses a coordinator changing the centre's status (2026-10-08)", async () => {
+    mockSession({ id: "coord-1", name: "Coordinator", role: "member", serviceId: "svc-1" });
+    const res = await PATCH(
+      createRequest("PATCH", "/api/services/svc-1", { body: { status: "closed" } }),
+      { params: Promise.resolve({ id: "svc-1" }) },
+    );
+    expect(res.status).toBe(403);
+    expect(prismaMock.service.update).not.toHaveBeenCalled();
+  });
+
   it("forbids coordinator from patching another service (403), no update called", async () => {
     mockSession({
       id: "coord-1",

@@ -268,9 +268,11 @@ function computeCompliancePillar(
 
   // NQS Rating
   const nqsMap: Record<string, number> = {
+    Excellent: 100,
     Exceeding: 100,
     Meeting: 75,
     "Working Towards": 40,
+    "Significant Improvement Required": 10,
   };
   breakdown.nqsRating = m.nqsRating ? (nqsMap[m.nqsRating] ?? 30) : 30;
   scores.push(breakdown.nqsRating);

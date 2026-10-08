@@ -2960,6 +2960,16 @@ model Service {
   /// features land.
   appSettings   Json?
 
+  // ── Assessment & Rating (2026-10-08, after OWNA's A&R tab) ──
+  /// Overall NQS rating: Excellent | Exceeding | Meeting | Working Towards
+  /// | Significant Improvement Required | Provisional. Feeds the centre
+  /// health score (it used to read a CentreMetrics field nothing filled).
+  nqsRating          String?
+  nqsLastAssessedAt  DateTime? @db.Date
+  nqsNextAssessmentAt DateTime? @db.Date
+  /// Per quality area: { "QA1": "Meeting", … "QA7": "Exceeding" }.
+  nqsQaRatings       Json?
+
   /// The centre's fee POLICY — late collection, absence charging,
   /// cancellation, enrolment fee and bond, payment terms. Validated by
   /// `feePolicySchema`; see src/lib/fee-policy.ts.
