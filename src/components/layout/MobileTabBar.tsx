@@ -14,6 +14,7 @@ import {
   CalendarDays,
   Bell,
   BookOpen,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotificationCount } from "@/hooks/useNotifications";
@@ -33,8 +34,8 @@ const STAFF_TIER_ROLES = new Set(["staff", "member", "marketing"]);
 const staffTabs = [
   { href: "/my-portal", label: "Home", icon: Home },
   { href: "/my-day", label: "My Day", icon: Sun },
-  { href: "/my-pay", label: "Pay", icon: Wallet },
-  { href: "/my-leave", label: "Leave", icon: CalendarDays },
+  { href: "/my-pay", label: "Pay & Leave", icon: Wallet },
+  { href: "/my-training", label: "Training", icon: GraduationCap },
 ] as const;
 
 const defaultTabs = [
@@ -67,12 +68,12 @@ export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
       ]
     : role === "staff" && session?.user?.serviceId
       ? // Educators (2026-10-08): their centre is a tab, not a hunt.
-        // Leave and Expenses are Home tiles; everything else is in More.
+        // Shifts = My Day (clock + week ahead); Pay & Leave holds expenses.
         [
           { href: "/my-portal", label: "Home", icon: Home },
           { href: `/services/${session.user.serviceId}`, label: "Centre", icon: Building2 },
-          { href: "/roster/me", label: "Roster", icon: CalendarDays },
-          { href: "/my-pay", label: "Pay", icon: Wallet },
+          { href: "/my-day", label: "Shifts", icon: CalendarDays },
+          { href: "/my-pay", label: "Pay & Leave", icon: Wallet },
         ]
       : role && STAFF_TIER_ROLES.has(role)
         ? staffTabs

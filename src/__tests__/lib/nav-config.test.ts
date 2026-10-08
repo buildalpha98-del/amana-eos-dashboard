@@ -52,9 +52,15 @@ describe("filterNavItems", () => {
     expect(items.map((i) => i.href)).toContain("/my-pay");
   });
 
-  it("labels compliance as the staff member's own", () => {
-    const item = filterNavItems(navItems, "staff" as Role).find((i) => i.href === "/compliance");
-    expect(item?.label).toBe("My Compliance");
+  it("combines an educator's pages: My Shifts, My Pay & Leave, My Training & Compliance (2026-10-08)", () => {
+    const items = filterNavItems(navItems, "staff" as Role).filter((i) => i.section === "Home");
+    expect(items.map((i) => i.label)).toEqual([
+      "My Portal",
+      "My Shifts",
+      "My Pay & Leave",
+      "My Training & Compliance",
+      "Notifications",
+    ]);
   });
 
   it("every staff nav item is a page staff can open", () => {
@@ -580,7 +586,7 @@ describe("My Portal grouping (2026-08-06)", () => {
   it("still shows an Educator their own training and roster", () => {
     const staffHrefs = filterNavItems(navItems, "staff").map((i) => i.href);
     expect(staffHrefs).toContain("/my-training");
-    expect(staffHrefs).toContain("/roster/me");
+    // The roster is reached from My Shifts (/my-day) now.
     expect(staffHrefs).toContain("/my-day");
   });
 });

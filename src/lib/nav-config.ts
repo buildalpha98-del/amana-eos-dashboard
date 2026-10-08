@@ -362,20 +362,25 @@ export const navItems: NavItem[] = [
  */
 export const STAFF_NAV_HREFS: readonly string[] = [
   "/my-portal",
+  // 2026-10-08, Daniel: fewer, fuller pages. My Shifts = My Day + roster
+  // link; My Pay & Leave = pay/leave/expenses tabs; My Training &
+  // Compliance = courses + certificates tabs (/compliance still opens
+  // directly — the first-shift email and induction blockers link there).
   "/my-day",
-  "/roster/me",
   "/my-pay",
-  "/my-leave",
-  "/my-expenses",
   "/my-training",
-  // Where every certificate goes — the first-shift email, the tour and the
-  // checklist all send new starters here (labelled "My Compliance").
-  "/compliance",
   "/notifications",
   "/tools/handbook",
   "/tools/the-amana-way",
   "/tools/amana-way-one-pager",
 ];
+
+/** What an educator's combined pages are called in their sidebar. */
+const STAFF_NAV_LABELS: Record<string, string> = {
+  "/my-day": "My Shifts",
+  "/my-pay": "My Pay & Leave",
+  "/my-training": "My Training & Compliance",
+};
 
 function staffNavItems(items: readonly NavItem[], serviceId: string | null): NavItem[] {
   // FIRST entry per href wins: /compliance is listed twice — "My
@@ -389,7 +394,8 @@ function staffNavItems(items: readonly NavItem[], serviceId: string | null): Nav
     // "Home" is the heading over their own pages (Daniel, 2026-10-08) —
     // "My Portal" is the first page in it, not the name of the section.
     const section = item.section === "Handbook" ? "Handbook" : "Home";
-    return [{ ...item, section, core: true, hidden: false }];
+    const label = STAFF_NAV_LABELS[href] ?? item.label;
+    return [{ ...item, label, section, core: true, hidden: false }];
   });
   // 2026-10-08: the centre they work at — sign in/out, roll call,
   // checklists, posts — right under their own home. Only when they have a

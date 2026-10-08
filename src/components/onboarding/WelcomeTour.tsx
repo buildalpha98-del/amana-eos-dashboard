@@ -101,28 +101,28 @@ const STAFF_STEPS: TourStepDef[] = [
   {
     title: "Your menu",
     description:
-      "Tap More at the bottom of the screen (or the menu on a computer) to see everything: My Portal, My Day, your roster, pay, leave and training — plus the Staff Handbook, The Amana Way and our Proven Process.",
+      "Your menu has three parts. Home is about you — shifts, pay & leave, training. My Centre is your centre's work — sign in/out, roll call, checklists, posts. Handbook holds the Staff Handbook, The Amana Way and our Proven Process.",
     icon: Menu,
     iconColor: "text-brand",
   },
   {
     title: "Upload your documents",
     description:
-      "Your Working With Children Check, first aid and other certificates all go in one place — My Compliance. Tap Upload and take a photo. That's it.",
+      "Your Working With Children Check, first aid and other certificates all go in one place — My Training & Compliance. Tap Upload and take a photo. That's it.",
     icon: ShieldCheck,
     iconColor: "text-brand",
   },
   {
-    title: "Clock in on My Day",
+    title: "Clock in on My Shifts",
     description:
-      "When you arrive for a shift, open My Day to clock in. It's also where you'll find today's roll call and checklists.",
+      "When you arrive for a shift, open My Shifts to clock in — your week ahead is there too. Roll call and checklists are under My Centre.",
     icon: Sun,
     iconColor: "text-brand",
   },
   {
     title: "Pay and leave",
     description:
-      "See your latest payslip and your leave balance, and send a leave request — straight from your portal.",
+      "My Pay & Leave has your payslips, leave balance and leave requests, and your expense claims — one page, three tabs.",
     icon: Wallet,
     iconColor: "text-brand",
   },
