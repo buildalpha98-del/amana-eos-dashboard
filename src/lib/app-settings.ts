@@ -51,6 +51,23 @@ export const appSettingsSchema = z.object({
       requireSignature: z.boolean().optional(),
     })
     .optional(),
+  checklists: z
+    .object({
+      /**
+       * When each SECTION of a session's checklist should be done, e.g.
+       * { bsc: { opening: "07:00" }, asc: { closing: "18:15" } }. Past
+       * that, unticked required items notify the educators on shift and
+       * the Director. Empty (the default) means no reminders — today's
+       * behaviour.
+       */
+      dueTimes: z
+        .partialRecord(
+          z.enum(["bsc", "asc", "vc"]),
+          z.record(z.string().min(1).max(30), z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)),
+        )
+        .optional(),
+    })
+    .optional(),
   staff: z
     .object({
       /**
@@ -74,13 +91,17 @@ export const APP_SETTINGS_DEFAULTS = {
   posts: { draftByDefault: false, onlyApproversPublish: false },
   signInOut: { requireSignature: false },
   staff: { phoneClockIn: true },
+  checklists: { dueTimes: {} },
 } as const;
+
+export type ChecklistDueTimes = Partial<Record<"bsc" | "asc" | "vc", Record<string, string>>>;
 
 export type ResolvedAppSettings = {
   parents: { canMarkAbsence: boolean };
   posts: { draftByDefault: boolean; onlyApproversPublish: boolean };
   signInOut: { requireSignature: boolean };
   staff: { phoneClockIn: boolean };
+  checklists: { dueTimes: ChecklistDueTimes };
 };
 
 /**
@@ -120,6 +141,9 @@ export function resolveAppSettings(raw: unknown): ResolvedAppSettings {
     staff: {
       phoneClockIn:
         v.staff?.phoneClockIn ?? APP_SETTINGS_DEFAULTS.staff.phoneClockIn,
+    },
+    checklists: {
+      dueTimes: (v.checklists?.dueTimes ?? {}) as ChecklistDueTimes,
     },
   };
 }

@@ -81,6 +81,9 @@ export const NOTIFICATION_TYPES = {
   // 2026-10-07: a staff member changed the account their pay goes into
   // (→ every owner, alongside the email to the staff member themselves).
   PAYROLL_BANK_CHANGED: "payroll_bank_changed",
+  // 2026-10-08: a checklist section passed its centre-set due time with
+  // required items unticked (→ educators on shift + the Director).
+  CHECKLIST_OVERDUE: "checklist_overdue",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];

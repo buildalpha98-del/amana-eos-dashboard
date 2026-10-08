@@ -26,6 +26,7 @@ interface Settings {
   posts: { draftByDefault: boolean; onlyApproversPublish: boolean };
   signInOut: { requireSignature: boolean };
   staff: { phoneClockIn: boolean };
+  checklists: { dueTimes: Partial<Record<"bsc" | "asc" | "vc", Record<string, string>>> };
 }
 
 interface Row {
@@ -42,6 +43,17 @@ const TABS = [
   { key: "posts", label: "Posts" },
   { key: "signInOut", label: "Sign in & out" },
   { key: "staff", label: "Staff" },
+  { key: "checklists", label: "Checklists" },
+] as const;
+
+const DUE_SESSIONS = [
+  { key: "bsc", label: "Before school" },
+  { key: "asc", label: "After school" },
+  { key: "vc", label: "Vacation care" },
+] as const;
+const DUE_SECTIONS = [
+  { key: "opening", label: "Opening" },
+  { key: "closing", label: "Closing" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 
@@ -91,7 +103,17 @@ export function AppSettingsCard({
   const set = <K extends keyof Settings>(k: K, patch: Partial<Settings[K]>) =>
     setDraft({ ...current, [k]: { ...current[k], ...patch } });
 
-  const rows: Record<TabKey, Row[]> = {
+  const setDue = (session: string, section: string, value: string) => {
+    const next = { ...current.checklists.dueTimes } as Record<string, Record<string, string>>;
+    const forSession = { ...(next[session] ?? {}) };
+    if (value) forSession[section] = value;
+    else delete forSession[section];
+    if (Object.keys(forSession).length) next[session] = forSession;
+    else delete next[session];
+    setDraft({ ...current, checklists: { dueTimes: next } });
+  };
+
+  const rows: Record<Exclude<TabKey, "checklists">, Row[]> = {
     families: [
       {
         label: "Families can mark a child as not attending",
@@ -157,7 +179,51 @@ export function AppSettingsCard({
       </div>
 
       <div className="p-4 sm:p-6 space-y-5">
-        {rows[tab].map((r) => (
+        {tab === "checklists" && (
+          <div className="space-y-3">
+            <p className="text-sm text-foreground">
+              <span className="font-semibold">When each part of the day&apos;s checklist should be done.</span>{" "}
+              <span className="text-muted">
+                Past that time, anything still unticked sends a reminder to the educators on shift and
+                the Director, and shows as overdue on the Today page. Leave a time blank for no reminder.
+              </span>
+            </p>
+            <div className="overflow-x-auto">
+              <table className="text-sm">
+                <thead>
+                  <tr>
+                    <th className="pr-4 pb-2 text-left font-medium text-muted" />
+                    {DUE_SECTIONS.map((sec) => (
+                      <th key={sec.key} className="px-2 pb-2 text-left font-semibold text-foreground">
+                        {sec.label} by
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {DUE_SESSIONS.map((ses) => (
+                    <tr key={ses.key}>
+                      <td className="pr-4 py-1 font-medium text-foreground whitespace-nowrap">{ses.label}</td>
+                      {DUE_SECTIONS.map((sec) => (
+                        <td key={sec.key} className="px-2 py-1">
+                          <input
+                            type="time"
+                            aria-label={`${ses.label} ${sec.label} due time`}
+                            value={current.checklists.dueTimes[ses.key]?.[sec.key] ?? ""}
+                            disabled={!canEdit}
+                            onChange={(e) => setDue(ses.key, sec.key, e.target.value)}
+                            className="min-h-10 rounded-lg border border-border bg-card px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/30"
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        {tab !== "checklists" && rows[tab].map((r) => (
           <label key={r.label} className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
