@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // ─── Mocks ───────────────────────────────────────────────────────
@@ -101,167 +101,74 @@ function makeService(overrides: Record<string, unknown> = {}): any {
 
 // ─── Tests ───────────────────────────────────────────────────────
 
-describe("ServiceOverviewTab — approvals & session times card", () => {
+// 2026-10-08: Service Info became an OWNA-style tabbed panel; approvals
+// moved into the Centre details form (always-editable for editors).
+const mutateSpy = vi.fn();
+vi.mock("@/hooks/useServices", async (orig) => ({
+  ...(await orig<typeof import("@/hooks/useServices")>()),
+  useUpdateService: () => ({ mutate: mutateSpy, isPending: false }),
+  useDeleteService: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
+
+function renderTab(service = makeService()) {
+  return render(<ServiceOverviewTab service={service} users={[]} />, {
+    wrapper: makeWrapper(makeClient()),
+  });
+}
+
+describe("ServiceOverviewTab — Centre details form", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionRef.role = "admin";
     sessionRef.serviceId = null;
   });
 
-  function getApprovalsCard(): HTMLElement {
-    const heading = screen.getByText(/Service Approvals & Session Times/i);
-    // Walk up to the ApprovalsSessionTimesCard outer wrapper (the nearest
-    // ancestor that contains *both* the heading and the approvals display card).
-    let node: HTMLElement | null = heading as HTMLElement;
-    while (node) {
-      const textContent = node.textContent ?? "";
-      if (
-        textContent.includes("Service Approval #") &&
-        textContent.includes("Provider Approval #")
-      ) {
-        return node;
-      }
-      node = node.parentElement;
-    }
-    throw new Error("Approvals card not found");
-  }
-
-  it("renders approval numbers and session-time rows when populated", () => {
-    const service = makeService({
-      serviceApprovalNumber: "SE-00012345",
-      providerApprovalNumber: "PR-00067890",
-      sessionTimes: {
-        bsc: { start: "06:30", end: "08:45" },
-        asc: { start: "15:00", end: "18:00" },
-      },
-    });
-
-    const qc = makeClient();
-    render(<ServiceOverviewTab service={service} users={[]} />, {
-      wrapper: makeWrapper(qc),
-    });
-
-    const card = getApprovalsCard();
-
-    // Approval numbers
-    expect(within(card).getByText("SE-00012345")).toBeDefined();
-    expect(within(card).getByText("PR-00067890")).toBeDefined();
-
-    // Session rows read in 12-hour time and under the centre's own room
-    // names — nobody here says "BSC", they say "Rise and Shine".
-    expect(within(card).getByText(/6:30am\s+–\s+8:45am/)).toBeDefined();
-    expect(within(card).getByText(/3:00pm\s+–\s+6:00pm/)).toBeDefined();
-    expect(within(card).getByText("Rise and Shine")).toBeDefined();
-    expect(within(card).getByText("Amana Afternoons")).toBeDefined();
-    // Exactly 2 rows — VC unpopulated ⇒ not rendered.
-    expect(
-      within(card).getAllByText(/\d{1,2}:\d{2}[ap]m\s+–\s+\d{1,2}:\d{2}[ap]m/),
-    ).toHaveLength(2);
+  it("opens on Centre details with the approval numbers in their fields", () => {
+    renderTab(makeService({ serviceApprovalNumber: "SE-123", providerApprovalNumber: "PR-9" }));
+    expect((screen.getByLabelText(/Service approval number/i) as HTMLInputElement).value).toBe("SE-123");
+    expect((screen.getByLabelText(/Provider approval number/i) as HTMLInputElement).value).toBe("PR-9");
   });
 
-  it("shows em-dash placeholders when approval numbers are unpopulated", () => {
-    const service = makeService();
-
-    const qc = makeClient();
-    render(<ServiceOverviewTab service={service} users={[]} />, {
-      wrapper: makeWrapper(qc),
-    });
-
-    const card = getApprovalsCard();
-
-    // Both approval fields display the em-dash placeholder.
-    const dashes = within(card).getAllByText("—");
-    expect(dashes.length).toBe(2);
-
-    // Session times section not rendered → no en-dash time range anywhere in the card.
-    expect(within(card).queryByText(/\d{2}:\d{2}\s+–\s+\d{2}:\d{2}/)).toBeNull();
+  it("every field explains where it's used", () => {
+    renderTab();
+    expect(screen.getByText(/Shown to families on their enrolment confirmation/i)).toBeTruthy();
+    expect(screen.getByText(/becomes the centre's own account/i)).toBeTruthy();
   });
 
-  it("hides the session-times list entirely when sessionTimes is null", () => {
-    const service = makeService({ sessionTimes: null });
-
-    const qc = makeClient();
-    render(<ServiceOverviewTab service={service} users={[]} />, {
-      wrapper: makeWrapper(qc),
-    });
-
-    // No session row should render
-    expect(screen.queryByText(/BSC\s+\d{2}:\d{2}/)).toBeNull();
-    expect(screen.queryByText(/ASC\s+\d{2}:\d{2}/)).toBeNull();
-    expect(screen.queryByText(/VC\s+\d{2}:\d{2}/)).toBeNull();
+  it("saves only the fields that changed", () => {
+    renderTab(makeService({ phone: "0400 000 000" }));
+    const phone = screen.getByLabelText(/^Phone/i) as HTMLInputElement;
+    fireEvent.change(phone, { target: { value: "0411 111 111" } });
+    fireEvent.click(screen.getByRole("button", { name: /Save changes/i }));
+    expect(mutateSpy).toHaveBeenCalledWith({ id: "svc-1", phone: "0411 111 111" });
   });
 
-  it("shows Edit button for admin users", () => {
-    sessionRef.role = "admin";
-    const service = makeService();
-
-    const qc = makeClient();
-    render(<ServiceOverviewTab service={service} users={[]} />, {
-      wrapper: makeWrapper(qc),
-    });
-
-    const heading = screen.getByText(/Service Approvals & Session Times/i);
-    const card = heading.closest("div");
-    expect(card).toBeTruthy();
-    const editBtn = within(card as HTMLElement).getByRole("button", {
-      name: /edit approvals/i,
-    });
-    expect(editBtn).toBeDefined();
+  it("admins can edit everything, including status", () => {
+    renderTab();
+    expect((screen.getByLabelText(/Centre name/i) as HTMLInputElement).disabled).toBe(false);
+    expect((screen.getByLabelText(/^Status/i) as HTMLSelectElement).disabled).toBe(false);
   });
 
-  it("hides Edit button for staff users", () => {
-    sessionRef.role = "staff";
-    const service = makeService();
-
-    const qc = makeClient();
-    render(<ServiceOverviewTab service={service} users={[]} />, {
-      wrapper: makeWrapper(qc),
-    });
-
-    const heading = screen.getByText(/Service Approvals & Session Times/i);
-    const card = heading.closest("div");
-    expect(card).toBeTruthy();
-    const editBtn = within(card as HTMLElement).queryByRole("button", {
-      name: /edit approvals/i,
-    });
-    expect(editBtn).toBeNull();
-  });
-
-  it("shows Edit button for coordinator of the same service", () => {
+  it("a coordinator edits their own centre — but not its status", () => {
     sessionRef.role = "member";
     sessionRef.serviceId = "svc-1";
-    const service = makeService();
-
-    const qc = makeClient();
-    render(<ServiceOverviewTab service={service} users={[]} />, {
-      wrapper: makeWrapper(qc),
-    });
-
-    const heading = screen.getByText(/Service Approvals & Session Times/i);
-    const card = heading.closest("div");
-    expect(card).toBeTruthy();
-    const editBtn = within(card as HTMLElement).getByRole("button", {
-      name: /edit approvals/i,
-    });
-    expect(editBtn).toBeDefined();
+    renderTab();
+    expect((screen.getByLabelText(/Centre name/i) as HTMLInputElement).disabled).toBe(false);
+    expect((screen.getByLabelText(/^Status/i) as HTMLSelectElement).disabled).toBe(true);
   });
 
-  it("hides Edit button for coordinator of another service", () => {
-    sessionRef.role = "member";
-    sessionRef.serviceId = "svc-other";
-    const service = makeService();
+  it("read-only for staff and other centres' coordinators", () => {
+    sessionRef.role = "staff";
+    renderTab();
+    expect((screen.getByLabelText(/Centre name/i) as HTMLInputElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: /Save changes/i })).toBeNull();
+  });
 
-    const qc = makeClient();
-    render(<ServiceOverviewTab service={service} users={[]} />, {
-      wrapper: makeWrapper(qc),
-    });
-
-    const heading = screen.getByText(/Service Approvals & Session Times/i);
-    const card = heading.closest("div");
-    expect(card).toBeTruthy();
-    const editBtn = within(card as HTMLElement).queryByRole("button", {
-      name: /edit approvals/i,
-    });
-    expect(editBtn).toBeNull();
+  it("other sections sit on their own tabs", () => {
+    renderTab();
+    for (const t of ["Session times", "Capacity & rates", "Staffing", "School partnership", "Family feedback"]) {
+      expect(screen.getByRole("button", { name: t })).toBeTruthy();
+    }
+    expect(screen.queryByText(/Active Rocks/i)).toBeNull();
   });
 });

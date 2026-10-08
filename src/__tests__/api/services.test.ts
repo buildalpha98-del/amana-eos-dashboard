@@ -287,6 +287,22 @@ describe("PATCH /api/services/[id]", () => {
     expect(res.status).toBe(404);
   });
 
+  it("saves operating days as text (the column is TEXT)", async () => {
+    // 2026-10-08: the schema said z.array(), every editor sent "Mon–Fri",
+    // so saving a centre's details failed with "operatingDays: Expected array".
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });
+    prismaMock.service.update.mockResolvedValue({ id: "svc-1", manager: null });
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const res = await PATCH(
+      createRequest("PATCH", "/api/services/svc-1", { body: { operatingDays: "Mon–Fri" } }),
+      { params: Promise.resolve({ id: "svc-1" }) },
+    );
+    expect(res.status).toBe(200);
+    expect(prismaMock.service.update.mock.calls[0][0].data).toMatchObject({ operatingDays: "Mon–Fri" });
+  });
+
   it("saves contact details when capacity is left blank", async () => {
     // The bug: the details editor sends `capacity: null` for a centre
     // that has never had one, and `z.number().optional()` rejected it —
