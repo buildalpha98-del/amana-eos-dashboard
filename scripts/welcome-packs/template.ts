@@ -176,9 +176,9 @@ function cover(c: WelcomePackCentre): string {
   </section>`;
 }
 
-function welcomePage(c: WelcomePackCentre): string {
+function welcomePage(c: WelcomePackCentre, a: TemplateAssets): string {
   const contents: Array<[string, string, number]> = [
-    ["Finding us", "Your centre, map and coordinator", 3],
+    ["Finding us", "Drop-off and pick-up map", 3],
     ["Getting started", "Four steps to the first day", 4],
     ["Fees and CCS", "How fees and the subsidy work", 5],
     ["Paying and invoices", "Three ways to pay", 7],
@@ -190,14 +190,12 @@ function welcomePage(c: WelcomePackCentre): string {
     ["Staying in touch", "Who to contact and how", 13],
     ["Questions", "Frequently asked questions", 14],
   ];
-  const glance = [
-    c.hasBsc
-      ? ["sun", "Before school", "Opens two hours before the bell"]
-      : null,
-    ["clock", "After school", c.earlyWednesday ? `Final bell to 6:30pm (Wednesdays from ${c.earlyWednesday})` : "Final bell to 6:30pm"],
-    ["phone", "Your centre", `<a href="${tel(c.phone)}">${esc(c.phone)}</a>`],
-    ["chat", "Head office", `<a href="tel:${HEAD_OFFICE_TEL}">${HEAD_OFFICE}</a>`],
-  ].filter(Boolean) as string[][];
+  const initials = c.coordinator
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return page(
     c,
@@ -210,13 +208,21 @@ function welcomePage(c: WelcomePackCentre): string {
         <p>This pack covers what happens next, how fees and booking work, and everything you need for your child's first day. Keep it handy, and call us any time if you have a question. We are always happy to help.</p>
         <p class="sign">Warm regards,<br/><strong>The Amana OSHC team</strong></p>
         <img class="lockup" src="__ASSETS__/brand/beyond-the-bell.png" alt="Beyond The Bell"/>
-        <div class="glance">
-          <h3>At a glance</h3>
-          ${glance
-            .map(
-              ([, k, v]) => `<div class="glance-row"><span class="k">${k}</span><span class="v">${v}</span></div>`,
-            )
-            .join("")}
+        <div class="coord">
+          ${
+            c.photo
+              ? `<img class="avatar" src="${a.assetBase}/${c.photo}" alt="${esc(c.coordinator)}"/>`
+              : `<span class="avatar avatar-i">${initials}</span>`
+          }
+          <div class="coord-who">
+            <span class="k">Your Service Coordinator</span>
+            <span class="name">${esc(c.coordinator)}</span>
+            <p>Your first point of contact for anything about your child's day.</p>
+          </div>
+          <div class="coord-contact">
+            <a href="${tel(c.phone)}"><span class="k">Service number</span><span class="v big">${esc(c.phone)}</span></a>
+            <a href="mailto:${c.email}"><span class="k">Service email</span><span class="v">${esc(c.email)}</span></a>
+          </div>
         </div>
       </div>
       <aside class="contents">
@@ -232,58 +238,37 @@ function welcomePage(c: WelcomePackCentre): string {
 }
 
 function findingUsPage(c: WelcomePackCentre, a: TemplateAssets): string {
-  const initials = c.coordinator
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
   return page(
     c,
     3,
-    `${sectionHead("Finding us", `Amana OSHC ${esc(c.name)}`, c.address ? `${icon("pin", "ico inline")} ${esc(c.address)}` : undefined)}
-    <div class="find-grid">
+    `${sectionHead("Finding us", "Drop-off and pick-up", c.address ? `Amana OSHC ${esc(c.name)} &middot; ${esc(c.address)}` : `Amana OSHC ${esc(c.name)}`)}
+    <div class="find">
       <figure class="map">
         <img src="${a.assetBase}/${c.map}" alt="Map of the school showing where to find Amana OSHC"/>
-        <figcaption>
-          <span><i class="key key-pin"></i>Red pin: enter the school here</span>
-          <span><i class="key key-line"></i>Yellow line: walk this way</span>
-          <span><i class="key key-star"></i>Gold star: Amana OSHC</span>
-        </figcaption>
       </figure>
-      <div class="find-side">
+      <aside class="find-aside">
         <div class="where">
-          <span class="k">${icon("door")}Drop-off and pick-up</span>
+          <span class="k">Come to</span>
           <span class="v">${esc(c.dropOff)}</span>
+          <p>For every drop-off and pick-up. Please come into the service, not the gate or car park.</p>
           ${
             c.earlyWednesday
               ? `<p class="wed"><strong>Wednesdays:</strong> your school finishes early, so Wednesday sessions run ${c.earlyWednesday} to 6:30pm.</p>`
               : ""
           }
         </div>
-        <div class="coord">
-          ${
-            c.photo
-              ? `<img class="avatar" src="${a.assetBase}/${c.photo}" alt="${esc(c.coordinator)}"/>`
-              : `<span class="avatar avatar-i">${initials}</span>`
-          }
-          <span class="k">Your Service Coordinator</span>
-          <span class="name">${esc(c.coordinator)}</span>
-          <p>Your first point of contact for anything about your child's day.</p>
-        </div>
-        <div class="contact-tiles">
-          <a class="tile" href="${tel(c.phone)}">${icon("phone")}<span class="k">Service number</span><span class="v big">${esc(c.phone)}</span></a>
-          <a class="tile" href="mailto:${c.email}">${icon("mail")}<span class="k">Service email</span><span class="v">${esc(c.email)}</span></a>
+        <div class="legend">
+          <h3>Reading the map</h3>
+          <div><i class="key key-pin"></i><span><strong>Red pin</strong>Enter the school here</span></div>
+          <div><i class="key key-line"></i><span><strong>Yellow line</strong>Walk this way</span></div>
+          <div><i class="key key-star"></i><span><strong>Gold star</strong>Amana OSHC</span></div>
         </div>
         <div class="hours">
-          ${c.hasBsc ? `<div><span class="k">${icon("sun")}Before school</span><span class="v">Opens two hours before the bell</span></div>` : ""}
-          <div><span class="k">${icon("clock")}After school</span><span class="v">Final bell to 6:30pm</span></div>
+          ${c.hasBsc ? `<div><span class="k">Before school</span><span class="v">Opens two hours before the bell</span></div>` : ""}
+          <div><span class="k">After school</span><span class="v">Final bell to 6:30pm</span></div>
         </div>
-        <div class="spot">
-          ${icon("user")}
-          <p><strong>Spotting our team:</strong> we wear yellow lanyards with name tags and black Amana OSHC tees.</p>
-        </div>
-      </div>
+        <p class="spot"><strong>Spotting our team:</strong> yellow lanyards with name tags and black Amana OSHC tees.</p>
+      </aside>
     </div>`,
   );
 }
@@ -778,12 +763,9 @@ function faqPages(c: WelcomePackCentre): string {
 
 function backCover(c: WelcomePackCentre): string {
   return `<section class="page back">
-    <div class="circles" aria-hidden="true">
-      <span class="ci ci-logo"><img src="__ASSETS__/brand/logo-colour.svg" alt=""/></span>
-      <span class="ci ci-btb">Beyond<br/>The Bell</span>
-      <span class="ci ci-rays">${rays("")}</span>
-      <span class="ci ci-bell">${bell("")}</span>
-      <span class="ci ci-burst">${burst("")}</span>
+    <div class="back-brand">
+      <img class="back-logo" src="__ASSETS__/brand/logo-colour.svg" alt="Amana OSHC"/>
+      <img class="back-lockup" src="__ASSETS__/brand/beyond-the-bell.png" alt="Beyond The Bell"/>
     </div>
     <div class="back-main">
       <p class="thanks">Jazak Allahu Khairan</p>
@@ -793,10 +775,7 @@ function backCover(c: WelcomePackCentre): string {
         <div><span class="k">Head office</span><span class="v">${HEAD_OFFICE}</span><span class="s">${ENROL_EMAIL}</span></div>
       </div>
     </div>
-    <div class="back-foot">
-      <img src="__ASSETS__/brand/logo-latte.svg" alt="Amana OSHC"/>
-      <span>amanaoshc.com.au<br/>@AmanaOSHC on Facebook and Instagram</span>
-    </div>
+    <div class="back-foot">amanaoshc.com.au &nbsp;&middot;&nbsp; @AmanaOSHC on Facebook and Instagram</div>
   </section>`;
 }
 
@@ -805,7 +784,7 @@ function backCover(c: WelcomePackCentre): string {
 export function renderWelcomePack(c: WelcomePackCentre, a: TemplateAssets): string {
   const body = [
     cover(c),
-    welcomePage(c),
+    welcomePage(c, a),
     findingUsPage(c, a),
     gettingStartedPage(c),
     feesPage(c),
@@ -1000,34 +979,34 @@ p + p { margin-top: 1.6mm; }
 .cp { font-family: "Fredoka"; color: var(--jonquil); font-size: 12pt; }
 
 /* ---------- finding us ---------- */
-.find-grid { display: grid; grid-template-columns: 82mm 1fr; gap: 6mm; flex: 1; min-height: 0; }
-.map { display: flex; flex-direction: column; gap: 2.5mm; min-height: 0; }
-.map img { width: 100%; flex: 1; min-height: 0; object-fit: cover; border-radius: 5mm; border: 1.2mm solid var(--white); box-shadow: 0 0 0 0.25mm rgba(0,78,100,.12); }
-.map figcaption { display: flex; flex-direction: column; gap: 1mm; font-size: 9.6pt; color: var(--muted); }
-.map figcaption span { display: flex; align-items: center; gap: 2mm; }
-.key { display: inline-block; flex: none; }
-.key-pin { width: 3mm; height: 3mm; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #E2312B; }
-.key-line { width: 5mm; height: 1.4mm; border-radius: 1mm; background: var(--jonquil); }
-.key-star { width: 3.4mm; height: 3.4mm; background: #F2A900; clip-path: polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); }
-.find-side { display: flex; flex-direction: column; gap: 4mm; }
+.find { display: grid; grid-template-columns: auto 1fr; gap: 6mm; align-items: start; }
+.map { margin: 0; }
+.map img { display: block; max-height: 206mm; max-width: 116mm; width: auto; height: auto; border-radius: 4mm; border: 1.2mm solid var(--white); box-shadow: 0 0 0 0.25mm rgba(0,78,100,.14); }
+.find-aside { display: flex; flex-direction: column; gap: 4mm; min-width: 52mm; }
 .where { background: var(--green); color: var(--latte); border-radius: 5mm; padding: 5mm; }
-.where .k, .coord .k, .tile .k {
-  display: flex; align-items: center; gap: 1.6mm; font-family: var(--din); font-size: 10.5pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
-.where .k { color: var(--jonquil); }
-.where .k .ico { color: var(--jonquil); width: 4.6mm; height: 4.6mm; }
-.where .v { display: block; font-family: "Fredoka"; font-weight: 600; font-size: 20pt; color: var(--white); margin-top: 1.2mm; line-height: 1.1; }
+.where .k { display: block; font-family: var(--din); font-size: 11pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--jonquil); }
+.where .v { display: block; font-family: "Fredoka"; font-weight: 600; font-size: 22pt; color: var(--white); margin: 1mm 0 2mm; line-height: 1.1; }
+.where p { font-size: 10.6pt; }
 .wed { margin-top: 2.6mm; background: rgba(254,206,0,.16); border-left: 1mm solid var(--jonquil); padding: 2mm 3mm; border-radius: 0 2mm 2mm 0; }
 .wed strong { color: var(--jonquil); }
-.coord {
-  background: var(--white); border-radius: 5mm; padding: 5mm; display: grid; grid-template-columns: 22mm 1fr; column-gap: 4mm; align-items: center;
-}
-.coord .avatar { grid-row: span 3; width: 22mm; height: 22mm; border-radius: 50%; object-fit: cover; border: 1mm solid var(--jonquil); }
+.legend { background: var(--white); border-radius: 4.5mm; padding: 4.5mm; display: flex; flex-direction: column; gap: 2.6mm; }
+.legend h3 { font-size: 12pt; }
+.legend > div { display: grid; grid-template-columns: 7mm 1fr; align-items: center; gap: 2mm; }
+.legend span { display: flex; flex-direction: column; font-size: 10.4pt; line-height: 1.2; }
+.legend strong { font-family: "Fredoka"; font-weight: 600; }
+.key { display: block; justify-self: center; }
+.key-pin { width: 4.4mm; height: 4.4mm; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #E2312B; }
+.key-line { width: 6.5mm; height: 2mm; border-radius: 1mm; background: var(--jonquil); }
+.key-star { width: 5mm; height: 5mm; background: #F2A900; clip-path: polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); }
+.coord { margin-top: 3mm; background: var(--white); border-radius: 5mm; padding: 5mm; display: grid; grid-template-columns: 24mm 1fr; column-gap: 4mm; row-gap: 3.5mm; align-items: center; }
+.coord .avatar { width: 24mm; height: 24mm; border-radius: 50%; object-fit: cover; border: 1mm solid var(--jonquil); }
 .avatar-i { display: grid; place-items: center; background: var(--chiffon); font-family: "Fredoka"; font-size: 18pt; color: var(--green); }
-.coord .k { color: var(--muted); }
-.coord .name { font-family: "Fredoka"; font-weight: 600; font-size: 17pt; color: var(--green); line-height: 1.1; }
-.coord p { font-size: 10pt; color: var(--muted); }
-.contact-tiles { display: grid; gap: 3mm; }
+.coord .k { display: block; font-family: var(--din); font-size: 10.5pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.coord .name { display: block; font-family: "Fredoka"; font-weight: 600; font-size: 17pt; color: var(--green); line-height: 1.15; }
+.coord-who p { font-size: 10pt; color: var(--muted); }
+.coord-contact { grid-column: span 2; display: grid; gap: 2.4mm; border-top: 1px solid var(--line); padding-top: 3mm; }
+.coord-contact .v { display: block; font-weight: 700; color: var(--green); font-size: 11.5pt; }
+.coord-contact .v.big { font-family: "Fredoka"; font-size: 17pt; font-weight: 600; }
 .tile { display: grid; grid-template-columns: 9mm 1fr; column-gap: 3mm; align-items: center; background: var(--chiffon); border-radius: 4mm; padding: 3.6mm 4.4mm; }
 .tile .ico { grid-row: span 2; width: 9mm; height: 9mm; padding: 2mm; background: var(--jonquil); border-radius: 50%; }
 .tile .k { color: var(--muted); }
@@ -1039,6 +1018,7 @@ p + p { margin-top: 1.6mm; }
 .hours .k { display: flex; align-items: center; gap: 1.6mm; font-family: var(--din); font-size: 10.5pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .hours .k .ico { width: 4.6mm; height: 4.6mm; }
 .hours .v { font-weight: 700; color: var(--green); }
+.find-aside .spot { display: block; }
 .spot { display: flex; gap: 3mm; align-items: flex-start; font-size: 10pt; color: var(--muted); padding: 0 1mm; }
 .spot .ico { color: var(--green); }
 
@@ -1198,21 +1178,12 @@ dl.bank dd { font-family: "Fredoka"; font-weight: 600; }
 .qa .q { flex: none; width: 5.4mm; height: 5.4mm; border-radius: 50%; background: var(--jonquil); color: var(--green); font-size: 8.5pt; display: grid; place-items: center; margin-top: .1mm; }
 .qa p { font-size: 10pt; }
 
-/* ---------- back cover (the guideline graphic-elements page) ---------- */
+/* ---------- back cover ---------- */
 .back { background: var(--latte); }
-.circles { position: absolute; top: 26mm; left: 50%; width: 150mm; height: 108mm; transform: translateX(-50%); }
-.ci { position: absolute; width: 50mm; height: 50mm; border-radius: 50%; display: grid; place-items: center; }
-.ci svg { color: inherit; }
-.ci-logo { left: 18mm; top: 0; background: var(--chiffon); z-index: 1; }
-.ci-logo img { width: 36mm; }
-.ci-btb { left: 82mm; top: 0; background: var(--green); color: var(--jonquil); font-family: "Fredoka"; font-weight: 600; font-size: 19pt; line-height: 1.05; text-align: center; z-index: 2; }
-.ci-rays { left: 0; top: 46mm; background: var(--green); color: var(--jonquil); z-index: 3; }
-.ci-rays svg { width: 30mm; margin-top: 4mm; }
-.ci-bell { left: 50mm; top: 40mm; background: var(--jonquil); color: var(--latte); z-index: 4; }
-.ci-bell svg { width: 26mm; }
-.ci-burst { left: 100mm; top: 46mm; background: var(--chiffon); color: var(--green); z-index: 3; }
-.ci-burst svg { width: 30mm; }
-.back-main { position: absolute; top: 150mm; left: 20mm; right: 20mm; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.back-brand { position: absolute; top: 30mm; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 12mm; }
+.back-logo { width: 104mm; }
+.back-lockup { width: 36mm; }
+.back-main { position: absolute; top: 182mm; left: 20mm; right: 20mm; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .thanks { font-family: "Fredoka"; font-weight: 600; font-size: 30pt; color: var(--green); }
 .thanks-sub { font-size: 13pt; margin-top: 2mm; max-width: 130mm; }
 .back-contacts { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-top: 10mm; width: 100%; }
@@ -1220,6 +1191,5 @@ dl.bank dd { font-family: "Fredoka"; font-weight: 600; }
 .back-contacts .k { font-family: var(--din); font-size: 11pt; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
 .back-contacts .v { font-family: "Fredoka"; font-weight: 600; font-size: 20pt; color: var(--green); }
 .back-contacts .s { font-size: 11pt; }
-.back-foot { position: absolute; left: 0; right: 0; bottom: 0; height: 40mm; background: var(--green); display: flex; justify-content: space-between; align-items: center; padding: 0 20mm; color: var(--latte); font-size: 11pt; text-align: right; }
-.back-foot img { height: 20mm; }
+.back-foot { position: absolute; left: 0; right: 0; bottom: 0; height: 22mm; background: var(--green); display: grid; place-items: center; color: var(--latte); font-family: var(--din); font-size: 12pt; letter-spacing: .06em; }
 `;
