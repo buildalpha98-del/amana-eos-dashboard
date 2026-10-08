@@ -26,7 +26,14 @@ const patchSchema = z.object({
   // saving contact details on any such service failed validation with
   // nothing on screen to explain why.
   capacity: z.number().int().min(0).max(10_000).nullable().optional(),
-  operatingDays: z.array(z.string()).optional(),
+  // The column is TEXT ("Mon–Fri") and every editor sends text. This was
+  // z.array(), so saving a centre's details with operating days filled in
+  // failed with "operatingDays: Expected array" (2026-10-08). Arrays are
+  // still accepted and joined, for any older caller.
+  operatingDays: z
+    .union([z.string(), z.array(z.string())])
+    .transform((v) => (Array.isArray(v) ? v.join(", ") : v))
+    .optional(),
   notes: z.string().optional(),
   bscDailyRate: z.number().nullable().optional(),
   ascDailyRate: z.number().nullable().optional(),

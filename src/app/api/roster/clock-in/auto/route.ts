@@ -22,6 +22,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { pickEligibleShift } from "@/lib/timeclock-pick";
 import { assertUserCleared } from "@/lib/induction";
+import { assertPhoneClockInAllowed } from "@/lib/phone-clock-in";
 
 export const POST = withApiAuth(async (_req, session) => {
   const userId = session.user.id;
@@ -46,6 +47,7 @@ export const POST = withApiAuth(async (_req, session) => {
     },
     select: {
       id: true,
+      serviceId: true,
       date: true,
       shiftStart: true,
       shiftEnd: true,
@@ -68,6 +70,10 @@ export const POST = withApiAuth(async (_req, session) => {
       { status: 404 },
     );
   }
+
+  await assertPhoneClockInAllowed(
+    candidates.find((c) => c.id === result.shift.id)?.serviceId,
+  );
 
   // Match — clock in.
   const updated = await prisma.rosterShift.update({

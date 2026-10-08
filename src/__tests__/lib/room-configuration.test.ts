@@ -166,3 +166,35 @@ describe("analyseRoomConfiguration", () => {
     expect(out.some((a) => a.key === "extra2")).toBe(false);
   });
 });
+
+// 2026-10-08: the always-visible suggestions box reads the SAVED setup.
+import { analyseSavedRooms } from "@/lib/room-configuration";
+
+describe("analyseSavedRooms", () => {
+  it("flags a saved room over approved places, using the room's own ratio", () => {
+    const advice = analyseSavedRooms({
+      capacity: 40,
+      sessionTimes: { asc: { start: "15:00", end: "18:00", capacity: 50, ratio: "1:15" } },
+    });
+    expect(advice.some((a) => a.level === "error" && /more than the 40 places/.test(a.message))).toBe(true);
+  });
+
+  it("is quiet about a room that fits and uses its educators fully", () => {
+    const advice = analyseSavedRooms({
+      capacity: 60,
+      sessionTimes: { asc: { start: "15:00", end: "18:00", capacity: 45, ratio: "1:15" } },
+    });
+    // Core rooms with no capacity get their own "No capacity set" line —
+    // ASC itself has nothing to report.
+    expect(advice.filter((a) => a.key === "asc")).toEqual([]);
+  });
+
+  it("falls back to the service default ratio", () => {
+    const advice = analyseSavedRooms({
+      capacity: 100,
+      ratioSettings: { default: { ratio: "1:10" } },
+      sessionTimes: { asc: { start: "15:00", end: "18:00", capacity: 25 } },
+    });
+    expect(advice.find((a) => a.key === "asc")?.message).toMatch(/at 1:10 needs 3 educators/);
+  });
+});

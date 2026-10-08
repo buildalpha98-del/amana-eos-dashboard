@@ -8,6 +8,7 @@ import { $Enums, type SessionType } from "@prisma/client";
 import { sendSignInNotification, sendSignOutNotification } from "@/lib/notifications/attendance";
 import { logger } from "@/lib/logger";
 import { requireRoomId } from "@/lib/room-resolver";
+import { resolveAppSettings } from "@/lib/app-settings";
 
 // YYYY-MM-DD regex used by both handlers for DST-safe parsing.
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -328,6 +329,22 @@ export const POST = withApiAuth(async (req, session) => {
   }
 
   const { childId, serviceId, date, sessionType, action, absenceReason, notes, occurredAt, signedByName, signMethod, signature } = parsed.data;
+  // Same centre scope as the GET — writing a roll you can't read was
+  // possible until 2026-10-08.
+  assertServiceAccess(session, serviceId);
+
+  // Settings → Sign in & out: a named handover (someone dropping off or
+  // collecting) must carry a drawn signature when the centre asks for one.
+  // Educators' roll-call taps name nobody and are never asked.
+  if ((action === "sign_in" || action === "sign_out") && signedByName && !signature) {
+    const svc = await prisma.service.findUnique({
+      where: { id: serviceId },
+      select: { appSettings: true },
+    });
+    if (resolveAppSettings(svc?.appSettings).signInOut.requireSignature) {
+      throw ApiError.badRequest("This centre needs a signature to sign a child in or out.");
+    }
+  }
   const dateObj = parseDateUTC(date);
   const uniqueKey = {
     childId_serviceId_date_sessionType: {
