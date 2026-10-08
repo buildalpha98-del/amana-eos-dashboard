@@ -19,7 +19,7 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { UserCircle, Info } from "lucide-react";
+import { UserCircle, Info, CalendarDays } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MorningBriefCard } from "@/components/dashboard/MorningBriefCard";
 import { OnShiftHero } from "@/components/my-day/OnShiftHero";
@@ -35,6 +35,11 @@ export default function MyDayPage() {
   const userId = session?.user?.id;
   const serviceId = (session?.user as { serviceId?: string | null } | undefined)
     ?.serviceId;
+  // 2026-10-08, Daniel: for an educator this page is MY SHIFTS — clocking
+  // on and the week ahead. The centre's jobs (roll call, headcount,
+  // checklists, posting) live in their My Centre menu now; showing them
+  // twice is how people stop knowing where anything is.
+  const isEducator = session?.user?.role === "staff";
 
   const today = new Date().toLocaleDateString("en-AU", {
     weekday: "long",
@@ -44,7 +49,7 @@ export default function MyDayPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
-      <PageHeader title="My Day" description={today} />
+      <PageHeader title={isEducator ? "My Shifts" : "My Day"} description={today} />
 
       {/* Clock slot — the on-shift banner while clocked in; the clock
           card handles every other state (pre-shift window, ambiguous
@@ -53,16 +58,16 @@ export default function MyDayPage() {
 
       {/* Right now at the centre — one glanceable strip, same query as
           the roll-call callout below so the numbers can't disagree. */}
-      {serviceId && <SessionSnapshot serviceId={serviceId} />}
+      {serviceId && !isEducator && <SessionSnapshot serviceId={serviceId} />}
 
       {/* Roll Call — loud bg-accent callout when children are not yet
           marked in, quiet row otherwise. */}
-      {serviceId && <RollCallCallout serviceId={serviceId} />}
+      {serviceId && !isEducator && <RollCallCallout serviceId={serviceId} />}
 
       {/* No centre assigned — explain why the service-scoped cards
           (Now, Roll Call, checklists) are missing instead of silently
           hiding them. */}
-      {status === "authenticated" && !serviceId && (
+      {status === "authenticated" && !serviceId && !isEducator && (
         <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-4">
           <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-brand" />
           <p className="text-sm text-muted">
@@ -74,19 +79,30 @@ export default function MyDayPage() {
       )}
 
       {/* The other things done with a phone in hand. */}
-      {serviceId && <QuickActions serviceId={serviceId} />}
+      {serviceId && !isEducator && <QuickActions serviceId={serviceId} />}
 
       {/* Morning brief — quiet until the 6am cron has run. */}
       <MorningBriefCard />
 
       {/* Today's session checklists — tap to tick. */}
-      {serviceId && <TodayChecklistCard serviceId={serviceId} />}
+      {serviceId && !isEducator && <TodayChecklistCard serviceId={serviceId} />}
 
       {/* Claimable open shifts — quiet by default. */}
       <OpenShiftsCard />
 
       {/* The week ahead. */}
       {userId && <MyUpcomingShiftsCard userId={userId} />}
+
+      {/* The full week grid and swaps. */}
+      {isEducator && (
+        <Link
+          href="/roster/me"
+          className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-border bg-card p-3 text-sm font-medium text-foreground transition-colors hover:bg-surface"
+        >
+          <CalendarDays className="h-4 w-4 text-brand" />
+          Full roster &amp; shift swaps
+        </Link>
+      )}
 
       {/* Escape hatch to the full self-service hub. */}
       <Link
