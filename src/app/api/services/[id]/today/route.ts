@@ -2,10 +2,20 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { privateTodoWhere } from "@/lib/todos/private-filter";
+import { getCentreScope } from "@/lib/centre-scope";
+import { ApiError } from "@/lib/api-error";
 
 // GET /api/services/[id]/today — "Today" snapshot for a service centre
 export const GET = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
+
+  // Centre scope (2026-10-09): this returned any centre's staff names and
+  // to-dos to any signed-in user. Same rule as GET /api/services/[id] —
+  // office roles see every centre, everyone else only their own.
+  const { serviceIds: scopedServiceIds } = await getCentreScope(session);
+  if (scopedServiceIds !== null && !scopedServiceIds.includes(id)) {
+    throw ApiError.forbidden();
+  }
 
   // Verify the service exists
   const service = await prisma.service.findUnique({
