@@ -125,7 +125,7 @@ export function AppSettingsCard({
     posts: [
       {
         label: "New posts start as drafts",
-        help: "Everything written here waits for someone to release it. Educators' posts always wait for the Director, whatever this says.",
+        help: "Everything written here waits for someone to release it. Educators' posts always wait for the Coordinator, whatever this says.",
         checked: current.posts.draftByDefault,
         onChange: (v) => set("posts", { draftByDefault: v }),
       },
@@ -185,7 +185,7 @@ export function AppSettingsCard({
               <span className="font-semibold">When each part of the day&apos;s checklist should be done.</span>{" "}
               <span className="text-muted">
                 Past that time, anything still unticked sends a reminder to the educators on shift and
-                the Director, and shows as overdue on the Today page. Leave a time blank for no reminder.
+                the Coordinator, and shows as overdue on the Today page. Leave a time blank for no reminder.
               </span>
             </p>
             <div className="overflow-x-auto">

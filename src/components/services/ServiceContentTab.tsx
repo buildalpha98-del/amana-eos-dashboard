@@ -195,7 +195,7 @@ export function ServiceContentTab({ serviceId }: Props) {
       ...c,
       contacts: [
         ...c.contacts,
-        { role: "Director of Service", name: "", phone: "", email: "" },
+        { role: "Service Coordinator", name: "", phone: "", email: "" },
       ],
     }));
   }

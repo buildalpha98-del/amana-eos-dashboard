@@ -152,9 +152,9 @@ export const navItems: NavItem[] = [
   // 2026-09-04 staff portal v2: dedicated self-service destinations. Nav
   // visibility is staff-tier only (office roles reach them by URL — they
   // are employees too, but their sidebar shouldn't grow for it).
-  { href: "/my-pay", label: "My Pay", icon: Wallet, section: "My Portal", tooltip: "Your payslips and pay history", roles: ["staff", "member", "marketing"], core: ["staff", "member", "marketing"] },
-  { href: "/my-leave", label: "My Leave", icon: CalendarDays, section: "My Portal", tooltip: "Leave balances and requests", roles: ["staff", "member", "marketing"], core: ["staff", "member", "marketing"] },
-  { href: "/my-expenses", label: "My Expenses", icon: Receipt, section: "My Portal", tooltip: "Claim reimbursements and track their status", roles: ["staff", "member", "marketing"], core: ["staff", "member", "marketing"] },
+  // 2026-10-09: one item — My Leave and My Expenses both redirect to tabs of
+  // /my-pay, so three sidebar entries opened the same page.
+  { href: "/my-pay", label: "My Pay & Leave", icon: Wallet, section: "My Portal", tooltip: "Payslips, leave and expense claims", roles: ["staff", "member", "marketing"], core: ["staff", "member", "marketing"] },
   // 2026-09-14: staff had no addressable route to their own contract —
   // it was a card buried on /my-portal, and only rendered for `active`
   // status. Core for every staff-tier role so it surfaces in the sidebar

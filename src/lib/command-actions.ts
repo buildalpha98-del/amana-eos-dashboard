@@ -110,7 +110,7 @@ export const COMMAND_ACTIONS: CommandAction[] = [
     predicate: isCoordUp,
     handler: (ctx, router) => {
       const base = ctx.serviceId
-        ? `/services/${ctx.serviceId}?tab=observations&create=1`
+        ? `/services/${ctx.serviceId}?tab=program&sub=observations&create=1`
         : "/services?observationCreate=1";
       router.push(base);
     },
@@ -125,7 +125,7 @@ export const COMMAND_ACTIONS: CommandAction[] = [
     predicate: isCoordUp,
     handler: (ctx, router) => {
       const base = ctx.serviceId
-        ? `/services/${ctx.serviceId}?tab=reflections&create=1`
+        ? `/services/${ctx.serviceId}?tab=compliance&sub=reflections&create=1`
         : "/services?reflectionCreate=1";
       router.push(base);
     },
@@ -140,7 +140,7 @@ export const COMMAND_ACTIONS: CommandAction[] = [
     predicate: isCoordUp,
     handler: (ctx, router) => {
       const base = ctx.serviceId
-        ? `/services/${ctx.serviceId}?tab=medication&log=1`
+        ? `/services/${ctx.serviceId}?tab=daily&sub=medication&log=1`
         : "/services?medicationLog=1";
       router.push(base);
     },
@@ -154,7 +154,7 @@ export const COMMAND_ACTIONS: CommandAction[] = [
     predicate: isCoordUp,
     handler: (ctx, router) => {
       const base = ctx.serviceId
-        ? `/services/${ctx.serviceId}?tab=risk&create=1`
+        ? `/services/${ctx.serviceId}?tab=compliance&sub=risk&create=1`
         : "/services?riskCreate=1";
       router.push(base);
     },
@@ -169,7 +169,7 @@ export const COMMAND_ACTIONS: CommandAction[] = [
     predicate: isAdminUp,
     handler: (ctx, router) => {
       const base = ctx.serviceId
-        ? `/services/${ctx.serviceId}?tab=comms&newsletter=1`
+        ? `/services/${ctx.serviceId}?tab=compliance&sub=comms&newsletter=1`
         : "/services?newsletter=1";
       router.push(base);
     },
@@ -231,7 +231,7 @@ export const COMMAND_ACTIONS: CommandAction[] = [
     predicate: isCoordUp,
     handler: (ctx, router) => {
       const base = ctx.serviceId
-        ? `/services/${ctx.serviceId}?tab=roster`
+        ? `/services/${ctx.serviceId}?tab=daily&sub=roster`
         : "/services";
       router.push(base);
     },

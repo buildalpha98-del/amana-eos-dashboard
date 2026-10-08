@@ -30,6 +30,7 @@ import {
   type Hazard,
   type RiskAssessmentItem,
 } from "@/hooks/useRiskAssessments";
+import { useSession } from "next-auth/react";
 
 /**
  * Local hazard shape with a stable client-side `_uid`. React keys off `_uid`
@@ -107,6 +108,10 @@ function riskScoreColor(score: number): string {
 }
 
 export function ServiceRiskTab({ serviceId }: { serviceId: string }) {
+  // Only Coordinators and office can start one (the API refuses educators),
+  // so educators get the list without a button that only ever errors.
+  const { data: session } = useSession();
+  const canCreate = session?.user?.role !== "staff";
   const [activity, setActivity] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
@@ -130,10 +135,12 @@ export function ServiceRiskTab({ serviceId }: { serviceId: string }) {
         <h2 className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
           Risk assessments
         </h2>
-        <BrandButton onClick={() => setCreateOpen(true)}>
-          <Plus className="w-4 h-4" />
-          New assessment
-        </BrandButton>
+        {canCreate && (
+          <BrandButton onClick={() => setCreateOpen(true)}>
+            <Plus className="w-4 h-4" />
+            New assessment
+          </BrandButton>
+        )}
       </div>
 
       <FilterBar
@@ -157,7 +164,7 @@ export function ServiceRiskTab({ serviceId }: { serviceId: string }) {
           Loading risk assessments…
         </div>
       ) : !data?.items || data.items.length === 0 ? (
-        <Empty onCreate={() => setCreateOpen(true)} />
+        <Empty onCreate={canCreate ? () => setCreateOpen(true) : undefined} />
       ) : (
         <ul className="space-y-3">
           {data.items.map((r) => (
@@ -176,7 +183,7 @@ export function ServiceRiskTab({ serviceId }: { serviceId: string }) {
   );
 }
 
-function Empty({ onCreate }: { onCreate: () => void }) {
+function Empty({ onCreate }: { onCreate?: () => void }) {
   return (
     <div
       className={cn(
@@ -190,7 +197,13 @@ function Empty({ onCreate }: { onCreate: () => void }) {
         Excursion events require an approved risk assessment before they can be
         created.
       </p>
-      <BrandButton onClick={onCreate}>Start your first assessment</BrandButton>
+      {onCreate ? (
+        <BrandButton onClick={onCreate}>Start your first assessment</BrandButton>
+      ) : (
+        <p className="text-xs text-[color:var(--color-muted)]">
+          Your Coordinator starts risk assessments.
+        </p>
+      )}
     </div>
   );
 }

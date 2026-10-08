@@ -18,7 +18,7 @@ export const STAFF_PERMISSIONS = [
   {
     key: "incidents.share",
     label: "Can send incident reports to families",
-    help: "Normally the Director's job. Tick for a senior educator who closes out incidents on shift.",
+    help: "Normally the Coordinator's job. Tick for a senior educator who closes out incidents on shift.",
   },
 ] as const;
 

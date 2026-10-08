@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { cn, toLocalIsoDate } from "@/lib/utils";
 import Link from "next/link";
+import { useRoleLabels } from "@/contexts/RoleLabelsContext";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
@@ -877,6 +878,8 @@ function PulseSurveySection() {
 
 export default function MyPortalPage() {
   const { data: session } = useSession();
+  // Show the role's NAME ("OSHC Coordinator"), never the raw enum.
+  const roleLabels = useRoleLabels();
   const queryClient = useQueryClient();
   const { data, isLoading, error, refetch } = useMyPortal();
   // Phase 9: cert-requirements matrix, via the client-safe config slice.
@@ -1096,13 +1099,16 @@ export default function MyPortalPage() {
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-brand/10 text-brand capitalize">
             <UserCircle className="w-3.5 h-3.5" />
-            {profile.role}
+            {roleLabels[profile.role as keyof typeof roleLabels] ?? profile.role}
           </span>
           {profile.service && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-surface text-muted">
+            <Link
+              href={`/services/${profile.service.id}`}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-surface text-muted hover:text-brand"
+            >
               <Building2 className="w-3.5 h-3.5" />
               {profile.service.name}
-            </span>
+            </Link>
           )}
           {profile.startDate && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-surface text-muted">
@@ -1126,7 +1132,7 @@ export default function MyPortalPage() {
 
       {/* 2026-10-07: the ONE onboarding list — replaces the onboarding,
           training, compliance, policy and contract cards that used to
-          stack below. Educators and Directors of Service only; hides
+          stack below. Educators and Service Coordinators only; hides
           itself once everything is done. */}
       {(profile.role === "staff" || profile.role === "member") &&
         !session?.user?.isCentreAccount && (

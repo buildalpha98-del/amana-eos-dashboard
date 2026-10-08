@@ -62,11 +62,11 @@ export const PATCH = withApiAuth(
 
       if (!canPublish) {
         if (existing.authorId !== session.user.id) {
-          throw ApiError.forbidden("Only the author or the Director can edit this post");
+          throw ApiError.forbidden("Only the author or the Coordinator can edit this post");
         }
         if (existing.status !== "draft") {
           throw ApiError.forbidden(
-            "This post is already out to families — ask your Director to change it.",
+            "This post is already out to families — ask your Coordinator to change it.",
           );
         }
       }
@@ -170,7 +170,7 @@ export const DELETE = withApiAuth(
 
     // Publishers may delete any post here; others only their own draft.
     if (!canPublish && (existing.authorId !== session.user.id || existing.status !== "draft")) {
-      throw ApiError.forbidden("Only the author or the Director can delete this post");
+      throw ApiError.forbidden("Only the author or the Coordinator can delete this post");
     }
 
     // Cascade deletes tags via onDelete: Cascade in schema

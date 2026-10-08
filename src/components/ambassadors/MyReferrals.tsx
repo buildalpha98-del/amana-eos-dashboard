@@ -45,7 +45,7 @@ export function MyReferrals() {
             </p>
           ) : (
             <p className="text-sm text-muted">
-              No code yet — your Director can generate one from the Codes tab.
+              No code yet — your Coordinator can generate one from the Codes tab.
             </p>
           )}
         </div>

@@ -60,7 +60,7 @@ export const PATCH = withApiAuth(
       role === "member" && userServiceId === serviceId;
     if (!isOrgAdmin && !isDirectorOfThisService) {
       throw ApiError.forbidden(
-        "Only an admin or this service's Director can edit its content.",
+        "Only an admin or this service's Coordinator can edit its content.",
       );
     }
 

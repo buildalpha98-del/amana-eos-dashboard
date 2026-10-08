@@ -43,7 +43,7 @@ export const COORDINATOR_FULLTIME_TEMPLATE_NAME =
   "OSHC Coordinator — Full-Time Permanent";
 
 export const COORDINATOR_FULLTIME_TEMPLATE_DESCRIPTION =
-  "Full-time permanent OSHC Coordinator (Director of Service) — the same " +
+  "Full-time permanent OSHC Coordinator (Service Coordinator) — the same " +
   "contract as the part-time permanent template, with the employment " +
   "basis and ordinary-hours clause changed to full time. Governed by the " +
   "Children's Services Award 2010 (MA000120). 6-month probation, NES " +

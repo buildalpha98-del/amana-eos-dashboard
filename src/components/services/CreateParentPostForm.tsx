@@ -284,7 +284,7 @@ export function CreateParentPostForm({
         )}
         {!canPublish && (
           <p className="mt-2 rounded-lg bg-surface px-3 py-2 text-sm text-muted">
-            Your Director reads it before families see it. You can change or
+            Your Coordinator reads it before families see it. You can change or
             delete it until then.
           </p>
         )}

@@ -88,7 +88,7 @@ function ensureCanModify(
   if (role === "member" && incidentServiceId && incidentServiceId === viewerServiceId) return;
   if (reporterId && reporterId === userId) return;
   throw ApiError.forbidden(
-    "Only the person who wrote this report, the centre's Director or head office can change it.",
+    "Only the person who wrote this report, the centre's Coordinator or head office can change it.",
   );
 }
 
@@ -122,7 +122,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
       select: { permissions: true },
     });
     if (!hasStaffPermission(me?.permissions, "incidents.share")) {
-      throw ApiError.forbidden("Your Director shares incident reports with families.");
+      throw ApiError.forbidden("Your Coordinator shares incident reports with families.");
     }
   }
 

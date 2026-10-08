@@ -36,7 +36,7 @@ export function RefCodesPanel({ role }: { role: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted max-w-xl">
-          Every educator and Director at a pilot centre gets a personal code
+          Every educator and Coordinator at a pilot centre gets a personal code
           and QR. Scans are counted, then families land on the sign-up page
           with the code attached.
         </p>
@@ -60,7 +60,7 @@ export function RefCodesPanel({ role }: { role: string }) {
           No codes yet.{" "}
           {canGenerate
             ? "Use “Generate missing codes” to create them for all pilot-centre staff."
-            : "Ask your Director to generate them."}
+            : "Ask your Coordinator to generate them."}
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">

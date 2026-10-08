@@ -84,7 +84,7 @@ export const DAILY_OPS_BASE_SUBTABS: SubTab[] = [
 
 export const CASUAL_BOOKINGS_SUBTAB: SubTab = {
   key: "casual-bookings",
-  label: "Casual Bookings",
+  label: "Casual settings",
   icon: CalendarClock,
 };
 
@@ -185,7 +185,7 @@ export const tabGroups: TabGroup[] = [
       { key: "incidents", label: "Incidents", icon: AlertTriangle },
       { key: "risk", label: "Risk", icon: ShieldCheck },
       { key: "headcounts", label: "Headcounts", icon: Users },
-      { key: "registers", label: "Registers", icon: ClipboardList },
+      { key: "registers", label: "Visitors & registers", icon: ClipboardList },
       { key: "comms", label: "Comms", icon: Radio },
     ],
   },

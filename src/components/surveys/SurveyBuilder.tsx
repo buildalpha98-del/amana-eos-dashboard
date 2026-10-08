@@ -71,7 +71,7 @@ const ROLE_LABELS: Record<Role, string> = {
   head_office: "State Manager",
   admin: "Admin",
   marketing: "Marketing",
-  member: "Director of Service",
+  member: "Service Coordinator",
   staff: "Educator",
   eos_viewer: "EOS Viewer",
   eos_implementer: "EOS Implementer",

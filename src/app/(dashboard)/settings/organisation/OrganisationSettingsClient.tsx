@@ -52,7 +52,7 @@ const ROLE_HINTS: Record<keyof RoleLabels, string> = {
   head_office: "Region / state-wide manager",
   admin: "Org-wide operations admin",
   marketing: "Marketing team scope",
-  member: "Service-level lead (legacy: Director of Service)",
+  member: "Service-level lead (formerly “Director of Service”)",
   staff: "On-shift educator",
   eos_viewer: "View-only access to the EOS surface — coaches / advisors",
   eos_implementer: "Full write access to the EOS surface (org-wide) — the EOS implementer",
