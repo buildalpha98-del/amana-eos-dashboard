@@ -105,7 +105,13 @@ export function ServiceIncidentsTab({ serviceId }: { serviceId: string }) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
   const role = session?.user?.role;
-  const isAdminLike = role === "owner" || role === "admin";
+  // Mirrors the API: the office, or this centre's Director, can manage
+  // any report here; everyone else their own.
+  const isAdminLike =
+    role === "owner" ||
+    role === "admin" ||
+    role === "head_office" ||
+    (role === "member" && session?.user?.serviceId === serviceId);
 
   const filters = useMemo(
     () => ({

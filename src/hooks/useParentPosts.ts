@@ -33,6 +33,9 @@ export interface ParentPost {
   authorId: string | null;
   author: ParentPostAuthor | null;
   isCommunity: boolean;
+  /** draft = waiting for the Director to release it. */
+  status?: "draft" | "scheduled" | "published";
+  publishAt?: string | null;
   createdAt: string;
   updatedAt: string;
   tags: ParentPostTag[];
@@ -55,6 +58,8 @@ export interface StaffParentPostComment {
 interface ParentPostsResponse {
   items: ParentPost[];
   nextCursor?: string;
+  /** May THIS viewer release posts to families at this centre? */
+  canPublish?: boolean;
 }
 
 export function useParentPosts(serviceId: string) {

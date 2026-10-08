@@ -65,9 +65,18 @@ export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
         { href: "/notifications", label: "Alerts", icon: Bell },
         { href: "/handbook", label: "Handbook", icon: BookOpen },
       ]
-    : role && STAFF_TIER_ROLES.has(role)
-      ? staffTabs
-      : defaultTabs;
+    : role === "staff" && session?.user?.serviceId
+      ? // Educators (2026-10-08): their centre is a tab, not a hunt.
+        // Leave and Expenses are Home tiles; everything else is in More.
+        [
+          { href: "/my-portal", label: "Home", icon: Home },
+          { href: `/services/${session.user.serviceId}`, label: "Centre", icon: Building2 },
+          { href: "/roster/me", label: "Roster", icon: CalendarDays },
+          { href: "/my-pay", label: "Pay", icon: Wallet },
+        ]
+      : role && STAFF_TIER_ROLES.has(role)
+        ? staffTabs
+        : defaultTabs;
 
   const { data: unreadData } = useUnreadNotificationCount({
     refetchInterval: NOTIFICATION_POLL_INTERVAL_MS,

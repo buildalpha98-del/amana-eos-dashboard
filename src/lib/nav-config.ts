@@ -377,18 +377,32 @@ export const STAFF_NAV_HREFS: readonly string[] = [
   "/tools/amana-way-one-pager",
 ];
 
-function staffNavItems(items: readonly NavItem[]): NavItem[] {
+function staffNavItems(items: readonly NavItem[], serviceId: string | null): NavItem[] {
   // FIRST entry per href wins: /compliance is listed twice — "My
   // Compliance" under My Portal, then the network-wide Operations
   // "Compliance" — and an Educator should get the personal label.
   const byHref = new Map<string, NavItem>();
   for (const item of items) if (!byHref.has(item.href)) byHref.set(item.href, item);
-  return STAFF_NAV_HREFS.flatMap((href) => {
+  const own = STAFF_NAV_HREFS.flatMap((href) => {
     const item = byHref.get(href);
     if (!item || !canAccessPage("staff", href)) return [];
     const section = item.section === "Handbook" ? "Handbook" : "My Portal";
     return [{ ...item, section, core: true, hidden: false }];
   });
+  // 2026-10-08: the centre they work at — sign in/out, roll call,
+  // checklists, posts — right under their own home. Only when they have a
+  // centre; the page itself shows an educator the short menu.
+  if (!serviceId) return own;
+  const centre: NavItem = {
+    href: `/services/${serviceId}`,
+    label: "My Centre",
+    icon: Building2,
+    section: "My Portal",
+    tooltip: "Sign in/out, roll call, checklists and posts for your centre",
+    core: true,
+    hidden: false,
+  };
+  return [own[0], centre, ...own.slice(1)].filter((i): i is NavItem => !!i);
 }
 
 /**
@@ -436,7 +450,7 @@ export function filterNavItems(
   opts: { isCentreAccount?: boolean; serviceId?: string | null } = {},
 ): NavItem[] {
   if (opts.isCentreAccount) return centreAccountNavItems(items, opts.serviceId ?? null);
-  if (role === "staff") return staffNavItems(items);
+  if (role === "staff") return staffNavItems(items, opts.serviceId ?? null);
   return items.filter((item) => {
     if (!canAccessPage(role, item.href)) return false;
     if (item.feature && !hasFeature(role, item.feature)) return false;

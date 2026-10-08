@@ -8,19 +8,14 @@ import { safeLimit } from "@/lib/pagination";
 import { notifyParentNewPost } from "@/lib/parent-notifications";
 import { logger } from "@/lib/logger";
 import { canPublishPosts, resolveAppSettings } from "@/lib/app-settings";
-
-/** Org-wide roles that can access any service. */
-const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
+import { canAccessService } from "@/lib/authz-scope";
 
 // GET /api/services/[id]/parent-posts?cursor=...&limit=...
 export const GET = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
 
-  // Service-membership check: org-wide roles bypass, others must match serviceId
-  if (
-    !ORG_WIDE_ROLES.has(session.user.role) &&
-    session.user.serviceId !== id
-  ) {
+  // Centre scope: the admin tier anywhere, everyone else their own centre.
+  if (!canAccessService(session, id)) {
     throw ApiError.forbidden("You do not have access to this service");
   }
 
@@ -59,7 +54,19 @@ export const GET = withApiAuth(async (req, session, context) => {
   });
   const nextCursor = hasMore ? items[items.length - 1]?.id : undefined;
 
-  return NextResponse.json({ items, nextCursor });
+  // Tell the screen whether THIS viewer may release posts, so it can
+  // show "Publish" vs "Send for approval" without guessing the rules.
+  const settingsRow = await prisma.service.findUnique({
+    where: { id },
+    select: { appSettings: true },
+  });
+  const appSettings = resolveAppSettings(settingsRow?.appSettings);
+  const canPublish = canPublishPosts(
+    session.user.role ?? "",
+    appSettings.posts.onlyApproversPublish,
+  );
+
+  return NextResponse.json({ items, nextCursor, canPublish });
 });
 
 // POST /api/services/[id]/parent-posts
@@ -67,11 +74,7 @@ export const POST = withApiAuth(
   async (req, session, context) => {
     const { id } = await context!.params!;
 
-    // Service-membership check
-    if (
-      !ORG_WIDE_ROLES.has(session.user.role) &&
-      session.user.serviceId !== id
-    ) {
+    if (!canAccessService(session, id)) {
       throw ApiError.forbidden("You do not have access to this service");
     }
 
@@ -88,7 +91,8 @@ export const POST = withApiAuth(
     const { childIds, publishAt, ...rest } = parsed.data;
 
     /**
-     * Educators can WRITE a post but not publish one.
+     * Educators can WRITE a post but not publish one (canPublishPosts
+     * returns false for `staff`).
      *
      * They're the ones in the room when something worth photographing
      * happens, and routing every post through the Director is how a feed
@@ -96,8 +100,6 @@ export const POST = withApiAuth(
      * every family at the centre, and that deserves a second pair of
      * eyes. Their posts land as drafts for the Director to release.
      */
-    const educatorOnly = session.user.role === "staff";
-
     // Per-centre publishing rules. A centre can require everything to
     // start as a draft, and/or restrict publishing to admins — the
     // Post Approver shape. Both only ever make a post LESS visible, so
@@ -108,7 +110,6 @@ export const POST = withApiAuth(
     });
     const appSettings = resolveAppSettings(settingsRow?.appSettings);
     const mustDraft =
-      educatorOnly ||
       appSettings.posts.draftByDefault ||
       !canPublishPosts(session.user.role ?? "", appSettings.posts.onlyApproversPublish);
     const status = mustDraft ? "draft" : rest.status;
@@ -222,8 +223,10 @@ export const POST = withApiAuth(
       return created;
     });
 
-    // Fire-and-forget: notify parents of tagged children
-    if (childIds.length > 0) {
+    // Fire-and-forget: notify parents of tagged children — only once the
+    // post is actually out. A draft used to notify them straight away,
+    // pointing at a post they couldn't see (fixed 2026-10-08).
+    if (childIds.length > 0 && effectiveStatus === "published") {
       notifyParentNewPost(post.id, data.title, data.type, childIds).catch((err) =>
         logger.error("Post notification failed", { postId: post.id, err }),
       );
@@ -239,5 +242,6 @@ export const POST = withApiAuth(
 
     return NextResponse.json(post, { status: 201 });
   },
-  { roles: ["owner", "head_office", "admin", "member"] },
+  // Educators write too — their posts land as drafts for the Director.
+  { roles: ["owner", "head_office", "admin", "member", "staff"] },
 );

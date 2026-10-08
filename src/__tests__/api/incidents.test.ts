@@ -219,4 +219,21 @@ describe("POST /api/incidents", () => {
     expect(body.service.name).toBe("Sunnyside");
     expect(prismaMock.incidentRecord.create).toHaveBeenCalledOnce();
   });
+
+  it("lets an educator log an incident at their own centre (2026-10-08)", async () => {
+    mockSession({ id: "edu", name: "Educator", role: "staff", serviceId: "svc-1" });
+    prismaMock.incidentRecord.create.mockResolvedValue({ id: "inc-2", serviceId: "svc-1", service: { id: "svc-1", name: "S" } });
+    const res = await POST(createRequest("POST", "/api/incidents", {
+      body: { serviceId: "svc-1", incidentDate: "2026-10-08", childName: "Alice", incidentType: "injury", severity: "minor", description: "Fell", parentNotified: true },
+    }));
+    expect(res.status).toBe(201);
+  });
+
+  it("refuses logging into another centre", async () => {
+    mockSession({ id: "edu", name: "Educator", role: "staff", serviceId: "svc-2" });
+    const res = await POST(createRequest("POST", "/api/incidents", {
+      body: { serviceId: "svc-1", incidentDate: "2026-10-08", childName: "Alice", incidentType: "injury", severity: "minor", description: "Fell", parentNotified: true },
+    }));
+    expect(res.status).toBe(403);
+  });
 });

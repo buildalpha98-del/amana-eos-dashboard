@@ -38,10 +38,15 @@ describe("resolveAppSettings", () => {
 });
 
 describe("canPublishPosts", () => {
-  it("lets everyone publish when the restriction is off", () => {
-    for (const role of ["member", "staff", "admin"]) {
+  it("lets directors and the office publish when the restriction is off", () => {
+    for (const role of ["member", "admin", "owner", "head_office"]) {
       expect(canPublishPosts(role, false)).toBe(true);
     }
+  });
+
+  it("never lets educators publish — their posts wait as drafts", () => {
+    expect(canPublishPosts("staff", false)).toBe(false);
+    expect(canPublishPosts("staff", true)).toBe(false);
   });
 
   it("restricts to admin and above when on", () => {

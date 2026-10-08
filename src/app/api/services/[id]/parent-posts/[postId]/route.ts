@@ -4,9 +4,29 @@ import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { updateParentPostSchema } from "@/lib/schemas/parent-post";
 import { notifyPostPublished } from "@/lib/notifications/posts";
+import { notifyParentNewPost } from "@/lib/parent-notifications";
+import { canAccessService } from "@/lib/authz-scope";
+import { canPublishPosts, resolveAppSettings } from "@/lib/app-settings";
+import { logger } from "@/lib/logger";
 
-/** Org-wide roles that can access any service. */
-const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
+/**
+ * Who may touch a post (2026-10-08):
+ *  - a PUBLISHER (Director, or the office — see canPublishPosts) may edit,
+ *    release and delete any post at the centre. That is what makes them
+ *    the approver: an educator's draft is theirs to release.
+ *  - an author who can't publish (educators) may edit and delete their
+ *    OWN post while it is still a draft. Once families can see it,
+ *    changing it is the Director's call.
+ * A non-publisher asking for "published" keeps the post a draft, the same
+ * as on create — re-saving a draft must never be a way round approval.
+ */
+async function publishRights(serviceId: string, role: string): Promise<boolean> {
+  const row = await prisma.service.findUnique({
+    where: { id: serviceId },
+    select: { appSettings: true },
+  });
+  return canPublishPosts(role, resolveAppSettings(row?.appSettings).posts.onlyApproversPublish);
+}
 
 // PATCH /api/services/[id]/parent-posts/[postId]
 export const PATCH = withApiAuth(
@@ -15,13 +35,10 @@ export const PATCH = withApiAuth(
     const serviceId = params.id;
     const postId = params.postId;
 
-    // Service-membership check
-    if (
-      !ORG_WIDE_ROLES.has(session.user.role) &&
-      session.user.serviceId !== serviceId
-    ) {
+    if (!canAccessService(session, serviceId)) {
       throw ApiError.forbidden("You do not have access to this service");
     }
+    const canPublish = await publishRights(serviceId, session.user.role ?? "");
 
     const body = await parseJsonBody(req);
     const parsed = updateParentPostSchema.safeParse(body);
@@ -33,6 +50,10 @@ export const PATCH = withApiAuth(
     }
 
     const { childIds, ...data } = parsed.data;
+    if (!canPublish && data.status && data.status !== "draft") {
+      data.status = "draft";
+      delete (data as { publishAt?: unknown }).publishAt;
+    }
 
     const post = await prisma.$transaction(async (tx) => {
       // Verify post exists and belongs to this service
@@ -45,12 +66,15 @@ export const PATCH = withApiAuth(
         throw ApiError.notFound("Post not found");
       }
 
-      // Only the author or org-wide roles can edit
-      if (
-        !ORG_WIDE_ROLES.has(session.user.role) &&
-        existing.authorId !== session.user.id
-      ) {
-        throw ApiError.forbidden("Only the author or admin can edit this post");
+      if (!canPublish) {
+        if (existing.authorId !== session.user.id) {
+          throw ApiError.forbidden("Only the author or the Director can edit this post");
+        }
+        if (existing.status !== "draft") {
+          throw ApiError.forbidden(
+            "This post is already out to families — ask your Director to change it.",
+          );
+        }
       }
 
       // If childIds provided, verify they belong to this service
@@ -110,6 +134,14 @@ export const PATCH = withApiAuth(
     // notify the whole centre a second time.
     if (post.status === "published" && post._wasDraft) {
       notifyPostPublished(post.id).catch(() => {});
+      // Tagged children's families get their personal nudge now — it was
+      // held back while the post was a draft.
+      const taggedIds = post.tags.map((t) => t.child.id);
+      if (taggedIds.length > 0) {
+        notifyParentNewPost(post.id, post.title, post.type, taggedIds).catch((err) =>
+          logger.error("Post notification failed", { postId: post.id, err }),
+        );
+      }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -117,7 +149,7 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json(responsePost);
   },
-  { roles: ["owner", "head_office", "admin", "member"] },
+  { roles: ["owner", "head_office", "admin", "member", "staff"] },
 );
 
 // DELETE /api/services/[id]/parent-posts/[postId]
@@ -127,30 +159,24 @@ export const DELETE = withApiAuth(
     const serviceId = params.id;
     const postId = params.postId;
 
-    // Service-membership check
-    if (
-      !ORG_WIDE_ROLES.has(session.user.role) &&
-      session.user.serviceId !== serviceId
-    ) {
+    if (!canAccessService(session, serviceId)) {
       throw ApiError.forbidden("You do not have access to this service");
     }
+    const canPublish = await publishRights(serviceId, session.user.role ?? "");
 
     // Verify post exists, belongs to service, and user has permission
     const existing = await prisma.parentPost.findUnique({
       where: { id: postId },
-      select: { id: true, serviceId: true, authorId: true, title: true },
+      select: { id: true, serviceId: true, authorId: true, title: true, status: true },
     });
 
     if (!existing || existing.serviceId !== serviceId) {
       throw ApiError.notFound("Post not found");
     }
 
-    // Only the author or org-wide roles can delete
-    if (
-      !ORG_WIDE_ROLES.has(session.user.role) &&
-      existing.authorId !== session.user.id
-    ) {
-      throw ApiError.forbidden("Only the author or admin can delete this post");
+    // Publishers may delete any post here; others only their own draft.
+    if (!canPublish && (existing.authorId !== session.user.id || existing.status !== "draft")) {
+      throw ApiError.forbidden("Only the author or the Director can delete this post");
     }
 
     // Cascade deletes tags via onDelete: Cascade in schema
@@ -168,5 +194,5 @@ export const DELETE = withApiAuth(
 
     return NextResponse.json({ success: true });
   },
-  { roles: ["owner", "head_office", "admin", "member"] },
+  { roles: ["owner", "head_office", "admin", "member", "staff"] },
 );

@@ -226,8 +226,25 @@ export const tabGroups: TabGroup[] = [
 ];
 
 
+/**
+ * What an EDUCATOR (`staff`) sees of their centre (2026-10-08). They used
+ * to get the whole menu — Staff, Families, EOS, Finance, Settings — and
+ * most of it answered "forbidden". This is the floor of an OSHC shift:
+ * the day's jobs first, then the program, the safety registers and the
+ * policies. Anything not listed is simply not there.
+ */
+const EDUCATOR_SECTIONS: Record<string, string[]> = {
+  today: [],
+  daily: ["sign-in-out", "roll-call", "children", "medication", "checklists", "posts", "ratios"],
+  program: ["activities", "menu", "observations"],
+  compliance: ["incidents", "headcounts", "registers", "risk"],
+  documents: ["policies", "handbook"],
+};
+
 /** Role-based visibility — the same rules the page applied inline. */
 export function visibleServiceSections(opts: {
+  /** An educator (`staff`) — gets the short floor-of-the-shift menu. */
+  isEducator?: boolean;
   /** owner/head_office/admin — sees admin-only sub-tabs (Weekly Data, Billing). */
   isAdminPlus: boolean;
   /** Admin tier, or the Director of THIS centre. */
@@ -235,6 +252,18 @@ export function visibleServiceSections(opts: {
   /** Admin tier or a Director — Documents → Staff files. */
   canSeeStaffFiles: boolean;
 }): TabGroup[] {
+  if (opts.isEducator) {
+    return tabGroups
+      .filter((g) => g.key in EDUCATOR_SECTIONS)
+      .map((g) => {
+        const keep = EDUCATOR_SECTIONS[g.key];
+        // Their order, not the full menu's — Sign in/out leads the day.
+        const subTabs = keep
+          .map((k) => g.subTabs.find((s) => s.key === k))
+          .filter((s): s is SubTab => !!s);
+        return { ...g, subTabs };
+      });
+  }
   return tabGroups
     .filter((g) => !g.adminOnly || opts.isAdminPlus)
     .map((g) => {
