@@ -16,6 +16,8 @@ export interface TeamMember {
   email: string;
   role: "owner" | "head_office" | "admin" | "marketing" | "member" | "staff";
   avatar: string | null;
+  /** Registered positions (src/lib/staff-permissions.ts). */
+  positions?: string[];
   service: { id: string; name: string } | null;
   activeRocks: number;
   totalTodos: number;

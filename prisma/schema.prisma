@@ -795,6 +795,17 @@ model User {
   /// see src/lib/centre-account.ts.
   isCentreAccount Boolean @default(false)
 
+  /// Per-person permission ticks on top of the role (2026-10-08, after
+  /// OWNA's "Access & Permissions"). Only ticks that change what the
+  /// server does — see STAFF_PERMISSIONS in src/lib/staff-permissions.ts.
+  permissions      String[] @default([])
+  /// Registered positions (Nominated Supervisor, Educational Leader,
+  /// Responsible Person…) — see STAFF_POSITIONS. Several allowed.
+  positions        String[] @default([])
+  /// Not counted towards educator:child ratios (office staff, a cook on
+  /// the floor). Applied to the live ratio.
+  excludeFromRatio Boolean  @default(false)
+
   // ── Induction state machine (see src/lib/induction.ts) ──
   inductionStatus        InductionStatus @default(cleared)
   inductionDueDate       DateTime?

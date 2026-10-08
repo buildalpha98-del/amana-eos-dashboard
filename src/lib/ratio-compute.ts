@@ -93,6 +93,10 @@ export async function computeLiveRatios(
       where: {
         serviceId,
         date: dayStart,
+        // Staff ticked "don't count in ratio" (office staff, a cook on
+        // the floor) never make the ratio look safer than it is. Open /
+        // name-only shifts have no user and stay counted, as before.
+        OR: [{ userId: null }, { user: { excludeFromRatio: false } }],
       },
       select: {
         userId: true,

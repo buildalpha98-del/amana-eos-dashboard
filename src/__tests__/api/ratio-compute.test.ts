@@ -148,4 +148,13 @@ describe("computeLiveRatios", () => {
     expect(asc.educatorCount).toBe(1);
     expect(asc.educatorIds).toEqual(["u3"]);
   });
+
+  it("leaves staff ticked 'don't count in ratio' out of the roster query (2026-10-08)", async () => {
+    prismaMock.service.findUnique.mockResolvedValue({ id: "s1", ratioSettings: null });
+    prismaMock.rosterShift.findMany.mockResolvedValue([]);
+    prismaMock.attendanceRecord.findMany.mockResolvedValue([]);
+    await computeLiveRatios("s1");
+    const where = prismaMock.rosterShift.findMany.mock.calls[0][0].where;
+    expect(where.OR).toEqual([{ userId: null }, { user: { excludeFromRatio: false } }]);
+  });
 });

@@ -7,7 +7,8 @@ import { createParentPostSchema } from "@/lib/schemas/parent-post";
 import { safeLimit } from "@/lib/pagination";
 import { notifyParentNewPost } from "@/lib/parent-notifications";
 import { logger } from "@/lib/logger";
-import { canPublishPosts, resolveAppSettings } from "@/lib/app-settings";
+import { resolveAppSettings } from "@/lib/app-settings";
+import { canPublishAtService } from "@/lib/post-publish";
 import { canAccessService } from "@/lib/authz-scope";
 
 // GET /api/services/[id]/parent-posts?cursor=...&limit=...
@@ -56,15 +57,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 
   // Tell the screen whether THIS viewer may release posts, so it can
   // show "Publish" vs "Send for approval" without guessing the rules.
-  const settingsRow = await prisma.service.findUnique({
-    where: { id },
-    select: { appSettings: true },
-  });
-  const appSettings = resolveAppSettings(settingsRow?.appSettings);
-  const canPublish = canPublishPosts(
-    session.user.role ?? "",
-    appSettings.posts.onlyApproversPublish,
-  );
+  const canPublish = await canPublishAtService(session, id);
 
   return NextResponse.json({ items, nextCursor, canPublish });
 });
@@ -110,8 +103,7 @@ export const POST = withApiAuth(
     });
     const appSettings = resolveAppSettings(settingsRow?.appSettings);
     const mustDraft =
-      appSettings.posts.draftByDefault ||
-      !canPublishPosts(session.user.role ?? "", appSettings.posts.onlyApproversPublish);
+      appSettings.posts.draftByDefault || !(await canPublishAtService(session, id));
     const status = mustDraft ? "draft" : rest.status;
 
     // A post scheduled for a time already past is just a published post —
