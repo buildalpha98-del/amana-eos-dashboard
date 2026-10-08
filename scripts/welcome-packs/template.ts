@@ -32,36 +32,43 @@ const tel = (phone: string) => `tel:${phone.replace(/\s+/g, "")}`;
 /* Decoration                                                          */
 /* ------------------------------------------------------------------ */
 
-/** The logo's sun rays as a free-standing burst. `from`/`to` in degrees, 0 = up. */
-function burst(opts: {
-  size: number;
-  rays: number;
-  from?: number;
-  to?: number;
-  inner?: number;
-  color: string;
-  width?: number;
-  opacity?: number;
-}): string {
-  const { size, rays, from = -90, to = 90, inner = 0.38, color, width = 0.075, opacity = 1 } = opts;
-  const c = size / 2;
-  const r0 = c * inner;
-  const r1 = c * 0.94;
-  const sw = size * width;
-  const lines: string[] = [];
-  for (let i = 0; i < rays; i++) {
-    const deg = rays === 1 ? from : from + ((to - from) * i) / (rays - 1);
-    const a = ((deg - 90) * Math.PI) / 180;
-    const x0 = c + r0 * Math.cos(a);
-    const y0 = c + r0 * Math.sin(a);
-    const x1 = c + r1 * Math.cos(a);
-    const y1 = c + r1 * Math.sin(a);
-    lines.push(
-      `<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`,
-    );
-  }
-  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true"><g stroke="${color}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round" opacity="${opacity}">${lines.join("")}</g></svg>`;
-}
+
+
+/* ------------------------------------------------------------------ */
+/* Brand shapes — the three paths of the real logo (public/logo-icon.svg).
+ * The guidelines build every graphic element from these: Sun Rays, Pupil,
+ * A and Bell (A + Pupil). The corner bursts on the guideline cover are the
+ * rays plus the same rays turned 180°. Never draw a substitute.           */
+/* ------------------------------------------------------------------ */
+const RAYS_D =
+  "M80.3139 53.2903H112.291C115.445 53.2903 118 55.8452 118 58.9989C118 62.1527 115.445 64.7075 112.291 64.7075H80.3139H37.6861H5.7087C2.55491 64.7075 0 62.1527 0 58.9989C0 55.8452 2.55491 53.2903 5.7087 53.2903H37.6861L9.99131 37.3019C7.25975 35.7251 6.32481 32.231 7.90171 29.4995C9.4786 26.768 12.9728 25.833 15.7043 27.4099L43.3991 43.4026L27.4104 15.7083C25.8335 12.9768 26.7684 9.48274 29.5 7.90587C32.2316 6.32901 35.7257 7.26392 37.3026 9.99544L53.2913 37.6854V5.7086C53.2913 2.55487 55.8462 0 59 0C62.1538 0 64.7087 2.55487 64.7087 5.7086V37.6854L80.6974 9.99113C82.2743 7.25962 85.7684 6.3247 88.5 7.90156C91.2316 9.47843 92.1665 12.9725 90.5896 15.704L74.6009 43.3983L102.296 27.4099C105.027 25.833 108.521 26.768 110.098 29.4995C111.675 32.231 110.74 35.7251 108.009 37.3019L80.3139 53.2903Z";
+const PUPIL_D =
+  "M72.6534 133.188C75.2024 133.188 77.1206 135.596 76.4451 138.05C74.3102 145.85 67.1729 151.579 58.6973 151.579C50.2217 151.579 43.0844 145.844 40.9496 138.05C40.2804 135.596 42.1986 133.188 44.7413 133.188H72.647H72.6534Z";
+const A_D =
+  "M79.631 126.661L63.4318 81.0143C61.6793 76.0755 54.6949 76.0628 52.9233 81.0016L36.5712 126.668L30.9187 143.81L21.5573 169.192C20.748 171.384 18.6577 172.837 16.3254 172.837H6.25025C2.35658 172.837 -0.339039 168.95 1.03107 165.305L45.3463 47.112C46.162 44.9325 48.2458 43.4923 50.5655 43.4923H66.5798C68.9122 43.4923 71.0024 44.9453 71.8118 47.1374L115.42 165.324C116.764 168.963 114.069 172.831 110.188 172.831H99.5773C97.1939 172.831 95.0718 171.314 94.3007 169.058L85.6658 143.797L79.631 126.655V126.661Z";
+
+const rays = (cls: string) =>
+  `<svg class="${cls}" viewBox="0 0 118 65" aria-hidden="true"><path d="${RAYS_D}" fill="currentColor"/></svg>`;
+const burst = (cls: string) =>
+  `<svg class="${cls}" viewBox="0 0 118 118" aria-hidden="true"><path d="${RAYS_D}" fill="currentColor"/><path d="${RAYS_D}" fill="currentColor" transform="rotate(180 59 59)"/></svg>`;
+const bell = (cls: string) =>
+  `<svg class="${cls}" viewBox="0 43 118 130" aria-hidden="true"><path d="${A_D}" fill="currentColor"/><path d="${PUPIL_D}" fill="currentColor"/></svg>`;
+const mark = (cls: string) =>
+  `<svg class="${cls}" viewBox="0 0 118 173" aria-hidden="true"><path d="${RAYS_D}" fill="currentColor"/><path d="${A_D}" fill="currentColor"/><path d="${PUPIL_D}" fill="currentColor"/></svg>`;
+
+const SECTION_NO: Record<string, string> = {
+  "Finding us": "01",
+  "Getting started": "02",
+  "Fees and Child Care Subsidy": "03",
+  "Paying and invoices": "04",
+  "Booking and changes": "05",
+  "Drop-off and pick-up": "06",
+  "Food and health": "07",
+  "Our programs": "08",
+  "Good to know": "09",
+  "Staying in touch": "10",
+  "Quick answers": "11",
+};
 
 const ICONS: Record<string, string> = {
   phone:
@@ -96,9 +103,15 @@ const icon = (name: string, cls = "ico") =>
 /* ------------------------------------------------------------------ */
 
 function sectionHead(eyebrow: string, title: string, intro?: string): string {
+  const no = SECTION_NO[eyebrow];
   return `<header class="sec">
-    <div class="eyebrow"><span class="ray">${burst({ size: 18, rays: 5, from: -60, to: 60, inner: 0.3, color: "#FECE00", width: 0.16 })}</span>${esc(eyebrow)}</div>
-    <h2>${title}</h2>
+    <div class="sec-top">
+      <div>
+        <div class="eyebrow">${esc(eyebrow)}</div>
+        <h2>${title}</h2>
+      </div>
+      ${no ? `<span class="sec-no">${no}</span>` : ""}
+    </div>
     ${intro ? `<p class="lede">${intro}</p>` : ""}
   </header>`;
 }
@@ -106,7 +119,7 @@ function sectionHead(eyebrow: string, title: string, intro?: string): string {
 function card(title: string, body: string, opts: { icon?: string; tone?: "white" | "chiffon" | "green"; cls?: string } = {}): string {
   const { tone = "white", cls = "" } = opts;
   return `<div class="card card-${tone} ${cls}">
-    <h3>${opts.icon ? icon(opts.icon) : ""}<span>${title}</span></h3>
+    <h3>${title}</h3>
     ${body}
   </div>`;
 }
@@ -148,25 +161,18 @@ function page(c: WelcomePackCentre, n: number, body: string, opts: { cls?: strin
 
 function cover(c: WelcomePackCentre): string {
   return `<section class="page cover">
-    <div class="cover-burst">${burst({ size: 900, rays: 13, from: -90, to: 90, inner: 0.36, color: "#FECE00", width: 0.05 })}</div>
-    <div class="cover-sun"></div>
-    <div class="cover-top">
-      <img class="cover-logo" src="__PUBLIC__/logo-full-white.svg" alt="Amana OSHC"/>
-      <span class="cover-tag">Parent Welcome Pack</span>
-    </div>
+    ${burst("cv-burst cv-b1")}
+    ${burst("cv-burst cv-b2")}
+    ${burst("cv-burst cv-b3")}
     <div class="cover-main">
-      <p class="cover-salaam">Assalamu Alaikum</p>
-      <h1>Welcome to<br/>the <span>Amana</span><br/>family</h1>
+      <img class="cover-logo" src="__ASSETS__/brand/logo-latte.svg" alt="Amana OSHC"/>
+      <p class="cover-tag">Parent Welcome Pack</p>
       <div class="cover-centre">
-        <span class="cover-centre-k">Your centre</span>
-        <span class="cover-centre-v">Amana OSHC ${esc(c.name)}</span>
+        <span class="cover-centre-v">${esc(c.name)}</span>
         ${c.address ? `<span class="cover-centre-a">${esc(c.address)}</span>` : ""}
       </div>
     </div>
-    <div class="cover-bottom">
-      <span class="btb">Beyond The Bell</span>
-      <span class="cover-url">amanaoshc.com.au</span>
-    </div>
+    <p class="cover-btb">Beyond The Bell</p>
   </section>`;
 }
 
@@ -203,18 +209,17 @@ function welcomePage(c: WelcomePackCentre): string {
         <p>We are so glad your family is joining Amana OSHC ${esc(c.name)}. Our team is here to give your child a safe, warm and fun place to learn and play before and after the school day, rooted in values that matter.</p>
         <p>This pack covers what happens next, how fees and booking work, and everything you need for your child's first day. Keep it handy, and call us any time if you have a question. We are always happy to help.</p>
         <p class="sign">Warm regards,<br/><strong>The Amana OSHC team</strong></p>
-        <blockquote class="pull">Learning doesn't stop at 3pm, and neither do we.</blockquote>
+        <img class="lockup" src="__ASSETS__/brand/beyond-the-bell.png" alt="Beyond The Bell"/>
         <div class="glance">
           <h3>At a glance</h3>
           ${glance
             .map(
-              ([ic, k, v]) => `<div class="glance-row">${icon(ic)}<span class="k">${k}</span><span class="v">${v}</span></div>`,
+              ([, k, v]) => `<div class="glance-row"><span class="k">${k}</span><span class="v">${v}</span></div>`,
             )
             .join("")}
         </div>
       </div>
       <aside class="contents">
-        <div class="contents-burst">${burst({ size: 220, rays: 9, from: -90, to: 90, inner: 0.4, color: "#FECE00", width: 0.07, opacity: 0.55 })}</div>
         <h3>Inside this pack</h3>
         <ol>${contents
           .map(
@@ -310,22 +315,21 @@ function gettingStartedPage(c: WelcomePackCentre): string {
     <div class="first-day">
       <div class="first-day-head">
         <div class="eyebrow dark">Before the first day</div>
-        <h2>Three things to know</h2>
-        <div class="fd-burst">${burst({ size: 160, rays: 7, from: -75, to: 75, inner: 0.42, color: "#FECE00", width: 0.09 })}</div>
+        <h2 class="h3size">Before your child's first day</h2>
       </div>
       <div class="fd-items">
         <div class="fd">
-          <span class="fd-n">1</span>
+          <span class="badge">1</span>
           <h3>Tell your child they are coming to Amana</h3>
           <p>Some children forget, and then wait at the gate for you. Let your child know before their first day that they will be with us after school.</p>
         </div>
         <div class="fd">
-          <span class="fd-n">2</span>
+          <span class="badge">2</span>
           <h3>Drop by and say hello</h3>
           <p>If it is your first time, come and view the service so you know where it is, and meet our educators. Our team wear yellow lanyards with name tags and black Amana OSHC tees, so we are easy to spot.</p>
         </div>
         <div class="fd">
-          <span class="fd-n">3</span>
+          <span class="badge">3</span>
           <h3>There is nothing extra to pack</h3>
           <p>Your child does not need to bring anything special for us. Homework is simply whatever the school has set for the day, and we set aside time every session for reading and homework.</p>
         </div>
@@ -344,7 +348,6 @@ function feesPage(c: WelcomePackCentre): string {
       "Fees are charged <strong>one week in arrears</strong>. If your child attends in week one, you are charged on the Wednesday of week two, after your Child Care Subsidy (CCS) has been taken off.",
     )}
     <div class="callout">
-      ${icon("calendar")}
       <p><strong>Fees apply to every booked session</strong>, including absences and any session that falls on a public holiday during term time, because our staffing and resourcing costs are fixed. <strong>The one exception is illness:</strong> if your child is unwell and you provide a medical certificate, there is no charge, for regular and casual bookings alike.</p>
     </div>
     <div class="two">
@@ -362,10 +365,6 @@ function feesPage(c: WelcomePackCentre): string {
       </div>
       <div class="gap-explain">
         <h3>How the CCS gap works</h3>
-        <div class="gap-bar">
-          <div class="gap-gov"><span>Government pays</span><strong>up to 90%</strong></div>
-          <div class="gap-you"><span>You pay</span><strong>the gap</strong></div>
-        </div>
         <p>The government pays a percentage of each session fee, up to 90% depending on your family income, straight to us. The part left over is called the gap, and the gap is all you pay.</p>
         <h4>Who qualifies?</h4>
         ${bullets([
@@ -480,14 +479,7 @@ function payPage(c: WelcomePackCentre): string {
         <h3>How to read your invoice</h3>
         <p>Your weekly invoice is in the OWNA app under Statements and Invoices. Here is what each part means.</p>
       </div>
-      <div class="invoice-body">
-        <div class="inv-mock" aria-hidden="true">
-          <div class="im im1"><b>1</b></div>
-          <div class="im im2"><b>2</b><i></i><i></i><i></i></div>
-          <div class="im im3"><b>3</b></div>
-          <div class="im im4"><b>4</b></div>
-          <div class="im im5"><b>5</b><i></i><i></i></div>
-        </div>
+      <div>
         ${steps(
           [
             ["Invoice details", "Your account name, issue date and the statement period the invoice covers."],
@@ -536,7 +528,7 @@ function bookingPage(c: WelcomePackCentre): string {
       )}
     </div>
     <div class="more-owna">
-      <h3>${icon("device")}A few more things you can do in OWNA</h3>
+      <h3>A few more things you can do in OWNA</h3>
       ${bullets([
         "See your child's daily information, including menu and sun protection updates, from the menu.",
         "Sign your child's incident reports, record medication and upload an immunisation record from the three dots on your child's profile.",
@@ -558,9 +550,9 @@ function handoverPage(c: WelcomePackCentre): string {
       "We use electronic sign-in on our iPad. A parent, carer or authorised adult must sign your child in and out. Children cannot sign themselves in or out, because it is a CCS requirement.",
     )}
     <ol class="signin">
-      <li><span>${icon("door")}</span><strong>Come into the service</strong><em>Not the gate or car park</em></li>
-      <li><span>${icon("device")}</span><strong>Sign in or out on the iPad</strong><em>A parent, carer or authorised adult</em></li>
-      <li><span>${icon("hand")}</span><strong>Hand over to an educator</strong><em>Every session, every child</em></li>
+      <li><span>1</span><strong>Come into the service</strong><em>Not the gate or car park</em></li>
+      <li><span>2</span><strong>Sign in or out on the iPad</strong><em>A parent, carer or authorised adult</em></li>
+      <li><span>3</span><strong>Hand over to an educator</strong><em>Every session, every child</em></li>
     </ol>
     <div class="${c.hasBsc ? "four" : "two"} fill">
       ${
@@ -604,7 +596,6 @@ function foodPage(c: WelcomePackCentre): string {
 
     <div class="medical">
       <div class="medical-head">
-        ${icon("heart", "ico big")}
         <div>
           <h3>Allergies and medical needs: what we need from you</h3>
           <p>Our Health and Medical Team reviews every child's medical information and may follow up with questions. Please allow <strong>up to two weeks</strong> for review before schedules are confirmed.</p>
@@ -672,7 +663,7 @@ function goodToKnowPage(c: WelcomePackCentre): string {
     <div class="two">
       ${card("Devices and belongings", "<p>Phones, smart watches, tablets and laptops are not permitted unless used for homework. Please speak to your Service Coordinator about our BYOD policy.</p><p>Amana cannot be responsible for lost or stolen items, so please consider this when choosing what your child brings.</p>", { icon: "device" })}
       <div class="card card-white">
-        <h3>${icon("star")}<span>Fair play</span></h3>
+        <h3>Fair play</h3>
         <p>We ask every child to:</p>
         <ul class="pills">
           <li>Be respectful</li><li>Look after our space</li><li>Listen to our team</li>
@@ -683,14 +674,13 @@ function goodToKnowPage(c: WelcomePackCentre): string {
     </div>
 
     <div class="safety">
-      <div class="safety-burst">${burst({ size: 300, rays: 11, from: -90, to: 90, inner: 0.42, color: "#FECE00", width: 0.05, opacity: 0.9 })}</div>
       <div class="eyebrow light">Child safety</div>
       <h2>Your child's safety comes first</h2>
       <div class="safety-grid">
-        <div>${icon("shield", "ico big")}<p>Every team member holds a valid <strong>Working With Children Check</strong></p></div>
-        <div>${icon("star", "ico big")}<p>Every team member has completed <strong>Geccko child safety</strong> and <strong>food handling</strong> training</p></div>
-        <div>${icon("heart", "ico big")}<p>Our senior team members hold current <strong>first aid</strong> training</p></div>
-        <div>${icon("user", "ico big")}<p>We employ our team directly, with <strong>no agency fill-ins</strong></p></div>
+        <div>${rays("sg-rays")}<p>Every team member holds a valid <strong>Working With Children Check</strong></p></div>
+        <div>${rays("sg-rays")}<p>Every team member has completed <strong>Geccko child safety</strong> and <strong>food handling</strong> training</p></div>
+        <div>${rays("sg-rays")}<p>Our senior team members hold current <strong>first aid</strong> training</p></div>
+        <div>${rays("sg-rays")}<p>We employ our team directly, with <strong>no agency fill-ins</strong></p></div>
       </div>
       <p class="safety-foot">Children stay within an educator's eyesight at all times. Our policies, including our Medical Conditions Policy, are available on request, under Parent Resources on our website, and under Documents and Policies in OWNA.</p>
     </div>`,
@@ -710,7 +700,7 @@ function touchPage(c: WelcomePackCentre, a: TemplateAssets): string {
       )}
       <div class="card card-green wa">
         <div>
-          <h3>${icon("chat")}<span>WhatsApp community</span></h3>
+          <h3>WhatsApp community</h3>
           <p>Join the Amana OSHC WhatsApp Community for general updates and announcements, including Holiday Quest news.</p>
           <a class="btn" href="${WHATSAPP_URL}">Join the community</a>
         </div>
@@ -782,26 +772,30 @@ function faqPages(c: WelcomePackCentre): string {
     `<div class="faq">${items.map(([q, a]) => `<div class="qa"><h3><span class="q">Q</span>${q}</h3><p>${a}</p></div>`).join("")}</div>`;
   return (
     page(c, 14, `${sectionHead("Quick answers", "Frequently asked questions")}${render(all.slice(0, split))}`) +
-    page(c, 15, `${sectionHead("Quick answers", "More questions, answered")}${render(all.slice(split))}`)
+    page(c, 15, `${sectionHead("More answers", "More questions, answered")}${render(all.slice(split))}`)
   );
 }
 
 function backCover(c: WelcomePackCentre): string {
   return `<section class="page back">
-    <div class="back-burst">${burst({ size: 900, rays: 13, from: -90, to: 90, inner: 0.36, color: "#FECE00", width: 0.05 })}</div>
+    <div class="circles" aria-hidden="true">
+      <span class="ci ci-logo"><img src="__ASSETS__/brand/logo-colour.svg" alt=""/></span>
+      <span class="ci ci-btb">Beyond<br/>The Bell</span>
+      <span class="ci ci-rays">${rays("")}</span>
+      <span class="ci ci-bell">${bell("")}</span>
+      <span class="ci ci-burst">${burst("")}</span>
+    </div>
     <div class="back-main">
-      <img class="back-icon" src="__PUBLIC__/logo-icon.svg" alt=""/>
       <p class="thanks">Jazak Allahu Khairan</p>
       <p class="thanks-sub">Thank you for trusting us with your child. We can't wait to meet them.</p>
       <div class="back-contacts">
         <div><span class="k">Your centre</span><span class="v">${esc(c.phone)}</span><span class="s">${esc(c.email)}</span></div>
         <div><span class="k">Head office</span><span class="v">${HEAD_OFFICE}</span><span class="s">${ENROL_EMAIL}</span></div>
       </div>
-      <p class="back-links">amanaoshc.com.au &nbsp;&middot;&nbsp; @AmanaOSHC on Facebook and Instagram</p>
     </div>
     <div class="back-foot">
-      <img src="__PUBLIC__/logo-full-white.svg" alt="Amana OSHC"/>
-      <span class="btb">Beyond The Bell</span>
+      <img src="__ASSETS__/brand/logo-latte.svg" alt="Amana OSHC"/>
+      <span>amanaoshc.com.au<br/>@AmanaOSHC on Facebook and Instagram</span>
     </div>
   </section>`;
 }
@@ -837,7 +831,7 @@ export function renderWelcomePack(c: WelcomePackCentre, a: TemplateAssets): stri
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Fredoka:wght@500;600;700&display=block" rel="stylesheet"/>
 <style>${CSS}</style>
 </head>
-<body>${body.replace(/__PUBLIC__/g, a.publicBase)}</body>
+<body>${body.replace(/__PUBLIC__/g, a.publicBase).replace(/__ASSETS__/g, a.assetBase)}</body>
 </html>`;
 }
 
@@ -852,6 +846,7 @@ const CSS = /* css */ `
   --muted: #4A6B76;
   --line: #E9DFB8;
   --white: #FFFFFF;
+  --din: "DIN Condensed", "Barlow Condensed", sans-serif;
 }
 @page { size: A4; margin: 0; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -887,7 +882,7 @@ h1, h2, h3, h4 { font-family: "Fredoka", "Somatic", sans-serif; color: var(--gre
 .foot {
   position: absolute; left: 15mm; right: 15mm; bottom: 8mm;
   display: flex; justify-content: space-between; align-items: center;
-  font-size: 8.5pt; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600;
+  font-family: var(--din); font-size: 10pt; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700;
   border-top: 1px solid var(--line); padding-top: 3mm;
 }
 .foot-l { display: flex; align-items: center; gap: 2.2mm; }
@@ -899,15 +894,16 @@ h1, h2, h3, h4 { font-family: "Fredoka", "Somatic", sans-serif; color: var(--gre
 }
 
 /* ---------- headings ---------- */
-.sec { display: flex; flex-direction: column; gap: 1.6mm; }
+.sec { display: flex; flex-direction: column; gap: 2mm; }
+.sec-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 6mm; border-bottom: 0.7mm solid var(--jonquil); padding-bottom: 2.4mm; }
+.sec-no { font-family: "Fredoka"; font-weight: 600; font-size: 40pt; line-height: .8; color: var(--jonquil); }
 .eyebrow {
-  display: flex; align-items: center; gap: 1.6mm;
-  font-size: 9pt; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; gap: 1.6mm; margin-bottom: 1mm;
+  font-family: var(--din); font-size: 11.5pt; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
 }
-.eyebrow .ray svg { width: 4.6mm; height: 4.6mm; display: block; }
 .eyebrow.dark { color: var(--green); }
 .eyebrow.light { color: var(--jonquil); }
-h2 { font-size: 23pt; letter-spacing: -.01em; }
+h2 { font-size: 22pt; letter-spacing: -.005em; }
 h3 { font-size: 12.5pt; }
 h4 { font-size: 10.5pt; margin-top: 2mm; }
 .lede { font-size: 11.6pt; color: var(--ink); max-width: 165mm; }
@@ -922,7 +918,7 @@ p + p { margin-top: 1.6mm; }
   border-radius: 4.5mm; padding: 4.6mm 5mm;
   display: flex; flex-direction: column; gap: 1.8mm;
 }
-.card h3 { display: flex; align-items: center; gap: 2mm; }
+.card h3 { display: block; }
 .card-white { background: var(--white); box-shadow: 0 0.4mm 0 rgba(0,78,100,.06), 0 0 0 0.25mm rgba(0,78,100,.06); }
 .card-chiffon { background: var(--chiffon); }
 .card-green { background: var(--green); color: var(--latte); }
@@ -955,7 +951,7 @@ p + p { margin-top: 1.6mm; }
 .bullets { list-style: none; display: flex; flex-direction: column; gap: 1.2mm; }
 .bullets li { padding-left: 5mm; position: relative; }
 .bullets li::before {
-  content: ""; position: absolute; left: .6mm; top: 1.8mm; width: 2mm; height: 2mm; border-radius: 50%; background: var(--jonquil);
+  content: ""; position: absolute; left: 0; top: 1.6mm; width: 3.4mm; height: 1.75mm; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='40 133 37.5 19'%3E%3Cpath fill='%23FECE00' d='M72.6534 133.188C75.2024 133.188 77.1206 135.596 76.4451 138.05C74.3102 145.85 67.1729 151.579 58.6973 151.579C50.2217 151.579 43.0844 145.844 40.9496 138.05C40.2804 135.596 42.1986 133.188 44.7413 133.188H72.647H72.6534Z'/%3E%3C/svg%3E") no-repeat center / contain;
 }
 .checks { list-style: none; display: flex; flex-direction: column; gap: 1.6mm; }
 .checks li { padding-left: 6.5mm; position: relative; }
@@ -964,58 +960,38 @@ p + p { margin-top: 1.6mm; }
   background: var(--green); color: var(--jonquil); font-size: 8pt; font-weight: 700; display: grid; place-items: center;
 }
 
-/* ---------- cover ---------- */
-.cover { background: var(--green); color: var(--latte); }
-.cover-burst { position: absolute; left: 50%; bottom: -150mm; transform: translateX(-50%); opacity: .95; }
-.cover-burst svg { width: 300mm; height: 300mm; }
-.cover-sun {
-  position: absolute; left: 50%; bottom: -50mm; transform: translateX(-50%);
-  width: 124mm; height: 124mm; border-radius: 50%; background: var(--jonquil);
-}
-.cover-top { position: absolute; top: 16mm; left: 16mm; right: 16mm; display: flex; justify-content: space-between; align-items: center; }
-.cover-logo { height: 21mm; }
-.cover-tag {
-  border: 0.5mm solid var(--jonquil); color: var(--jonquil); border-radius: 99mm; padding: 1.6mm 4.4mm;
-  font-size: 9.5pt; letter-spacing: .24em; text-transform: uppercase; font-weight: 700;
-}
-.cover-main { position: absolute; top: 58mm; left: 16mm; right: 16mm; }
-.cover-salaam { font-family: "Fredoka"; font-size: 15pt; color: var(--jonquil); margin-bottom: 3mm; }
-.cover h1 { color: var(--white); font-size: 52pt; line-height: 1.02; font-weight: 600; letter-spacing: -.015em; }
-.cover h1 span { color: var(--jonquil); }
-.cover-centre {
-  margin-top: 9mm; display: inline-flex; flex-direction: column; gap: 1mm;
-  background: var(--latte); color: var(--green); border-radius: 4mm; padding: 4.4mm 6mm; max-width: 150mm;
-}
-.cover-centre-k { font-size: 9pt; letter-spacing: .22em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
-.cover-centre-v { font-family: "Fredoka"; font-weight: 600; font-size: 19pt; line-height: 1.1; }
-.cover-centre-a { font-size: 11pt; color: var(--ink); }
-.cover-bottom {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 20mm; padding: 0 16mm; display: flex; justify-content: space-between; align-items: center;
-  color: var(--green); background: var(--jonquil);
-}
-.btb { font-family: "Fredoka"; font-weight: 600; font-size: 13pt; letter-spacing: .16em; text-transform: uppercase; }
-.cover-url { font-size: 10pt; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; }
+/* ---------- cover (after the guideline cover) ---------- */
+.cover { background: var(--green); }
+.cv-burst { position: absolute; color: var(--jonquil); }
+.cv-b1 { width: 120mm; top: -58mm; right: 6mm; }
+.cv-b2 { width: 104mm; top: 112mm; left: -64mm; }
+.cv-b3 { width: 150mm; bottom: -62mm; right: -58mm; transform: rotate(-18deg); }
+.cover-main { position: absolute; top: 96mm; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.cover-logo { width: 118mm; }
+.cover-tag { margin-top: 14mm; font-family: var(--din); font-weight: 700; font-size: 17pt; letter-spacing: .14em; text-transform: uppercase; color: var(--jonquil); }
+.cover-centre { margin-top: 4mm; display: flex; flex-direction: column; gap: 1.6mm; color: var(--latte); }
+.cover-centre-v { font-family: "Fredoka"; font-weight: 600; font-size: 24pt; line-height: 1.1; }
+.cover-centre-a { font-size: 12pt; opacity: .85; }
+.cover-btb { position: absolute; left: 16mm; bottom: 14mm; font-family: "Fredoka"; font-weight: 600; font-size: 14pt; color: var(--latte); }
 
 /* ---------- welcome ---------- */
-.welcome-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 7mm; height: 100%; }
+.welcome-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 7mm; align-items: start; }
 .letter { display: flex; flex-direction: column; gap: 3mm; }
 .letter .big { font-family: "Fredoka"; font-size: 14pt; color: var(--green); font-weight: 500; }
 .letter p { font-size: 11.4pt; }
 .sign { margin-top: 1mm; }
-.pull { margin-top: 3mm; font-family: "Fredoka"; font-weight: 500; font-size: 16pt; line-height: 1.2; color: var(--green); border-left: 1.6mm solid var(--jonquil); padding: 1mm 0 1mm 4mm; }
-.glance { margin-top: auto; background: var(--white); border-radius: 4.5mm; padding: 4.5mm 5mm; display: flex; flex-direction: column; gap: 2.4mm; }
+.lockup { width: 34mm; align-self: flex-start; margin: 3mm 0 1mm 4mm; }
+.glance { margin-top: 2mm; background: var(--white); border-radius: 4.5mm; padding: 4.5mm 5mm; display: flex; flex-direction: column; gap: 2.4mm; }
 .glance h3 { font-size: 12pt; }
-.glance-row { display: grid; grid-template-columns: 6mm 24mm 1fr; gap: 2mm; align-items: center; padding-top: 2.4mm; border-top: 1px solid var(--line); }
-.glance-row .k { font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 8.8pt; color: var(--muted); }
+.glance-row { display: grid; grid-template-columns: 28mm 1fr; gap: 2mm; align-items: center; padding-top: 2.4mm; border-top: 1px solid var(--line); }
+.glance-row .k { font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: 10.5pt; color: var(--muted); font-family: var(--din); }
 .glance-row .v { font-weight: 600; }
 .contents {
-  display: flex; flex-direction: column;
+  align-self: start; display: flex; flex-direction: column;
   position: relative; background: var(--green); color: var(--latte); border-radius: 5mm; padding: 7mm 6mm; overflow: hidden;
 }
-.contents-burst { position: absolute; right: -22mm; bottom: -40mm; transform: rotate(180deg); }
-.contents-burst svg { width: 70mm; height: 70mm; }
 .contents h3 { color: var(--jonquil); font-size: 15pt; margin-bottom: 4mm; position: relative; }
-.contents ol { list-style: none; display: flex; flex-direction: column; justify-content: space-between; flex: 1; position: relative; }
+.contents ol { list-style: none; display: flex; flex-direction: column; position: relative; }
 .contents li { display: flex; justify-content: space-between; align-items: center; gap: 3mm; padding: 2.5mm 0; border-bottom: 1px solid rgba(255,250,230,.16); }
 .contents li:last-child { border-bottom: 0; }
 .ct { display: flex; flex-direction: column; }
@@ -1036,7 +1012,7 @@ p + p { margin-top: 1.6mm; }
 .find-side { display: flex; flex-direction: column; gap: 4mm; }
 .where { background: var(--green); color: var(--latte); border-radius: 5mm; padding: 5mm; }
 .where .k, .coord .k, .tile .k {
-  display: flex; align-items: center; gap: 1.6mm; font-size: 8.8pt; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 1.6mm; font-family: var(--din); font-size: 10.5pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
 }
 .where .k { color: var(--jonquil); }
 .where .k .ico { color: var(--jonquil); width: 4.6mm; height: 4.6mm; }
@@ -1060,7 +1036,7 @@ p + p { margin-top: 1.6mm; }
 .hours { display: grid; gap: 2mm; background: var(--white); border-radius: 4mm; padding: 3.6mm 4.4mm; }
 .hours > div { display: flex; justify-content: space-between; align-items: center; gap: 3mm; }
 .hours > div + div { border-top: 1px solid var(--line); padding-top: 2mm; }
-.hours .k { display: flex; align-items: center; gap: 1.6mm; font-size: 8.8pt; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.hours .k { display: flex; align-items: center; gap: 1.6mm; font-family: var(--din); font-size: 10.5pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .hours .k .ico { width: 4.6mm; height: 4.6mm; }
 .hours .v { font-weight: 700; color: var(--green); }
 .spot { display: flex; gap: 3mm; align-items: flex-start; font-size: 10pt; color: var(--muted); padding: 0 1mm; }
@@ -1077,21 +1053,19 @@ p + p { margin-top: 1.6mm; }
 }
 .timeline strong { font-family: "Fredoka"; font-weight: 600; font-size: 12pt; }
 .timeline p { font-size: 10pt; }
-.first-day { flex: 1; background: var(--chiffon); border-radius: 6mm; padding: 7mm 6mm 6mm; display: flex; flex-direction: column; gap: 4mm; position: relative; overflow: hidden; }
+.first-day { background: var(--chiffon); border-radius: 6mm; padding: 7mm 6mm 6mm; display: flex; flex-direction: column; gap: 4mm; position: relative; overflow: hidden; }
 .first-day-head { position: relative; }
-.fd-burst { position: absolute; right: -6mm; top: -16mm; }
-.fd-burst svg { width: 44mm; height: 44mm; }
-.fd-items { display: flex; flex-direction: column; gap: 3mm; flex: 1; }
-.fd { flex: 1; background: var(--white); border-radius: 4.5mm; padding: 4.5mm 5mm 4.5mm 20mm; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 1.2mm; }
-.fd-n { position: absolute; left: 5mm; top: 50%; transform: translateY(-50%); font-family: "Fredoka"; font-size: 28pt; font-weight: 600; color: var(--jonquil); -webkit-text-stroke: .5mm var(--green); }
-.fd p { font-size: 11.6pt; }
-.fd h3 { font-size: 14pt; }
+.fd-items { display: flex; flex-direction: column; gap: 3mm; }
+.fd { background: var(--white); border-radius: 4.5mm; padding: 4.5mm 5mm 4.5mm 15mm; position: relative; display: flex; flex-direction: column; gap: 1.2mm; }
+.fd .badge { position: absolute; left: 5mm; top: 4.6mm; width: 6.6mm; height: 6.6mm; border-radius: 50%; display: grid; place-items: center; background: var(--jonquil); color: var(--green); font-family: "Fredoka"; font-weight: 600; font-size: 10pt; }
+.h3size { font-size: 16pt; }
+.fd p { font-size: 10.8pt; }
+.fd h3 { font-size: 12.5pt; }
 
 /* ---------- fees ---------- */
 .callout { display: flex; gap: 3.5mm; align-items: flex-start; background: var(--white); border-left: 1.6mm solid var(--jonquil); border-radius: 0 4mm 4mm 0; padding: 4mm 5mm; }
 .callout .ico { margin-top: .4mm; }
 .receipt { background: var(--white); border-radius: 5mm; padding: 5.5mm; display: flex; flex-direction: column; gap: 3mm; position: relative; }
-.receipt::after { content: ""; position: absolute; left: 4mm; right: 4mm; bottom: -1.6mm; height: 3.2mm; background: radial-gradient(circle at 1.6mm 0, transparent 1.6mm, var(--white) 1.7mm) repeat-x; background-size: 3.2mm 3.2mm; transform: rotate(180deg); }
 .receipt-head p { margin-top: 1.4mm; font-size: 11pt; }
 .receipt-rows { border-top: 0.5mm dashed var(--line); }
 .r { display: flex; justify-content: space-between; align-items: center; padding: 2.4mm 0; border-bottom: 0.5mm dashed var(--line); font-size: 11pt; }
@@ -1101,12 +1075,6 @@ p + p { margin-top: 1.6mm; }
 .r.total span:first-child { font-weight: 700; color: var(--green); }
 .r.total span:last-child { font-family: "Fredoka"; font-size: 24pt; color: var(--green); background: var(--jonquil); padding: 1mm 3mm; border-radius: 2.5mm; }
 .gap-explain { background: var(--white); border-radius: 5mm; padding: 5.5mm; display: flex; flex-direction: column; gap: 2.4mm; }
-.gap-bar { display: grid; grid-template-columns: 9fr 2.4fr; height: 15mm; border-radius: 3mm; overflow: hidden; margin: 1mm 0; }
-.gap-bar > div { display: flex; flex-direction: column; justify-content: center; padding: 0 3mm; font-size: 8.6pt; line-height: 1.15; }
-.gap-bar strong { font-family: "Fredoka"; font-size: 11pt; }
-.gap-gov { background: var(--green); color: var(--latte); }
-.gap-gov strong { color: var(--jonquil); }
-.gap-you { background: var(--jonquil); color: var(--green); }
 
 /* ---------- ccs ---------- */
 .ccs-steps { display: grid; grid-template-columns: 1.15fr 1fr; gap: 4mm; }
@@ -1114,13 +1082,13 @@ p + p { margin-top: 1.6mm; }
 .ccs-1 { background: var(--white); }
 .ccs-2 { background: var(--green); color: var(--latte); }
 .ccs-2 h3, .ccs-2 strong { color: var(--white); }
-.ccs-tag { align-self: flex-start; background: var(--jonquil); color: var(--green); border-radius: 99mm; padding: .8mm 3mm; font-size: 8.6pt; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.ccs-tag { align-self: flex-start; background: var(--jonquil); color: var(--green); border-radius: 99mm; padding: .8mm 3mm; font-family: var(--din); font-size: 10.5pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .ccs-1 .ccs-tag { background: var(--chiffon); }
 .help { margin-top: auto; display: flex; gap: 3mm; background: rgba(255,250,230,.1); border-radius: 3.5mm; padding: 3.5mm; }
 .help .ico { color: var(--jonquil); }
 .help a { color: var(--jonquil); border-color: var(--jonquil); }
 table.fees { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--white); border-radius: 4.5mm; overflow: hidden; font-size: 11pt; }
-.fees th { text-align: left; background: var(--green); color: var(--latte); font-weight: 700; font-size: 9pt; letter-spacing: .14em; text-transform: uppercase; padding: 3mm 4mm; }
+.fees th { text-align: left; background: var(--green); color: var(--latte); font-weight: 700; font-family: var(--din); font-size: 11pt; letter-spacing: .08em; text-transform: uppercase; padding: 3mm 4mm; }
 .fees td { padding: 3.2mm 4mm; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
 .fees td strong { display: block; font-family: "Fredoka"; font-weight: 600; }
 .fees td em { font-style: normal; font-size: 9.4pt; color: var(--muted); }
@@ -1137,14 +1105,9 @@ dl.charges, dl.bank { display: grid; grid-template-columns: auto 1fr; gap: .9mm 
 dl dt { color: var(--muted); }
 dl dd { font-weight: 700; color: var(--green); text-align: right; }
 dl.bank dd { font-family: "Fredoka"; font-weight: 600; }
-.invoice { background: var(--white); border-radius: 5mm; padding: 5mm; display: flex; flex-direction: column; gap: 3mm; flex: 1; min-height: 0; }
+.invoice { background: var(--white); border-radius: 5mm; padding: 5mm; display: flex; flex-direction: column; gap: 3mm; }
 .invoice-head p { font-size: 10.2pt; color: var(--muted); margin-top: .8mm; }
 .invoice-body { display: grid; grid-template-columns: 40mm 1fr; gap: 5mm; }
-.inv-mock { background: var(--latte); border: 0.4mm solid var(--line); border-radius: 3mm; padding: 2.4mm; display: flex; flex-direction: column; gap: 1.8mm; }
-.im { position: relative; border-radius: 1.6mm; background: var(--white); border: 0.3mm solid var(--line); display: flex; flex-direction: column; gap: 1mm; padding: 2mm 2mm 2mm 7mm; }
-.im b { position: absolute; left: 1.4mm; top: 1.6mm; width: 4.2mm; height: 4.2mm; border-radius: 50%; background: var(--jonquil); color: var(--green); font-size: 7.5pt; display: grid; place-items: center; font-family: "Fredoka"; }
-.im i { display: block; height: 1.2mm; border-radius: 1mm; background: var(--line); }
-.im1 { height: 8mm; } .im2 { height: 18mm; } .im3 { height: 8mm; background: var(--chiffon); } .im4 { height: 9mm; } .im5 { flex: 1; min-height: 13mm; }
 
 /* ---------- booking ---------- */
 .owna { background: var(--white); border-radius: 5mm; padding: 4.6mm 5mm; display: flex; flex-direction: column; gap: 3mm; }
@@ -1155,13 +1118,12 @@ dl.bank dd { font-family: "Fredoka"; font-weight: 600; }
 .owna .steps li { padding: 1.8mm 0; }
 .signin { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; counter-reset: s; }
 .signin li { background: var(--green); color: var(--latte); border-radius: 4.5mm; padding: 4.5mm; display: flex; flex-direction: column; gap: 1mm; position: relative; }
-.signin li span { width: 11mm; height: 11mm; border-radius: 50%; background: var(--jonquil); display: grid; place-items: center; margin-bottom: 1.5mm; }
+.signin li span { width: 9mm; height: 9mm; border-radius: 50%; background: var(--jonquil); color: var(--green); font-family: "Fredoka"; font-weight: 600; font-size: 13pt; display: grid; place-items: center; margin-bottom: 1.5mm; }
 .signin li span .ico { width: 6mm; height: 6mm; }
 .signin strong { color: var(--white); font-family: "Fredoka"; font-weight: 600; font-size: 12pt; }
 .signin em { font-style: normal; font-size: 10pt; color: rgba(255,250,230,.8); }
-.signin li:not(:last-child)::after { content: "→"; position: absolute; right: -3mm; top: 50%; transform: translate(50%,-50%); z-index: 1; width: 6mm; height: 6mm; border-radius: 50%; background: var(--jonquil); color: var(--green); display: grid; place-items: center; font-weight: 700; font-size: 10pt; }
 .fill > .card:last-child:nth-child(odd) { grid-column: span 2; }
-.late { margin-top: auto; display: flex; align-items: center; gap: 4mm; background: var(--jonquil); color: var(--green); border-radius: 5mm; padding: 5mm 6mm; }
+.late { margin-top: 2mm; display: flex; align-items: center; gap: 4mm; background: var(--jonquil); color: var(--green); border-radius: 5mm; padding: 5mm 6mm; }
 .late .ico { width: 10mm; height: 10mm; }
 .late div { flex: 1; }
 .late strong { font-family: "Fredoka"; font-size: 14pt; display: block; }
@@ -1172,11 +1134,11 @@ dl.bank dd { font-family: "Fredoka"; font-weight: 600; }
 .more-owna { background: var(--chiffon); border-radius: 5mm; padding: 4mm 5mm; display: flex; flex-direction: column; gap: 1.8mm; }
 .more-owna .bullets { gap: .6mm; font-size: 10pt; }
 .more-owna h3 { display: flex; align-items: center; gap: 2mm; }
-.more-owna .bullets li::before { background: var(--green); }
+.more-owna .bullets li::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='40 133 37.5 19'%3E%3Cpath fill='%23004E64' d='M72.6534 133.188C75.2024 133.188 77.1206 135.596 76.4451 138.05C74.3102 145.85 67.1729 151.579 58.6973 151.579C50.2217 151.579 43.0844 145.844 40.9496 138.05C40.2804 135.596 42.1986 133.188 44.7413 133.188H72.647H72.6534Z'/%3E%3C/svg%3E"); }
 
 /* ---------- food ---------- */
 .feature .club { height: 20mm; align-self: flex-start; margin-bottom: 1mm; }
-.medical { background: var(--green); color: var(--latte); border-radius: 6mm; padding: 6mm; display: flex; flex-direction: column; gap: 4mm; flex: 1; }
+.medical { background: var(--green); color: var(--latte); border-radius: 6mm; padding: 6mm; display: flex; flex-direction: column; gap: 4mm; }
 .medical h3, .medical h4, .medical strong { color: var(--white); }
 .medical h3 { font-size: 15pt; }
 .medical-head { display: flex; gap: 4mm; align-items: flex-start; }
@@ -1189,7 +1151,7 @@ dl.bank dd { font-family: "Fredoka"; font-weight: 600; }
 .hl-note { background: var(--jonquil); color: var(--green); font-weight: 700; border-radius: 2.5mm; padding: 2.4mm 3mm; margin-top: 3mm !important; }
 
 /* ---------- programs ---------- */
-.clubs { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5mm; flex: 1; }
+.clubs { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5mm; }
 .club-card { background: var(--white); border-radius: 5mm; padding: 4mm; display: grid; grid-template-columns: 34mm 1fr; gap: 4mm; align-items: center; }
 .club-art { height: 26mm; display: grid; place-items: center; background: var(--latte); border-radius: 3.5mm; padding: 2.4mm; }
 .club-art img { max-width: 100%; max-height: 100%; }
@@ -1203,15 +1165,13 @@ dl.bank dd { font-family: "Fredoka"; font-weight: 600; }
 /* ---------- good to know ---------- */
 .pills { list-style: none; display: flex; flex-wrap: wrap; gap: 1.4mm; }
 .pills li { background: var(--chiffon); color: var(--green); font-weight: 600; border-radius: 99mm; padding: .7mm 2.8mm; font-size: 9.8pt; }
-.safety { position: relative; overflow: hidden; background: var(--green); color: var(--latte); border-radius: 6mm; padding: 7mm 6mm 6mm; flex: 1; display: flex; flex-direction: column; gap: 3mm; }
+.safety { position: relative; overflow: hidden; background: var(--green); color: var(--latte); border-radius: 6mm; padding: 7mm 6mm 6mm; display: flex; flex-direction: column; gap: 3mm; }
 .safety h2 { color: var(--white); position: relative; }
-.safety-burst { position: absolute; right: -22mm; top: -30mm; }
-.safety-burst svg { width: 90mm; height: 90mm; }
 .safety-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; margin-top: 2mm; position: relative; }
 .safety-grid > div { background: rgba(255,250,230,.09); border-radius: 4mm; padding: 4mm; display: flex; gap: 3mm; align-items: center; font-size: 11pt; }
-.safety-grid .ico { color: var(--jonquil); }
+.sg-rays { flex: none; width: 10mm; color: var(--jonquil); }
 .safety-grid strong { color: var(--jonquil); }
-.safety-foot { margin-top: auto; font-size: 10.2pt; color: rgba(255,250,230,.85); }
+.safety-foot { margin-top: 1mm; font-size: 10.2pt; color: rgba(255,250,230,.85); }
 
 /* ---------- staying in touch ---------- */
 .wa { display: grid; grid-template-columns: 1fr 25mm; gap: 3mm; align-items: center; }
@@ -1220,7 +1180,7 @@ dl.bank dd { font-family: "Fredoka"; font-weight: 600; }
 .qr { width: 25mm; height: 25mm; background: var(--white); padding: 1.6mm; border-radius: 2.5mm; image-rendering: pixelated; }
 .contact-big { display: grid; grid-template-columns: 1fr 1.2fr; gap: 4mm; }
 .cb { border-radius: 5mm; padding: 5mm; display: flex; flex-direction: column; gap: 1mm; }
-.cb .k { font-size: 8.8pt; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.cb .k { font-family: var(--din); font-size: 10.5pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .cb .t { font-family: "Fredoka"; font-weight: 500; font-size: 12pt; }
 .cb .num { display: flex; align-items: center; gap: 2.4mm; font-family: "Fredoka"; font-weight: 600; font-size: 22pt; margin-top: 1.4mm; }
 .cb .num .ico { width: 7mm; height: 7mm; }
@@ -1238,21 +1198,28 @@ dl.bank dd { font-family: "Fredoka"; font-weight: 600; }
 .qa .q { flex: none; width: 5.4mm; height: 5.4mm; border-radius: 50%; background: var(--jonquil); color: var(--green); font-size: 8.5pt; display: grid; place-items: center; margin-top: .1mm; }
 .qa p { font-size: 10pt; }
 
-/* ---------- back cover ---------- */
-.back { background: var(--green); color: var(--latte); }
-.back-burst { position: absolute; left: 50%; top: -150mm; transform: translateX(-50%) rotate(180deg); opacity: .22; }
-.back-burst svg { width: 300mm; height: 300mm; }
-.back-main { position: absolute; top: 48mm; left: 20mm; right: 20mm; display: flex; flex-direction: column; align-items: center; text-align: center; }
-.back-icon { height: 46mm; margin-bottom: 8mm; }
-.thanks { font-family: "Fredoka"; font-weight: 600; font-size: 34pt; color: var(--white); }
-.thanks-sub { font-size: 14pt; margin-top: 2mm; color: var(--latte); max-width: 130mm; }
-.back-contacts { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-top: 14mm; width: 100%; }
-.back-contacts > div { background: rgba(255,250,230,.08); border: 0.4mm solid rgba(254,206,0,.4); border-radius: 5mm; padding: 5mm; display: flex; flex-direction: column; gap: 1mm; }
-.back-contacts .k { font-size: 9pt; letter-spacing: .2em; text-transform: uppercase; font-weight: 700; color: var(--jonquil); }
-.back-contacts .v { font-family: "Fredoka"; font-weight: 600; font-size: 21pt; color: var(--white); }
+/* ---------- back cover (the guideline graphic-elements page) ---------- */
+.back { background: var(--latte); }
+.circles { position: absolute; top: 26mm; left: 50%; width: 150mm; height: 108mm; transform: translateX(-50%); }
+.ci { position: absolute; width: 50mm; height: 50mm; border-radius: 50%; display: grid; place-items: center; }
+.ci svg { color: inherit; }
+.ci-logo { left: 18mm; top: 0; background: var(--chiffon); z-index: 1; }
+.ci-logo img { width: 36mm; }
+.ci-btb { left: 82mm; top: 0; background: var(--green); color: var(--jonquil); font-family: "Fredoka"; font-weight: 600; font-size: 19pt; line-height: 1.05; text-align: center; z-index: 2; }
+.ci-rays { left: 0; top: 46mm; background: var(--green); color: var(--jonquil); z-index: 3; }
+.ci-rays svg { width: 30mm; margin-top: 4mm; }
+.ci-bell { left: 50mm; top: 40mm; background: var(--jonquil); color: var(--latte); z-index: 4; }
+.ci-bell svg { width: 26mm; }
+.ci-burst { left: 100mm; top: 46mm; background: var(--chiffon); color: var(--green); z-index: 3; }
+.ci-burst svg { width: 30mm; }
+.back-main { position: absolute; top: 150mm; left: 20mm; right: 20mm; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.thanks { font-family: "Fredoka"; font-weight: 600; font-size: 30pt; color: var(--green); }
+.thanks-sub { font-size: 13pt; margin-top: 2mm; max-width: 130mm; }
+.back-contacts { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-top: 10mm; width: 100%; }
+.back-contacts > div { background: var(--white); border-radius: 5mm; padding: 5mm; display: flex; flex-direction: column; gap: 1mm; }
+.back-contacts .k { font-family: var(--din); font-size: 11pt; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+.back-contacts .v { font-family: "Fredoka"; font-weight: 600; font-size: 20pt; color: var(--green); }
 .back-contacts .s { font-size: 11pt; }
-.back-links { margin-top: 7mm; font-size: 11pt; letter-spacing: .06em; color: rgba(255,250,230,.85); }
-.back-foot { position: absolute; left: 20mm; right: 20mm; bottom: 16mm; display: flex; justify-content: space-between; align-items: flex-end; border-top: 0.4mm solid rgba(254,206,0,.4); padding-top: 6mm; }
-.back-foot img { height: 15mm; }
-.back-foot .btb { color: var(--jonquil); }
+.back-foot { position: absolute; left: 0; right: 0; bottom: 0; height: 40mm; background: var(--green); display: flex; justify-content: space-between; align-items: center; padding: 0 20mm; color: var(--latte); font-size: 11pt; text-align: right; }
+.back-foot img { height: 20mm; }
 `;
