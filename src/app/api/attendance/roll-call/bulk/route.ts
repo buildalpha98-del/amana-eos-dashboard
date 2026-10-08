@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { requireRoomId } from "@/lib/room-resolver";
+import { assertServiceAccess } from "@/lib/authz-scope";
 import { $Enums } from "@prisma/client";
 
 // ── Schema ─────────────────────────────────────────────────
@@ -57,6 +58,9 @@ export const POST = withApiAuth(
       );
     }
     const { serviceId, items } = parsed.data;
+    // Same centre scope as the GET — writing a roll you can't read was
+    // possible until 2026-10-08.
+    assertServiceAccess(session, serviceId);
 
     try {
       const result = await prisma.$transaction(async (tx) => {

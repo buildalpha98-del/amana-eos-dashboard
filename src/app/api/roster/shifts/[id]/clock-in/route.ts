@@ -23,6 +23,7 @@
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { assertPhoneClockInAllowed } from "@/lib/phone-clock-in";
 import { ApiError } from "@/lib/api-error";
 import { assertUserCleared } from "@/lib/induction";
 
@@ -37,6 +38,7 @@ export const POST = withApiAuth(async (_req, session, context) => {
     select: {
       id: true,
       userId: true,
+      serviceId: true,
       actualStart: true,
       actualEnd: true,
     },
@@ -52,6 +54,7 @@ export const POST = withApiAuth(async (_req, session, context) => {
   }
   // Induction gate: an un-cleared new starter cannot clock in.
   await assertUserCleared(session.user.id);
+  await assertPhoneClockInAllowed(shift.serviceId);
 
   // Idempotent: already clocked in → return as-is.
   if (shift.actualStart) {

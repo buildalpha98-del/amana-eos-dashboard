@@ -24,6 +24,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { z } from "zod";
 import { inferSessionType } from "@/lib/timeclock-pick";
 import { assertUserCleared } from "@/lib/induction";
+import { assertPhoneClockInAllowed } from "@/lib/phone-clock-in";
 import { requireRoomId } from "@/lib/room-resolver";
 
 const bodySchema = z
@@ -53,6 +54,7 @@ export const POST = withApiAuth(async (req, session) => {
   }
   // Induction gate: an un-cleared new starter cannot clock in.
   await assertUserCleared(session.user.id);
+  await assertPhoneClockInAllowed(serviceId);
 
   const now = new Date();
   const sessionType = inferSessionType(now);

@@ -39,6 +39,28 @@ export const appSettingsSchema = z.object({
       onlyApproversPublish: z.boolean().optional(),
     })
     .optional(),
+  signInOut: z
+    .object({
+      /**
+       * A family member signing a child in or out on the Sign in/out
+       * screen must also draw a signature. Off by default — today the
+       * register records a typed name only. Educators' roll-call taps
+       * (no handover named) are attendance marking, not a handover, and
+       * are never asked for one.
+       */
+      requireSignature: z.boolean().optional(),
+    })
+    .optional(),
+  staff: z
+    .object({
+      /**
+       * Educators may clock in and out from their own phone. On today.
+       * Off means the centre's kiosk is the only way — the kiosk route
+       * ignores this switch entirely.
+       */
+      phoneClockIn: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 export type AppSettings = z.infer<typeof appSettingsSchema>;
@@ -50,7 +72,16 @@ export type AppSettings = z.infer<typeof appSettingsSchema>;
 export const APP_SETTINGS_DEFAULTS = {
   parents: { canMarkAbsence: true },
   posts: { draftByDefault: false, onlyApproversPublish: false },
+  signInOut: { requireSignature: false },
+  staff: { phoneClockIn: true },
 } as const;
+
+export type ResolvedAppSettings = {
+  parents: { canMarkAbsence: boolean };
+  posts: { draftByDefault: boolean; onlyApproversPublish: boolean };
+  signInOut: { requireSignature: boolean };
+  staff: { phoneClockIn: boolean };
+};
 
 /**
  * Two toggles OWNA has that are deliberately NOT here, because they'd
@@ -66,10 +97,7 @@ export const APP_SETTINGS_DEFAULTS = {
  */
 
 /** Parse whatever is on the Service row into a fully-resolved settings object. */
-export function resolveAppSettings(raw: unknown): {
-  parents: { canMarkAbsence: boolean };
-  posts: { draftByDefault: boolean; onlyApproversPublish: boolean };
-} {
+export function resolveAppSettings(raw: unknown): ResolvedAppSettings {
   const parsed = appSettingsSchema.safeParse(raw ?? {});
   const v: AppSettings = parsed.success ? parsed.data : {};
   return {
@@ -84,6 +112,15 @@ export function resolveAppSettings(raw: unknown): {
         v.posts?.onlyApproversPublish ??
         APP_SETTINGS_DEFAULTS.posts.onlyApproversPublish,
     },
+    signInOut: {
+      requireSignature:
+        v.signInOut?.requireSignature ??
+        APP_SETTINGS_DEFAULTS.signInOut.requireSignature,
+    },
+    staff: {
+      phoneClockIn:
+        v.staff?.phoneClockIn ?? APP_SETTINGS_DEFAULTS.staff.phoneClockIn,
+    },
   };
 }
 
@@ -92,3 +129,7 @@ const APPROVER_ROLES = new Set(["owner", "head_office", "admin"]);
 export function canPublishPosts(role: string, onlyApprovers: boolean): boolean {
   return onlyApprovers ? APPROVER_ROLES.has(role) : true;
 }
+
+/** What an educator sees when their centre has phone clock-in switched off. */
+export const PHONE_CLOCK_IN_OFF_MESSAGE =
+  "This centre clocks in on its kiosk only. Please use the kiosk at the centre.";

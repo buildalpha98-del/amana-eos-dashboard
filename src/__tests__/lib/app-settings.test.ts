@@ -53,3 +53,20 @@ describe("canPublishPosts", () => {
     expect(canPublishPosts("staff", true)).toBe(false);
   });
 });
+
+describe("sign in/out + staff settings (2026-10-08)", () => {
+  it("default to today's behaviour: no signature, phone clock-in on", () => {
+    const s = resolveAppSettings(undefined);
+    expect(s.signInOut.requireSignature).toBe(false);
+    expect(s.staff.phoneClockIn).toBe(true);
+  });
+
+  it("respects explicit values", () => {
+    const s = resolveAppSettings({
+      signInOut: { requireSignature: true },
+      staff: { phoneClockIn: false },
+    });
+    expect(s.signInOut.requireSignature).toBe(true);
+    expect(s.staff.phoneClockIn).toBe(false);
+  });
+});

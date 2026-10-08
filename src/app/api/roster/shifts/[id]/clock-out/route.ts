@@ -11,6 +11,7 @@
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { assertPhoneClockInAllowed } from "@/lib/phone-clock-in";
 import { ApiError } from "@/lib/api-error";
 
 type RouteCtx = { params: Promise<{ id: string }> };
@@ -24,6 +25,7 @@ export const POST = withApiAuth(async (_req, session, context) => {
     select: {
       id: true,
       userId: true,
+      serviceId: true,
       actualStart: true,
       actualEnd: true,
     },
@@ -35,6 +37,8 @@ export const POST = withApiAuth(async (_req, session, context) => {
       "You can only clock out of a shift assigned to you.",
     );
   }
+  // Kiosk-only centres: clocking out from home is the case that matters.
+  await assertPhoneClockInAllowed(shift.serviceId);
 
   // Can't clock out before clocking in — the variance badge would be
   // meaningless and admin reconciliation gets harder.

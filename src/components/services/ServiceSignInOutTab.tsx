@@ -27,6 +27,7 @@ import {
   DialogDescription,
 } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
+import { SignaturePad } from "@/components/contracts/SignaturePad";
 import { useServiceRooms } from "@/hooks/useServiceRooms";
 
 /**
@@ -281,6 +282,19 @@ function SignDialog({
   const [name, setName] = useState(
     action === "out" ? (child.signedInByName ?? "") : "",
   );
+  const [signature, setSignature] = useState<string | null>(null);
+
+  // Settings → Sign in & out. The server enforces it too; this only
+  // decides whether to draw the pad.
+  const { data: settingsData } = useQuery<{
+    settings: { signInOut: { requireSignature: boolean } };
+  }>({
+    queryKey: ["service", serviceId, "app-settings"],
+    queryFn: () => fetchApi(`/api/services/${serviceId}/app-settings`),
+    staleTime: 60_000,
+    retry: 1,
+  });
+  const needsSignature = settingsData?.settings.signInOut?.requireSignature ?? false;
 
   const sign = useMutation({
     mutationFn: () =>
@@ -297,6 +311,7 @@ function SignDialog({
           action: action === "in" ? "sign_in" : "sign_out",
           signedByName: name.trim(),
           signMethod: "staff",
+          ...(needsSignature && signature ? { signature } : {}),
         },
       }),
     onSuccess: () => {
@@ -336,13 +351,23 @@ function SignDialog({
             />
           </div>
 
+          {needsSignature && (
+            <SignaturePad
+              label={`Signature of person ${action === "in" ? "dropping off" : "collecting"}`}
+              onChange={setSignature}
+              width={360}
+              height={140}
+              disabled={sign.isPending}
+            />
+          )}
+
           <div className="flex justify-end gap-3 pt-1">
             <Button variant="secondary" onClick={onCancel}>
               Cancel
             </Button>
             <Button
               onClick={() => sign.mutate()}
-              disabled={!name.trim() || sign.isPending}
+              disabled={!name.trim() || (needsSignature && !signature) || sign.isPending}
             >
               {sign.isPending ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
