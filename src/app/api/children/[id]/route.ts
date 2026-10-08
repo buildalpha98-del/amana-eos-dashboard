@@ -7,6 +7,7 @@ import { generateBookings } from "@/lib/booking-generator";
 import { logger } from "@/lib/logger";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
+import { assertServiceAccess } from "@/lib/authz-scope";
 import { stampRequiredRoomIds } from "@/lib/room-resolver";
 
 const patchSchema = z.object({
@@ -121,6 +122,15 @@ export const GET = withApiAuth(async (req, session, context) => {
   if (!child) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  // Centre scope (2026-10-08): this returned ANY child at ANY centre to
+  // any signed-in account. Staff and coordinators see their own centre.
+  assertServiceAccess(session, child.serviceId);
+
+  // Bank/card hints and the enrolment's resume token are office data.
+  if (!isAdminRole(session.user.role ?? "") && child.enrolment) {
+    const { paymentDetails: _pd, paymentMethod: _pm, token: _t, ...enrolment } = child.enrolment;
+    return NextResponse.json({ ...child, enrolment });
+  }
 
   return NextResponse.json(child);
 });
@@ -146,8 +156,9 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     throw ApiError.forbidden();
   }
 
-  // Coordinator must only edit children at their own service
-  if (role === "member") {
+  // Non-admins may only edit children at their own service (staff were
+  // unscoped until 2026-10-08).
+  if (!isAdminRole(role)) {
     const existing = await prisma.child.findUnique({
       where: { id },
       select: { serviceId: true },

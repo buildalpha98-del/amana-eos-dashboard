@@ -5,17 +5,22 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendBroadcastNotification } from "@/lib/notifications/messaging";
 import { logger } from "@/lib/logger";
+import { assertServiceAccess, serviceScopeFilter } from "@/lib/authz-scope";
 
 // ---------------------------------------------------------------------------
 // GET — List broadcasts
 // ---------------------------------------------------------------------------
 
-export const GET = withApiAuth(async (req: NextRequest) => {
+export const GET = withApiAuth(async (req: NextRequest, session) => {
   const url = new URL(req.url);
   const serviceId = url.searchParams.get("serviceId") ?? undefined;
 
-  const where: Record<string, unknown> = {};
-  if (serviceId) where.serviceId = serviceId;
+  // Centre-scoped (2026-10-08) — this listed every centre's broadcasts.
+  const where: Record<string, unknown> = { ...serviceScopeFilter(session) };
+  if (serviceId) {
+    assertServiceAccess(session, serviceId);
+    where.serviceId = serviceId;
+  }
 
   const broadcasts = await prisma.broadcast.findMany({
     where,
@@ -53,6 +58,9 @@ export const POST = withApiAuth(async (req: NextRequest, session) => {
   }
 
   const { serviceId, subject, body, channels } = parsed.data;
+  // Messaging every family at a centre is a Director-of-Service or office
+  // job, and only for a centre you belong to (unchecked until 2026-10-08).
+  assertServiceAccess(session, serviceId);
 
   // Verify service exists
   const service = await prisma.service.findUnique({
@@ -106,4 +114,4 @@ export const POST = withApiAuth(async (req: NextRequest, session) => {
   }
 
   return NextResponse.json(broadcast, { status: 201 });
-});
+}, { roles: ["owner", "head_office", "admin", "member"] });

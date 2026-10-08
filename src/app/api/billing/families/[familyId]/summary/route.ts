@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 
@@ -31,4 +32,4 @@ export const GET = withApiAuth(async (_req, _session, context) => {
     .reduce((sum, s) => sum + s.balance, 0);
 
   return NextResponse.json({ contact, totalOutstanding, statements, payments });
-});
+}, { roles: [...ADMIN_ROLES] });

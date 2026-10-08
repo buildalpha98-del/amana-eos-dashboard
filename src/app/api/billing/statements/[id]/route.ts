@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { $Enums } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { assertServiceAccess } from "@/lib/authz-scope";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { requireFromMap, resolveRoomIds } from "@/lib/room-resolver";
@@ -10,7 +12,7 @@ import { requireFromMap, resolveRoomIds } from "@/lib/room-resolver";
 /*  GET /api/billing/statements/[id] — statement detail               */
 /* ------------------------------------------------------------------ */
 
-export const GET = withApiAuth(async (_req, _session, context) => {
+export const GET = withApiAuth(async (_req, session, context) => {
   const { id } = await context!.params!;
 
   const statement = await prisma.statement.findUnique({
@@ -40,6 +42,8 @@ export const GET = withApiAuth(async (_req, _session, context) => {
   });
 
   if (!statement) throw ApiError.notFound("Statement not found");
+  // Centre scope (2026-10-08): the list was scoped, the detail wasn't.
+  assertServiceAccess(session, statement.serviceId);
 
   return NextResponse.json(statement);
 });
@@ -162,4 +166,4 @@ export const PATCH = withApiAuth(async (req, _session, context) => {
   });
 
   return NextResponse.json(statement);
-});
+}, { roles: [...ADMIN_ROLES] });

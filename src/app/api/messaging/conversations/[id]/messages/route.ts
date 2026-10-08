@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
+import { assertServiceAccess } from "@/lib/authz-scope";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendNewMessageNotification } from "@/lib/notifications/messaging";
@@ -31,9 +32,10 @@ export const POST = withApiAuth(async (req, session, context) => {
 
   const conversation = await prisma.conversation.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, serviceId: true },
   });
   if (!conversation) throw ApiError.notFound("Conversation not found");
+  assertServiceAccess(session, conversation.serviceId);
 
   const [message] = await prisma.$transaction([
     prisma.message.create({

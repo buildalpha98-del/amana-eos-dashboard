@@ -5,20 +5,26 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendNewMessageNotification } from "@/lib/notifications/messaging";
 import { logger } from "@/lib/logger";
+import { assertServiceAccess, serviceScopeFilter } from "@/lib/authz-scope";
 import { attachmentUrlsField } from "@/lib/schemas/message-attachments";
 
 // ---------------------------------------------------------------------------
 // GET — List conversations
 // ---------------------------------------------------------------------------
 
-export const GET = withApiAuth(async (req: NextRequest) => {
+export const GET = withApiAuth(async (req: NextRequest, session) => {
   const url = new URL(req.url);
   const serviceId = url.searchParams.get("serviceId") ?? undefined;
   const status = url.searchParams.get("status") ?? "open";
   const search = url.searchParams.get("search") ?? undefined;
 
-  const where: Record<string, unknown> = {};
-  if (serviceId) where.serviceId = serviceId;
+  // Centre-scoped (2026-10-08) — this listed every centre's family
+  // conversations to any signed-in account.
+  const where: Record<string, unknown> = { ...serviceScopeFilter(session) };
+  if (serviceId) {
+    assertServiceAccess(session, serviceId);
+    where.serviceId = serviceId;
+  }
   if (status) where.status = status;
   if (search) {
     where.OR = [
@@ -85,14 +91,16 @@ export const POST = withApiAuth(async (req: NextRequest, session) => {
   }
 
   const { familyId, serviceId, subject, body, attachmentUrls } = parsed.data;
+  assertServiceAccess(session, serviceId);
 
   // Verify family and service exist
   const [family, service] = await Promise.all([
-    prisma.centreContact.findUnique({ where: { id: familyId }, select: { id: true } }),
+    prisma.centreContact.findUnique({ where: { id: familyId }, select: { id: true, serviceId: true } }),
     prisma.service.findUnique({ where: { id: serviceId }, select: { id: true } }),
   ]);
 
-  if (!family) throw ApiError.notFound("Family not found");
+  // The family must belong to the centre you're writing from.
+  if (!family || family.serviceId !== serviceId) throw ApiError.notFound("Family not found");
   if (!service) throw ApiError.notFound("Service not found");
 
   const conversation = await prisma.conversation.create({

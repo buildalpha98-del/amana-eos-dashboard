@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getStateScope } from "@/lib/service-scope";
 import { getCentreScope, applyCentreFilter } from "@/lib/centre-scope";
 import { withApiAuth } from "@/lib/server-auth";
+import { assertServiceAccess } from "@/lib/authz-scope";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
@@ -117,6 +118,8 @@ try {
       location, timeOfDay, description, actionTaken,
       parentNotified, reportableToAuthority, followUpRequired,
     } = parsed.data;
+    // Only into a centre you belong to (unchecked until 2026-10-08).
+    assertServiceAccess(session, serviceId);
 
     const record = await prisma.incidentRecord.create({
       data: {
