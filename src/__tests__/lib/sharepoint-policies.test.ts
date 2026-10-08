@@ -38,6 +38,13 @@ describe("parsePolicyFile — real Amana file names", () => {
     expect(p).toMatchObject({ title, version, qualityArea: qa, state, category: "policy" });
   });
 
+  it("files by NAME, not the master 'policies' folder (2026-10-09)", () => {
+    const root = "/drive/root:/NSW & VIC state policies";
+    expect(parsePolicyFile("Excursion Risk Assessment Form.docx", root).category).toBe("other");
+    expect(parsePolicyFile("QA2 Medication Procedure V3.docx", root).category).toBe("procedure");
+    expect(parsePolicyFile("QA2 Sun Safe Policy V14.docx", root + "/Procedures").category).toBe("policy");
+  });
+
   it("files under Procedures are procedures", () => {
     expect(parsePolicyFile("Medication Procedure V3.docx", "/x/Procedures").category).toBe("procedure");
   });

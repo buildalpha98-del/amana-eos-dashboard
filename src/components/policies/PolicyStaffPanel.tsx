@@ -14,6 +14,7 @@ import {
   type PolicyDocumentListItem,
 } from "@/hooks/usePolicies";
 import type { PolicyDocumentCategory } from "@prisma/client";
+import { PolicyFolderBack, PolicyFolderGrid } from "./PolicyFolders";
 
 const CATEGORY_LABEL: Record<PolicyDocumentCategory, string> = {
   policy: "Policy",
@@ -29,7 +30,7 @@ const READ_DELAY_SECONDS = 5;
 // Staff library — list of docs with status + viewer launcher
 // ═══════════════════════════════════════════════════════════════════════════
 
-type Filter = "all" | "to_sign" | "policy" | "procedure";
+type Filter = "all" | "to_sign";
 
 const needsSigning = (d: PolicyDocumentListItem) =>
   d.requiresAcknowledgement && !d.myAcknowledgedAt;
@@ -55,6 +56,8 @@ export function PolicyStaffPanel({
   // "requires acknowledgement" ask for a signature.
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  // 2026-10-09: the library opens on folders; null = the folder grid.
+  const [folder, setFolder] = useState<PolicyDocumentCategory | null>(null);
 
   const toSignCount = useMemo(() => (docs ?? []).filter(needsSigning).length, [docs]);
 
@@ -63,13 +66,9 @@ export function PolicyStaffPanel({
     if (!docs) return [];
     const q = query.trim().toLowerCase();
     return docs
-      .filter((d) =>
-        filter === "to_sign"
-          ? needsSigning(d)
-          : filter === "policy" || filter === "procedure"
-            ? d.category === filter
-            : true,
-      )
+      .filter((d) => (filter === "to_sign" ? needsSigning(d) : true))
+      // Searching looks across every folder; otherwise only the open one.
+      .filter((d) => q || filter === "to_sign" || !folder || d.category === folder)
       .filter((d) => !q || `${d.title} ${d.description ?? ""}`.toLowerCase().includes(q))
       .sort((a, b) => {
         const aPending = needsSigning(a);
@@ -77,7 +76,8 @@ export function PolicyStaffPanel({
         if (aPending !== bPending) return aPending ? -1 : 1;
         return a.title.localeCompare(b.title);
       });
-  }, [docs, query, filter]);
+  }, [docs, query, filter, folder]);
+  const showFolders = !query.trim() && filter === "all" && folder === null;
 
   const openDoc = openDocId ? sorted.find((d) => d.id === openDocId) ?? null : null;
 
@@ -115,10 +115,8 @@ export function PolicyStaffPanel({
   }
 
   const chips: { key: Filter; label: string }[] = [
-    { key: "all", label: `All (${docs.length})` },
+    { key: "all", label: "Folders" },
     ...(toSignCount ? [{ key: "to_sign" as const, label: `To sign (${toSignCount})` }] : []),
-    { key: "policy", label: "Policies" },
-    { key: "procedure", label: "Procedures" },
   ];
 
   return (
@@ -140,7 +138,10 @@ export function PolicyStaffPanel({
             <button
               key={c.key}
               type="button"
-              onClick={() => setFilter(c.key)}
+              onClick={() => {
+                setFilter(c.key);
+                setFolder(null);
+              }}
               aria-pressed={filter === c.key}
               className={cn(
                 "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
@@ -154,16 +155,30 @@ export function PolicyStaffPanel({
           ))}
         </div>
       </div>
-      {sorted.length === 0 ? (
+      {showFolders ? (
+        <PolicyFolderGrid
+          docs={docs}
+          onOpen={setFolder}
+          badge={(inFolder) => {
+            const n = inFolder.filter(needsSigning).length;
+            return n ? `${n} to sign` : null;
+          }}
+        />
+      ) : sorted.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted">
-          Nothing matches “{query}”.
+          {query ? <>Nothing matches “{query}”.</> : "Nothing here."}
         </p>
       ) : (
+        <>
+        {folder && !query.trim() && filter === "all" && (
+          <PolicyFolderBack folder={folder} count={sorted.length} onBack={() => setFolder(null)} />
+        )}
         <ul className="divide-y divide-border rounded-xl border border-border bg-card">
           {sorted.map((d) => (
             <StaffRow key={d.id} doc={d} onOpen={() => setOpenDocId(d.id)} />
           ))}
         </ul>
+        </>
       )}
       {openDoc && (
         <PolicyViewerModal
