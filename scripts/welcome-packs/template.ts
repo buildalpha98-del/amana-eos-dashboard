@@ -791,12 +791,21 @@ function faqPages(c: WelcomePackCentre): string {
   );
 }
 
-function backCover(_c: WelcomePackCentre): string {
+function backCover(c: WelcomePackCentre): string {
   return `<section class="page back">
     <div class="back-brand">
       <img class="back-logo" src="__ASSETS__/brand/logo-colour.svg" alt="Amana OSHC"/>
       <img class="back-lockup" src="__ASSETS__/brand/beyond-the-bell.png" alt="Beyond The Bell"/>
     </div>
+    <div class="back-main">
+      <p class="thanks">Jazak Allahu Khairan</p>
+      <p class="thanks-sub">Thank you for trusting us with your child. We can't wait to meet them.</p>
+      <div class="back-contacts">
+        <div><span class="k">Your centre</span><span class="v">${esc(c.phone)}</span><span class="s">${esc(c.email)}</span></div>
+        <div><span class="k">Head office</span><span class="v">${HEAD_OFFICE}</span><span class="s">${ENROL_EMAIL}</span></div>
+      </div>
+    </div>
+    <div class="back-foot">amanaoshc.com.au &nbsp;&middot;&nbsp; @AmanaOSHC on Facebook and Instagram</div>
   </section>`;
 }
 
@@ -1204,9 +1213,9 @@ dl.bank dd { font-family: "Fredoka"; font-weight: 600; }
 
 /* ---------- back cover ---------- */
 .back { background: var(--latte); }
-.back-brand { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22mm; }
-.back-logo { width: 120mm; }
-.back-lockup { width: 44mm; }
+.back-brand { position: absolute; top: 30mm; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 12mm; }
+.back-logo { width: 104mm; }
+.back-lockup { width: 36mm; }
 .back-main { position: absolute; top: 182mm; left: 20mm; right: 20mm; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .thanks { font-family: "Fredoka"; font-weight: 600; font-size: 30pt; color: var(--green); }
 .thanks-sub { font-size: 13pt; margin-top: 2mm; max-width: 130mm; }
