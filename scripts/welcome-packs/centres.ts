@@ -1,10 +1,9 @@
 /**
  * Per-centre data for the parent welcome packs.
  *
- * Lifted from the 2026-10-06 packs (the first print run). Addresses are only
- * printed where that run printed them — the seed has addresses for the
- * others, but nobody has confirmed them for a parent-facing document yet.
- * Fill `address` in once a centre's is checked.
+ * Lifted from the 2026-10-06 packs (the first print run). Addresses are the
+ * ones published on each centre's page at amanaoshc.com.au/centres/<slug>
+ * (checked 2026-10-08).
  *
  * `hasBsc: false` drops every before-school mention (Rise and Shine Club,
  * breakfast, the before-school fee row and drop-off card).
@@ -31,6 +30,7 @@ export const CENTRES: WelcomePackCentre[] = [
     slug: "AIA-KKCC",
     state: "VIC",
     name: "AIA KKCC",
+    address: "653 Sydney Rd, Coburg VIC 3058",
     dropOff: "School Gym",
     coordinator: "Thushy",
     phone: "0466 707 811",
@@ -43,6 +43,7 @@ export const CENTRES: WelcomePackCentre[] = [
     slug: "Al-Taqwa-College",
     state: "VIC",
     name: "Al-Taqwa College",
+    address: "201 Sayers Rd, Truganina VIC 3029",
     dropOff: "Mini Hall",
     coordinator: "Fatema Rasool",
     phone: "0404 339 656",
@@ -94,6 +95,7 @@ export const CENTRES: WelcomePackCentre[] = [
     slug: "MFIS-Hoxton-Park",
     state: "NSW",
     name: "MFIS Hoxton Park",
+    address: "210 Pacific Palms Cct, Hoxton Park NSW 2171",
     dropOff: "School Hall",
     earlyWednesday: "2:10pm",
     coordinator: "Tamjid Rahman",
@@ -107,6 +109,7 @@ export const CENTRES: WelcomePackCentre[] = [
     slug: "Minarah-College",
     state: "NSW",
     name: "Minarah College",
+    address: "264 Wilson Rd, Green Valley NSW 2168",
     dropOff: "School Hall",
     coordinator: "Nadia",
     phone: "0481 568 290",
@@ -119,6 +122,7 @@ export const CENTRES: WelcomePackCentre[] = [
     slug: "Minaret-Doveton",
     state: "VIC",
     name: "Minaret Doveton",
+    address: "146 Kidds Rd, Doveton VIC 3177",
     dropOff: "School Gym",
     coordinator: "Khawla Sadat",
     phone: "0406 220 261",
@@ -131,6 +135,7 @@ export const CENTRES: WelcomePackCentre[] = [
     slug: "Minaret-Officer",
     state: "VIC",
     name: "Minaret Officer",
+    address: "67 Tivendale Rd, Officer VIC 3809",
     dropOff: "Classrooms D103 and D101",
     coordinator: "Lami Hopman",
     phone: "0406 367 086",
@@ -143,6 +148,7 @@ export const CENTRES: WelcomePackCentre[] = [
     slug: "Minaret-Springvale",
     state: "VIC",
     name: "Minaret Springvale",
+    address: "36–38 Lewis St, Springvale VIC 3171",
     dropOff: "School Gym",
     coordinator: "Vivi",
     phone: "0466 707 655",
