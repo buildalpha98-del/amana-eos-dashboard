@@ -1,5 +1,6 @@
 "use client";
 
+import { PolicyFolderBack, PolicyFolderGrid } from "./PolicyFolders";
 import { useState, useMemo } from "react";
 import {
   Plus,
@@ -8,7 +9,6 @@ import {
   Archive,
   Users,
   FileText,
-  RefreshCw,
   Loader2,
   CheckCircle2,
 } from "lucide-react";
@@ -24,7 +24,6 @@ import {
   usePolicies,
   useCreatePolicy,
   useUpdatePolicy,
-  useSyncSharepointPolicies,
   useUploadPolicyVersion,
   useArchivePolicy,
   usePolicyAcknowledgements,
@@ -59,7 +58,9 @@ function formatDate(iso: string | Date | null): string {
 
 export function PolicyAdminPanel() {
   const [showArchived, setShowArchived] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<PolicyDocumentCategory | "all">("all");
+  // 2026-10-09: folders (Policies / Procedures / Other) instead of a
+  // category dropdown; null = the folder grid.
+  const [folder, setFolder] = useState<PolicyDocumentCategory | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<PolicyDocumentListItem | null>(null);
   const [versioningDoc, setVersioningDoc] = useState<PolicyDocumentListItem | null>(null);
@@ -67,34 +68,25 @@ export function PolicyAdminPanel() {
   const [archivingDoc, setArchivingDoc] = useState<PolicyDocumentListItem | null>(null);
 
   const { data: docs, isLoading } = usePolicies({
-    category: categoryFilter === "all" ? undefined : categoryFilter,
     includeArchived: showArchived,
   });
 
-  const sync = useSyncSharepointPolicies();
   const update = useUpdatePolicy();
   const [query, setQuery] = useState("");
 
   const visible = useMemo(() => {
     if (!docs) return [];
     const q = query.trim().toLowerCase();
-    return q ? docs.filter((d) => d.title.toLowerCase().includes(q)) : docs;
-  }, [docs, query]);
+    // Search looks across every folder; otherwise only the open one.
+    if (q) return docs.filter((d) => d.title.toLowerCase().includes(q));
+    return folder ? docs.filter((d) => d.category === folder) : docs;
+  }, [docs, query, folder]);
+  const showFolders = !query.trim() && folder === null;
 
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value as PolicyDocumentCategory | "all")}
-            className="rounded-lg border border-border bg-card px-3 py-2 text-sm min-h-[40px]"
-          >
-            <option value="all">All categories</option>
-            {CATEGORY_OPTIONS.map((c) => (
-              <option key={c.value} value={c.value}>{c.label}</option>
-            ))}
-          </select>
           <label className="flex items-center gap-2 text-xs text-muted">
             <input
               type="checkbox"
@@ -114,17 +106,7 @@ export function PolicyAdminPanel() {
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {/* 2026-10-08: SharePoint is where policies are written; this
-              pulls the master folder in (also runs nightly). */}
-          <Button
-            variant="secondary"
-            size="md"
-            iconLeft={<RefreshCw className={sync.isPending ? "w-4 h-4 animate-spin" : "w-4 h-4"} />}
-            onClick={() => sync.mutate()}
-            disabled={sync.isPending}
-          >
-            {sync.isPending ? "Syncing…" : "Sync from SharePoint"}
-          </Button>
+          {/* SharePoint sync lives in the box above the list (2026-10-09). */}
           <Button
             variant="primary"
             size="md"
@@ -142,6 +124,8 @@ export function PolicyAdminPanel() {
             <Skeleton key={i} className="h-16 w-full rounded-lg" />
           ))}
         </div>
+      ) : showFolders && visible.length > 0 ? (
+        <PolicyFolderGrid docs={visible} onOpen={setFolder} />
       ) : visible.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-muted/30 p-12 text-center">
           <FileText className="mx-auto h-8 w-8 text-muted" />
@@ -151,6 +135,10 @@ export function PolicyAdminPanel() {
           </p>
         </div>
       ) : (
+        <>
+        {folder && !query.trim() && (
+          <PolicyFolderBack folder={folder} count={visible.length} onBack={() => setFolder(null)} />
+        )}
         <ul className="divide-y divide-border rounded-xl border border-border bg-card">
           {visible.map((d) => (
             <DocumentRow
@@ -167,6 +155,7 @@ export function PolicyAdminPanel() {
             />
           ))}
         </ul>
+        </>
       )}
 
       {uploadOpen && <UploadDocumentDialog onClose={() => setUploadOpen(false)} />}

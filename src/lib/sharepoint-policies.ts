@@ -68,12 +68,22 @@ export function parsePolicyFile(name: string, parentPath = ""): ParsedPolicyFile
   base = base.replace(/\bOSHC\b/gi, " ").replace(/\s{2,}/g, " ").replace(/\s+([,)])/g, "$1").trim();
   const title = state ? `${base} (${state})` : base;
 
-  const where = `${parentPath}/${name}`.toLowerCase();
-  const category = /procedure/.test(where)
+  // Daniel, 2026-10-09: the FILE NAME decides — "…Policy…" is a policy,
+  // "…Procedure…" a procedure. Only when the name says neither do we look
+  // at the sub-folder, and never at the master folder itself: every file
+  // lives under "NSW & VIC state policies", which used to file forms and
+  // templates as policies.
+  const lowerName = name.toLowerCase();
+  const sub = parentPath.toLowerCase().split(FOLDER.toLowerCase()).pop() ?? "";
+  const category: ParsedPolicyFile["category"] = /procedure/.test(lowerName)
     ? "procedure"
-    : /polic/.test(where)
+    : /polic/.test(lowerName)
       ? "policy"
-      : "other";
+      : /procedure/.test(sub)
+        ? "procedure"
+        : /polic/.test(sub)
+          ? "policy"
+          : "other";
 
   return {
     title,
@@ -143,6 +153,7 @@ export async function runSharepointPolicySync(
       sharepointItemId: true,
       sharepointETag: true,
       isArchived: true,
+      category: true,
     },
   });
   const byItem = new Map(existing.filter((d) => d.sharepointItemId).map((d) => [d.sharepointItemId!, d]));
@@ -167,6 +178,10 @@ export async function runSharepointPolicySync(
     const etag = item.cTag ?? item.eTag ?? item.lastModifiedDateTime;
 
     if (doc && doc.sharepointItemId === item.id && doc.sharepointETag === etag && !doc.isArchived) {
+      // Re-file without re-downloading when the folder rule changes.
+      if (doc.category !== parsed.category) {
+        await prisma.policyDocument.update({ where: { id: doc.id }, data: { category: parsed.category } });
+      }
       summary.unchanged++;
       continue;
     }
