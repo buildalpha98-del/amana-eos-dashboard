@@ -84,6 +84,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   const centreServiceId =
     session?.user?.isCentreAccount === true ? session.user.serviceId ?? null : null;
+  // 2026-10-08, Daniel: an educator's sidebar is My Portal (their own
+  // things, as a dropdown), then their centre's own menu under a "My
+  // Centre" heading — the same shape as the centre login — then Handbook.
+  const educatorServiceId =
+    !centreServiceId && session?.user?.role === "staff" ? session.user.serviceId ?? null : null;
 
   const groupedItems = useMemo(() => {
     const filtered = filterNavItems(
@@ -246,11 +251,15 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
           {groupedItems.map((group, groupIndex) => {
             const isSectionCollapsed = collapsedSections.has(group.key);
+            // The centre's menu replaces the plain "My Centre" link.
+            const groupItems = educatorServiceId
+              ? group.items.filter((i) => !i.href.startsWith("/services/"))
+              : group.items;
             // Curated sidebar (2026-07-12): show the role's core items by
             // default; the rest live behind "+N more". Badge-carrying items
             // are force-shown so a live count is never invisible.
             const { core, overflow } = partitionNavSection(
-              group.items,
+              groupItems,
               session?.user?.role as Role | undefined,
               { activeHref: pathname, forceShowHrefs },
             );
@@ -259,8 +268,20 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
             return (
               <div key={group.key}>
+                {educatorServiceId && groupIndex === 1 && (
+                  <div className="mt-4 pt-2 border-t border-white/[0.08]">
+                    <Suspense fallback={null}>
+                      <CentreSidebarNav
+                        serviceId={educatorServiceId}
+                        collapsed={collapsed}
+                        onNavigate={onMobileClose}
+                        footerLinks={false}
+                      />
+                    </Suspense>
+                  </div>
+                )}
                 {/* Section header / separator */}
-                {groupIndex > 0 && (
+                {(groupIndex > 0 || educatorServiceId) && (
                   <div
                     className={cn(
                       // 2026-07-08: bigger top gap + faint separator line
@@ -268,7 +289,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                       // headers rendered as text-white/30 with no divider
                       // and blended into the item list — Daniel couldn't
                       // scan to a section quickly.
-                      "mt-4 mb-1 pt-2 border-t border-white/[0.08]",
+                      groupIndex === 0 ? "mb-1" : "mt-4 mb-1 pt-2 border-t border-white/[0.08]",
                       collapsed ? "px-2" : "px-3"
                     )}
                   >
@@ -416,6 +437,19 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
               </div>
             );
           })}
+          {/* No section after My Portal to sit before — still show the centre. */}
+          {educatorServiceId && groupedItems.length < 2 && (
+            <div className="mt-4 pt-2 border-t border-white/[0.08]">
+              <Suspense fallback={null}>
+                <CentreSidebarNav
+                  serviceId={educatorServiceId}
+                  collapsed={collapsed}
+                  onNavigate={onMobileClose}
+                  footerLinks={false}
+                />
+              </Suspense>
+            </div>
+          )}
           </>
           )}
         </nav>

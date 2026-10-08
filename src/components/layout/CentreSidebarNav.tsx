@@ -30,9 +30,13 @@ export function CentreSidebarNav({
   serviceId,
   collapsed,
   onNavigate,
+  footerLinks = true,
 }: {
   serviceId: string;
   collapsed: boolean;
+  /** Notifications + Handbook & Help under the centre. An educator's
+   *  sidebar already has both in its own sections, so it turns them off. */
+  footerLinks?: boolean;
   /** Closes the phone drawer — links here change ?tab= on the same page,
    *  which the sidebar's pathname-based auto-close doesn't notice. */
   onNavigate?: () => void;
@@ -43,6 +47,8 @@ export function CentreSidebarNav({
   const role = session?.user?.role as Role | undefined;
 
   const sections = visibleServiceSections({
+    // Educators get their floor-of-the-shift menu (2026-10-08).
+    isEducator: role === "staff",
     isAdminPlus: hasMinRole(role, "admin"),
     canSeeCasualBookings: isAdminRole(role) || role === "member",
     canSeeStaffFiles: isAdminRole(role) || role === "member",
@@ -134,6 +140,8 @@ export function CentreSidebarNav({
         );
       })}
 
+      {footerLinks && (
+      <>
       <div className="my-2 px-3">
         <div className="h-px bg-white/[0.06]" />
       </div>
@@ -155,6 +163,8 @@ export function CentreSidebarNav({
           </Link>
         );
       })}
+      </>
+      )}
     </div>
   );
 }

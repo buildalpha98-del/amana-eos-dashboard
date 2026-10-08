@@ -8,7 +8,8 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/services/svc-1",
   useSearchParams: () => search,
 }));
-vi.mock("next-auth/react", () => ({ useSession: () => ({ data: { user: { role: "member" } } }) }));
+let role = "member";
+vi.mock("next-auth/react", () => ({ useSession: () => ({ data: { user: { role } } }) }));
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
     <a href={href} {...rest}>{children}</a>
@@ -58,5 +59,20 @@ describe("CentreSidebarNav", () => {
     render(<CentreSidebarNav serviceId="svc-1" collapsed={false} onNavigate={onNavigate} />);
     fireEvent.click(screen.getByRole("link", { name: "Today" }));
     expect(onNavigate).toHaveBeenCalled();
+  });
+});
+
+describe("CentreSidebarNav for an educator (2026-10-08)", () => {
+  it("shows only the floor-of-the-shift sections, without the footer links", () => {
+    role = "staff";
+    search = new URLSearchParams("");
+    render(<CentreSidebarNav serviceId="svc-1" collapsed={false} footerLinks={false} />);
+    for (const label of ["Today", "Daily Ops", "Program", "Compliance", "Documents"]) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    }
+    for (const hidden of ["Service Information", "Staff", "Families", "EOS", "Finance", "Notifications"]) {
+      expect(screen.queryByText(hidden)).toBeNull();
+    }
+    role = "member";
   });
 });
