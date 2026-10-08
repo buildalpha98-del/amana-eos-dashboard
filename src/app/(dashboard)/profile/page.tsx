@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import {
@@ -14,8 +14,10 @@ import {
   ArrowLeft,
   Camera,
   Trash2,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { UnsavedBadge } from "@/components/ui/UnsavedBadge";
 import type { ProfileData } from "@/hooks/useMyPortal";
@@ -517,6 +519,16 @@ export default function ProfilePage() {
       <NotificationPreferences />
       <MyDiversityCard />
       <SessionManagement />
+
+      {/* A plain way out, where people look for it on a phone (2026-10-09). */}
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => signOut({ callbackUrl: "/login" })}
+      >
+        <LogOut className="w-4 h-4" />
+        Sign out
+      </Button>
 
       {/* Bottom save bar */}
       {hasChanges && (
