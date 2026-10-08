@@ -76,6 +76,7 @@ export const CENTRES: WelcomePackCentre[] = [
     email: "mfisbh@amanaoshc.com.au",
     hasBsc: false,
     map: "mfis-beaumont-hills-map.jpg",
+    photo: "mfis-beaumont-hills-photo.jpg",
   },
   {
     slug: "MFIS-Greenacre",
