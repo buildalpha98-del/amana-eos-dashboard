@@ -19,6 +19,8 @@ export interface WelcomePackCentre {
   phone: string;
   email: string;
   hasBsc: boolean;
+  /** Drives Prep vs Kindergarten wording and which regulator is named. */
+  state: "NSW" | "VIC";
   /** file names in ./assets */
   map: string;
   photo?: string;
@@ -27,6 +29,7 @@ export interface WelcomePackCentre {
 export const CENTRES: WelcomePackCentre[] = [
   {
     slug: "AIA-KKCC",
+    state: "VIC",
     name: "AIA KKCC",
     dropOff: "School Gym",
     coordinator: "Thushy",
@@ -38,6 +41,7 @@ export const CENTRES: WelcomePackCentre[] = [
   },
   {
     slug: "Al-Taqwa-College",
+    state: "VIC",
     name: "Al-Taqwa College",
     dropOff: "Mini Hall",
     coordinator: "Fatema Rasool",
@@ -48,6 +52,7 @@ export const CENTRES: WelcomePackCentre[] = [
   },
   {
     slug: "Arkana-College",
+    state: "NSW",
     name: "Arkana College",
     address: "346 Stoney Creek Rd, Kingsgrove NSW 2208",
     dropOff: "School Hall",
@@ -60,6 +65,7 @@ export const CENTRES: WelcomePackCentre[] = [
   },
   {
     slug: "MFIS-Beaumont-Hills",
+    state: "NSW",
     name: "MFIS Beaumont Hills",
     address: "20 Mungerie Rd, Beaumont Hills NSW 2155",
     dropOff: "School Hall",
@@ -72,6 +78,7 @@ export const CENTRES: WelcomePackCentre[] = [
   },
   {
     slug: "MFIS-Greenacre",
+    state: "NSW",
     name: "MFIS Greenacre",
     address: "405 Waterloo Rd, Greenacre NSW 2190",
     dropOff: "School Hall",
@@ -85,6 +92,7 @@ export const CENTRES: WelcomePackCentre[] = [
   },
   {
     slug: "MFIS-Hoxton-Park",
+    state: "NSW",
     name: "MFIS Hoxton Park",
     dropOff: "School Hall",
     earlyWednesday: "2:10pm",
@@ -97,6 +105,7 @@ export const CENTRES: WelcomePackCentre[] = [
   },
   {
     slug: "Minarah-College",
+    state: "NSW",
     name: "Minarah College",
     dropOff: "School Hall",
     coordinator: "Nadia",
@@ -108,6 +117,7 @@ export const CENTRES: WelcomePackCentre[] = [
   },
   {
     slug: "Minaret-Doveton",
+    state: "VIC",
     name: "Minaret Doveton",
     dropOff: "School Gym",
     coordinator: "Khawla Sadat",
@@ -119,6 +129,7 @@ export const CENTRES: WelcomePackCentre[] = [
   },
   {
     slug: "Minaret-Officer",
+    state: "VIC",
     name: "Minaret Officer",
     dropOff: "Classrooms D103 and D101",
     coordinator: "Lami Hopman",
@@ -130,6 +141,7 @@ export const CENTRES: WelcomePackCentre[] = [
   },
   {
     slug: "Minaret-Springvale",
+    state: "VIC",
     name: "Minaret Springvale",
     dropOff: "School Gym",
     coordinator: "Vivi",
@@ -141,6 +153,7 @@ export const CENTRES: WelcomePackCentre[] = [
   },
   {
     slug: "Unity-Grammar",
+    state: "NSW",
     name: "Unity Grammar",
     address: "70 Fourth Ave, Austral NSW 2179",
     dropOff: "G Block",

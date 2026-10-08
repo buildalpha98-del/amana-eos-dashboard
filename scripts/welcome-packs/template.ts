@@ -26,6 +26,14 @@ export interface TemplateAssets {
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+/** The first school year is Kindergarten in NSW and Prep in Victoria. */
+const firstYears = (c: WelcomePackCentre) => (c.state === "VIC" ? "Prep and Year 1" : "Kindergarten and Year 1");
+
+const REGULATOR: Record<WelcomePackCentre["state"], { name: string; phone: string; web: string }> = {
+  NSW: { name: "NSW Early Learning Commission", phone: "1800 619 113", web: "earlylearningcommission.nsw.gov.au" },
+  VIC: { name: "Victorian Early Childhood Regulatory Authority (VECRA)", phone: "1300 307 415", web: "vecra.vic.gov.au" },
+};
+
 const tel = (phone: string) => `tel:${phone.replace(/\s+/g, "")}`;
 
 /* ------------------------------------------------------------------ */
@@ -186,7 +194,7 @@ function welcomePage(c: WelcomePackCentre, a: TemplateAssets): string {
     ["Drop-off and pick-up", "Handing over safely", 9],
     ["Food and health", "Halal, nut-free and safe", 10],
     ["Our programs", "What your child will get up to", 11],
-    ["Good to know", "Belongings, fair play and safety", 12],
+    ["Good to know", "Safety, injuries and excursions", 12],
     ["Staying in touch", "Who to contact and how", 13],
     ["Questions", "Frequently asked questions", 14],
   ];
@@ -551,7 +559,7 @@ function handoverPage(c: WelcomePackCentre): string {
       }
       ${card(
         "After school pick-up",
-        `<p>Children in Kindergarten and Year 1 are collected from their classrooms by our educators. Older children meet us at ${esc(c.dropOff)}.</p><p>Please come into the service, not the gate or car park, and sign your child out on the iPad before taking them home.</p>`,
+        `<p>Children in ${firstYears(c)} are collected from their classrooms by our educators. Older children meet us at ${esc(c.dropOff)}.</p><p>Please come into the service, not the gate or car park, and sign your child out on the iPad before taking them home.</p>`,
         { icon: "hand" },
       )}
       ${card("Who can collect", "<p>You, and anyone you have authorised. To authorise someone else, email written permission to your service's email address. They will need to show photo ID at the service.</p>", { icon: "user" })}
@@ -644,7 +652,7 @@ function goodToKnowPage(c: WelcomePackCentre): string {
   return page(
     c,
     12,
-    `${sectionHead("Good to know", "How we look after each other")}
+    `${sectionHead("Good to know", "Belongings, safety and excursions")}
     <div class="two">
       ${card("Devices and belongings", "<p>Phones, smart watches, tablets and laptops are not permitted unless used for homework. Please speak to your Service Coordinator about our BYOD policy.</p><p>Amana cannot be responsible for lost or stolen items, so please consider this when choosing what your child brings.</p>", { icon: "device" })}
       <div class="card card-white">
@@ -658,8 +666,23 @@ function goodToKnowPage(c: WelcomePackCentre): string {
       </div>
     </div>
 
+    ${card(
+      "Excursions",
+      "<p>During Holiday Quest we sometimes head out on excursions. We send you an excursion form before the day, with where we are going, how we will travel and what your child needs. <strong>Please sign and return it</strong>, because your child can only join an excursion with your written permission.</p>",
+      { tone: "chiffon" },
+    )}
+    <div class="two">
+      ${card(
+        "If your child is hurt or unwell",
+        "<p>Our first-aid trained team looks after your child straight away. We let you know the same day, and if your child needs to go home or see a doctor, we call you to collect them. In an emergency we call 000 first, then you.</p><p>You will be asked to sign the incident report in OWNA.</p>",
+      )}
+      ${card(
+        "Emergencies and drills",
+        "<p>Every centre has an emergency and evacuation plan, and we practise evacuation and lockdown drills with the children regularly, so they know exactly what to do.</p><p>If an emergency affects your child's session, we contact you straight away and tell you where to collect your child.</p>",
+      )}
+    </div>
+
     <div class="safety">
-      <div class="eyebrow light">Child safety</div>
       <h2>Your child's safety comes first</h2>
       <div class="safety-grid">
         <div>${rays("sg-rays")}<p>Every team member holds a valid <strong>Working With Children Check</strong></p></div>
@@ -673,6 +696,7 @@ function goodToKnowPage(c: WelcomePackCentre): string {
 }
 
 function touchPage(c: WelcomePackCentre, a: TemplateAssets): string {
+  const reg = REGULATOR[c.state];
   return page(
     c,
     13,
@@ -713,7 +737,10 @@ function touchPage(c: WelcomePackCentre, a: TemplateAssets): string {
         <span class="mail">${ENROL_EMAIL}</span>
       </a>
     </div>
-    <p class="fine">We do not have a separate after hours line, so please call or email and we will respond as soon as we can.</p>`,
+    <p class="fine">We do not have a separate after hours line, so please call or email and we will respond as soon as we can.</p>
+    <div class="regulator">
+      <p><strong>Still not resolved?</strong> We always want to put things right ourselves first, but you can also contact the ${reg.name} on <strong>${reg.phone}</strong> or at ${reg.web}. They regulate every education and care service in ${c.state === "VIC" ? "Victoria" : "NSW"}.</p>
+    </div>`,
   );
 }
 
@@ -732,7 +759,7 @@ function faqs(c: WelcomePackCentre): Array<[string, string]> {
     ["How do I pay?", "Weekly direct debit through OWNA, a one-off payment in the OWNA app, or direct deposit. The details are on page 7."],
     ["How do I set up my Child Care Subsidy?", `If you have not used CCS before, or your child has not been in approved care in the last 26 weeks, make a new claim with Centrelink first. Then, once we notify Centrelink, confirm the enrolment in myGov. See page 6, or call us on ${HEAD_OFFICE}.`],
     ["Is there a registration fee?", "No. There is no registration fee, enrolment fee or bond."],
-    ["Who collects my child from class?", "Children in Kindergarten and Year 1 are collected from their classrooms by our educators. Older children meet us at the service location."],
+    ["Who collects my child from class?", `Children in ${firstYears(c)} are collected from their classrooms by our educators. Older children meet us at the service location.`],
     ["Can someone else pick up my child?", "Yes. Email written authorisation to your service's email address. They must bring photo ID."],
     ["What if I am running late?", "Please call your service as soon as you know. After 6:30pm, late pick-up is $15 for every 15 minutes, per child."],
     ["Is the food halal and nut-free?", "All food is halal and we are a nut-free service. Please do not send nuts in your child's bag."],
@@ -750,14 +777,27 @@ function faqs(c: WelcomePackCentre): Array<[string, string]> {
   ];
 }
 
+/** Only questions the rest of the pack doesn't already answer — the FAQ
+ * used to repeat ~18 of its 25 answers from earlier pages. */
+const FAQ_KEEP = new Set([
+  "What if my child is unwell?",
+  "What does a typical afternoon look like?",
+  "Can staff give my child medication?",
+  "Does my child pray at Amana?",
+  "I have not received my OWNA login. What do I do?",
+  "Do you run vacation care and pupil-free days?",
+  "How are photos and social media handled?",
+  "How do I stop attending Amana?",
+]);
+
 function faqPages(c: WelcomePackCentre): string {
-  const all = faqs(c);
-  const split = 12;
-  const render = (items: Array<[string, string]>) =>
-    `<div class="faq">${items.map(([q, a]) => `<div class="qa"><h3><span class="q">Q</span>${q}</h3><p>${a}</p></div>`).join("")}</div>`;
-  return (
-    page(c, 14, `${sectionHead("Quick answers", "Frequently asked questions")}${render(all.slice(0, split))}`) +
-    page(c, 15, `${sectionHead("More answers", "More questions, answered")}${render(all.slice(split))}`)
+  const items = faqs(c).filter(([q]) => FAQ_KEEP.has(q));
+  return page(
+    c,
+    14,
+    `${sectionHead("Quick answers", "Frequently asked questions")}<div class="faq">${items
+      .map(([q, a]) => `<div class="qa"><h3><span class="q">Q</span>${q}</h3><p>${a}</p></div>`)
+      .join("")}</div>`,
   );
 }
 
@@ -858,6 +898,8 @@ h1, h2, h3, h4 { font-family: "Fredoka", "Somatic", sans-serif; color: var(--gre
   overflow: hidden;
   display: flex; flex-direction: column; gap: 5mm;
 }
+/* Never let a block shrink to fit — build.ts must SEE an overflowing page. */
+.page-body > * { flex-shrink: 0; }
 .foot {
   position: absolute; left: 15mm; right: 15mm; bottom: 8mm;
   display: flex; justify-content: space-between; align-items: center;
@@ -1143,15 +1185,16 @@ dl.bank dd { font-family: "Fredoka"; font-weight: 600; }
 .clubs.odd .club-card:last-child .club-art { background: var(--latte); }
 
 /* ---------- good to know ---------- */
+.regulator { background: var(--white); border-left: 1.6mm solid var(--green); border-radius: 0 4mm 4mm 0; padding: 3.6mm 4.6mm; font-size: 10.4pt; }
 .pills { list-style: none; display: flex; flex-wrap: wrap; gap: 1.4mm; }
 .pills li { background: var(--chiffon); color: var(--green); font-weight: 600; border-radius: 99mm; padding: .7mm 2.8mm; font-size: 9.8pt; }
-.safety { position: relative; overflow: hidden; background: var(--green); color: var(--latte); border-radius: 6mm; padding: 7mm 6mm 6mm; display: flex; flex-direction: column; gap: 3mm; }
-.safety h2 { color: var(--white); position: relative; }
-.safety-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; margin-top: 2mm; position: relative; }
-.safety-grid > div { background: rgba(255,250,230,.09); border-radius: 4mm; padding: 4mm; display: flex; gap: 3mm; align-items: center; font-size: 11pt; }
+.safety { position: relative; overflow: hidden; background: var(--green); color: var(--latte); border-radius: 5mm; padding: 5mm 5mm 4.5mm; display: flex; flex-direction: column; gap: 2.4mm; }
+.safety h2 { color: var(--white); position: relative; font-size: 16pt; }
+.safety-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2.4mm; margin-top: 0; position: relative; }
+.safety-grid > div { background: rgba(255,250,230,.09); border-radius: 3.5mm; padding: 2.6mm 3.4mm; display: flex; gap: 3mm; align-items: center; font-size: 11pt; }
 .sg-rays { flex: none; width: 10mm; color: var(--jonquil); }
 .safety-grid strong { color: var(--jonquil); }
-.safety-foot { margin-top: 1mm; font-size: 10.2pt; color: rgba(255,250,230,.85); }
+.safety-foot { margin-top: 0; font-size: 9.6pt; color: rgba(255,250,230,.85); }
 
 /* ---------- staying in touch ---------- */
 .wa { display: grid; grid-template-columns: 1fr 25mm; gap: 3mm; align-items: center; }
