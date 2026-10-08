@@ -120,7 +120,19 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
+export function ServiceTodayPanel({
+  serviceId,
+  hideLiveCards = false,
+}: {
+  serviceId: string;
+  /**
+   * Hide the Attendance and Staff-on-duty cards. The Today screen (Round 2,
+   * 2026-10-09) shows those from /api/services/[id]/dashboard — the same
+   * numbers as the Coordinator dashboard — and these cards counted
+   * differently (OWNA aggregates; every ASSIGNED user as "on duty").
+   */
+  hideLiveCards?: boolean;
+}) {
   const { data: session } = useSession();
   const isEducator = session?.user?.role === "staff";
   const [collapsed, setCollapsed] = useState(false);
@@ -200,6 +212,8 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
         <div className="px-5 pb-5 space-y-4">
           {/* Card grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            {!hideLiveCards && (
+              <>
             {/* Attendance Today */}
             <div className="bg-surface rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2">
@@ -268,6 +282,8 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
               )}
             </div>
 
+              </>
+            )}
             {/* To-Dos Due */}
             <div className="bg-amber-50/50 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2">
