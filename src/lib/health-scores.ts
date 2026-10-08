@@ -73,6 +73,7 @@ async function computeOnTheFly(serviceId: string) {
     ticketsTotal,
     ticketsResolved,
     previousHealthScore,
+    serviceRating,
   ] = await Promise.all([
     prisma.centreMetrics.findFirst({
       where: { serviceId },
@@ -145,6 +146,7 @@ async function computeOnTheFly(serviceId: string) {
       },
       orderBy: { periodStart: "desc" },
     }),
+    prisma.service.findUnique({ where: { id: serviceId }, select: { nqsRating: true } }),
   ]);
 
   const metrics: ScoreInputMetrics | null = latestMetrics
@@ -159,7 +161,8 @@ async function computeOnTheFly(serviceId: string) {
         incidentCount: latestMetrics.incidentCount,
         complaintCount: latestMetrics.complaintCount,
         educatorsTurnover: latestMetrics.educatorsTurnover,
-        nqsRating: latestMetrics.nqsRating,
+        // Centre's own recorded rating first (Service Info → Assessment & rating).
+        nqsRating: serviceRating?.nqsRating ?? latestMetrics.nqsRating,
       }
     : null;
 

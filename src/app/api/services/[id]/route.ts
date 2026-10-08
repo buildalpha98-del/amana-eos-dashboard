@@ -6,6 +6,8 @@ import { sessionTimesSchema, type SessionTimes } from "@/lib/service-settings";
 import { syncRoomsQuietly } from "@/lib/rooms";
 import { getCentreScope } from "@/lib/centre-scope";
 import { z } from "zod";
+import { isAdminRole } from "@/lib/role-permissions";
+import { nqsRatingSchema, qaRatingsSchema } from "@/lib/nqs-rating";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { convertCentreMailboxUser } from "@/lib/centre-account";
 
@@ -57,6 +59,11 @@ const patchSchema = z.object({
   serviceApprovalNumber: z.string().nullish(),
   providerApprovalNumber: z.string().nullish(),
   sessionTimes: sessionTimesSchema.nullish(),
+  // ── Assessment & Rating (2026-10-08) ──
+  nqsRating: nqsRatingSchema.nullable().optional(),
+  nqsLastAssessedAt: z.string().nullable().optional(),
+  nqsNextAssessmentAt: z.string().nullable().optional(),
+  nqsQaRatings: qaRatingsSchema.nullable().optional(),
 });
 
 // GET /api/services/[id]
@@ -166,9 +173,17 @@ export const PATCH = withApiAuth(
       );
     }
 
+    // Where a centre sits in the network (active → closing → closed) is
+    // the office's call. The form hid it from coordinators; the API now
+    // refuses it too (2026-10-08).
+    if (parsed.data.status !== undefined && !isAdminRole(role)) {
+      throw ApiError.forbidden("Only an admin can change a centre's status.");
+    }
+
     const data: Record<string, unknown> = {};
     const dateFields = new Set([
       "contractStartDate", "contractEndDate", "lastPrincipalVisit",
+      "nqsLastAssessedAt", "nqsNextAssessmentAt",
     ]);
     // Columns that are NOT NULL in the schema. A cleared field means
     // "leave it alone" here, not "write null" — the write would fail at

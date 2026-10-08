@@ -20,6 +20,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/utils";
 
 import { CentreDetailsForm } from "./overview/CentreDetailsForm";
+import { AssessmentRatingForm } from "./overview/AssessmentRatingForm";
 import { SessionTimesCard } from "./overview/SessionTimesCard";
 import { CapacityCard } from "./overview/CapacityCard";
 import { RatesCard } from "./overview/RatesCard";
@@ -32,6 +33,7 @@ const TABS = [
   { key: "sessions", label: "Session times" },
   { key: "capacity", label: "Capacity & rates" },
   { key: "staffing", label: "Staffing" },
+  { key: "rating", label: "Assessment & rating" },
   { key: "school", label: "School partnership" },
   { key: "feedback", label: "Family feedback" },
 ] as const;
@@ -87,6 +89,7 @@ export function ServiceOverviewTab({
             </div>
           )}
           {tab === "staffing" && <StaffingForecastCard serviceId={service.id} />}
+          {tab === "rating" && <AssessmentRatingForm service={service} canEdit={canEdit} />}
           {tab === "school" && <MarketingCard service={service} />}
           {tab === "feedback" && <ParentFeedbackCard serviceId={service.id} />}
         </div>

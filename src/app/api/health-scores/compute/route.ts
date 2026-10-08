@@ -33,7 +33,7 @@ export const POST = withApiHandler(async (request) => {
     // ── Fetch all active / onboarding services ──────────────
     const services = await prisma.service.findMany({
       where: { status: { in: ["active", "onboarding"] } },
-      select: { id: true },
+      select: { id: true, nqsRating: true },
     });
 
     let totalScore = 0;
@@ -161,7 +161,9 @@ export const POST = withApiHandler(async (request) => {
             incidentCount: latestMetrics.incidentCount,
             complaintCount: latestMetrics.complaintCount,
             educatorsTurnover: latestMetrics.educatorsTurnover,
-            nqsRating: latestMetrics.nqsRating,
+            // The rating recorded on the centre (Service Info → Assessment
+            // & rating) wins; the metrics import is the fallback.
+            nqsRating: svc.nqsRating ?? latestMetrics.nqsRating,
           }
         : null;
 
