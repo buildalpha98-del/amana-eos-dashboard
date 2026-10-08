@@ -10,9 +10,12 @@
  */
 import { logger } from "@/lib/logger";
 
-const TENANT = process.env.MS_GRAPH_TENANT_ID || "";
-const CLIENT_ID = process.env.MS_GRAPH_CLIENT_ID || "";
-const CLIENT_SECRET = process.env.MS_GRAPH_CLIENT_SECRET || "";
+// Trimmed, and stripped of wrapping quotes: a value pasted into Vercel with
+// a trailing space or "quotes" fails sign-in with no visible difference.
+const env = (k: string) => (process.env[k] || "").trim().replace(/^["']|["']$/g, "");
+const TENANT = env("MS_GRAPH_TENANT_ID");
+const CLIENT_ID = env("MS_GRAPH_CLIENT_ID");
+const CLIENT_SECRET = env("MS_GRAPH_CLIENT_SECRET");
 const GRAPH = "https://graph.microsoft.com/v1.0";
 
 export function isGraphConfigured(): boolean {
@@ -41,12 +44,36 @@ async function token(): Promise<string> {
     signal: AbortSignal.timeout(20_000),
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    throw new GraphError(res.status, body, "Couldn't sign in to Microsoft 365 — check the app registration");
+    const body = (await res.json().catch(() => null)) as { error?: string; error_description?: string } | null;
+    logger.warn("Graph token refused", { status: res.status, error: body?.error, description: body?.error_description?.split("\r\n")[0] });
+    throw new GraphError(res.status, body, signInFailureMessage(body));
   }
   const json = (await res.json()) as { access_token: string; expires_in: number };
   cachedToken = { value: json.access_token, expiresAt: Date.now() + json.expires_in * 1000 };
   return json.access_token;
+}
+
+/**
+ * Turn Microsoft's sign-in refusal into the one thing to fix. The AADSTS
+ * code is what tells the cases apart; the description never contains the
+ * secret, so it's safe to show the office.
+ */
+export function signInFailureMessage(
+  body: { error?: string; error_description?: string } | null,
+): string {
+  const desc = body?.error_description ?? "";
+  const code = desc.match(/AADSTS\d+/)?.[0] ?? "";
+  const why: Record<string, string> = {
+    AADSTS7000215:
+      "the client secret is wrong. In Vercel, MS_GRAPH_CLIENT_SECRET must be the secret's VALUE (not the Secret ID).",
+    AADSTS7000222: "the client secret has expired. Make a new one in Entra → Certificates & secrets and update Vercel.",
+    AADSTS700016: "no app with that client ID in this tenant. Check MS_GRAPH_CLIENT_ID (and MS_GRAPH_TENANT_ID).",
+    AADSTS90002: "that tenant wasn't found. Check MS_GRAPH_TENANT_ID.",
+    AADSTS900023: "the tenant ID isn't valid. Check MS_GRAPH_TENANT_ID.",
+    AADSTS50034: "the tenant ID isn't valid. Check MS_GRAPH_TENANT_ID.",
+  };
+  const reason = why[code] ?? (desc.split("\r\n")[0] || body?.error || "Microsoft refused the sign-in.");
+  return `Couldn't sign in to Microsoft 365 — ${reason}${code && !why[code] ? "" : code ? ` (${code})` : ""}`;
 }
 
 /** GET a Graph path (or absolute @odata.nextLink) as JSON. */
@@ -59,6 +86,15 @@ export async function graphGet<T>(pathOrUrl: string): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     logger.warn("Graph non-2xx", { url: pathOrUrl, status: res.status });
+    // Signed in fine, but not allowed to read: the app's Sites.Read.All
+    // permission hasn't had admin consent (or was removed).
+    if (res.status === 401 || res.status === 403) {
+      throw new GraphError(
+        res.status,
+        body,
+        "Signed in to Microsoft 365, but SharePoint access isn't approved — in Entra, open the app's API permissions and Grant admin consent (Sites.Read.All, Application).",
+      );
+    }
     throw new GraphError(res.status, body);
   }
   return (await res.json()) as T;
