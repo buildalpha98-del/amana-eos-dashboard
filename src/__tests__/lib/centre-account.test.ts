@@ -52,6 +52,10 @@ describe("creating a centre account", () => {
     });
   });
 
+  it("is attached to the mailbox's own centre, whatever the form picked", () => {
+    expect(centreAccountCreateFields({ id: "svc-ark" }, "staff", "svc-other").serviceId).toBe("svc-ark");
+  });
+
   it("never downgrades a more senior role that was chosen", () => {
     expect(centreAccountCreateFields({ id: "svc-ark" }, "admin").role).toBe("admin");
   });
@@ -132,14 +136,17 @@ describe("saving a centre's email", () => {
     expect(prismaMock.staffRamp.updateMany).toHaveBeenCalled();
   });
 
-  it("keeps a senior role and an existing centre", async () => {
-    prismaMock.user.findFirst.mockResolvedValue({ id: "u2", role: "admin", serviceId: "svc-other" } as never);
+  it("keeps a senior role, but always moves the account to the mailbox's own centre", async () => {
+    // A centre mailbox attached to another centre was refused by its own
+    // centre's budget ("Coordinators can only access the budget for their
+    // own service") — the mailbox decides the centre (2026-10-09).
+    prismaMock.user.findFirst.mockResolvedValue({ id: "u2", role: "admin" } as never);
     prismaMock.user.update.mockResolvedValue({} as never);
     prismaMock.staffRamp.updateMany.mockResolvedValue({ count: 0 } as never);
     await convertCentreMailboxUser(prismaMock as never, "svc-ark", "x@amanaoshc.com.au");
     const data = (prismaMock.user.update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
     expect(data.role).toBeUndefined();
-    expect(data.serviceId).toBe("svc-other");
+    expect(data.serviceId).toBe("svc-ark");
   });
 
   it("does nothing when nobody uses that address", async () => {
@@ -148,5 +155,30 @@ describe("saving a centre's email", () => {
       convertCentreMailboxUser(prismaMock as never, "svc-ark", "nobody@amanaoshc.com.au"),
     ).resolves.toEqual({ converted: null });
     expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("the centre menu a coordinator sees (budget access, 2026-10-09)", () => {
+  it("a Director / centre account gets Finance → Budget", async () => {
+    const { visibleServiceSections } = await import("@/lib/service-sections");
+    const groups = visibleServiceSections({
+      isEducator: false,
+      isAdminPlus: false,
+      canSeeCasualBookings: true,
+      canSeeStaffFiles: true,
+    });
+    const finance = groups.find((g) => g.key === "finance");
+    expect(finance?.subTabs.map((s) => s.key)).toContain("budget");
+  });
+
+  it("an educator's menu has no Finance", async () => {
+    const { visibleServiceSections } = await import("@/lib/service-sections");
+    const groups = visibleServiceSections({
+      isEducator: true,
+      isAdminPlus: false,
+      canSeeCasualBookings: false,
+      canSeeStaffFiles: false,
+    });
+    expect(groups.find((g) => g.key === "finance")).toBeUndefined();
   });
 });

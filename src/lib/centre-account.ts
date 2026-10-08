@@ -62,13 +62,17 @@ export async function findCentreForEmail(
 export function centreAccountCreateFields(
   centre: { id: string },
   requestedRole: string,
-  requestedServiceId?: string | null,
+  /** Ignored on purpose: the mailbox decides the centre, not the form. */
+  _requestedServiceId?: string | null,
 ) {
   return {
     isCentreAccount: true,
     inductionStatus: "cleared" as const,
     inductionClearedAt: new Date(),
-    serviceId: requestedServiceId || centre.id,
+    // ALWAYS the centre whose mailbox this is — never a centre picked on a
+    // form. Budget, roll and every own-centre check key on this, so a wrong
+    // centre here means the coordinator is refused at their own centre.
+    serviceId: centre.id,
     role: (requestedRole === "staff" ? "member" : requestedRole) as never,
   };
 }
@@ -95,7 +99,7 @@ export async function convertCentreMailboxUser(
         email: { equals: normalised, mode: "insensitive" },
         isCentreAccount: false,
       },
-      select: { id: true, role: true, serviceId: true },
+      select: { id: true, role: true },
     });
     if (!user) return { converted: null };
 
@@ -106,7 +110,9 @@ export async function convertCentreMailboxUser(
         inductionStatus: "cleared",
         inductionClearedAt: new Date(),
         inductionGraceUntil: null,
-        serviceId: user.serviceId ?? serviceId,
+        // The mailbox's own centre, even if the account was attached
+        // elsewhere before — see centreAccountCreateFields.
+        serviceId,
         // Educator → Director of Service; every other role is kept.
         ...(user.role === "staff" ? { role: "member" as const } : {}),
       },
