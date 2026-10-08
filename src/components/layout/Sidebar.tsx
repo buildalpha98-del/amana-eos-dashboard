@@ -183,7 +183,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       <aside
         data-tour="sidebar"
         className={cn(
-          "fixed left-0 top-0 h-screen text-white flex flex-col transition-all duration-300 z-50 backdrop-blur-xl",
+          "fixed left-0 top-0 h-screen h-dvh text-white flex flex-col transition-all duration-300 z-50 backdrop-blur-xl",
           // Rich gradient background
           "bg-gradient-to-b from-brand-dark to-[#001824]",
           // Mobile: off-canvas drawer via translate
@@ -512,8 +512,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           {!collapsed && <NavLayoutToggle className="hidden md:flex w-full justify-center" />}
         </div>
 
-        {/* User Section */}
-        <div className="border-t border-white/[0.06] p-3">
+        {/* User Section. h-dvh on the drawer + the safe-area pad keep this
+            row on screen on a phone: at h-screen (100vh) iPhone Safari put
+            it behind the browser toolbar, so there was no way to sign out
+            (2026-10-09). */}
+        <div className="border-t border-white/[0.06] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           {session?.user && (
             <div className="flex items-center gap-3">
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-brand-dark to-[#004D6D] flex items-center justify-center text-xs font-medium ring-1 ring-white/10">
@@ -534,11 +537,13 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
               )}
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
-                className="p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10 transition-colors duration-200"
+                className="flex min-h-11 items-center gap-1.5 rounded-md px-2 text-white/60 hover:text-white hover:bg-white/10 transition-colors duration-200 md:min-h-0 md:p-1.5 md:text-white/40"
                 title="Sign out"
                 aria-label="Sign out"
               >
                 <LogOut className="w-4 h-4" />
+                {/* Labelled on phones — a bare icon was easy to miss. */}
+                <span className="text-xs font-medium md:hidden">Sign out</span>
               </button>
             </div>
           )}
