@@ -103,7 +103,10 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
               width={16}
               height={22}
             />
-            <span className="text-xs font-heading font-semibold text-brand">Amana</span>
+            {/* Full name, as on the logo (Daniel, 2026-10-09). */}
+            <span className="text-xs font-heading font-semibold text-brand">
+              Amana <span className="font-bold tracking-wide">OSHC</span>
+            </span>
           </div>
           {/* Mobile utility buttons — pulled up from old sub-header */}
           <div className="flex items-center gap-1" id="mobile-header-actions" />
