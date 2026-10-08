@@ -69,6 +69,11 @@ const pageTitles: Record<string, string> = {
   "/crm/templates": "Email Templates",
   "/activity-library": "Activity Library",
   "/my-portal": "My Portal",
+  "/my-pay": "My Pay & Leave",
+  "/my-training": "My Training & Compliance",
+  "/my-day": "My Day",
+  "/roster/me": "My Roster",
+  "/notifications": "Notifications",
   "/profile": "Profile",
   "/holiday-quest": "Holiday Quest",
   "/scenarios": "Scenarios",
@@ -113,6 +118,8 @@ export function TopBar() {
   const { recentPages, trackPage } = useRecentPages();
 
   const title = useMemo(() => {
+    // An educator's My Day is their My Shifts page (2026-10-08).
+    if (pathname === "/my-day" && session?.user?.role === "staff") return "My Shifts";
     if (pageTitles[pathname]) return pageTitles[pathname];
     // Dynamic detail pages
     if (pathname.startsWith("/services/") && pathname !== "/services") return "Service Detail";
@@ -120,7 +127,7 @@ export function TopBar() {
     if (pathname.startsWith("/recruitment/") && pathname !== "/recruitment") return "Vacancy Detail";
     if (pathname.startsWith("/tickets/") && pathname !== "/tickets") return "Ticket Detail";
     return "Dashboard";
-  }, [pathname]);
+  }, [pathname, session?.user?.role]);
   const quarter = getCurrentQuarter();
 
   // Build breadcrumb items for nested pages (2+ segments)
