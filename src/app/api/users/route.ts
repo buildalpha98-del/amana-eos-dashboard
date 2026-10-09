@@ -1,3 +1,6 @@
+import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { serviceTodayISO } from "@/lib/timezone";
+import { notifyUsers } from "@/lib/notify-user";
 import { NextRequest, NextResponse } from "next/server";
 import { setUpInEmploymentHeroSafely } from "@/lib/eh-onboarding";
 import { hash } from "bcryptjs";
@@ -112,9 +115,21 @@ export const POST = withApiAuth(async (req, session) => {
     );
   }
 
-  const { name, email, role, serviceId, state, newStarter, startDate } = parsed.data;
+  // A centre's own account adds its staff (2026-10-09, Manage staff —
+  // Daniel: Coordinators add new staff themselves, office sees every new
+  // starter). Fixed rules: an educator, at THIS centre, starting induction,
+  // invited by email — never a password set here, never another role.
+  const byCentre = session!.user.role === "member";
+  if (byCentre && !session!.user.serviceId) {
+    return NextResponse.json({ error: "Your account isn't attached to a centre." }, { status: 403 });
+  }
+  const { name, email, state } = parsed.data;
+  const role = byCentre ? ("staff" as const) : parsed.data.role;
+  const serviceId = byCentre ? session!.user.serviceId! : parsed.data.serviceId;
+  const newStarter = byCentre ? true : parsed.data.newStarter;
+  const startDate = byCentre ? (parsed.data.startDate ?? serviceTodayISO()) : parsed.data.startDate;
   // Invite mode: no password supplied → mint a strong random one to email.
-  const providedPassword = parsed.data.password;
+  const providedPassword = byCentre ? undefined : parsed.data.password;
   const password = providedPassword ?? generateTempPassword();
 
   // Guard: admins cannot create owner-level users
@@ -128,7 +143,8 @@ export const POST = withApiAuth(async (req, session) => {
   // A centre's own mailbox (arkana@…) is a CENTRE ACCOUNT: attached to that
   // centre, Director-of-Service access, and never onboarded or inducted —
   // whatever the form said. See src/lib/centre-account.ts.
-  const centre = await findCentreForEmail(prisma, email);
+  // A centre can't create (or convert) another centre's shared mailbox.
+  const centre = byCentre ? null : await findCentreForEmail(prisma, email);
 
   // Validate: staff and member roles require a serviceId
   if ((role === "staff" || role === "member") && !serviceId && !centre) {
@@ -236,8 +252,22 @@ export const POST = withApiAuth(async (req, session) => {
   // hire→employee conversion route — swallow-and-log on failure).
   await sendWelcomeInvite({ email, name, tempPassword: password });
 
+  if (byCentre) {
+    // Office sees every new starter a centre adds.
+    const office = await prisma.user.findMany({
+      where: { active: true, role: { in: [...ADMIN_ROLES] } },
+      select: { id: true },
+    });
+    notifyUsers(prisma, office.map((o) => o.id), {
+      type: "staff",
+      title: `New starter added: ${user.name}`,
+      body: `${user.service?.name ?? "A centre"} added them. Their induction has started.`,
+      link: `/staff/${user.id}`,
+    }).catch(() => {});
+  }
+
   return NextResponse.json(
     { ...user, employmentHero: employmentHero?.message ?? null },
     { status: 201 },
   );
-}, { roles: ["owner", "admin"] });
+}, { roles: ["owner", "admin", "member"] });

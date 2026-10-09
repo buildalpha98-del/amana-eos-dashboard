@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import type { Role } from "@prisma/client";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { assertManagesStaffMember } from "@/lib/centre-staff-access";
 
 
 type RouteCtx = { params: Promise<{ id: string }> };
@@ -25,6 +26,8 @@ export const POST = withApiAuth(
   async (_req, session, context) => {
     const { id } = await (context as unknown as RouteCtx).params;
     if (!id) throw ApiError.badRequest("Missing user id");
+    // The office, or the account that runs this person's centre (2026-10-09).
+    await assertManagesStaffMember(session, id);
 
     const target = await prisma.user.findUnique({
       where: { id },
@@ -55,5 +58,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json({ ok: true });
   },
-  { roles: [...ADMIN_ROLES] },
+  { roles: [...ADMIN_ROLES, "member"] },
 );

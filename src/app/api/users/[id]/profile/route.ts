@@ -1,3 +1,4 @@
+import { assertManagesStaffMember } from "@/lib/centre-staff-access";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -56,6 +57,8 @@ const profileUpdateSchema = z.object({
 // member can self-correct (start date, employment type, probation
 // end date). Sensitive identifiers (TFN, xero ID, visa, tags) and
 // admin-only assignments (role, serviceId) remain admin-only.
+const CENTRE_EDITABLE_FIELDS = new Set(["name", "phone"]);
+
 const STAFF_SELF_FIELDS = new Set([
   // Self-updatable identity (name/email allowed for self — they're not
   // privilege-bearing). Role is admin-only and lives on PATCH /api/users/[id].
@@ -148,9 +151,17 @@ const { id } = await context!.params!;
   const isAdmin = ["owner", "admin"].includes(session!.user.role);
   const isSelf = session!.user.id === id;
 
-  // Staff can only update own profile
+  // The centre's account may correct a staff member's name and phone from
+  // Manage staff (2026-10-09) — nothing else: email is their login, and
+  // bank, super and date of birth stay between them and the office.
+  let byCentre = false;
   if (!isAdmin && !isSelf) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    try {
+      await assertManagesStaffMember(session!, id);
+      byCentre = true;
+    } catch {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   const body = await parseJsonBody(req);
@@ -161,6 +172,13 @@ const { id } = await context!.params!;
       { error: parsed.error.issues[0].message },
       { status: 400 }
     );
+  }
+
+  if (byCentre) {
+    const notAllowed = Object.keys(parsed.data).filter((k) => !CENTRE_EDITABLE_FIELDS.has(k));
+    if (notAllowed.length > 0) {
+      return NextResponse.json({ error: `The centre can't change: ${notAllowed.join(", ")}` }, { status: 403 });
+    }
   }
 
   // Staff can only update non-sensitive self fields
