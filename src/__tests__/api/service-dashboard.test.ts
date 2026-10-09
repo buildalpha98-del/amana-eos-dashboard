@@ -225,7 +225,8 @@ describe("GET /api/services/[id]/dashboard", () => {
    * always right here; only the test's dependence on wall time was wrong.
    */
   it("flags a late shift as not-checked-in once the clock passes its start", async () => {
-    vi.setSystemTime(new Date("2026-08-31T23:58:30"));
+    // A Sydney evening (AEST in August), whatever zone the test runs in.
+    vi.setSystemTime(new Date("2026-08-31T23:58:30+10:00"));
     mockSession({ id: "u-1", name: "Ed", role: "staff", serviceId: "svc-1" });
     setup({
       shifts: [

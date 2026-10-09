@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState } from "react";
 import { ArrowRightLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -41,7 +42,7 @@ export function SupersedeContractModal({
     hoursPerWeek: previousContract.hoursPerWeek
       ? String(previousContract.hoursPerWeek)
       : "",
-    startDate: new Date().toISOString().split("T")[0],
+    startDate: serviceTodayISO(),
     endDate: "",
     notes: "",
     documentUrl: null,

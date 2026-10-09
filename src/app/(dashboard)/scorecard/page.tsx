@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
@@ -236,7 +237,7 @@ export default function ScorecardPage() {
                 const a = document.createElement("a");
                 a.href = url;
                 const safe = (scorecard?.title ?? "scorecard").replace(/[^a-z0-9-_]+/gi, "-").toLowerCase();
-                a.download = `amana-scorecard-${safe}-${new Date().toISOString().slice(0, 10)}.pdf`;
+                a.download = `amana-scorecard-${safe}-${serviceTodayISO()}.pdf`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();

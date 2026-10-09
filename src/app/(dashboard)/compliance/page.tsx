@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -337,7 +338,7 @@ function StaffComplianceView() {
         }
         await queryClient.invalidateQueries({ queryKey: ["compliance"] });
       } else {
-        const today = new Date().toISOString().split("T")[0];
+        const today = serviceTodayISO();
         // 2026-06-05: don't bother sending a placeholder serviceId.
         // The API derives serviceId for staff/member from the session
         // / DB and stores null when the user has no service assigned
@@ -929,7 +930,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
         <ExportButton
           onClick={() =>
             exportToCsv(
-              `amana-compliance-${new Date().toISOString().slice(0, 10)}`,
+              `amana-compliance-${serviceTodayISO()}`,
               filteredCerts,
               [
                 { header: "ID", accessor: (c) => c.id },

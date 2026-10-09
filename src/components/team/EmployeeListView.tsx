@@ -10,6 +10,7 @@
  * /team layout now.
  */
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Download, Users, Mail, Contact, Upload } from "lucide-react";
@@ -167,7 +168,7 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
 
   function exportEmployeesCsv(employees: EmployeeListItem[]) {
     exportToCsv(
-      `amana-team-${new Date().toISOString().slice(0, 10)}`,
+      `amana-team-${serviceTodayISO()}`,
       employees,
       [
         { header: "Name", accessor: (e) => e.name },

@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState, useRef } from "react";
 import { Download, Eye, Upload, Trash2, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/Dialog";
@@ -47,7 +48,7 @@ function toDateString(value: Date | string | null | undefined): string {
   if (!value) return "";
   const d = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(d.getTime())) return "";
-  return d.toISOString().slice(0, 10);
+  return serviceDateISO(d);
 }
 
 /**

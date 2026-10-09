@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -85,7 +86,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
     for (const m of measurables) {
       lookup[m.id] = {};
       for (const e of m.entries) {
-        const weekKey = new Date(e.weekOf).toISOString().split("T")[0];
+        const weekKey = serviceDateISO(new Date(e.weekOf));
         lookup[m.id][weekKey] = e;
       }
     }
@@ -270,7 +271,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                   {/* Recent 4 weeks */}
                   <div className="grid grid-cols-4 gap-1.5">
                     {mobileWeeks.map((week) => {
-                      const weekKey = week.toISOString().split("T")[0];
+                      const weekKey = serviceDateISO(week);
                       const entry = entryLookup[m.id]?.[weekKey];
                       return (
                         <div key={weekKey} className="text-center">
@@ -385,7 +386,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
 
                     {/* Week cells */}
                     {weeks.map((week) => {
-                      const weekKey = week.toISOString().split("T")[0];
+                      const weekKey = serviceDateISO(week);
                       const entry = entryLookup[m.id]?.[weekKey];
 
                       return (

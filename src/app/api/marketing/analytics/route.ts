@@ -1,3 +1,4 @@
+import { addDaysUTC, serviceMidnight, serviceWeekStart } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -171,22 +172,13 @@ export const GET = withApiAuth(async (req, session) => {
     // Build week boundaries
     const weeks: { weekStart: Date; weekEnd: Date; label: string }[] = [];
     for (let i = 7; i >= 0; i--) {
-      const weekStart = new Date(now);
-      weekStart.setDate(weekStart.getDate() - i * 7);
-      weekStart.setHours(0, 0, 0, 0);
-      // Adjust to Monday
-      const dayOfWeek = weekStart.getDay();
-      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      weekStart.setDate(weekStart.getDate() + diff);
-
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      weekEnd.setHours(23, 59, 59, 999);
-
+      // The centre's Monday i weeks back, as real Sydney-midnight instants
+      // (posts are timestamps).
+      const monday = addDaysUTC(serviceWeekStart(now), -7 * i);
       weeks.push({
-        weekStart: new Date(weekStart),
-        weekEnd: new Date(weekEnd),
-        label: weekStart.toISOString().slice(0, 10),
+        weekStart: serviceMidnight(monday),
+        weekEnd: new Date(serviceMidnight(addDaysUTC(monday, 7)).getTime() - 1),
+        label: monday.toISOString().slice(0, 10),
       });
     }
 

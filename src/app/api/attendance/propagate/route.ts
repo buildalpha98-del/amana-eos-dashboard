@@ -1,3 +1,4 @@
+import { addDaysUTC, serviceWeekStart } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
@@ -21,15 +22,9 @@ export async function propagateEnrolledCounts(
   weeksAhead: number
 ) {
   // Determine current week (Mon–Fri)
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0=Sun
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() + mondayOffset);
-  monday.setHours(0, 0, 0, 0);
-
-  const friday = new Date(monday);
-  friday.setDate(monday.getDate() + 4);
+  // The centre's week, not the server's (UTC) — see serviceWeekStart.
+  const monday = serviceWeekStart();
+  const friday = addDaysUTC(monday, 4);
 
   // Get current week's records with enrolled > 0
   const currentRecords = await prisma.dailyAttendance.findMany({

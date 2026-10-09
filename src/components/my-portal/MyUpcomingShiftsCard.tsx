@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, Loader2 } from "lucide-react";
@@ -36,7 +37,7 @@ function formatDate(iso: string): string {
 }
 
 function isoDate(value: string): string {
-  return new Date(value).toISOString().split("T")[0];
+  return serviceDateISO(new Date(value));
 }
 
 export function MyUpcomingShiftsCard({ userId }: MyUpcomingShiftsCardProps) {

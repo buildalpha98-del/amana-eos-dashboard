@@ -1,3 +1,4 @@
+import { serviceWeekStart } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
@@ -64,12 +65,8 @@ const body = await parseJsonBody(req);
   }
 
   // Create all todos in a transaction
-  const defaultWeekOf = new Date();
-  defaultWeekOf.setHours(0, 0, 0, 0);
-  // Set to Monday of current week
-  const dayOfWeek = defaultWeekOf.getDay();
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  defaultWeekOf.setDate(defaultWeekOf.getDate() + mondayOffset);
+  // Monday of the centre's current week.
+  const defaultWeekOf = serviceWeekStart();
 
   const created = await prisma.$transaction(
     items.map((item) =>

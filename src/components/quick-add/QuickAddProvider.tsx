@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,7 +11,7 @@ import { useEscapeClose } from "@/hooks/useEscapeClose";
 function getDefaultDueDate() {
   const d = new Date();
   d.setDate(d.getDate() + 7);
-  return d.toISOString().split("T")[0];
+  return serviceDateISO(d);
 }
 
 // ─── Context ─────────────────────────────────────────────────
@@ -116,12 +117,12 @@ function QuickAddToDoModal({ onClose }: { onClose: () => void }) {
 
     setErrorMsg("");
     const dueDateObj = new Date(dueDate);
-    const weekOf = getWeekStart(dueDateObj).toISOString().split("T")[0];
+    const weekOf = serviceDateISO(getWeekStart(dueDateObj));
 
     createTodoMutation.mutate({
       title,
       assigneeId,
-      dueDate: dueDateObj.toISOString().split("T")[0],
+      dueDate: serviceDateISO(dueDateObj),
       weekOf,
       description: description || undefined,
     });

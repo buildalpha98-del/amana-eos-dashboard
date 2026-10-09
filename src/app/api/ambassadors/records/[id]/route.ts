@@ -1,3 +1,4 @@
+import { serviceTodayISO } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
@@ -150,7 +151,7 @@ export const PATCH = withApiAuth(
       data.newChildCheckedAt = new Date();
       data.newChildDetail = `${record.newChildDetail ?? ""}\nResolved as ${
         body.newChildStatus === "new_child" ? "a new child" : "an existing child"
-      } by ${session.user.name} on ${new Date().toISOString().slice(0, 10)}.`.trim();
+      } by ${session.user.name} on ${serviceTodayISO()}.`.trim();
       audit.newChildStatus = body.newChildStatus;
     }
 

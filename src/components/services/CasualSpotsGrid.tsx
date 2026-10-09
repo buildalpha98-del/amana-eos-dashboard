@@ -12,6 +12,7 @@
  * "twenty spots in Holiday Quest, every weekday of the school holidays".
  */
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarPlus, Lock, LockOpen, RotateCcw } from "lucide-react";
@@ -45,7 +46,7 @@ function weekStart(d: Date): string {
   );
   const dow = copy.getUTCDay();
   copy.setUTCDate(copy.getUTCDate() - (dow === 0 ? 6 : dow - 1));
-  return copy.toISOString().slice(0, 10);
+  return serviceDateISO(copy);
 }
 const addDays = (ymd: string, n: number) =>
   new Date(new Date(`${ymd}T00:00:00Z`).getTime() + n * 86400_000)

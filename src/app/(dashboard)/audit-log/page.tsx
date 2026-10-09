@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -143,7 +144,7 @@ export default function AuditLogPage() {
     if (!filteredEntries.length) return;
     exportToCSV(
       filteredEntries as unknown as Record<string, unknown>[],
-      `audit-log-${new Date().toISOString().slice(0, 10)}`,
+      `audit-log-${serviceTodayISO()}`,
       [
         {
           key: "createdAt",

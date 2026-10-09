@@ -1,3 +1,4 @@
+import { serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { CertificateType } from "@prisma/client";
@@ -16,12 +17,10 @@ import { refreshInductionAfterBlockerChange } from "@/lib/induction";
 // cert is a UX trap (the row would immediately read "expired"). Today itself
 // is accepted because a cert valid for the rest of the day is still valid.
 function isPastDate(dateStr: string): boolean {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
   const value = new Date(dateStr);
   if (Number.isNaN(value.getTime())) return false; // shape validated separately
-  value.setHours(0, 0, 0, 0);
-  return value.getTime() < today.getTime();
+  // The centre's calendar days on both sides.
+  return serviceDateOnly(value).getTime() < serviceDateOnly().getTime();
 }
 
 const createCertSchema = z.object({

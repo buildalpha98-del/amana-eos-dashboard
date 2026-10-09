@@ -1,3 +1,4 @@
+import { serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -15,8 +16,7 @@ import { withApiAuth } from "@/lib/server-auth";
  *   - coordinator / member / staff: only their own service
  */
 export const GET = withApiAuth(async (_req, session) => {
-  const dayStart = new Date();
-  dayStart.setHours(0, 0, 0, 0);
+  const dayStart = serviceDateOnly();
 
   const serviceFilter =
     session.user.role === "member" ||

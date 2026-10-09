@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState, type ChangeEvent } from "react";
 import { FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -348,7 +349,7 @@ export function ContractFormFields({
                 // admin only has to change it if the original was different.
                 signedDate:
                   e.target.checked && !value.signedDate
-                    ? new Date().toISOString().slice(0, 10)
+                    ? serviceTodayISO()
                     : value.signedDate,
               })
             }
@@ -373,7 +374,7 @@ export function ContractFormFields({
             <input
               type="date"
               value={value.signedDate}
-              max={new Date().toISOString().slice(0, 10)}
+              max={serviceTodayISO()}
               onChange={(e) => set("signedDate", e.target.value)}
               className={inputCls}
             />

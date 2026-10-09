@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import {
   WeeklyRollCallCell,
   type CellShift,
@@ -31,7 +32,7 @@ export function WeeklyGridTable({
   onClickShift,
   onClickEmpty,
 }: WeeklyGridTableProps) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = serviceTodayISO();
 
   return (
     <div className="overflow-x-auto">

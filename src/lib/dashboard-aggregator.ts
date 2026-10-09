@@ -1,3 +1,4 @@
+import { serviceDateOnly } from "@/lib/timezone";
 import type { Session } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { getStateScope } from "@/lib/service-scope";
@@ -192,7 +193,7 @@ export async function aggregateDashboard(session: Session): Promise<DashboardDat
 
   // -- Today's Operations --
   const isServiceScoped = serviceIds !== null;
-  const today = new Date(now.toISOString().split("T")[0] + "T00:00:00Z");
+  const today = serviceDateOnly(now); // the centre's date, not UTC's
 
   const {
     todaysOps,

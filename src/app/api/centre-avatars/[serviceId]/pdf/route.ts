@@ -11,6 +11,7 @@
  *   - member (coordinator): only their own centre
  */
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -125,7 +126,7 @@ export const GET = withApiAuth(
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
-    const filename = `amana-centre-avatar-${slug}-${new Date().toISOString().slice(0, 10)}.pdf`;
+    const filename = `amana-centre-avatar-${slug}-${serviceTodayISO()}.pdf`;
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,

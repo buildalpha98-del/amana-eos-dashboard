@@ -9,6 +9,7 @@
  * content is shown above the thread rather than migrated, so nothing is lost.
  */
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState } from "react";
 import { X, ExternalLink, Phone, Mail, Loader2 } from "lucide-react";
 import {
@@ -80,7 +81,7 @@ export function CandidatePoolPanel({
   const [note, setNote] = useState("");
   const [loggingInterview, setLoggingInterview] = useState(false);
   const [iv, setIv] = useState({
-    heldAt: new Date().toISOString().slice(0, 10),
+    heldAt: serviceTodayISO(),
     mode: "in_person",
     panel: "",
     notes: "",

@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import {
@@ -111,7 +112,7 @@ function fmtDate(d: Date | string) {
 }
 
 function toISODate(d: Date) {
-  return d.toISOString().split("T")[0];
+  return serviceDateISO(d);
 }
 
 const statusColors: Record<string, string> = {

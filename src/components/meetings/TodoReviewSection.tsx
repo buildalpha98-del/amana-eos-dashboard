@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useMemo, useState } from "react";
 import { CheckCircle2, Plus } from "lucide-react";
 import type { TodoData } from "@/hooks/useTodos";
@@ -10,7 +11,7 @@ import { cn } from "@/lib/utils";
 function defaultDueDate(): string {
   const d = new Date();
   d.setDate(d.getDate() + 7);
-  return d.toISOString().split("T")[0];
+  return serviceDateISO(d);
 }
 
 export function TodoReviewSection({

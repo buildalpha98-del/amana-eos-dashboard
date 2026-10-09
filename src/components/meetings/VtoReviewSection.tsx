@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Plus } from "lucide-react";
 import type { VTOData } from "@/hooks/useVTO";
@@ -15,7 +16,7 @@ interface VtoField {
 function defaultDueDate(): string {
   const d = new Date();
   d.setDate(d.getDate() + 14);
-  return d.toISOString().split("T")[0];
+  return serviceDateISO(d);
 }
 
 function isBlankText(v: string | null | undefined): boolean {

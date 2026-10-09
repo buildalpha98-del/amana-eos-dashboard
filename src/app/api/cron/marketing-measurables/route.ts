@@ -1,3 +1,4 @@
+import { serviceWeekStart } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
@@ -84,11 +85,9 @@ export const GET = withApiHandler(async (req) => {
     const since = new Date(now.getTime() - 7 * DAY_MS);
 
     // Calculate last week's Monday and this Monday
-    const dayOfWeek = now.getDay();
-    const thisMonday = new Date(now);
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    thisMonday.setDate(now.getDate() + mondayOffset);
-    thisMonday.setHours(0, 0, 0, 0);
+    // The centre's Monday. This runs Sunday ~20:00 UTC — Monday morning in
+    // Sydney — so the server's own day put "this Monday" a week back.
+    const thisMonday = serviceWeekStart(now);
 
     const lastMonday = new Date(thisMonday);
     lastMonday.setDate(thisMonday.getDate() - 7);

@@ -1,3 +1,4 @@
+import { serviceWeekStart } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -19,12 +20,8 @@ export const GET = withApiAuth(async (req, session, context) => {
   if (weekStartParam) {
     weekStart = new Date(weekStartParam);
   } else {
-    const now = new Date();
-    const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-    weekStart = new Date(now);
-    weekStart.setDate(diff);
-    weekStart.setHours(0, 0, 0, 0);
+    // The centre's Monday, not the server's (UTC) one.
+    weekStart = serviceWeekStart();
   }
 
   const activities = await prisma.programActivity.findMany({

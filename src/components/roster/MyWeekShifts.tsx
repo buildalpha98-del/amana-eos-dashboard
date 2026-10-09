@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
@@ -21,7 +22,7 @@ function weekDates(weekStart: string): string[] {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
     d.setDate(d.getDate() + i);
-    return d.toISOString().split("T")[0];
+    return serviceDateISO(d);
   });
 }
 
@@ -35,7 +36,7 @@ function formatDay(date: string): string {
 export function MyWeekShifts({ userId, weekStart }: MyWeekShiftsProps) {
   const end = new Date(weekStart);
   end.setDate(end.getDate() + 6);
-  const endStr = end.toISOString().split("T")[0];
+  const endStr = serviceDateISO(end);
 
   const { data, isLoading, error, refetch } = useQuery<{ shifts: WeekShift[] }>({
     queryKey: ["my-week-shifts", userId, weekStart],
@@ -68,7 +69,7 @@ export function MyWeekShifts({ userId, weekStart }: MyWeekShiftsProps) {
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
         {days.map((date) => {
           const dayShifts = (data?.shifts ?? []).filter(
-            (s) => new Date(s.date).toISOString().split("T")[0] === date,
+            (s) => serviceDateISO(new Date(s.date)) === date,
           );
           return (
             <div

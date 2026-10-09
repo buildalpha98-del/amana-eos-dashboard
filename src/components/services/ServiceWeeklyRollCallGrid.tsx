@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useCallback, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -52,14 +53,14 @@ function mondayIsoFromOffset(weekOffset: number): string {
   const day = d.getUTCDay(); // 0=Sun..6=Sat
   const diff = day === 0 ? -6 : 1 - day;
   d.setUTCDate(d.getUTCDate() + diff + weekOffset * 7);
-  return d.toISOString().split("T")[0];
+  return serviceDateISO(d);
 }
 
 function fridayFromMonday(mondayIso: string): string {
   const [y, m, dd] = mondayIso.split("-").map(Number);
   const d = new Date(Date.UTC(y, m - 1, dd));
   d.setUTCDate(d.getUTCDate() + 4);
-  return d.toISOString().split("T")[0];
+  return serviceDateISO(d);
 }
 
 function formatWeekRange(mondayIso: string): string {
@@ -108,7 +109,7 @@ export function ServiceWeeklyRollCallGrid({
     return Array.from({ length: 5 }, (_, i) => {
       const d = new Date(Date.UTC(y, m - 1, dd));
       d.setUTCDate(d.getUTCDate() + i);
-      return d.toISOString().split("T")[0];
+      return serviceDateISO(d);
     });
   }, [weekStart]);
 

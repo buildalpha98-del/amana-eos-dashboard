@@ -14,6 +14,7 @@
  * (no responsible person rostered, no record kept).
  */
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { ChevronLeft, ChevronRight, FileDown, X, UserPlus } from "lucide-react";
@@ -75,7 +76,7 @@ function getMondayIso(offsetWeeks: number): string {
 function addDaysIso(iso: string, days: number): string {
   const d = new Date(`${iso}T00:00:00.000Z`);
   d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
+  return serviceDateISO(d);
 }
 
 function formatWeekRange(mondayIso: string): string {

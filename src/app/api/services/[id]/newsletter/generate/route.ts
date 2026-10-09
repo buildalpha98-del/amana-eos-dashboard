@@ -1,3 +1,4 @@
+import { addDaysUTC, serviceWeekStart } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -39,12 +40,8 @@ export const POST = withApiAuth(
     if (!service) throw ApiError.notFound("Service not found");
 
     const now = new Date();
-    const monday = new Date(now);
-    const day = monday.getDay();
-    monday.setDate(monday.getDate() - ((day + 6) % 7));
-    monday.setHours(0, 0, 0, 0);
-    const friday = new Date(monday);
-    friday.setDate(friday.getDate() + 4);
+    const monday = serviceWeekStart(now);
+    const friday = addDaysUTC(monday, 4);
 
     // Program activities — pull this week's
     const activities = await prisma.programActivity.findMany({

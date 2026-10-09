@@ -1,3 +1,4 @@
+import { serviceTodayISO } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
@@ -26,7 +27,7 @@ export const POST = withApiHandler(async (req) => {
   }
 
   try {
-    const timestamp = new Date().toISOString().slice(0, 10);
+    const timestamp = serviceTodayISO();
     const results: { table: string; rows: number; url: string }[] = [];
 
     // 1. Users

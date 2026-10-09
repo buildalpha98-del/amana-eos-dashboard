@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState } from "react";
 import {
   Plus,
@@ -170,7 +171,7 @@ function InsightAddForm({
   onCancel: () => void;
   isSaving: boolean;
 }) {
-  const [occurredAt, setOccurredAt] = useState(new Date().toISOString().slice(0, 10));
+  const [occurredAt, setOccurredAt] = useState(serviceTodayISO());
   const [source, setSource] = useState<CentreAvatarInsightSource>("parent_feedback");
   const [insight, setInsight] = useState("");
   const [impactOnAvatar, setImpactOnAvatar] = useState("");
@@ -318,7 +319,7 @@ function CampaignAddForm({
   onCancel: () => void;
   isSaving: boolean;
 }) {
-  const [occurredAt, setOccurredAt] = useState(new Date().toISOString().slice(0, 10));
+  const [occurredAt, setOccurredAt] = useState(serviceTodayISO());
   const [campaignName, setCampaignName] = useState("");
   const [contentUsed, setContentUsed] = useState("");
   const [result, setResult] = useState("");
@@ -430,7 +431,7 @@ function CheckInAddForm({
   onCancel: () => void;
   isSaving: boolean;
 }) {
-  const [occurredAt, setOccurredAt] = useState(new Date().toISOString().slice(0, 10));
+  const [occurredAt, setOccurredAt] = useState(serviceTodayISO());
   const [topics, setTopics] = useState("");
   const [actions, setActions] = useState("");
   const [followUp, setFollowUp] = useState("");
@@ -541,7 +542,7 @@ function LiaisonAddForm({
   onCancel: () => void;
   isSaving: boolean;
 }) {
-  const [occurredAt, setOccurredAt] = useState(new Date().toISOString().slice(0, 10));
+  const [occurredAt, setOccurredAt] = useState(serviceTodayISO());
   const [contactName, setContactName] = useState("");
   const [purpose, setPurpose] = useState("");
   const [outcome, setOutcome] = useState("");

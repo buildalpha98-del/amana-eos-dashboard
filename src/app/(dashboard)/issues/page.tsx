@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState, useMemo, useCallback } from "react";
 import { useIssues, useBulkIssueAction } from "@/hooks/useIssues";
 import { useQuery } from "@tanstack/react-query";
@@ -273,7 +274,7 @@ export default function IssuesPage() {
             icon: Download,
             onClick: () =>
               exportToCsv(
-                `amana-issues-${new Date().toISOString().slice(0, 10)}`,
+                `amana-issues-${serviceTodayISO()}`,
                 filteredIssues,
                 [
                   { header: "ID", accessor: (i) => i.id },

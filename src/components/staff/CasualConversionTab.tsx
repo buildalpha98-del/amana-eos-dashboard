@@ -12,6 +12,7 @@
  *   - "Record response" button when pending
  */
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -351,7 +352,7 @@ function RecordElectionModal({
   const qc = useQueryClient();
   const [requestedType, setRequestedType] = useState<RequestType>("part_time");
   const [electedAt, setElectedAt] = useState(
-    new Date().toISOString().slice(0, 10),
+    serviceTodayISO(),
   );
   const [electionNotes, setElectionNotes] = useState("");
 
@@ -396,7 +397,7 @@ function RecordElectionModal({
             type="date"
             value={electedAt}
             onChange={(e) => setElectedAt(e.target.value)}
-            max={new Date().toISOString().slice(0, 10)}
+            max={serviceTodayISO()}
             disabled={save.isPending}
             className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
           />

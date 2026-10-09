@@ -1,3 +1,4 @@
+import { serviceDateOnly } from "@/lib/timezone";
 export type CertStatus = "valid" | "expiring" | "expired" | "missing";
 
 export interface CertStatusResult {
@@ -25,16 +26,14 @@ export function getCertStatus(
     return { status: "missing", daysLeft: null };
   }
 
-  const now = new Date(asOf);
-  now.setHours(0, 0, 0, 0);
-  const expiry = new Date(expiryDate);
-  expiry.setHours(0, 0, 0, 0);
+  // Both as the centre's calendar days (UTC-midnight values), so the gap
+  // is a whole number of days with no DST hour in it, and the answer is
+  // the same on a UTC server as in a Sydney browser. With local midnights
+  // the server counted from the UTC day — a day late until 10–11am.
+  const now = serviceDateOnly(new Date(asOf));
+  const expiry = serviceDateOnly(new Date(expiryDate));
 
   const msPerDay = 24 * 60 * 60 * 1000;
-  // Math.round, not floor: both timestamps are local midnights, so the
-  // difference is a whole number of days ±1h across a DST change. Floor
-  // shaved a day off any span crossing the AEDT spring-forward (e.g.
-  // "31 days from 4 Sep" computed as 30 and flipped valid → expiring).
   const daysLeft = Math.round((expiry.getTime() - now.getTime()) / msPerDay);
 
   if (daysLeft < 0) return { status: "expired", daysLeft };

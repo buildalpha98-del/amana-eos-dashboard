@@ -1,3 +1,4 @@
+import { serviceDayBounds } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -120,7 +121,7 @@ export const GET = withApiAuth(async (req, session) => {
         deleted: false,
         status: { not: "done" },
         dueDate: {
-          gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          gte: serviceDayBounds().start,
           lte: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
         },
         ...taskServiceFilter,

@@ -1,3 +1,4 @@
+import { addDaysUTC, serviceWeekStart } from "@/lib/timezone";
 import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 import { createRequest } from "../helpers/request";
@@ -40,16 +41,10 @@ function authed() {
  * Expected weekOf — MUST mirror the auto-measurables computation byte-for-byte
  * (the @@unique([measurableId, weekOf]) key duplicates otherwise).
  */
+// Last week's Monday at the centre, as the UTC-midnight value production
+// has always stored (serviceWeekStart — 2026-10-09).
 function expectedWeekOf(): Date {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const thisMonday = new Date(now);
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  thisMonday.setDate(now.getDate() + mondayOffset);
-  thisMonday.setHours(0, 0, 0, 0);
-  const lastMonday = new Date(thisMonday);
-  lastMonday.setDate(thisMonday.getDate() - 7);
-  return lastMonday;
+  return addDaysUTC(serviceWeekStart(new Date()), -7);
 }
 
 function upsertArgFor(measurableId: string) {

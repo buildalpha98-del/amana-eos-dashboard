@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { serviceDateISO } from "@/lib/timezone";
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -226,7 +227,9 @@ function weekStartAgo(n: number): string {
   // getWeekStart() convention: Monday-based.
   d.setDate(d.getDate() - ((day + 6) % 7) - n * 7);
   d.setHours(0, 0, 0, 0);
-  return d.toISOString().split("T")[0];
+  // The Monday's own date — toISOString() turned a Sydney local midnight
+  // into Sunday's (2026-10-09).
+  return serviceDateISO(d);
 }
 
 describe("ScorecardGrid — how many weeks are shown", () => {

@@ -1,3 +1,4 @@
+import { addDaysUTC, serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
@@ -192,14 +193,11 @@ export const GET = withApiHandler(async (req) => {
   const paused = await skipIfServiceAlertsPaused(guard);
   if (paused) return paused;
 
-  // Tomorrow's date (start of day UTC)
+  // Sydney's tomorrow as a @db.Date value. At 18:00 UTC the server's
+  // "tomorrow" was Sydney's today.
   const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0);
-
-  const tomorrowEnd = new Date(tomorrow);
-  tomorrowEnd.setHours(23, 59, 59, 999);
+  const tomorrow = serviceDateOnly(now, 1);
+  const tomorrowEnd = new Date(addDaysUTC(tomorrow, 1).getTime() - 1);
 
   const dateLabel = tomorrow.toLocaleDateString("en-AU", {
     weekday: "long",

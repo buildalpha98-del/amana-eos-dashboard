@@ -1,3 +1,4 @@
+import { serviceTodayISO } from "@/lib/timezone";
 import { NextRequest } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
@@ -56,7 +57,7 @@ async function handler(req: NextRequest) {
   ]);
 
   const csv = generateCsv(headers, rows);
-  return downloadCsvResponse(csv, `medical-alerts-${new Date().toISOString().slice(0, 10)}`);
+  return downloadCsvResponse(csv, `medical-alerts-${serviceTodayISO()}`);
 }
 
 export const GET = withApiAuth(handler, { minRole: "member" });

@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getWeekStart } from "@/lib/utils";
@@ -55,7 +56,7 @@ export function WeeklyDataEntry({
   const currentWeek = getWeekStart();
   const selectedWeek = new Date(currentWeek);
   selectedWeek.setDate(selectedWeek.getDate() - weekOffset * 7);
-  const weekKey = selectedWeek.toISOString().split("T")[0];
+  const weekKey = serviceDateISO(selectedWeek);
 
   // Attendance state — split per session into permanent (recurring)
   // + casual. Server stores totals + permanent counts where the

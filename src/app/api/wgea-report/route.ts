@@ -10,6 +10,7 @@
  * don't leak names; admin can flip explicitly when needed.
  */
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import {
@@ -35,7 +36,7 @@ export const GET = withApiAuth(
 
     if (format === "csv") {
       const csv = rowsToCsv(rows);
-      const filename = `wgea-workforce-${new Date().toISOString().slice(0, 10)}.csv`;
+      const filename = `wgea-workforce-${serviceTodayISO()}.csv`;
       return new NextResponse(csv, {
         status: 200,
         headers: {

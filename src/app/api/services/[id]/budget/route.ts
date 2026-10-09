@@ -1,3 +1,4 @@
+import { serviceMonthStart } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMonthlyBudget } from "@/lib/budget-helpers";
@@ -304,9 +305,7 @@ export const GET = withApiAuth(async (req, session, context) => {
   const budgetAllocation = await getMonthlyBudget(id);
 
   // Calculate month-to-date non-grocery purchase spend
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
+  const monthStart = serviceMonthStart(); // the centre's month (BudgetItem.date is @db.Date)
 
   const monthToDateResult = await prisma.budgetItem.aggregate({
     where: {

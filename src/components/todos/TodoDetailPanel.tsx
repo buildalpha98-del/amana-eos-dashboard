@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState } from "react";
 import Link from "next/link";
 import { useUpdateTodo, useDeleteTodo, type TodoData } from "@/hooks/useTodos";
@@ -43,7 +44,7 @@ export function TodoDetailPanel({
   const [description, setDescription] = useState(todo.description || "");
   const [assigneeId, setAssigneeId] = useState(todo.assigneeId);
   const [dueDate, setDueDate] = useState(
-    new Date(todo.dueDate).toISOString().split("T")[0]
+    serviceDateISO(new Date(todo.dueDate))
   );
   const [status, setStatus] = useState<TodoStatus>(todo.status);
   const [completionNote, setCompletionNote] = useState(todo.completionNote ?? "");
@@ -58,7 +59,7 @@ export function TodoDetailPanel({
     setTitle(todo.title);
     setDescription(todo.description || "");
     setAssigneeId(todo.assigneeId);
-    setDueDate(new Date(todo.dueDate).toISOString().split("T")[0]);
+    setDueDate(serviceDateISO(new Date(todo.dueDate)));
     setStatus(todo.status);
     setCompletionNote(todo.completionNote ?? "");
     setRockId(todo.rockId || "");

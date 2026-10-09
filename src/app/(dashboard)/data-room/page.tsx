@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState, useCallback } from "react";
 import { FolderLock, Download } from "lucide-react";
 import { useDataRoom } from "@/hooks/useDataRoom";
@@ -58,7 +59,7 @@ export default function DataRoomPage() {
       { key: "count", header: "Records Found" },
       { key: "lastUpdated", header: "Last Updated" },
     ];
-    exportToCSV(rows, `data-room-index-${new Date().toISOString().split("T")[0]}`, columns);
+    exportToCSV(rows, `data-room-index-${serviceTodayISO()}`, columns);
     toast({ description: "Data Room Index exported successfully" });
   }, [data]);
 

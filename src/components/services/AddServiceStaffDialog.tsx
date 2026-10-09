@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useMemo, useState } from "react";
 import { Loader2, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -23,7 +24,7 @@ interface DirectoryUser {
 }
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return serviceTodayISO();
 }
 
 export function AddServiceStaffDialog({

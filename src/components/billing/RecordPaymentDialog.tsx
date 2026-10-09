@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
@@ -32,7 +33,7 @@ export function RecordPaymentDialog({
   const [method, setMethod] = useState("bank_transfer");
   const [reference, setReference] = useState("");
   const [receivedAt, setReceivedAt] = useState(
-    new Date().toISOString().split("T")[0]
+    serviceTodayISO()
   );
   const [notes, setNotes] = useState("");
 
@@ -62,7 +63,7 @@ export function RecordPaymentDialog({
     setAmount("");
     setMethod("bank_transfer");
     setReference("");
-    setReceivedAt(new Date().toISOString().split("T")[0]);
+    setReceivedAt(serviceTodayISO());
     setNotes("");
   };
 

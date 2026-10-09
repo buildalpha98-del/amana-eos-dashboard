@@ -1,3 +1,4 @@
+import { addDaysUTC, serviceWeekStart } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
@@ -35,10 +36,7 @@ export const GET = withApiHandler(async (req) => {
   try {
     // ── 1. Calculate Monday of LAST week ────────────────────
     const now = new Date();
-    const day = now.getDay();
-    const lastMonday = new Date(now);
-    lastMonday.setDate(now.getDate() - day - 6);
-    lastMonday.setHours(0, 0, 0, 0);
+    const lastMonday = addDaysUTC(serviceWeekStart(now), -7);
 
     const weekLabel = lastMonday.toLocaleDateString("en-AU", {
       day: "numeric",

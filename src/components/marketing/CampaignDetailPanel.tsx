@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, Trash2, Send, Pencil, Plus, CheckSquare, Sparkles } from "lucide-react";
@@ -100,12 +101,12 @@ export function CampaignDetailPanel({
     setType(campaign.type);
     setStartDate(
       campaign.startDate
-        ? new Date(campaign.startDate).toISOString().split("T")[0]
+        ? serviceDateISO(new Date(campaign.startDate))
         : ""
     );
     setEndDate(
       campaign.endDate
-        ? new Date(campaign.endDate).toISOString().split("T")[0]
+        ? serviceDateISO(new Date(campaign.endDate))
         : ""
     );
     setPlatforms(campaign.platforms);

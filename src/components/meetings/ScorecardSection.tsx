@@ -27,6 +27,7 @@
  * entry inline, and an off-track measurable can be dropped into IDS.
  */
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState, useMemo } from "react";
 import { AlertCircle, LayoutGrid, Rows3 } from "lucide-react";
 import type { ScorecardData, MeasurableData } from "@/hooks/useScorecard";
@@ -98,7 +99,7 @@ function initial(name: string | null | undefined): string {
 
 /** UTC date key so entries and column headers always line up. */
 function weekKey(iso: string): string {
-  return new Date(iso).toISOString().slice(0, 10);
+  return serviceDateISO(new Date(iso));
 }
 
 export function ScorecardSection({

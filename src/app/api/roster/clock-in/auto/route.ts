@@ -17,6 +17,7 @@
  * 2026-05-04: timeclock v1, sub-PR 2.
  */
 
+import { serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
@@ -33,12 +34,9 @@ export const POST = withApiAuth(async (_req, session) => {
   // Pull the user's shifts on the day +/- 1 day either side; the ±2h
   // window can straddle midnight so we need yesterday + today + tomorrow
   // in the worst case (e.g. a 23:00-01:00 shift).
-  const earliest = new Date(now);
-  earliest.setDate(earliest.getDate() - 1);
-  earliest.setHours(0, 0, 0, 0);
-  const latest = new Date(now);
-  latest.setDate(latest.getDate() + 2);
-  latest.setHours(0, 0, 0, 0);
+  // Roster dates are the centre's (Sydney) calendar days.
+  const earliest = serviceDateOnly(now, -1);
+  const latest = serviceDateOnly(now, 2);
 
   const candidates = await prisma.rosterShift.findMany({
     where: {

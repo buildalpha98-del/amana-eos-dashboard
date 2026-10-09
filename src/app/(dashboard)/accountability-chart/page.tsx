@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState } from "react";
 import { Download } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -30,7 +31,7 @@ export default function AccountabilityChartPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `amana-accountability-chart-${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.download = `amana-accountability-chart-${serviceTodayISO()}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();

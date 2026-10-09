@@ -15,6 +15,7 @@
  * an admin curiosity.
  */
 
+import { addDaysUTC, serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
@@ -31,10 +32,8 @@ export const GET = withApiAuth(async (req, session) => {
       ? Math.min(rawDays, MAX_DAYS_AHEAD)
       : DEFAULT_DAYS_AHEAD;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const horizon = new Date(today);
-  horizon.setDate(horizon.getDate() + daysAhead);
+  const today = serviceDateOnly();
+  const horizon = addDaysUTC(today, daysAhead);
 
   const role = session.user.role ?? "";
   const callerServiceId =

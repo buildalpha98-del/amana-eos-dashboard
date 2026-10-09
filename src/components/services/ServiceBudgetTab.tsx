@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO, serviceDateISO } from "@/lib/timezone";
 import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -731,8 +732,8 @@ function EquipmentModal({
   const [category, setCategory] = useState(item?.category || "other");
   const [date, setDate] = useState(
     item?.date
-      ? new Date(item.date).toISOString().split("T")[0]
-      : new Date().toISOString().split("T")[0]
+      ? serviceDateISO(new Date(item.date))
+      : serviceTodayISO()
   );
   const [notes, setNotes] = useState(item?.notes || "");
   const [notesError, setNotesError] = useState<string | null>(null);

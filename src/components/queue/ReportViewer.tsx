@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState, useMemo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -210,7 +211,7 @@ export function ReportViewer({
       createdAt: report.createdAt,
     });
     doc.save(
-      `AMANA_${report.seat.toUpperCase()}_${report.reportType}_${new Date().toISOString().slice(0, 10)}.pdf`
+      `AMANA_${report.seat.toUpperCase()}_${report.reportType}_${serviceTodayISO()}.pdf`
     );
   }, [report, metrics, alerts, actionItems]);
 

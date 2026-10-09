@@ -11,6 +11,7 @@
  * Staff tab.
  */
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -36,7 +37,7 @@ interface SelectionDraft {
 }
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return serviceTodayISO();
 }
 
 export function AssignToServiceDialog({

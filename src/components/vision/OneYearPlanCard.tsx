@@ -12,6 +12,7 @@
  * Time-bound.
  */
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState } from "react";
 import {
   Pencil,
@@ -51,7 +52,7 @@ interface Props {
 function formatDateForInput(iso: string | null): string {
   if (!iso) return "";
   try {
-    return new Date(iso).toISOString().slice(0, 10);
+    return serviceDateISO(new Date(iso));
   } catch {
     return "";
   }

@@ -1,3 +1,4 @@
+import { addDaysUTC, serviceWeekStart } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getResend, sendEmail } from "@/lib/email";
@@ -34,18 +35,11 @@ export const GET = withApiHandler(async (req) => {
   const baseUrl = siteUrl();
 
   // Calculate last week's Monday–Sunday
-  const dayOfWeek = now.getDay();
-  const lastMonday = new Date(now);
-  lastMonday.setDate(now.getDate() - dayOfWeek - 6);
-  lastMonday.setHours(0, 0, 0, 0);
-
-  const lastSunday = new Date(lastMonday);
-  lastSunday.setDate(lastMonday.getDate() + 6);
-  lastSunday.setHours(23, 59, 59, 999);
-
-  const lastFriday = new Date(lastMonday);
-  lastFriday.setDate(lastMonday.getDate() + 4);
-  lastFriday.setHours(23, 59, 59, 999);
+  // Last week at the centre (same answer the UTC-Sunday maths gave at this
+  // cron's hour, now independent of it).
+  const lastMonday = addDaysUTC(serviceWeekStart(now), -7);
+  const lastSunday = new Date(addDaysUTC(lastMonday, 7).getTime() - 1);
+  const lastFriday = new Date(addDaysUTC(lastMonday, 5).getTime() - 1);
 
   // ── Gather metrics ──────────────────────────────────────
 

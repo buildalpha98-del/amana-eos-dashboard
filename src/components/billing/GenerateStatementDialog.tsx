@@ -12,6 +12,7 @@
  * Produces a DRAFT. Nothing reaches a family until staff issue it.
  */
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Sparkles } from "lucide-react";
@@ -53,12 +54,12 @@ function thisMonday(): string {
   const d = new Date();
   const diff = (d.getDay() + 6) % 7;
   d.setDate(d.getDate() - diff);
-  return d.toISOString().slice(0, 10);
+  return serviceDateISO(d);
 }
 function addDays(iso: string, n: number): string {
   const d = new Date(`${iso}T00:00:00.000Z`);
   d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
+  return serviceDateISO(d);
 }
 
 export function GenerateStatementDialog({

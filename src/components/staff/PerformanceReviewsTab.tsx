@@ -12,6 +12,7 @@
  * empty state. (The Performance section parent already gates this.)
  */
 
+import { serviceTodayISO, serviceDateISO } from "@/lib/timezone";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -182,13 +183,13 @@ function formatDate(iso: string | null): string {
 }
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return serviceTodayISO();
 }
 
 function addDaysISO(base: string, days: number): string {
   const d = new Date(base);
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return serviceDateISO(d);
 }
 
 // ── Component ────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import { addDaysUTC, serviceWeekStart } from "@/lib/timezone";
 import { prisma } from "@/lib/prisma";
 import { getWeekStart } from "@/lib/utils";
 
@@ -85,14 +86,10 @@ export async function getMonthlyBudget(serviceId: string): Promise<{
   // Recomputes automatically each Monday — the date window slides
   // forward when the calendar week rolls over, so the next query
   // after midnight Monday picks up the new week's data.
-  const now = new Date();
-  const dow = now.getDay();
-  const mondayOffset = dow === 0 ? -6 : 1 - dow;
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() + mondayOffset);
-  weekStart.setHours(0, 0, 0, 0);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 7);
+  // The centre's week (DailyAttendance.date is @db.Date) — on the UTC
+  // server this rolled over at 10–11am Monday, not midnight.
+  const weekStart = serviceWeekStart();
+  const weekEnd = addDaysUTC(weekStart, 7);
 
   const attendanceResult = await prisma.dailyAttendance.aggregate({
     where: {

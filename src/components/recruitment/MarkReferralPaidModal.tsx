@@ -1,4 +1,5 @@
 "use client";
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useMarkReferralPaid, type Referral } from "@/hooks/useRecruitment";
 import { X } from "lucide-react";
@@ -12,7 +13,7 @@ interface Props {
 export function MarkReferralPaidModal({ referral, onClose }: Props) {
   useEscapeClose(onClose);
   const [paidAt, setPaidAt] = useState(() =>
-    new Date().toISOString().slice(0, 10),
+    serviceTodayISO(),
   );
   const [amount, setAmount] = useState(referral.bonusAmount);
   const mutation = useMarkReferralPaid();

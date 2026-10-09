@@ -1,3 +1,4 @@
+import { serviceDayBounds } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -93,8 +94,7 @@ const body = await parseJsonBody(req);
     ? new Date(parsed.data.scheduledFor)
     : null;
   if (scheduledFor) {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const todayStart = serviceDayBounds().start;
     if (scheduledFor < todayStart) {
       return NextResponse.json(
         { error: "scheduledFor must be today or in the future" },

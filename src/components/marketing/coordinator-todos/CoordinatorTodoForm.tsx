@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { useCreateCoordinatorTodo } from "@/hooks/useCoordinatorTodos";
@@ -16,7 +17,7 @@ interface ServiceOption {
 function defaultDueDate(): string {
   const d = new Date();
   d.setDate(d.getDate() + 7);
-  return d.toISOString().slice(0, 10);
+  return serviceDateISO(d);
 }
 
 interface CoordinatorTodoFormProps {

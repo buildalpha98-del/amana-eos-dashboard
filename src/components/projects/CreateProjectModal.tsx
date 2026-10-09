@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO, serviceDateISO } from "@/lib/timezone";
 import { useState, useMemo, useEffect } from "react";
 import { useCreateProject } from "@/hooks/useProjects";
 import { useProjectTemplates, type ProjectTemplate } from "@/hooks/useProjectTemplates";
@@ -130,7 +131,7 @@ export function CreateProjectModal({
   // 2026-08-31: optional link to the quarterly Rock this project executes.
   const [rockId, setRockId] = useState("");
   const [startDate, setStartDate] = useState(
-    new Date().toISOString().split("T")[0]
+    serviceTodayISO()
   );
   const [targetDate, setTargetDate] = useState("");
   const [error, setError] = useState("");
@@ -198,7 +199,7 @@ export function CreateProjectModal({
       if (maxDays > 0) {
         const target = new Date();
         target.setDate(target.getDate() + maxDays);
-        setTargetDate(target.toISOString().split("T")[0]);
+        setTargetDate(serviceDateISO(target));
       }
     }
   };

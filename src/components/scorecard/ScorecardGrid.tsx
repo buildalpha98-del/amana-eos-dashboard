@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useMemo, useState, Fragment } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -255,7 +256,7 @@ export function ScorecardGrid({
     for (const m of scorecard.measurables) {
       lookup[m.id] = {};
       for (const e of m.entries) {
-        const weekKey = new Date(e.weekOf).toISOString().split("T")[0];
+        const weekKey = serviceDateISO(new Date(e.weekOf));
         lookup[m.id][weekKey] = e;
       }
     }
@@ -267,7 +268,7 @@ export function ScorecardGrid({
     const avgs: Record<string, number | null> = {};
     for (const m of scorecard.measurables) {
       const entries = avgWeeks
-        .map((w) => entryLookup[m.id]?.[w.toISOString().split("T")[0]])
+        .map((w) => entryLookup[m.id]?.[serviceDateISO(w)])
         .filter((e): e is MeasurableEntry => !!e);
       if (entries.length > 0) {
         const sum = entries.reduce((acc, e) => acc + e.value, 0);
@@ -282,7 +283,7 @@ export function ScorecardGrid({
   // On-track stats for current week
   const currentWeekStats = useMemo(() => {
     const currentWeek = getWeekStart();
-    const weekKey = currentWeek.toISOString().split("T")[0];
+    const weekKey = serviceDateISO(currentWeek);
     let onTrack = 0;
     let total = 0;
 
@@ -470,7 +471,7 @@ export function ScorecardGrid({
                         </button>
                         <TrendArrow
                           values={weeks.map((w) => {
-                            const e = entryLookup[m.id]?.[w.toISOString().split("T")[0]];
+                            const e = entryLookup[m.id]?.[serviceDateISO(w)];
                             return e ? e.value : null;
                           })}
                           goalDirection={m.goalDirection}
@@ -551,7 +552,7 @@ export function ScorecardGrid({
 
                     {/* Week cells */}
                     {weeks.map((week) => {
-                      const weekKey = week.toISOString().split("T")[0];
+                      const weekKey = serviceDateISO(week);
                       const entry = entryLookup[m.id]?.[weekKey];
                       return (
                         <DataEntryCell

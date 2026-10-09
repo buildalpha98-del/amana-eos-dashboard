@@ -21,6 +21,7 @@
  * 2026-05-04: timeclock v1, sub-PR 3.
  */
 
+import { serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
@@ -116,12 +117,9 @@ export async function POST(req: Request) {
 
   // ── 4. Pick the eligible shift via the shared helper ─────
   const now = new Date();
-  const earliest = new Date(now);
-  earliest.setDate(earliest.getDate() - 1);
-  earliest.setHours(0, 0, 0, 0);
-  const latest = new Date(now);
-  latest.setDate(latest.getDate() + 2);
-  latest.setHours(0, 0, 0, 0);
+  // Roster dates are the centre's (Sydney) calendar days.
+  const earliest = serviceDateOnly(now, -1);
+  const latest = serviceDateOnly(now, 2);
 
   const candidates = await prisma.rosterShift.findMany({
     where: { userId, date: { gte: earliest, lt: latest } },

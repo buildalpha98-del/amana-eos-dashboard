@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO, serviceDateISO } from "@/lib/timezone";
 import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays, GanttChart } from "lucide-react";
 import { usePosts, useCampaigns, useMarketingTasks } from "@/hooks/useMarketing";
@@ -87,7 +88,7 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
     if (!posts) return map;
     for (const post of posts) {
       if (!post.scheduledDate) continue;
-      const dateKey = new Date(post.scheduledDate).toISOString().split("T")[0];
+      const dateKey = serviceDateISO(new Date(post.scheduledDate));
       if (!map[dateKey]) map[dateKey] = [];
       map[dateKey].push(post);
     }
@@ -100,14 +101,14 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
     if (!tasks) return map;
     for (const task of tasks) {
       if (!task.dueDate) continue;
-      const dateKey = new Date(task.dueDate).toISOString().split("T")[0];
+      const dateKey = serviceDateISO(new Date(task.dueDate));
       if (!map[dateKey]) map[dateKey] = [];
       map[dateKey].push(task);
     }
     return map;
   }, [tasks]);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = serviceTodayISO();
   const currentMonth = currentDate.getMonth();
 
   const prevMonth = () => {
@@ -210,7 +211,7 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
           {/* Day cells */}
           <div className="grid grid-cols-7">
             {days.map((day, i) => {
-              const dateKey = day.toISOString().split("T")[0];
+              const dateKey = serviceDateISO(day);
               const isToday = dateKey === today;
               const isCurrentMonth = day.getMonth() === currentMonth;
               const dayPosts = postsByDate[dateKey] || [];

@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState, useMemo, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
@@ -831,7 +832,7 @@ function CreateIncidentModal({ onClose }: { onClose: () => void }) {
 
   const initialForm = {
     serviceId: "",
-    incidentDate: new Date().toISOString().split("T")[0],
+    incidentDate: serviceTodayISO(),
     childName: "",
     incidentType: "",
     severity: "",

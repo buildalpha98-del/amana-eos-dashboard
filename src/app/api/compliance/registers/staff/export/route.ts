@@ -8,6 +8,7 @@
  * Filename includes the date so subsequent exports don't overwrite.
  */
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { buildStaffRegister, rowsToCsv } from "@/lib/nqf-registers";
@@ -19,7 +20,7 @@ export const GET = withApiAuth(
     const serviceId = searchParams.get("serviceId") ?? undefined;
     const rows = await buildStaffRegister(serviceId);
     const csv = rowsToCsv(rows);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = serviceTodayISO();
     const filename = `staff-register-${today}.csv`;
     return new NextResponse(csv, {
       status: 200,
