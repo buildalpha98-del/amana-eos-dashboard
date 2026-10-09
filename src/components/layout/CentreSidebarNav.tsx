@@ -56,6 +56,9 @@ export function CentreSidebarNav({
     isAdminPlus: hasMinRole(role, "admin"),
     canSeeCasualBookings: isAdminRole(role) || role === "member",
     canSeeStaffFiles: isAdminRole(role) || role === "member",
+    // Own centre only for a Coordinator — the sidebar only ever shows the
+    // signed-in centre (2026-10-09).
+    canSeeMessages: isAdminRole(role) || (role === "member" && session?.user?.serviceId === serviceId),
   });
 
   const base = `/services/${serviceId}`;
