@@ -28,9 +28,9 @@ export const appSettingsSchema = z.object({
        */
       attendanceNotifications: z.boolean().optional(),
       /**
-       * ALSO email them each time. Two emails a day per child adds up,
-       * so a centre can keep the app notice and drop the email. Ignored
-       * when attendanceNotifications is off.
+       * ALSO email them each time. OFF by default (2026-10-09) — two
+       * emails a day per child adds up. Ignored when
+       * attendanceNotifications is off.
        */
       attendanceEmails: z.boolean().optional(),
     })
@@ -98,7 +98,9 @@ export type AppSettings = z.infer<typeof appSettingsSchema>;
  * remembering which way an absent value falls.
  */
 export const APP_SETTINGS_DEFAULTS = {
-  parents: { canMarkAbsence: true, attendanceNotifications: true, attendanceEmails: true },
+  // No sign-in/out EMAILS by default (Daniel, 2026-10-09): families book and
+  // hear from OWNA; the in-app notice stays. A centre can turn emails on.
+  parents: { canMarkAbsence: true, attendanceNotifications: true, attendanceEmails: false },
   posts: { draftByDefault: false, onlyApproversPublish: false },
   signInOut: { requireSignature: false },
   staff: { phoneClockIn: true },

@@ -34,12 +34,18 @@ beforeEach(() => {
 });
 
 describe("sign in / out notices", () => {
-  it("default: app notice, push and email, as before", async () => {
+  it("default: app notice and push, but no email", async () => {
     centre();
     await sendSignInNotification("c1", "svc1", new Date());
     expect(sends.bell).toHaveBeenCalledOnce();
-    expect(sends.email).toHaveBeenCalledOnce();
     expect(sends.push).toHaveBeenCalledOnce();
+    expect(sends.email).not.toHaveBeenCalled();
+  });
+
+  it("emails only when the centre turns it on", async () => {
+    centre({ attendanceEmails: true });
+    await sendSignOutNotification("c1", "svc1", new Date());
+    expect(sends.email).toHaveBeenCalledOnce();
   });
 
   it("emails off: app notice only", async () => {
@@ -57,10 +63,10 @@ describe("sign in / out notices", () => {
     expect(sends.push).not.toHaveBeenCalled();
   });
 
-  it("both default on", () => {
+  it("app notice on, emails off by default", () => {
     expect(resolveAppSettings(null).parents).toMatchObject({
       attendanceNotifications: true,
-      attendanceEmails: true,
+      attendanceEmails: false,
     });
   });
 });
