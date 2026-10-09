@@ -20,6 +20,7 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Camera, Paperclip, Receipt, Upload } from "lucide-react";
 import { fetchApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
@@ -95,7 +96,16 @@ export function MyExpensesContent() {
         description="Claim back what you've spent for the centre — approved claims land in your next pay."
       />
 
-      {notAvailable ? (
+      {isLoading ? (
+        /* Neutral until we know whether claims are possible here (2026-10-09).
+           Rendering the full "Snap your receipt" screen while loading meant
+           an unlinked account saw it flash for half a second before it
+           swapped to "not available yet". */
+        <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr] lg:items-start" aria-busy="true" data-testid="my-expenses-loading">
+          <Skeleton className="h-64 w-full rounded-2xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
+        </div>
+      ) : notAvailable ? (
         /* One consolidated friendly state — not a wall of broken cards. */
         <div
           className="bg-card rounded-xl border border-border p-8 text-center"
