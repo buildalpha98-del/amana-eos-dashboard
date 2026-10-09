@@ -90,9 +90,8 @@ interface Service {
  * is a permanent, shareable handle that outlives whoever pasted it, so
  * the sensitive rows never get one.
  *
- * Org and centre documents keep the existing behaviour: legacy
- * /uploads/ paths route through the download API so they resolve in both
- * dev and standalone production builds; absolute URLs pass through.
+ * Library downloads resolve an authorised document ID at the server, for
+ * both local uploads and Blob files.
  */
 function getDownloadUrl(doc: {
   id: string;
@@ -102,12 +101,7 @@ function getDownloadUrl(doc: {
   if (doc.assignedToId) {
     return `/api/staff-documents/${doc.id}`;
   }
-  if (doc.fileUrl.startsWith("/uploads/")) {
-    const fileName = doc.fileUrl.replace("/uploads/", "");
-    return `/api/documents/download?file=${encodeURIComponent(fileName)}`;
-  }
-  // If it's already an absolute URL or different path, return as-is
-  return doc.fileUrl;
+  return `/api/documents/download?id=${encodeURIComponent(doc.id)}`;
 }
 
 export default function DocumentsPage() {

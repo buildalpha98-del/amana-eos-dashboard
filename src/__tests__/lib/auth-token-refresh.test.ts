@@ -61,6 +61,7 @@ function dbUser(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  prismaMock.user.findUnique.mockResolvedValue(dbUser());
 });
 
 describe("jwt callback: periodic identity refresh", () => {
@@ -88,31 +89,27 @@ describe("jwt callback: periodic identity refresh", () => {
     expect(token.state).toBe("NSW");
   });
 
-  it("does not re-read the database before the 5-minute window is up", async () => {
+  it("checks revocation even before the metadata refresh window is up", async () => {
     const token = await jwt({
       token: staleToken({ tokenVersionCheckedAt: Date.now() }),
     });
-    expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
+    expect(prismaMock.user.findUnique).toHaveBeenCalled();
     expect(token.role).toBe("member"); // unchanged
   });
 
   it("still expires the token when the user is deactivated", async () => {
     prismaMock.user.findUnique.mockResolvedValue(dbUser({ active: false }));
-    const token = await jwt({ token: staleToken() });
-    expect(token.exp).toBe(0);
+    await expect(jwt({ token: staleToken() })).rejects.toThrow("Session revoked");
   });
 
   it("still expires the token when tokenVersion has moved on", async () => {
     prismaMock.user.findUnique.mockResolvedValue(dbUser({ tokenVersion: 2 }));
-    const token = await jwt({ token: staleToken() });
-    expect(token.exp).toBe(0);
+    await expect(jwt({ token: staleToken() })).rejects.toThrow("Session revoked");
   });
 
-  it("keeps the session alive when the database is unreachable", async () => {
+  it("fails closed when the database is unreachable", async () => {
     prismaMock.user.findUnique.mockRejectedValue(new Error("ECONNREFUSED"));
-    const token = await jwt({ token: staleToken() });
-    expect(token.exp).toBeUndefined();
-    expect(token.role).toBe("member");
+    await expect(jwt({ token: staleToken() })).rejects.toThrow("ECONNREFUSED");
   });
 
   it("looks up the page override with the NEW role, not the old one", async () => {

@@ -45,6 +45,8 @@ function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -60,11 +62,18 @@ function LoginForm() {
     const result = await signIn("credentials", {
       email,
       password,
+      mfaCode,
       redirect: false,
       callbackUrl,
     });
 
     if (result?.error) {
+      if (result.error === "MFA_REQUIRED") {
+        setMfaRequired(true);
+        setError("Enter your authenticator code or a backup code to finish signing in.");
+        setLoading(false);
+        return;
+      }
       // 2026-07-08: don't mask the real error — a rate-limited login
       // was showing as "Invalid email or password", which made users
       // think their password was wrong when it was actually the
@@ -165,6 +174,25 @@ function LoginForm() {
                 autoComplete="current-password"
               />
             </div>
+
+            {mfaRequired && (
+              <div>
+                <label htmlFor="mfa-code" className="block text-sm font-semibold mb-1.5">
+                  Authenticator or backup code
+                </label>
+                <input
+                  id="mfa-code"
+                  type="text"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  required
+                  maxLength={8}
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-border/80 rounded-xl bg-surface/30 text-base focus:outline-none focus:border-brand"
+                />
+              </div>
+            )}
 
             <div className="flex items-center justify-between">
               <div className="flex items-center">

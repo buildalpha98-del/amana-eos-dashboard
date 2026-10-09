@@ -8,6 +8,7 @@ import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
 import { hasPublishedEssentials } from "@/lib/induction-essentials";
 import { getOrgSettings } from "@/lib/org-settings";
 import { logAuditEvent } from "@/lib/audit-log";
+import { decryptSecret, verifyTotp, verifyBackupCode } from "@/lib/totp";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,6 +17,7 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        mfaCode: { label: "Authentication or backup code", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -43,6 +45,35 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid email or password");
         }
 
+        if (user.mfaEnabledAt) {
+          const code = credentials.mfaCode?.trim().toLowerCase();
+          if (!code) throw new Error("MFA_REQUIRED");
+          if (!user.mfaSecret) throw new Error("Invalid verification code");
+
+          if (/^\d{6}$/.test(code)) {
+            if (!verifyTotp(decryptSecret(user.mfaSecret), code)) {
+              throw new Error("Invalid verification code");
+            }
+          } else if (/^[0-9a-f]{8}$/.test(code)) {
+            const { valid, remainingHashes } = verifyBackupCode(code, user.mfaBackupCodes);
+            if (!valid) throw new Error("Invalid verification code");
+            // Compare-and-set: simultaneous logins cannot reuse a backup code.
+            const consumed = await prisma.user.updateMany({
+              where: {
+                id: user.id,
+                active: true,
+                tokenVersion: user.tokenVersion,
+                mfaSecret: user.mfaSecret,
+                mfaBackupCodes: { equals: user.mfaBackupCodes },
+              },
+              data: { mfaBackupCodes: remainingHashes },
+            });
+            if (consumed.count !== 1) throw new Error("Invalid verification code");
+          } else {
+            throw new Error("Invalid verification code");
+          }
+        }
+
         // Successful login — reset rate limit & track login time
         await resetRateLimit(rateLimitKey);
         await prisma.user.update({
@@ -63,6 +94,8 @@ export const authOptions: NextAuthOptions = {
           isCentreAccount: user.isCentreAccount,
           mustChangePassword: user.mustChangePassword,
           mfaRequired: !!user.mfaEnabledAt,
+          mfaVerified: !!user.mfaEnabledAt,
+          mfaEnabledAt: user.mfaEnabledAt?.toISOString() ?? null,
         };
       },
     }),
@@ -97,7 +130,8 @@ export const authOptions: NextAuthOptions = {
         token.mustChangePassword =
           (user as unknown as Record<string, unknown>).mustChangePassword === true;
         token.mfaRequired = (user as unknown as Record<string, unknown>).mfaRequired ?? false;
-        token.mfaVerified = false;
+        token.mfaVerified = (user as unknown as Record<string, unknown>).mfaVerified === true;
+        token.mfaEnabledAt = (user as unknown as Record<string, unknown>).mfaEnabledAt ?? null;
 
         // Read remember-me preference set during login
         try {
@@ -114,82 +148,49 @@ export const authOptions: NextAuthOptions = {
         const elapsed = Date.now() - (token.loginAt as number);
         const ONE_DAY = 24 * 60 * 60 * 1000;
         if (elapsed > ONE_DAY) {
-          return { ...token, exp: 0 }; // Force token expiry
+          throw new Error("Session expired");
         }
       }
 
-      // Validate tokenVersion against database (checked periodically) and
-      // refresh the identity fields that drive access: role, serviceId,
-      // state, induction, and the role-page-access override. Piggybacking
-      // the 5-minute window means an admin's permission change propagates
-      // to active sessions within ~5 min without a re-login.
-      //
-      // 2026-09-15: role / serviceId / state used to be written ONLY in the
-      // `if (user)` sign-in branch above, so this comment was a promise the
-      // code didn't keep. Promoting someone to State Manager left them a
-      // Member in their own browser until they happened to log out — and,
-      // worse in the other direction, REVOKING an admin's role changed
-      // nothing about their live session. Neither a PATCH to /api/users nor
-      // this refresh touched token.role, and nothing bumped tokenVersion on
-      // a role change either, so there was no path at all from a role
-      // change to an active session.
-      if (token.id && typeof token.tokenVersion === "number") {
-        const lastCheck = (token.tokenVersionCheckedAt as number) ?? 0;
-        const FIVE_MINUTES = 5 * 60 * 1000;
-        if (Date.now() - lastCheck > FIVE_MINUTES) {
-          try {
-            const dbUser = await prisma.user.findUnique({
-              where: { id: token.id as string },
-              select: {
-                tokenVersion: true,
-                active: true,
-                role: true,
-                serviceId: true,
-                state: true,
-                inductionStatus: true,
-                inductionGraceUntil: true,
-                isCentreAccount: true,
-              },
-            });
-            if (!dbUser || !dbUser.active || dbUser.tokenVersion !== token.tokenVersion) {
-              return { ...token, exp: 0 }; // Force token expiry
-            }
-            token.tokenVersionCheckedAt = Date.now();
-            // Role, centre and state decide what the middleware, the nav and
-            // every `session.user.role` check allow. Refreshed BEFORE the
-            // override lookup below, which is keyed on the role — reading a
-            // stale role there would hand a just-promoted user the previous
-            // role's page overrides for another five minutes.
-            token.role = dbUser.role;
-            token.serviceId = dbUser.serviceId;
-            token.state = dbUser.state;
-            // Refresh induction fields so locked-mode lifts within ~5 min of
-            // a learner clearing (the gate APIs read the DB live, so clock-in
-            // is never stale — only the UI nav lock lags by this window).
-            token.inductionStatus = dbUser.inductionStatus;
-            token.inductionGraceUntil = dbUser.inductionGraceUntil;
-            token.isCentreAccount = dbUser.isCentreAccount;
-            // Re-read on the same cadence so publishing the first essential
-            // course starts gating new starters within ~5 min, and un-publishing
-            // (or a fresh org with no curriculum) lifts the lock just as fast.
-            token.essentialsPublished = await hasPublishedEssentials();
+      // NextAuth's JWT encoder replaces exp, so invalid sessions must throw.
+      // Its session handler then returns no identity and clears the cookie.
+      if (!token.id || typeof token.tokenVersion !== "number" || typeof token.loginAt !== "number") {
+        throw new Error("Invalid session");
+      }
+      // Check revocation on every server session read, including sessions whose
+      // expensive page/induction metadata was refreshed only moments ago.
+      const dbUser = await prisma.user.findUnique({
+        where: { id: token.id },
+        select: {
+          tokenVersion: true, active: true, role: true, serviceId: true,
+          state: true, inductionStatus: true, inductionGraceUntil: true,
+          isCentreAccount: true, mfaEnabledAt: true,
+        },
+      });
+      if (!dbUser || !dbUser.active || dbUser.tokenVersion !== token.tokenVersion) {
+        throw new Error("Session revoked");
+      }
+      if (dbUser.mfaEnabledAt && (
+        token.mfaVerified !== true ||
+        token.mfaEnabledAt !== dbUser.mfaEnabledAt.toISOString()
+      )) {
+        throw new Error("MFA verification required");
+      }
+      const identityChanged = token.role !== dbUser.role;
+      token.role = dbUser.role;
+      token.serviceId = dbUser.serviceId;
+      token.state = dbUser.state;
+      token.inductionStatus = dbUser.inductionStatus;
+      token.inductionGraceUntil = dbUser.inductionGraceUntil;
+      token.isCentreAccount = dbUser.isCentreAccount;
 
-            // Refresh the page-access override for this user's role.
-            // Null = use compile-time defaults (kept in token so the
-            // middleware can act without an extra DB lookup).
-            try {
-              const settings = await getOrgSettings();
-              const roleKey = token.role as keyof typeof settings.rolePageOverrides;
-              const override = settings.rolePageOverrides?.[roleKey];
-              token.rolePageOverride = override ?? null;
-            } catch {
-              // Don't fail the token refresh if org-settings is
-              // unreachable — leave the previous value in place.
-            }
-          } catch {
-            // DB unavailable — allow token to continue
-          }
-        }
+      const lastCheck = (token.tokenVersionCheckedAt as number) ?? 0;
+      if (identityChanged || Date.now() - lastCheck > 5 * 60 * 1000) {
+        token.tokenVersionCheckedAt = Date.now();
+        token.essentialsPublished = await hasPublishedEssentials();
+        const settings = await getOrgSettings();
+        const roleKey = token.role as keyof typeof settings.rolePageOverrides;
+        token.rolePageOverride = settings.rolePageOverrides?.[roleKey] ?? null;
       }
 
       return token;

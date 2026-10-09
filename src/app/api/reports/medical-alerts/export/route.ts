@@ -1,12 +1,14 @@
+import type { Session } from "next-auth";
+import { resolveServiceIdFilter } from "@/lib/authz-scope";
 import { serviceTodayISO } from "@/lib/timezone";
 import { NextRequest } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { generateCsv, downloadCsvResponse } from "@/lib/reports/exportCsv";
 
-async function handler(req: NextRequest) {
+async function handler(req: NextRequest, session: Session) {
   const url = new URL(req.url);
-  const serviceId = url.searchParams.get("serviceId") || undefined;
+  const serviceId = resolveServiceIdFilter(session, url.searchParams.get("serviceId"));
 
   const children = await prisma.child.findMany({
     where: {

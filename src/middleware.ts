@@ -100,7 +100,9 @@ export default withAuth(
         if (PUBLIC_API_ROUTES.some((route) => req.nextUrl.pathname === route)) {
           return true;
         }
-        return !!token;
+        if (!token || (token.mfaRequired === true && token.mfaVerified !== true)) return false;
+        if (typeof token.loginAt !== "number") return false;
+        return token.rememberMe === true || Date.now() - token.loginAt < 24 * 60 * 60 * 1000;
       },
     },
     pages: {
