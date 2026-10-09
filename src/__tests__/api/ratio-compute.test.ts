@@ -49,9 +49,8 @@ describe("computeLiveRatios", () => {
       id: "s1",
       ratioSettings: null,
     });
-    // Fix "now" to 10:30 local
-    const now = new Date();
-    now.setHours(10, 30, 0, 0);
+    // 10:30am at the centre (AEDT), whatever zone the test runs in.
+    const now = new Date("2026-10-09T10:30:00+11:00");
     prismaMock.rosterShift.findMany.mockResolvedValue([
       {
         userId: "u1",
@@ -84,8 +83,8 @@ describe("computeLiveRatios", () => {
       id: "s1",
       ratioSettings: { bsc: { ratio: "1:10" }, asc: { ratio: "1:15" }, vc: { ratio: "1:11" } },
     });
-    const now = new Date();
-    now.setHours(7, 30, 0, 0); // BSC time
+    // 7:30am at the centre (AEDT), whatever zone the test runs in.
+    const now = new Date("2026-10-09T07:30:00+11:00"); // BSC time
     prismaMock.rosterShift.findMany.mockResolvedValue([
       {
         userId: "u1",
@@ -112,8 +111,7 @@ describe("computeLiveRatios", () => {
       id: "s1",
       ratioSettings: null,
     });
-    const now = new Date();
-    now.setHours(15, 0, 0, 0);
+    const now = new Date("2026-10-09T15:00:00+11:00");
     prismaMock.rosterShift.findMany.mockResolvedValue([
       // Past shift
       {
