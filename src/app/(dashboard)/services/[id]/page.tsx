@@ -21,7 +21,6 @@ import {
 import { mergeServiceContent } from "@/lib/service-content-shared";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
 import { ServiceContentTab } from "@/components/services/ServiceContentTab";
-import { ServiceStaffTab } from "@/components/services/ServiceStaffTab";
 import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
 import { ServiceRocksTab } from "@/components/services/ServiceRocksTab";
 import { ServiceTodosTab } from "@/components/services/ServiceTodosTab";
@@ -43,6 +42,9 @@ import { ParentCommunicationPanel } from "./parent-communication/page";
 import { ServiceFamiliesTab } from "@/components/services/ServiceFamiliesTab";
 import { MessagingInbox } from "@/components/messaging/MessagingInbox";
 import { ServiceHazardsTab } from "@/components/services/ServiceHazardsTab";
+import { ServiceWeeklyShiftsGrid } from "@/components/services/ServiceWeeklyShiftsGrid";
+import { ManageStaff } from "@/components/services/staff/ManageStaff";
+import { StaffInductions } from "@/components/services/staff/StaffInductions";
 import { ServiceChildrenTab } from "@/components/services/ServiceChildrenTab";
 import { ServiceWeeklyRosterTab } from "@/components/services/ServiceWeeklyRosterTab";
 import { ServiceTodayTab } from "@/components/services/ServiceTodayTab";
@@ -427,7 +429,11 @@ export default function ServiceDetailPage() {
         )}
 
         {/* Staff group (no subtabs) — assignments management */}
-        {shownGroup === "staff" && <ServiceStaffTab serviceId={service.id} />}
+        {shownGroup === "staff" && currentSubKey === "manage" && <ManageStaff serviceId={service.id} />}
+        {shownGroup === "staff" && currentSubKey === "inductions" && <StaffInductions serviceId={service.id} />}
+        {shownGroup === "staff" && currentSubKey === "roster" && (
+          <ServiceWeeklyShiftsGrid serviceId={service.id} serviceName={service.name} />
+        )}
         {shownGroup === "documents" && (
           <ServiceDocumentsTab
             serviceId={service.id}

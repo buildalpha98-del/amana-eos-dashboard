@@ -1,3 +1,4 @@
+import { addDaysUTC, serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -31,9 +32,16 @@ export const GET = withApiAuth(async (req, session, context) => {
   // Same fail-closed model as the staff-certificates route / authz-scope:
   // admin roles are org-wide, everyone else only their own primary service.
   assertServiceAccess(session, serviceId);
-  // Emails are admin-only: non-admin callers (member/staff) get `email:
-  // null` — the roster grid and shift modal only need id/name/avatar.
-  const includeEmail = isAdminRole(session.user.role);
+  // Emails go to whoever RUNS this centre — the office, or the centre's own
+  // account (2026-10-09: Manage staff). Educators get `email: null`; the
+  // roster grid and shift modal only need id/name/avatar.
+  const runsCentre =
+    isAdminRole(session.user.role) ||
+    (session.user.role === "member" && session.user.serviceId === serviceId);
+  const includeEmail = runsCentre;
+  // Manage staff asks for the extra columns: PIN set (never the PIN),
+  // induction, certificates.
+  const withDetail = runsCentre && new URL(req.url).searchParams.get("detail") === "1";
   // The Staff tab lists EVERYONE assigned here (primary or membership) —
   // including the centre's shared mailbox login — so what you see matches
   // what the add dialog's "already primary" check sees. Roster pickers
@@ -56,6 +64,9 @@ export const GET = withApiAuth(async (req, session, context) => {
         active: true,
         isCentreAccount: true,
         createdAt: true,
+        kioskPinHash: true,
+        inductionStatus: true,
+        startDate: true,
       },
       orderBy: { name: "asc" },
     }),
@@ -71,12 +82,45 @@ export const GET = withApiAuth(async (req, session, context) => {
             role: true,
             active: true,
             isCentreAccount: true,
+            kioskPinHash: true,
+            inductionStatus: true,
+            startDate: true,
           },
         },
       },
       orderBy: { startDate: "asc" },
     }),
   ]);
+
+  // Certificates per person (Manage staff only): expired / due in 30 days.
+  const certsByUser = new Map<string, { expired: number; expiring: number }>();
+  if (withDetail) {
+    const ids = [...primaryUsers.map((u) => u.id), ...memberships.map((m) => m.user.id)];
+    const today = serviceDateOnly();
+    const in30 = addDaysUTC(today, 30);
+    const certs = await prisma.complianceCertificate.findMany({
+      where: { userId: { in: ids }, expiryDate: { not: null, lte: in30 } },
+      select: { userId: true, expiryDate: true },
+    });
+    for (const c of certs) {
+      if (!c.userId) continue;
+      const row = certsByUser.get(c.userId) ?? { expired: 0, expiring: 0 };
+      if (c.expiryDate! < today) row.expired += 1;
+      else row.expiring += 1;
+      certsByUser.set(c.userId, row);
+    }
+  }
+  const detailOf = (u: { id: string; kioskPinHash: string | null; inductionStatus: string; startDate: Date | null }) =>
+    withDetail
+      ? {
+          detail: {
+            pinSet: Boolean(u.kioskPinHash),
+            inductionStatus: u.inductionStatus,
+            startDate: toIsoDate(u.startDate),
+            certs: certsByUser.get(u.id) ?? { expired: 0, expiring: 0 },
+          },
+        }
+      : {};
 
   const members = [
     ...primaryUsers.map((u) => {
@@ -90,6 +134,7 @@ export const GET = withApiAuth(async (req, session, context) => {
         isPrimary: true,
         isActive: u.active,
         isCentreAccount: u.isCentreAccount ?? false,
+        ...detailOf(u),
         membership: {
           // Synthetic id for primary rows so the client can route a
           // remove call to the [membershipId] handler. The handler
@@ -113,6 +158,7 @@ export const GET = withApiAuth(async (req, session, context) => {
       isPrimary: false,
       isActive: m.user.active,
       isCentreAccount: m.user.isCentreAccount ?? false,
+      ...detailOf(m.user),
       membership: {
         id: m.id,
         roleAtService: m.roleAtService,

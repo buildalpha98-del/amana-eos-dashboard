@@ -14,6 +14,7 @@ import {
   AlertCircle,
   AlertTriangle,
   Baby,
+  GraduationCap,
   CalendarX,
   BarChart3,
   BookOpen,
@@ -160,7 +161,14 @@ export const tabGroups: TabGroup[] = [
     key: "staff",
     label: "Staff",
     icon: Users,
-    subTabs: [],
+    // 2026-10-09, Daniel's OWNA screenshots: everything about staff in one
+    // dropdown. Roster becomes OWNA's Build Roster next; Logs / timesheets
+    // follows.
+    subTabs: [
+      { key: "manage", label: "Manage staff", icon: Users },
+      { key: "inductions", label: "Staff inductions", icon: GraduationCap },
+      { key: "roster", label: "Roster", icon: CalendarDays },
+    ],
   },
   {
     key: "daily",
