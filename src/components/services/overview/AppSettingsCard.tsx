@@ -133,7 +133,7 @@ export function AppSettingsCard({
       },
       {
         label: "Also email them each time",
-        help: "Two emails a day per child adds up — the app notification is usually enough.",
+        help: "Off unless you turn it on. Two emails a day per child adds up — the app notification is usually enough.",
         checked: current.parents.attendanceEmails,
         onChange: (v) => set("parents", { attendanceEmails: v }),
         disabledBecause: current.parents.attendanceNotifications
