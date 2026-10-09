@@ -79,6 +79,20 @@ export const appSettingsSchema = z.object({
         .optional(),
     })
     .optional(),
+  roster: z
+    .object({
+      /**
+       * The centre's usual shift times (OWNA's "Current Shift Times"),
+       * offered as one-tap chips when adding a shift (2026-10-09).
+       */
+      shiftPresets: z
+        .array(z.object({ start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/) }))
+        .max(12)
+        .optional(),
+      /** Warn on Build Roster when the week's estimated wages go over this ($). */
+      weeklyCostLimit: z.number().int().min(0).max(1_000_000).nullable().optional(),
+    })
+    .optional(),
   staff: z
     .object({
       /**
@@ -111,6 +125,7 @@ export const APP_SETTINGS_DEFAULTS = {
   posts: { draftByDefault: false, onlyApproversPublish: false },
   signInOut: { requireSignature: false },
   staff: { phoneClockIn: true, instantClaim: false },
+  roster: { shiftPresets: [] as { start: string; end: string }[], weeklyCostLimit: null as number | null },
   checklists: { dueTimes: {} },
 } as const;
 
@@ -121,6 +136,7 @@ export type ResolvedAppSettings = {
   posts: { draftByDefault: boolean; onlyApproversPublish: boolean };
   signInOut: { requireSignature: boolean };
   staff: { phoneClockIn: boolean; instantClaim: boolean };
+  roster: { shiftPresets: { start: string; end: string }[]; weeklyCostLimit: number | null };
   checklists: { dueTimes: ChecklistDueTimes };
 };
 
@@ -171,6 +187,10 @@ export function resolveAppSettings(raw: unknown): ResolvedAppSettings {
     },
     checklists: {
       dueTimes: (v.checklists?.dueTimes ?? {}) as ChecklistDueTimes,
+    },
+    roster: {
+      shiftPresets: v.roster?.shiftPresets ?? [],
+      weeklyCostLimit: v.roster?.weeklyCostLimit ?? null,
     },
   };
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { useServiceStaff } from "@/hooks/useServiceStaff";
@@ -32,6 +34,10 @@ export interface ShiftEditModalProps {
   shift?: ShiftEditShift;
   serviceId: string;
   defaultDate?: string;
+  /** Build Roster opens the dialog on the room you tapped (2026-10-09). */
+  defaultSessionType?: string;
+  /** Preset shift times from roster settings, shown as one-tap chips. */
+  presets?: { start: string; end: string }[];
   onSaved?: () => void;
 }
 
@@ -55,6 +61,8 @@ export function ShiftEditModal({
   shift,
   serviceId,
   defaultDate,
+  defaultSessionType,
+  presets = [],
   onSaved,
 }: ShiftEditModalProps) {
   // Form state — always declare hooks in the same order, and reset when a
@@ -62,7 +70,7 @@ export function ShiftEditModal({
   const [userId, setUserId] = useState<string>(initialUserId(shift));
   const [date, setDate] = useState<string>(shift?.date ?? defaultDate ?? "");
   const [sessionType, setSessionType] = useState<string>(
-    shift?.sessionType ?? SESSION_OPTIONS[0].value,
+    shift?.sessionType ?? defaultSessionType ?? SESSION_OPTIONS[0].value,
   );
   const [shiftStart, setShiftStart] = useState<string>(shift?.shiftStart ?? "");
   const [shiftEnd, setShiftEnd] = useState<string>(shift?.shiftEnd ?? "");
@@ -76,7 +84,7 @@ export function ShiftEditModal({
     if (!open) return;
     setUserId(initialUserId(shift));
     setDate(shift?.date ?? defaultDate ?? "");
-    setSessionType(shift?.sessionType ?? SESSION_OPTIONS[0].value);
+    setSessionType(shift?.sessionType ?? defaultSessionType ?? SESSION_OPTIONS[0].value);
     setShiftStart(shift?.shiftStart ?? "");
     setShiftEnd(shift?.shiftEnd ?? "");
     setRole(shift?.role ?? "");
@@ -311,6 +319,30 @@ export function ShiftEditModal({
                 ))}
               </select>
             </div>
+
+            {presets.length > 0 && (
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Usual shift times">
+                {presets.map((p) => (
+                  <button
+                    key={`${p.start}-${p.end}`}
+                    type="button"
+                    aria-pressed={shiftStart === p.start && shiftEnd === p.end}
+                    onClick={() => {
+                      setShiftStart(p.start);
+                      setShiftEnd(p.end);
+                    }}
+                    className={cn(
+                      "min-h-9 rounded-full border px-3 text-sm",
+                      shiftStart === p.start && shiftEnd === p.end
+                        ? "border-brand bg-brand/10 text-brand"
+                        : "border-border text-foreground",
+                    )}
+                  >
+                    {p.start}–{p.end}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div>

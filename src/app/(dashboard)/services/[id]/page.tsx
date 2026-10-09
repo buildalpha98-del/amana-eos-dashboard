@@ -41,7 +41,7 @@ import { ParentCommunicationPanel } from "./parent-communication/page";
 import { ServiceFamiliesTab } from "@/components/services/ServiceFamiliesTab";
 import { MessagingInbox } from "@/components/messaging/MessagingInbox";
 import { ServiceHazardsTab } from "@/components/services/ServiceHazardsTab";
-import { ServiceWeeklyShiftsGrid } from "@/components/services/ServiceWeeklyShiftsGrid";
+import { BuildRoster } from "@/components/services/staff/BuildRoster";
 import { ManageStaff } from "@/components/services/staff/ManageStaff";
 import { StaffInductions } from "@/components/services/staff/StaffInductions";
 import { ServiceChildrenTab } from "@/components/services/ServiceChildrenTab";
@@ -431,9 +431,7 @@ export default function ServiceDetailPage() {
         {/* Staff group (no subtabs) — assignments management */}
         {shownGroup === "staff" && currentSubKey === "manage" && <ManageStaff serviceId={service.id} />}
         {shownGroup === "staff" && currentSubKey === "inductions" && <StaffInductions serviceId={service.id} />}
-        {shownGroup === "staff" && currentSubKey === "roster" && (
-          <ServiceWeeklyShiftsGrid serviceId={service.id} serviceName={service.name} />
-        )}
+        {shownGroup === "staff" && currentSubKey === "roster" && <BuildRoster serviceId={service.id} />}
         {shownGroup === "documents" && (
           <ServiceDocumentsTab
             serviceId={service.id}
