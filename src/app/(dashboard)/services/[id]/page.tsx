@@ -77,6 +77,7 @@ import { useNavLayout } from "@/hooks/useNavLayout";
 const TAB_OWNED_PARAMS: Record<string, { tab: string; sub: string }> = {
   rollCallView: { tab: "daily", sub: "roll-call" },
   date: { tab: "daily", sub: "roll-call" },
+  rosterView: { tab: "daily", sub: "roster" },
 };
 
 const statusBadgeStyles: Record<string, string> = {
