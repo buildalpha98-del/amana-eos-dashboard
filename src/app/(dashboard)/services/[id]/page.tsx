@@ -1,6 +1,6 @@
 "use client";
 
-import { tabGroups, visibleServiceSections } from "@/lib/service-sections";
+import { SUB_TAB_ALIASES, tabGroups, visibleServiceSections } from "@/lib/service-sections";
 import { ServiceDocumentsTab } from "@/components/services/ServiceDocumentsTab";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
@@ -40,7 +40,6 @@ import { ServiceQIPTab } from "@/components/services/ServiceQIPTab";
 import { ServiceChecklistsTab } from "@/components/services/ServiceChecklistsTab";
 import { ServiceRollCallTab } from "@/components/services/ServiceRollCallTab";
 import { ParentCommunicationPanel } from "./parent-communication/page";
-import { ServiceSignInOutTab } from "@/components/services/ServiceSignInOutTab";
 import { ServiceFamiliesTab } from "@/components/services/ServiceFamiliesTab";
 import { ServiceChildrenTab } from "@/components/services/ServiceChildrenTab";
 import { ServiceWeeklyRosterTab } from "@/components/services/ServiceWeeklyRosterTab";
@@ -197,7 +196,8 @@ export default function ServiceDetailPage() {
   // falls back to the first one they do have.
   const currentGroup = visibleGroups.find((g) => g.key === activeGroup) || visibleGroups[0];
   const shownGroup = currentGroup?.key;
-  const rememberedSub = shownGroup ? activeSubTab[shownGroup] : undefined;
+  const askedSub = shownGroup ? activeSubTab[shownGroup] : undefined;
+  const rememberedSub = (askedSub && SUB_TAB_ALIASES[askedSub]) ?? askedSub;
   const currentSubKey =
     currentGroup?.subTabs.find((s) => s.key === rememberedSub)?.key ??
     currentGroup?.subTabs[0]?.key;
@@ -428,9 +428,6 @@ export default function ServiceDetailPage() {
         )}
         {shownGroup === "daily" && currentSubKey === "posts" && (
           <ParentCommunicationPanel serviceId={service.id} embedded />
-        )}
-        {shownGroup === "daily" && currentSubKey === "sign-in-out" && (
-          <ServiceSignInOutTab serviceId={service.id} serviceName={service.name} />
         )}
         {shownGroup === "daily" && currentSubKey === "roll-call" && (
           <ServiceRollCallTab serviceId={service.id} serviceName={service.name} />

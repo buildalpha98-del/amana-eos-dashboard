@@ -217,7 +217,7 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
 
       {/* 4 · The door — the one number that matters on the floor */}
       <Link
-        href={`${svc}?tab=daily&sub=sign-in-out`}
+        href={`${svc}?tab=daily&sub=roll-call`}
         className="flex items-center gap-4 rounded-xl bg-brand p-4 text-white shadow-sm transition-opacity hover:opacity-95"
       >
         <LogIn className="h-7 w-7 shrink-0" aria-hidden />
@@ -262,7 +262,7 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
           }
           noteTone="warn"
         />
-        <Tile href={`${svc}?tab=daily&sub=roll-call`} icon={ClipboardList} label="Roll call" />
+        <Tile href={`${svc}?tab=daily&sub=children`} icon={ClipboardList} label="Children" note="details & contacts" />
         <Tile href={`${svc}?tab=compliance&sub=incidents`} icon={AlertTriangle} label="Log an incident" />
         <Tile href={`${svc}?tab=daily&sub=posts`} icon={Megaphone} label="Post to families" />
         <Tile

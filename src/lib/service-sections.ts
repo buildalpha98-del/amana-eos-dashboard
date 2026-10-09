@@ -68,19 +68,28 @@ export interface TabGroup {
 // at render-time for admin/coord only (see `visibleGroups` below).
 export const DAILY_OPS_BASE_SUBTABS: SubTab[] = [
   { key: "attendance", label: "Attendance", icon: ClipboardList },
-  { key: "roll-call", label: "Roll Call", icon: ClipboardCheck },
+  // The door (staff-UX Round 3, 2026-10-09): Sign In / Out and Roll Call
+  // were two screens over the same records, each missing half of the job.
+  // One screen now; the old `sign-in-out` key is an alias (SUB_TAB_ALIASES)
+  // so bookmarks and links keep landing here.
+  { key: "roll-call", label: "Sign in & out", icon: LogIn },
   // Moved here from the Families group 2026-08-01 per Daniel — posting
   // about the day is part of running the day.
   { key: "posts", label: "Posts", icon: MessageCircle },
-  // 2026-08-01: records WHO dropped off / collected, which Reg 158 wants
-  // and the roll couldn't capture (signedInById is a staff User).
-  { key: "sign-in-out", label: "Sign In / Out", icon: LogIn },
   { key: "children", label: "Children", icon: Users },
   { key: "medication", label: "Medication", icon: Activity },
   { key: "ratios", label: "Ratios", icon: Users },
   { key: "roster", label: "Weekly Roster", icon: CalendarDays },
   { key: "checklists", label: "Checklists", icon: ClipboardCheck },
 ];
+
+/**
+ * Retired sub-tab keys and where they live now. The page resolves these
+ * before choosing what to draw, and the deep-link guard accepts them.
+ */
+export const SUB_TAB_ALIASES: Record<string, string> = {
+  "sign-in-out": "roll-call",
+};
 
 export const CASUAL_BOOKINGS_SUBTAB: SubTab = {
   key: "casual-bookings",
@@ -235,7 +244,7 @@ export const tabGroups: TabGroup[] = [
  */
 const EDUCATOR_SECTIONS: Record<string, string[]> = {
   today: [],
-  daily: ["sign-in-out", "roll-call", "children", "medication", "checklists", "posts", "ratios"],
+  daily: ["roll-call", "children", "medication", "checklists", "posts", "ratios"],
   program: ["activities", "menu", "observations"],
   compliance: ["incidents", "headcounts", "registers", "risk"],
   documents: ["policies", "handbook"],
@@ -257,7 +266,7 @@ export function visibleServiceSections(opts: {
       .filter((g) => g.key in EDUCATOR_SECTIONS)
       .map((g) => {
         const keep = EDUCATOR_SECTIONS[g.key];
-        // Their order, not the full menu's — Sign in/out leads the day.
+        // Their order, not the full menu's — the door leads the day.
         const subTabs = keep
           .map((k) => g.subTabs.find((s) => s.key === k))
           .filter((s): s is SubTab => !!s);
