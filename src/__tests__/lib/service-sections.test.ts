@@ -36,7 +36,7 @@ describe("educator menu (2026-10-08)", () => {
       "daily:roll-call,medication,checklists,posts,ratios",
       "children:",
       "program:activities,menu,observations",
-      "compliance:incidents,headcounts,registers,risk",
+      "compliance:incidents,hazards,headcounts,registers,risk",
       "documents:policies,handbook",
     ]);
   });

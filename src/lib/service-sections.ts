@@ -33,6 +33,7 @@ import {
   LogIn,
   MessageCircle,
   MessageSquare,
+  Wrench,
   Mountain,
   Radio,
   Receipt,
@@ -233,6 +234,8 @@ export const tabGroups: TabGroup[] = [
       // is now hidden from member/staff (sidebar tightened in PR #37);
       // this is where Director of Service + Educators log their own.
       { key: "incidents", label: "Incidents", icon: AlertTriangle },
+      // 2026-10-09, OWNA parity: report it, track it to fixed.
+      { key: "hazards", label: "Hazards", icon: Wrench },
       { key: "risk", label: "Risk", icon: ShieldCheck },
       { key: "headcounts", label: "Headcounts", icon: Users },
       { key: "registers", label: "Visitors & registers", icon: ClipboardList },
@@ -288,7 +291,7 @@ const EDUCATOR_SECTIONS: Record<string, string[]> = {
   daily: ["roll-call", "medication", "checklists", "posts", "ratios"],
   children: [],
   program: ["activities", "menu", "observations"],
-  compliance: ["incidents", "headcounts", "registers", "risk"],
+  compliance: ["incidents", "hazards", "headcounts", "registers", "risk"],
   documents: ["policies", "handbook"],
 };
 
