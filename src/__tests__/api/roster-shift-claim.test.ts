@@ -54,6 +54,10 @@ function makeOpenShift(overrides: Record<string, unknown> = {}) {
 function resetCommon() {
   _clearUserActiveCache();
   vi.clearAllMocks();
+  // These tests cover first-tap claiming, which a centre now has to switch
+  // on (2026-10-09 — the default is "I'm interested" and the Coordinator
+  // chooses; see roster-ack-interest.test.ts).
+  prismaMock.service.findUnique.mockResolvedValue({ appSettings: { staff: { instantClaim: true } } });
   prismaMock.user.findUnique.mockImplementation((args: unknown) => {
     const { select } = args as { select?: Record<string, boolean> };
     if (select && "active" in select) return Promise.resolve({ active: true });

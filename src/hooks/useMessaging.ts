@@ -1,5 +1,7 @@
 "use client";
 
+import { useSession } from "next-auth/react";
+import { canReadParentMessages } from "@/lib/messaging-roles";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
@@ -227,7 +229,11 @@ export function useFamilies(serviceId?: string) {
 // ── Unread count (for nav badge) ───────────────────────────
 
 export function useUnreadMessageCount() {
+  // Educators can't open the inbox, so don't poll it (2026-10-09).
+  const { data: session } = useSession();
+  const allowed = canReadParentMessages(session?.user?.role);
   return useQuery<number>({
+    enabled: allowed,
     queryKey: ["messaging", "unread-count"],
     queryFn: async () => {
       const conversations = await fetchApi<ConversationListItem[]>(

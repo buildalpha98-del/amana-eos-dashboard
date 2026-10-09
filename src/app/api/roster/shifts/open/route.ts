@@ -19,6 +19,7 @@ import { addDaysUTC, serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { resolveAppSettings } from "@/lib/app-settings";
 import { isAdminRole } from "@/lib/role-permissions";
 
 const DEFAULT_DAYS_AHEAD = 14;
@@ -59,9 +60,22 @@ export const GET = withApiAuth(async (req, session) => {
     where,
     orderBy: [{ date: "asc" }, { shiftStart: "asc" }],
     include: {
-      service: { select: { id: true, name: true, code: true } },
+      service: { select: { id: true, name: true, code: true, appSettings: true } },
+      // Who has put their hand up (2026-10-09). Names go only to people
+      // who choose; educators just see whether they asked.
+      interests: { select: { userId: true, user: { select: { name: true } } }, orderBy: { createdAt: "asc" } },
     },
   });
 
-  return NextResponse.json({ shifts });
+  const chooses = isAdminRole(role) || role === "member";
+  return NextResponse.json({
+    shifts: shifts.map(({ interests, service, ...s }) => ({
+      ...s,
+      service: { id: service.id, name: service.name, code: service.code },
+      mode: resolveAppSettings(service.appSettings).staff.instantClaim ? "claim" : "interest",
+      interestedByMe: interests.some((i) => i.userId === session.user.id),
+      interestedCount: interests.length,
+      ...(chooses && { interested: interests.map((i) => ({ userId: i.userId, name: i.user.name })) }),
+    })),
+  });
 });

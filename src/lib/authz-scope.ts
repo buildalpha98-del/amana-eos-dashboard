@@ -108,11 +108,5 @@ export function resolveServiceIdFilter(
   return viewerServiceId;
 }
 
-/**
- * Who may read and answer parent messages (2026-10-09). The office and
- * marketing in the Contact Centre, and a centre's Coordinator / centre
- * login from the centre page — `serviceScopeFilter` keeps the latter to
- * their own centre. Never educators: Daniel's decision, and the reason the
- * centre view is a Coordinator's screen.
- */
-export const MESSAGING_ROLES = ["owner", "head_office", "admin", "eos", "marketing", "member"] as const;
+
+export { MESSAGING_ROLES } from "@/lib/messaging-roles";

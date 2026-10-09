@@ -6,6 +6,8 @@ import { isAdminRole } from "@/lib/role-permissions";
 import { z } from "zod";
 import { assertStaffCertsValidForShift } from "../../_lib/cert-guard";
 import { assertUserCleared } from "@/lib/induction";
+import { notifyUsers } from "@/lib/notify-user";
+import { shiftLabel } from "@/lib/roster-staff";
 import { requireRoomId } from "@/lib/room-resolver";
 
 // ---------------------------------------------------------------------------
@@ -29,6 +31,20 @@ const patchShiftSchema = z
 // ---------------------------------------------------------------------------
 // PATCH /api/roster/shifts/[id]
 // ---------------------------------------------------------------------------
+
+/** Date, times, centre or person changed → the stamp no longer applies. */
+function changesWhatTheyAgreedTo(
+  existing: { date: Date; shiftStart: string; shiftEnd: string; serviceId: string; userId: string | null },
+  data: { date?: string; shiftStart?: string; shiftEnd?: string; serviceId?: string; userId?: string | null },
+): boolean {
+  return (
+    (data.date !== undefined && new Date(data.date).getTime() !== existing.date.getTime()) ||
+    (data.shiftStart !== undefined && data.shiftStart !== existing.shiftStart) ||
+    (data.shiftEnd !== undefined && data.shiftEnd !== existing.shiftEnd) ||
+    (data.serviceId !== undefined && data.serviceId !== existing.serviceId) ||
+    (data.userId !== undefined && data.userId !== existing.userId)
+  );
+}
 
 export const PATCH = withApiAuth(async (req, session, context) => {
   const params = await context?.params;
@@ -136,8 +152,36 @@ export const PATCH = withApiAuth(async (req, session, context) => {
         ...(data.shiftEnd !== undefined && { shiftEnd: data.shiftEnd }),
         ...(data.role !== undefined && { role: data.role ?? null }),
         ...(data.status !== undefined && { status: data.status }),
+        // A changed shift has to be seen again (2026-10-09).
+        ...(changesWhatTheyAgreedTo(existing, data) && { acknowledgedAt: null }),
       },
     });
+
+    // An open shift given to someone: clear the hands-up list and tell
+    // everyone who asked (2026-10-09).
+    if (existing.userId === null && data.userId) {
+      const asked = await prisma.shiftInterest.findMany({
+        where: { shiftId: id },
+        select: { userId: true },
+      });
+      await prisma.shiftInterest.deleteMany({ where: { shiftId: id } });
+      const label = shiftLabel(shift.date, shift.shiftStart, shift.shiftEnd);
+      notifyUsers(prisma, [data.userId], {
+        type: "roster",
+        title: "You've got the open shift",
+        body: label,
+        link: "/my-day",
+      }).catch(() => {});
+      const others = asked.map((a) => a.userId).filter((u) => u !== data.userId);
+      if (others.length) {
+        notifyUsers(prisma, others, {
+          type: "roster",
+          title: "That open shift has been filled",
+          body: `${label} went to someone else this time. Thanks for putting your hand up.`,
+          link: "/my-day",
+        }).catch(() => {});
+      }
+    }
     return NextResponse.json({ shift });
   } catch (err) {
     // @@unique([serviceId, date, staffName, shiftStart]) — unassigning (or

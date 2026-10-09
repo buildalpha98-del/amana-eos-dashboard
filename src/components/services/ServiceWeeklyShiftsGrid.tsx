@@ -7,6 +7,7 @@ import { useRoster } from "@/hooks/useRoster";
 import { useServiceStaff } from "@/hooks/useServiceStaff";
 import { useRosterOverlays } from "@/hooks/useRosterOverlays";
 import { useRosterCost } from "@/hooks/useRosterCost";
+import { RosterCoordinatorPanel } from "@/components/roster/RosterCoordinatorPanel";
 import { computeRatio } from "@/lib/roster-ratio";
 import {
   useStaffCertStatus,
@@ -119,7 +120,7 @@ export function ServiceWeeklyShiftsGrid({
   // 2026-05-02: pull the wage-cost projection so we can show a "≈ $X
   // this week" chip up top. Hidden when the projection returns zero
   // hours (an empty week).
-  const { data: costData } = useRosterCost(serviceId, weekStart);
+  const { data: costData } = useRosterCost(serviceId, weekStart, canEdit);
   // 2026-05-02: roll up each staff member's compliance certs against the
   // last day of the visible week. The grid flags a red shield next to
   // anyone whose cert has already expired by week-end, and an amber shield
@@ -370,13 +371,16 @@ export function ServiceWeeklyShiftsGrid({
 
   return (
     <div className="space-y-4">
+      {/* Who's seen the week, who wants the open shifts (2026-10-09). */}
+      {canEdit && <RosterCoordinatorPanel serviceId={serviceId} weekStart={weekStart} />}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {showWeekPicker && (
             <WeekPicker weekStart={weekStart} onWeekChange={handleWeekChange} />
           )}
-          {costData && costData.totalHours > 0 && (
+          {canEdit && costData && costData.totalHours > 0 && (
             <RosterCostChip
               totalHours={costData.totalHours}
               totalCost={costData.totalCost}

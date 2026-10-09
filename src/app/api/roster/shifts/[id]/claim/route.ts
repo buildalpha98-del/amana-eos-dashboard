@@ -26,6 +26,7 @@ import { ApiError } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { assertStaffCertsValidForShift } from "../../../_lib/cert-guard";
 import { assertUserCleared } from "@/lib/induction";
+import { resolveAppSettings } from "@/lib/app-settings";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -66,6 +67,18 @@ export const POST = withApiAuth(async (_req, session, context) => {
   if (!isAdminRole(role) && callerServiceId !== shift.serviceId) {
     throw ApiError.forbidden(
       "You can only claim shifts at your assigned service.",
+    );
+  }
+
+  // Most centres choose who gets an open shift (2026-10-09): only claim
+  // instantly where the centre has switched first-to-tap on.
+  const svc = await prisma.service.findUnique({
+    where: { id: shift.serviceId },
+    select: { appSettings: true },
+  });
+  if (!resolveAppSettings(svc?.appSettings).staff.instantClaim) {
+    throw ApiError.conflict(
+      "Your Coordinator chooses who gets open shifts here. Tap \"I'm interested\" instead.",
     );
   }
 
