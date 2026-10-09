@@ -1,3 +1,4 @@
+import { resolveAppSettings } from "@/lib/app-settings";
 import { prisma } from "@/lib/prisma";
 import { sendNotificationEmail } from "@/lib/notifications/sendEmail";
 import { sendPushToParentEmail } from "@/lib/push/webPush";
@@ -69,7 +70,7 @@ export async function sendSignInNotification(
   try {
     const [child, service, parent] = await Promise.all([
       prisma.child.findUnique({ where: { id: childId }, select: { firstName: true, surname: true } }),
-      prisma.service.findUnique({ where: { id: serviceId }, select: { name: true } }),
+      prisma.service.findUnique({ where: { id: serviceId }, select: { name: true, appSettings: true } }),
       getPrimaryParent(childId),
     ]);
 
@@ -78,6 +79,9 @@ export async function sendSignInNotification(
       return;
     }
     if (!child || !service) return;
+    // Configure → Settings → Families & app (2026-10-09).
+    const prefs = resolveAppSettings(service.appSettings).parents;
+    if (!prefs.attendanceNotifications) return;
 
     const time = formatTimeAEST(signInTime);
 
@@ -91,7 +95,7 @@ export async function sendSignInNotification(
       link: `/parent/children`,
     });
 
-    await sendNotificationEmail({
+    if (prefs.attendanceEmails) await sendNotificationEmail({
       to: parent.email,
       toName: parent.firstName,
       subject: `${child.firstName} has been signed in`,
@@ -132,7 +136,7 @@ export async function sendSignOutNotification(
   try {
     const [child, service, parent] = await Promise.all([
       prisma.child.findUnique({ where: { id: childId }, select: { firstName: true, surname: true } }),
-      prisma.service.findUnique({ where: { id: serviceId }, select: { name: true } }),
+      prisma.service.findUnique({ where: { id: serviceId }, select: { name: true, appSettings: true } }),
       getPrimaryParent(childId),
     ]);
 
@@ -141,10 +145,23 @@ export async function sendSignOutNotification(
       return;
     }
     if (!child || !service) return;
+    // Configure → Settings → Families & app (2026-10-09).
+    const prefs = resolveAppSettings(service.appSettings).parents;
+    if (!prefs.attendanceNotifications) return;
 
     const time = formatTimeAEST(signOutTime);
 
-    await sendNotificationEmail({
+    // The app bell, as at sign-in — sign-out only ever emailed and pushed,
+    // so a family reading the app saw them arrive but never leave.
+    await createInAppNotification({
+      parentEmail: parent.email,
+      type: "attendance",
+      title: `${child.firstName} has been signed out`,
+      body: `Signed out from ${service.name} at ${time}.`,
+      link: `/parent/children`,
+    });
+
+    if (prefs.attendanceEmails) await sendNotificationEmail({
       to: parent.email,
       toName: parent.firstName,
       subject: `${child.firstName} has been signed out`,

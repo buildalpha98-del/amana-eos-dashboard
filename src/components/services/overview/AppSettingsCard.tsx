@@ -3,7 +3,8 @@
 /**
  * Per-centre behaviour toggles, laid out like OWNA's Settings (2026-10-08):
  * one white panel, tabs across the top, each setting a checkbox + bold
- * title + one plain sentence.
+ * title + one plain sentence. Rows are full-width switches since
+ * 2026-10-09: most staff are on a phone or the centre iPad.
  *
  * OWNA's screen has around seventy switches, most for long day care
  * (nappies, bottles, sleep checks). This has five, on purpose: a toggle
@@ -12,6 +13,7 @@
  */
 
 import { useState } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { isAdminRole } from "@/lib/role-permissions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,7 +24,7 @@ import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { cn } from "@/lib/utils";
 
 interface Settings {
-  parents: { canMarkAbsence: boolean };
+  parents: { canMarkAbsence: boolean; attendanceNotifications: boolean; attendanceEmails: boolean };
   posts: { draftByDefault: boolean; onlyApproversPublish: boolean };
   signInOut: { requireSignature: boolean };
   staff: { phoneClockIn: boolean };
@@ -34,8 +36,10 @@ interface Row {
   help: string;
   checked: boolean;
   onChange: (v: boolean) => void;
-  /** Only the office may change it (it restrains the Director). */
+  /** Only the office may change it (it restrains the Coordinator). */
   adminOnly?: boolean;
+  /** Greyed out because another switch makes it moot. */
+  disabledBecause?: string;
 }
 
 const TABS = [
@@ -121,6 +125,21 @@ export function AppSettingsCard({
         checked: current.parents.canMarkAbsence,
         onChange: (v) => set("parents", { canMarkAbsence: v }),
       },
+      {
+        label: "Tell families when their child is signed in and out",
+        help: "A notification in the family app as each child arrives and leaves.",
+        checked: current.parents.attendanceNotifications,
+        onChange: (v) => set("parents", { attendanceNotifications: v }),
+      },
+      {
+        label: "Also email them each time",
+        help: "Two emails a day per child adds up — the app notification is usually enough.",
+        checked: current.parents.attendanceEmails,
+        onChange: (v) => set("parents", { attendanceEmails: v }),
+        disabledBecause: current.parents.attendanceNotifications
+          ? undefined
+          : "Turn on sign in and out notifications first.",
+      },
     ],
     posts: [
       {
@@ -131,7 +150,7 @@ export function AppSettingsCard({
       },
       {
         label: "Only admins can publish posts",
-        help: "The Director can still write; their posts wait for head office to release. Only an admin can change this.",
+        help: "The Coordinator can still write; their posts wait for head office to release. Only an admin can change this.",
         checked: current.posts.onlyApproversPublish,
         onChange: (v) => set("posts", { onlyApproversPublish: v }),
         adminOnly: true,
@@ -166,7 +185,7 @@ export function AppSettingsCard({
               onClick={() => setTab(t.key)}
               aria-current={tab === t.key ? "page" : undefined}
               className={cn(
-                "whitespace-nowrap rounded-t-lg border px-3.5 py-2 text-sm font-medium transition-colors",
+                "min-h-11 whitespace-nowrap rounded-t-lg border px-3.5 text-sm font-medium transition-colors",
                 tab === t.key
                   ? "border-border border-b-card bg-card text-foreground"
                   : "border-transparent text-muted hover:text-foreground",
@@ -188,59 +207,103 @@ export function AppSettingsCard({
                 the Coordinator, and shows as overdue on the Today page. Leave a time blank for no reminder.
               </span>
             </p>
-            <div className="overflow-x-auto">
-              <table className="text-sm">
-                <thead>
-                  <tr>
-                    <th className="pr-4 pb-2 text-left font-medium text-muted" />
+            {/* A card per programme, two times side by side — a table
+                needed sideways scrolling on a phone. */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              {DUE_SESSIONS.map((ses) => (
+                <fieldset key={ses.key} className="rounded-lg border border-border p-3">
+                  <legend className="px-1 text-sm font-semibold text-foreground">{ses.label}</legend>
+                  <div className="grid grid-cols-2 gap-2">
                     {DUE_SECTIONS.map((sec) => (
-                      <th key={sec.key} className="px-2 pb-2 text-left font-semibold text-foreground">
+                      <label key={sec.key} className="text-xs text-muted">
                         {sec.label} by
-                      </th>
+                        <input
+                          type="time"
+                          aria-label={`${ses.label} ${sec.label} due time`}
+                          value={current.checklists.dueTimes[ses.key]?.[sec.key] ?? ""}
+                          disabled={!canEdit}
+                          onChange={(e) => setDue(ses.key, sec.key, e.target.value)}
+                          className="mt-1 block min-h-11 w-full rounded-lg border border-border bg-card px-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        />
+                      </label>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {DUE_SESSIONS.map((ses) => (
-                    <tr key={ses.key}>
-                      <td className="pr-4 py-1 font-medium text-foreground whitespace-nowrap">{ses.label}</td>
-                      {DUE_SECTIONS.map((sec) => (
-                        <td key={sec.key} className="px-2 py-1">
-                          <input
-                            type="time"
-                            aria-label={`${ses.label} ${sec.label} due time`}
-                            value={current.checklists.dueTimes[ses.key]?.[sec.key] ?? ""}
-                            disabled={!canEdit}
-                            onChange={(e) => setDue(ses.key, sec.key, e.target.value)}
-                            className="min-h-10 rounded-lg border border-border bg-card px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/30"
-                          />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </div>
+                </fieldset>
+              ))}
             </div>
           </div>
         )}
-        {tab !== "checklists" && rows[tab].map((r) => (
-          <label key={r.label} className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={r.checked}
-              disabled={!canEdit || (r.adminOnly && !isAdmin)}
-              onChange={(e) => r.onChange(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
-            />
-            <span>
-              <span className="block text-sm font-semibold text-foreground">{r.label}</span>
-              <span className="block text-xs text-muted mt-0.5">{r.help}</span>
-            </span>
-          </label>
-        ))}
+        {tab !== "checklists" && (
+          <ul className="-mx-4 divide-y divide-border sm:-mx-6">
+            {rows[tab].map((r) => {
+              const locked = !canEdit || (r.adminOnly && !isAdmin) || Boolean(r.disabledBecause);
+              return (
+                <li key={r.label}>
+                  {/* The whole row is the switch — a thumb, not a 16px box. */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={r.checked}
+                    disabled={locked}
+                    onClick={() => r.onChange(!r.checked)}
+                    className={cn(
+                      "flex w-full min-h-14 items-center gap-4 px-4 py-3 text-left sm:px-6",
+                      locked ? "cursor-not-allowed opacity-60" : "hover:bg-surface active:bg-surface",
+                    )}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-foreground">{r.label}</span>
+                      <span className="mt-0.5 block text-xs text-muted">
+                        {r.disabledBecause ?? r.help}
+                      </span>
+                    </span>
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors",
+                        r.checked ? "bg-brand" : "bg-border",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "absolute top-0.5 h-6 w-6 rounded-full bg-card shadow transition-transform",
+                          r.checked ? "translate-x-[1.375rem]" : "translate-x-0.5",
+                        )}
+                      />
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {/* Settings that live on their own Configure tab — where people
+            look for them in OWNA's Settings. */}
+        {tab === "families" && (
+          <p className="text-xs text-muted">
+            Casual bookings are set in{" "}
+            <Link href={`/services/${serviceId}?tab=daily&sub=casual-bookings`} className="font-medium text-brand underline underline-offset-2">
+              Casual settings
+            </Link>
+            ; days you&rsquo;re closed in{" "}
+            <Link href={`/services/${serviceId}?tab=overview&sub=closures`} className="font-medium text-brand underline underline-offset-2">
+              Closures
+            </Link>
+            .
+          </p>
+        )}
 
         {canEdit ? (
-          <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
+          <div
+            className={cn(
+              "flex items-center justify-end gap-3 border-t border-border pt-4",
+              // On a phone, unsaved changes keep Save in reach, above the
+              // bottom tab bar (2026-10-09).
+              dirty &&
+                "sticky bottom-16 z-10 -mx-4 bg-card px-4 pb-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] sm:-mx-6 sm:px-6 md:bottom-0",
+            )}
+          >
             <span className="text-xs text-muted mr-auto">
               {dirty ? "Unsaved changes" : "Every switch here changes what the app actually does."}
             </span>
@@ -249,7 +312,7 @@ export function AppSettingsCard({
                 Undo
               </Button>
             )}
-            <Button size="sm" onClick={() => save.mutate(current)} disabled={!dirty || save.isPending}>
+            <Button onClick={() => save.mutate(current)} disabled={!dirty || save.isPending}>
               {save.isPending ? "Saving…" : "Save changes"}
             </Button>
           </div>
