@@ -1,3 +1,4 @@
+import { serviceTodayISO } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -63,10 +64,7 @@ export const GET = withApiAuth(async (req, session, context) => {
   // Echo back the caller's date string when provided — the server's local
   // date computation is only used to build the SQL window, not to mutate the
   // caller's intended "day."
-  const todayLocal = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  })();
+  const todayLocal = serviceTodayISO();
   return NextResponse.json({
     items,
     date: date ?? todayLocal,

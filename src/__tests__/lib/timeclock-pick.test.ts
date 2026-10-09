@@ -21,7 +21,7 @@ function makeShift(
 }
 
 describe("pickEligibleShift — clock in", () => {
-  const now = new Date("2026-05-04T15:00:00");
+  const now = new Date("2026-05-04T15:00:00+10:00");
 
   it("returns 'none' for an empty list", () => {
     expect(pickEligibleShift([], now, "in")).toEqual({ kind: "none" });
@@ -56,7 +56,7 @@ describe("pickEligibleShift — clock in", () => {
 
   it("excludes shifts that have already been clocked in", () => {
     const shift = makeShift("15:00", {
-      actualStart: new Date("2026-05-04T14:55:00"),
+      actualStart: new Date("2026-05-04T14:55:00+10:00"),
     });
     expect(pickEligibleShift([shift], now, "in").kind).toBe("none");
   });
@@ -77,15 +77,15 @@ describe("pickEligibleShift — clock in", () => {
 });
 
 describe("pickEligibleShift — clock out", () => {
-  const now = new Date("2026-05-04T18:30:00");
+  const now = new Date("2026-05-04T18:30:00+10:00");
 
   it("matches the only open (clocked-in) shift", () => {
     const open = makeShift("15:00", {
-      actualStart: new Date("2026-05-04T15:02:00"),
+      actualStart: new Date("2026-05-04T15:02:00+10:00"),
     });
     const closed = makeShift("07:00", {
-      actualStart: new Date("2026-05-04T06:55:00"),
-      actualEnd: new Date("2026-05-04T09:00:00"),
+      actualStart: new Date("2026-05-04T06:55:00+10:00"),
+      actualEnd: new Date("2026-05-04T09:00:00+10:00"),
     });
     const future = makeShift("19:00");
     const result = pickEligibleShift([open, closed, future], now, "out");
@@ -95,8 +95,8 @@ describe("pickEligibleShift — clock out", () => {
 
   it("returns 'none' when no shift is currently open", () => {
     const closed = makeShift("15:00", {
-      actualStart: new Date("2026-05-04T15:00:00"),
-      actualEnd: new Date("2026-05-04T18:00:00"),
+      actualStart: new Date("2026-05-04T15:00:00+10:00"),
+      actualEnd: new Date("2026-05-04T18:00:00+10:00"),
     });
     expect(pickEligibleShift([closed], now, "out").kind).toBe("none");
   });
@@ -106,10 +106,10 @@ describe("pickEligibleShift — clock out", () => {
     // refuses to pick arbitrarily, returns 'ambiguous' for the UI to
     // surface a picker.
     const open1 = makeShift("15:00", {
-      actualStart: new Date("2026-05-04T15:00:00"),
+      actualStart: new Date("2026-05-04T15:00:00+10:00"),
     });
     const open2 = makeShift("16:00", {
-      actualStart: new Date("2026-05-04T16:00:00"),
+      actualStart: new Date("2026-05-04T16:00:00+10:00"),
     });
     const result = pickEligibleShift([open1, open2], now, "out");
     expect(result.kind).toBe("ambiguous");
@@ -118,7 +118,7 @@ describe("pickEligibleShift — clock out", () => {
   it("ignores the ±2h window — staff may clock out hours late", () => {
     const open = makeShift("09:00", {
       shiftEnd: "12:00",
-      actualStart: new Date("2026-05-04T08:55:00"),
+      actualStart: new Date("2026-05-04T08:55:00+10:00"),
     });
     // now is 18:30 — 6+ hours past shiftEnd, but the row is still open.
     expect(pickEligibleShift([open], now, "out").kind).toBe("match");
@@ -127,15 +127,17 @@ describe("pickEligibleShift — clock out", () => {
 
 describe("inferSessionType", () => {
   it("returns 'bsc' before 9am", () => {
-    expect(inferSessionType(new Date("2026-05-04T07:30:00"))).toBe("bsc");
-    expect(inferSessionType(new Date("2026-05-04T08:59:00"))).toBe("bsc");
+    expect(inferSessionType(new Date("2026-05-04T07:30:00+10:00"))).toBe("bsc");
+    expect(inferSessionType(new Date("2026-05-04T08:59:00+10:00"))).toBe("bsc");
   });
   it("returns 'vc' between 9am and 2pm", () => {
-    expect(inferSessionType(new Date("2026-05-04T09:00:00"))).toBe("vc");
-    expect(inferSessionType(new Date("2026-05-04T13:59:00"))).toBe("vc");
+    expect(inferSessionType(new Date("2026-05-04T09:00:00+10:00"))).toBe("vc");
+    expect(inferSessionType(new Date("2026-05-04T13:59:00+10:00"))).toBe("vc");
   });
   it("returns 'asc' from 2pm onward", () => {
-    expect(inferSessionType(new Date("2026-05-04T14:00:00"))).toBe("asc");
-    expect(inferSessionType(new Date("2026-05-04T19:00:00"))).toBe("asc");
+    expect(inferSessionType(new Date("2026-05-04T14:00:00+10:00"))).toBe("asc");
+    expect(inferSessionType(new Date("2026-05-04T19:00:00+10:00"))).toBe("asc");
+    // The server runs in UTC: 6:30am in Sydney is 20:30 the day before.
+    expect(inferSessionType(new Date("2026-05-03T20:30:00Z"))).toBe("bsc");
   });
 });

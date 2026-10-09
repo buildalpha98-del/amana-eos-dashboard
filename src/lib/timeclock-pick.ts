@@ -1,3 +1,4 @@
+import { getLocalDateParts, serviceMidnight } from "@/lib/timezone";
 /**
  * timeclock-pick — pure shift-selection logic for the time-clock APIs.
  *
@@ -38,10 +39,14 @@ export type PickResult =
 /** Combine a `Date`-as-day + an "HH:mm" string into a single
  *  millisecond timestamp. */
 export function shiftStartMs(shift: PickShift): number {
+  // shift.date is a @db.Date (UTC midnight of the centre's date) and the
+  // times are Sydney wall-clock. setHours() on the (UTC) server made a
+  // 3pm shift start at 3pm UTC — 1–2am Sydney — so auto and kiosk clock-ins
+  // never found the shift they were standing in (fixed 2026-10-09).
   const [h, m] = shift.shiftStart.split(":").map(Number);
   const d = new Date(shift.date);
-  d.setHours(h ?? 0, m ?? 0, 0, 0);
-  return d.getTime();
+  const dateOnly = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  return serviceMidnight(dateOnly).getTime() + ((h ?? 0) * 60 + (m ?? 0)) * 60_000;
 }
 
 /**
@@ -92,7 +97,9 @@ export function pickEligibleShift(
  * The admin can correct this when reconciling the unscheduled row.
  */
 export function inferSessionType(now: Date): "bsc" | "asc" | "vc" {
-  const h = now.getHours();
+  // The centre's hour — on the (UTC) server getHours() made a 6:30am
+  // before-school walk-in "ASC" (2026-10-09).
+  const h = getLocalDateParts(now).hour;
   if (h < 9) return "bsc";
   if (h < 14) return "vc";
   return "asc";

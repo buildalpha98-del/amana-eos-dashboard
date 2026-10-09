@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getOrgSettings } from "@/lib/org-settings";
+import { getLocalDateParts, serviceDateOnly } from "@/lib/timezone";
 
 export type SessionTypeKey = "bsc" | "asc" | "vc";
 
@@ -53,12 +54,15 @@ function parseRatio(s: string): { staff: number; children: number } {
 /**
  * `"HH:mm"` comparison works lexicographically when zero-padded.
  */
+/** The centre's wall-clock "HH:MM" — shift times are Sydney times. */
 function hhmmNow(now: Date): string {
-  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const { hour, minute } = getLocalDateParts(now);
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
+/** The centre's date as a @db.Date value (the server runs in UTC). */
 function dayStartLocal(now: Date): Date {
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return serviceDateOnly(now);
 }
 
 /**

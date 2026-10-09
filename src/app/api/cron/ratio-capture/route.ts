@@ -1,3 +1,4 @@
+import { serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
@@ -41,7 +42,7 @@ export async function GET(req: Request) {
         await prisma.ratioSnapshot.create({
           data: {
             serviceId: r.serviceId,
-            date: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+            date: serviceDateOnly(now), // the centre's date (@db.Date)
             sessionType: r.sessionType,
             capturedAt: r.capturedAt,
             educatorCount: r.educatorCount,
