@@ -28,6 +28,7 @@ import { RollCallCallout } from "@/components/my-day/RollCallCallout";
 import { QuickActions } from "@/components/my-day/QuickActions";
 import { TodayChecklistCard } from "@/components/my-portal/TodayChecklistCard";
 import { OpenShiftsCard } from "@/components/my-portal/OpenShiftsCard";
+import { RosterAckCard } from "@/components/my-portal/RosterAckCard";
 import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
 
 export default function MyDayPage() {
@@ -88,6 +89,8 @@ export default function MyDayPage() {
       {serviceId && !isEducator && <TodayChecklistCard serviceId={serviceId} />}
 
       {/* Claimable open shifts — quiet by default. */}
+      {/* New or changed shifts to confirm (2026-10-09). */}
+      {userId && <RosterAckCard userId={userId} />}
       <OpenShiftsCard />
 
       {/* The week ahead. */}

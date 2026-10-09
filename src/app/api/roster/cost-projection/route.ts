@@ -47,6 +47,11 @@ export const GET = withApiAuth(async (req, session) => {
   if (!isAdminRole(role) && callerServiceId !== serviceId) {
     throw ApiError.forbidden("You can only view cost data for your own service.");
   }
+  // Wages are for the people who run the roster — not educators
+  // (2026-10-09, Daniel). The chip is hidden for them too.
+  if (!isAdminRole(role) && role !== "member") {
+    throw ApiError.forbidden("Roster costs are for the centre's Coordinator and the office.");
+  }
 
   const start = new Date(weekStart);
   const end = new Date(start);

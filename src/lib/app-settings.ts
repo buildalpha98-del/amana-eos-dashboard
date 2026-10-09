@@ -87,6 +87,13 @@ export const appSettingsSchema = z.object({
        * ignores this switch entirely.
        */
       phoneClockIn: z.boolean().optional(),
+      /**
+       * Open shifts go to the first educator who taps "Claim". OFF by
+       * default (2026-10-09, OWNA's shift bidding): educators tap "I'm
+       * interested" and the Coordinator chooses — fairness, and the
+       * Coordinator can weigh certificates and overtime.
+       */
+      instantClaim: z.boolean().optional(),
     })
     .optional(),
 });
@@ -103,7 +110,7 @@ export const APP_SETTINGS_DEFAULTS = {
   parents: { canMarkAbsence: true, attendanceNotifications: true, attendanceEmails: false },
   posts: { draftByDefault: false, onlyApproversPublish: false },
   signInOut: { requireSignature: false },
-  staff: { phoneClockIn: true },
+  staff: { phoneClockIn: true, instantClaim: false },
   checklists: { dueTimes: {} },
 } as const;
 
@@ -113,7 +120,7 @@ export type ResolvedAppSettings = {
   parents: { canMarkAbsence: boolean; attendanceNotifications: boolean; attendanceEmails: boolean };
   posts: { draftByDefault: boolean; onlyApproversPublish: boolean };
   signInOut: { requireSignature: boolean };
-  staff: { phoneClockIn: boolean };
+  staff: { phoneClockIn: boolean; instantClaim: boolean };
   checklists: { dueTimes: ChecklistDueTimes };
 };
 
@@ -159,6 +166,8 @@ export function resolveAppSettings(raw: unknown): ResolvedAppSettings {
     staff: {
       phoneClockIn:
         v.staff?.phoneClockIn ?? APP_SETTINGS_DEFAULTS.staff.phoneClockIn,
+      instantClaim:
+        v.staff?.instantClaim ?? APP_SETTINGS_DEFAULTS.staff.instantClaim,
     },
     checklists: {
       dueTimes: (v.checklists?.dueTimes ?? {}) as ChecklistDueTimes,

@@ -14,7 +14,7 @@
  */
 
 import { Sparkles, Loader2 } from "lucide-react";
-import { useOpenShifts, useClaimShift, type OpenShift } from "@/hooks/useOpenShifts";
+import { useOpenShifts, useClaimShift, useShiftInterest, type OpenShift } from "@/hooks/useOpenShifts";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +35,7 @@ function formatDate(iso: string): string {
 export function OpenShiftsCard() {
   const { data, isLoading, error } = useOpenShifts();
   const claim = useClaimShift();
+  const interest = useShiftInterest();
 
   // Hide the card entirely on an empty / errored state — there's no
   // value in showing "no open shifts" placeholder noise on My Portal.
@@ -55,7 +56,7 @@ export function OpenShiftsCard() {
       <header className="flex items-center gap-2 mb-3">
         <Sparkles className="w-4 h-4 text-amber-600" />
         <h3 className="text-sm font-semibold text-foreground">
-          Open shifts you can claim
+          Open shifts
         </h3>
         <span className="ml-auto text-xs text-muted">
           {shifts.length} available
@@ -68,7 +69,8 @@ export function OpenShiftsCard() {
             key={s.id}
             shift={s}
             onClaim={(id) => claim.mutate({ shiftId: id })}
-            disabled={claim.isPending}
+            onInterest={(id, on) => interest.mutate({ shiftId: id, interested: on })}
+            disabled={claim.isPending || interest.isPending}
           />
         ))}
       </ul>
@@ -79,10 +81,12 @@ export function OpenShiftsCard() {
 function OpenShiftRow({
   shift,
   onClaim,
+  onInterest,
   disabled,
 }: {
   shift: OpenShift;
   onClaim: (id: string) => void;
+  onInterest: (id: string, interested: boolean) => void;
   disabled: boolean;
 }) {
   const sessionLabel = SESSION_LABEL[shift.sessionType] ?? shift.sessionType.toUpperCase();
@@ -101,20 +105,41 @@ function OpenShiftRow({
           {shift.role ? <span className="text-muted font-normal"> · {shift.role}</span> : null}
         </p>
       </div>
-      <button
-        type="button"
-        onClick={() => onClaim(shift.id)}
-        disabled={disabled}
-        className={cn(
-          "min-h-[44px] inline-flex items-center gap-1.5 px-3 py-1.5",
-          "rounded-lg text-sm font-medium",
-          "bg-brand text-white hover:bg-brand-hover transition-colors",
-          "disabled:opacity-50 disabled:cursor-not-allowed",
-        )}
-      >
-        {disabled ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-        Claim
-      </button>
+      {shift.mode === "claim" ? (
+        <button
+          type="button"
+          onClick={() => onClaim(shift.id)}
+          disabled={disabled}
+          className={cn(
+            "min-h-[44px] inline-flex items-center gap-1.5 px-3 py-1.5",
+            "rounded-lg text-sm font-medium",
+            "bg-brand text-white hover:bg-brand-hover transition-colors",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+          )}
+        >
+          {disabled ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+          Claim
+        </button>
+      ) : (
+        // The Coordinator chooses (2026-10-09): put your hand up, or take
+        // it back. Pressed state is the button itself, not a toast you
+        // might miss.
+        <button
+          type="button"
+          aria-pressed={shift.interestedByMe}
+          onClick={() => onInterest(shift.id, !shift.interestedByMe)}
+          disabled={disabled}
+          className={cn(
+            "min-h-[44px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            shift.interestedByMe
+              ? "bg-green-50 text-green-800 border border-green-300 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800"
+              : "bg-brand text-white hover:bg-brand-hover",
+          )}
+        >
+          {shift.interestedByMe ? "You're interested ✓" : "I'm interested"}
+        </button>
+      )}
     </li>
   );
 }

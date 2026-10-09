@@ -25,6 +25,12 @@ export interface OpenShift {
   status: string;
   staffName: string;
   service: { id: string; name: string; code: string };
+  /** "interest": the Coordinator chooses (default). "claim": first tap wins. */
+  mode: "interest" | "claim";
+  interestedByMe: boolean;
+  interestedCount: number;
+  /** Names of who asked — only for people who choose. */
+  interested?: { userId: string; name: string }[];
 }
 
 interface ListResponse {
@@ -98,5 +104,40 @@ export function useReleaseShift() {
         description: err.message || "Couldn't release that shift",
       });
     },
+  });
+}
+
+/** "I'm interested" / take it back (2026-10-09). */
+export function useShiftInterest() {
+  const qc = useQueryClient();
+  return useMutation<unknown, Error, { shiftId: string; interested: boolean }>({
+    mutationFn: ({ shiftId, interested }) =>
+      mutateApi(`/api/roster/shifts/${shiftId}/interest`, { method: interested ? "POST" : "DELETE" }),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["open-shifts"] });
+      toast({
+        description: v.interested
+          ? "Done — your Coordinator will let you know."
+          : "Okay, you're no longer down for that shift.",
+      });
+    },
+    onError: (err) => toast({ variant: "destructive", description: err.message || "Couldn't update that" }),
+  });
+}
+
+/** Coordinator gives an open shift to one of the people who asked. */
+export function useAwardShift() {
+  const qc = useQueryClient();
+  return useMutation<unknown, Error, { shiftId: string; userId: string; name: string }>({
+    mutationFn: ({ shiftId, userId }) =>
+      mutateApi(`/api/roster/shifts/${shiftId}`, { method: "PATCH", body: { userId } }),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["open-shifts"] });
+      qc.invalidateQueries({ queryKey: ["roster-shifts"] });
+      qc.invalidateQueries({ queryKey: ["roster-cost"] });
+      qc.invalidateQueries({ queryKey: ["roster-ack-status"] });
+      toast({ description: `Shift given to ${v.name}. Everyone who asked has been told.` });
+    },
+    onError: (err) => toast({ variant: "destructive", description: err.message || "Couldn't assign that shift" }),
   });
 }

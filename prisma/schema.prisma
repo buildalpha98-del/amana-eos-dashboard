@@ -1009,6 +1009,7 @@ model User {
   // top of User.serviceId (which stays as the primary/home service). Lets a
   // single staff member be at multiple centres with per-service role+access.
   serviceMemberships UserServiceMembership[] @relation("UserMemberships")
+  shiftInterests     ShiftInterest[]         @relation("UserShiftInterests")
 
   // 2026-07-23: family balance follow-up contacts this user logged.
   familyBalanceContactsCreated FamilyBalanceContact[] @relation("FamilyBalanceContactCreator")
@@ -2964,11 +2965,11 @@ model Service {
   /// Overall NQS rating: Excellent | Exceeding | Meeting | Working Towards
   /// | Significant Improvement Required | Provisional. Feeds the centre
   /// health score (it used to read a CentreMetrics field nothing filled).
-  nqsRating          String?
-  nqsLastAssessedAt  DateTime? @db.Date
+  nqsRating           String?
+  nqsLastAssessedAt   DateTime? @db.Date
   nqsNextAssessmentAt DateTime? @db.Date
   /// Per quality area: { "QA1": "Meeting", … "QA7": "Exceeding" }.
-  nqsQaRatings       Json?
+  nqsQaRatings        Json?
 
   /// The centre's fee POLICY — late collection, absence charging,
   /// cancellation, enrolment fee and bond, payment terms. Validated by
@@ -4953,35 +4954,35 @@ enum PolicyDocumentCategory {
 }
 
 model PolicyDocument {
-  id               String                  @id @default(cuid())
-  title            String                  @unique
-  description      String?                 @db.Text
-  category         PolicyDocumentCategory  @default(policy)
-  currentVersionId String?                 @unique
-  currentVersion   PolicyDocumentVersion?  @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
-  versions         PolicyDocumentVersion[] @relation("DocumentVersions")
-  isArchived       Boolean                 @default(false)
+  id                      String                  @id @default(cuid())
+  title                   String                  @unique
+  description             String?                 @db.Text
+  category                PolicyDocumentCategory  @default(policy)
+  currentVersionId        String?                 @unique
+  currentVersion          PolicyDocumentVersion?  @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  versions                PolicyDocumentVersion[] @relation("DocumentVersions")
+  isArchived              Boolean                 @default(false)
   // 2026-10-07: policies synced from the SharePoint master folder
   // (src/lib/sharepoint-policies.ts). Null on hand-uploaded documents.
-  sharepointItemId   String?   @unique
-  sharepointETag     String?
-  sharepointWebUrl   String?
-  sharepointSyncedAt DateTime?
+  sharepointItemId        String?                 @unique
+  sharepointETag          String?
+  sharepointWebUrl        String?
+  sharepointSyncedAt      DateTime?
   /// "NSW" / "VIC" for state-specific policies; null = applies everywhere.
-  state              String?
+  state                   String?
   /// Staff must sign it. True for hand-uploaded documents (unchanged
   /// behaviour); SharePoint-synced ones arrive false — a reading library —
   /// and an admin switches it on for the ones that need a signature.
-  requiresAcknowledgement Boolean @default(true)
+  requiresAcknowledgement Boolean                 @default(true)
   /// A KEY policy: every new starter reads its short version and signs it
   /// before their first shift (My Training + the get-ready checklist).
   /// Code of Conduct and Privacy by default (src/lib/key-policy-summaries.ts).
-  keyPolicy               Boolean @default(false)
+  keyPolicy               Boolean                 @default(false)
   /// Admin-written plain-English summary shown on the sign screen; null =
   /// the built-in default for that policy (if any).
-  summary                 String? @db.Text
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
+  summary                 String?                 @db.Text
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
 
   @@index([category])
   @@index([isArchived])
@@ -5810,6 +5811,13 @@ model RosterShift {
   // is rendered in the per-service Weekly Shifts grid.
   actualStart       DateTime?
   actualEnd         DateTime?
+  /// 2026-10-09 (OWNA parity): when the rostered educator tapped "I've
+  /// seen my shifts". Cleared whenever the shift's date, times, centre or
+  /// person change, so a changed shift has to be seen again.
+  acknowledgedAt    DateTime?
+  /// Educators who put their hand up for this OPEN shift ("I'm
+  /// interested"); the Coordinator picks one. Cleared once it's assigned.
+  interests         ShiftInterest[]
 
   /// 2026-09-04: was ([serviceId, date, staffName, shiftStart]) — keying on
   /// a denormalised display name meant two open shifts ("Open shift") at
@@ -5973,6 +5981,22 @@ model Kiosk {
 /// 2026-05-04: introduced as the smallest piece of the larger
 /// drag-to-create + templates spec. Templates ship now; drag-from-
 /// template-onto-grid is a follow-up.
+/// "I'm interested" on an open shift (2026-10-09, OWNA's shift bidding).
+/// The centre's Coordinator chooses between the people who asked, rather
+/// than the first tap winning — unless the centre keeps first-to-claim
+/// (appSettings.staff.openShiftMode = "claim").
+model ShiftInterest {
+  id        String      @id @default(cuid())
+  shiftId   String
+  shift     RosterShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation("UserShiftInterests", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([shiftId, userId])
+  @@index([userId])
+}
+
 model ShiftTemplate {
   id          String      @id @default(cuid())
   serviceId   String

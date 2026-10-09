@@ -27,7 +27,7 @@ interface Settings {
   parents: { canMarkAbsence: boolean; attendanceNotifications: boolean; attendanceEmails: boolean };
   posts: { draftByDefault: boolean; onlyApproversPublish: boolean };
   signInOut: { requireSignature: boolean };
-  staff: { phoneClockIn: boolean };
+  staff: { phoneClockIn: boolean; instantClaim: boolean };
   checklists: { dueTimes: Partial<Record<"bsc" | "asc" | "vc", Record<string, string>>> };
 }
 
@@ -170,6 +170,12 @@ export function AppSettingsCard({
         help: "Off means the centre's kiosk is the only way to clock in or out — nobody can clock out from the car park or from home.",
         checked: current.staff.phoneClockIn,
         onChange: (v) => set("staff", { phoneClockIn: v }),
+      },
+      {
+        label: "Open shifts go to whoever taps first",
+        help: "Off means educators tap \u201cI\u2019m interested\u201d and you choose who gets the shift.",
+        checked: current.staff.instantClaim,
+        onChange: (v) => set("staff", { instantClaim: v }),
       },
     ],
   };
