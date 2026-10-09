@@ -126,7 +126,7 @@ export const GET = withApiAuth(async (req, session) => {
         "Content-Length": fileStat.size.toString(),
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
-        "Content-Security-Policy": "sandbox; default-src 'none'",
+        ...(contentType !== "application/pdf" ? { "Content-Security-Policy": "sandbox; default-src 'none'" } : {}),
       },
     });
   } catch (err: unknown) {

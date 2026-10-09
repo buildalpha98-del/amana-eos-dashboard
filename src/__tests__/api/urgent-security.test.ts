@@ -65,6 +65,7 @@ describe("authorised document delivery", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("PDF", { headers: { "content-type": "application/pdf" } })));
     const inline = await download(createRequest("GET", "/api/documents/download?id=visible"));
     expect(inline.headers.get("content-disposition")).toMatch(/^inline;/);
+    expect(inline.headers.get("content-security-policy") ?? "").not.toContain("sandbox");
     const attachment = await download(createRequest("GET", "/api/documents/download?id=visible&download=1"));
     expect(attachment.headers.get("content-disposition")).toMatch(/^attachment;/);
   });

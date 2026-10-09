@@ -108,10 +108,13 @@ export async function streamStoredFile(
   // Only inert document formats may render on the application origin.
   // Never forward HTML, SVG or an unknown active MIME type as inline content.
   const inlineSafe = INLINE_SAFE_TYPES.has(contentType.split(";")[0].trim().toLowerCase());
+  const isPdf = contentType.split(";")[0].trim().toLowerCase() === "application/pdf";
   const headers: Record<string, string> = {
     "Content-Type": inlineSafe ? contentType : "application/octet-stream",
     "Content-Disposition": dispositionFor(opts.fileName, opts.download === true || !inlineSafe),
-    "Content-Security-Policy": "sandbox; default-src 'none'",
+    // CSP sandbox disables native PDF viewers in some browsers. PDFs are
+    // handled by the browser's PDF viewer, with nosniff enforced below.
+    ...(!isPdf ? { "Content-Security-Policy": "sandbox; default-src 'none'" } : {}),
     // HR documents: never let a shared or intermediary cache keep a copy.
     "Cache-Control": "private, no-store, no-cache, must-revalidate",
     "X-Content-Type-Options": "nosniff",
