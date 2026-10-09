@@ -11,6 +11,8 @@
  * floor staff) — the same gate the roll call uses, because this page
  * shows the same children.
  */
+import { getOrgSettings } from "@/lib/org-settings";
+import { resolveMinRatio, type SessionTypeKey } from "@/lib/ratio-compute";
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalDateParts, serviceDayBounds } from "@/lib/timezone";
 import { prisma } from "@/lib/prisma";
@@ -48,9 +50,11 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
       code: true,
       capacity: true,
       sessionTimes: true,
+      ratioSettings: true,
     },
   });
   if (!service) throw ApiError.notFound("Service not found");
+  const federalDefault = (await getOrgSettings()).ratios.federalDefaultMinRatio;
 
   const sessionTimes = (service.sessionTimes ?? null) as SessionTimes | null;
   const keys = activeSessionKeys(sessionTimes);
@@ -68,7 +72,7 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
     unreadHandovers,
     postsAwaitingApproval,
     purchaseApprovalsPending,
-    visitorsOnSite,
+    visitorList,
     hazardsOpen,
   ] = await Promise.all([
     prisma.attendanceRecord.findMany({
@@ -150,7 +154,12 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
     prisma.parentPost.count({ where: { serviceId: id, status: "draft" } }),
     prisma.purchaseApproval.count({ where: { serviceId: id, status: "pending" } }),
     // Visitors still signed in — the register is a regulatory record.
-    prisma.serviceVisitor.count({ where: { serviceId: id, signedOutAt: null } }),
+    // Who's on site, not just how many (2026-10-09, Today like OWNA's home).
+    prisma.serviceVisitor.findMany({
+      where: { serviceId: id, signedOutAt: null },
+      select: { id: true, name: true, organisation: true, signedInAt: true },
+      orderBy: { signedInAt: "asc" },
+    }),
     // Hazards not yet fixed (2026-10-09, the hazard & maintenance log).
     prisma.hazardReport.count({ where: { serviceId: id, status: { not: "fixed" } } }),
   ]);
@@ -192,6 +201,17 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
 
     const rp = rpBySession.get(k);
 
+    // Staff actually clocked in for this programme — the ratio that counts
+    // (2026-10-09) — against what the room's minimum ratio needs for the
+    // children signed in right now.
+    const clockedIn = shifts.filter(
+      (s) => (s.sessionType as string) === k && s.actualStart && !s.actualEnd,
+    ).length;
+    const minRatio = resolveMinRatio(service.ratioSettings, key as SessionTypeKey, federalDefault);
+    const [perStaff, perChildren] = minRatio.split(":").map(Number);
+    const required =
+      inCare.length > 0 ? Math.ceil(inCare.length / (perChildren || 15)) * (perStaff || 1) : 0;
+
     return {
       key: k,
       name: roomLabel(sessionTimes, key),
@@ -201,6 +221,10 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
       absent: absent.length,
       casual: casualBySession.get(k) ?? 0,
       educatorsOnFloor: onFloor.length,
+      staffClockedIn: clockedIn,
+      staffRequired: required,
+      minRatio,
+      inRatio: clockedIn >= required,
       leader: rp?.personName ?? null,
       leaderRole: rp?.personRole ?? null,
       children: inCare
@@ -233,7 +257,8 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
       name: s.user?.name ?? s.staffName,
       role: s.role,
       avatar: s.user?.avatar ?? null,
-      since: s.actualStart,
+      // "HH:MM" at the centre — this went out as a raw timestamp.
+      since: s.actualStart ? hhmm(s.actualStart) : null,
     }));
 
   const checklistsOutstanding = checklists.filter(
@@ -265,6 +290,12 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
       notCheckedIn,
       rosteredToday: shifts.length,
     },
+    visitors: visitorList.map((v) => ({
+      id: v.id,
+      name: v.name,
+      organisation: v.organisation,
+      since: hhmm(v.signedInAt),
+    })),
     attention: {
       medicationsGivenToday: medicationCount,
       checklistsOutstanding,
@@ -274,7 +305,7 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
       handoversToday: unreadHandovers,
       postsAwaitingApproval,
       purchaseApprovalsPending,
-      visitorsOnSite,
+      visitorsOnSite: visitorList.length,
       hazardsOpen,
     },
   });
@@ -298,6 +329,12 @@ export type ServiceDashboardResponse = {
     absent: number;
     casual: number;
     educatorsOnFloor: number;
+    /** Staff clocked in for this programme now. */
+    staffClockedIn: number;
+    /** Staff the room's minimum ratio needs for the children in care. */
+    staffRequired: number;
+    minRatio: string;
+    inRatio: boolean;
     leader: string | null;
     leaderRole: string | null;
     children: Array<{ id: string; name: string }>;
@@ -318,6 +355,7 @@ export type ServiceDashboardResponse = {
     }>;
     rosteredToday: number;
   };
+  visitors: Array<{ id: string; name: string; organisation: string | null; since: string }>;
   attention: {
     medicationsGivenToday: number;
     checklistsOutstanding: number;

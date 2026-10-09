@@ -276,6 +276,36 @@ describe("GET /api/services/[id]/dashboard", () => {
     expect(body.attention.checklistsOutstanding).toBe(2);
   });
 
+  it("works out each room's ratio from staff clocked in vs children in care", async () => {
+    mockSession({ id: "u-1", name: "Ed", role: "staff", serviceId: "svc-1" });
+    const kids = Array.from({ length: 20 }, (_, i) => ({
+      childId: `k${i}`,
+      sessionType: "asc",
+      status: "present",
+      signInTime: new Date(),
+      signOutTime: null,
+      child: { id: `k${i}`, firstName: "Kid", surname: String(i) },
+    }));
+    setup({
+      service: { ratioSettings: { asc: { ratio: "1:15" } } },
+      attendance: kids,
+      shifts: [
+        // One educator clocked in for ASC; one rostered but not in yet.
+        { id: "s1", userId: "u1", staffName: "Sarah", role: null, sessionType: "asc", ...ALL_DAY, actualStart: new Date(), actualEnd: null, user: { id: "u1", name: "Sarah", avatar: null } },
+        { id: "s2", userId: "u2", staffName: "Omar", role: null, sessionType: "asc", ...ALL_DAY, actualStart: null, actualEnd: null, user: { id: "u2", name: "Omar", avatar: null } },
+      ],
+    });
+    prismaMock.serviceVisitor.findMany.mockResolvedValue([
+      { id: "v1", name: "Hina Asif", organisation: null, signedInAt: new Date() },
+    ]);
+    const body = await (await GET(req(), ctx())).json();
+    const asc = body.programmes.find((p: { key: string }) => p.key === "asc");
+    // 20 children at 1:15 needs 2; only 1 is clocked in (2 rostered).
+    expect(asc).toMatchObject({ inCare: 20, staffClockedIn: 1, staffRequired: 2, minRatio: "1:15", inRatio: false, educatorsOnFloor: 2 });
+    expect(body.visitors).toEqual([expect.objectContaining({ name: "Hina Asif" })]);
+    expect(body.attention.visitorsOnSite).toBe(1);
+  });
+
   it("404s for a service that doesn't exist", async () => {
     mockSession({ id: "u-1", name: "Admin", role: "admin" });
     setup();

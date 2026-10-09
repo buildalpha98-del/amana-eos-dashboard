@@ -80,7 +80,6 @@ export const DAILY_OPS_BASE_SUBTABS: SubTab[] = [
   // about the day is part of running the day.
   { key: "posts", label: "Posts", icon: MessageCircle },
   { key: "medication", label: "Medication", icon: Activity },
-  { key: "ratios", label: "Ratios", icon: Users },
   { key: "roster", label: "Weekly Roster", icon: CalendarDays },
   { key: "checklists", label: "Checklists", icon: ClipboardCheck },
 ];
@@ -95,6 +94,9 @@ const SECTION_ALIASES: Record<string, { tab: string; sub?: string }> = {
   "daily:sign-in-out": { tab: "daily", sub: "roll-call" },
   // Children and Families became sections of their own (2026-10-09).
   "daily:children": { tab: "children" },
+  // Live ratio is on each room's card on Today; the history is the
+  // Compliance → Ratio log (2026-10-09).
+  "daily:ratios": { tab: "compliance", sub: "ratios" },
   "family:children": { tab: "children" },
   "family:families": { tab: "families" },
   "family:": { tab: "families" },
@@ -238,6 +240,7 @@ export const tabGroups: TabGroup[] = [
       { key: "hazards", label: "Hazards", icon: Wrench },
       { key: "risk", label: "Risk", icon: ShieldCheck },
       { key: "headcounts", label: "Headcounts", icon: Users },
+      { key: "ratios", label: "Ratio log", icon: Users },
       { key: "registers", label: "Visitors & registers", icon: ClipboardList },
       { key: "comms", label: "Comms", icon: Radio },
     ],
@@ -288,7 +291,7 @@ export const tabGroups: TabGroup[] = [
  */
 const EDUCATOR_SECTIONS: Record<string, string[]> = {
   today: [],
-  daily: ["roll-call", "medication", "checklists", "posts", "ratios"],
+  daily: ["roll-call", "medication", "checklists", "posts"],
   children: [],
   program: ["activities", "menu", "observations"],
   compliance: ["incidents", "hazards", "headcounts", "registers", "risk"],

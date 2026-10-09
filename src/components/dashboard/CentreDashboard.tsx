@@ -425,11 +425,7 @@ export function CentreDashboard({
                 </div>
                 {s.since && (
                   <p className="text-xs text-muted">
-                    since{" "}
-                    {new Date(s.since).toLocaleTimeString("en-AU", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
+                    since {s.since}
                   </p>
                 )}
               </li>
