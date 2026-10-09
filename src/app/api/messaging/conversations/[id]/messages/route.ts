@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
-import { assertServiceAccess } from "@/lib/authz-scope";
+import { assertServiceAccess, MESSAGING_ROLES } from "@/lib/authz-scope";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendNewMessageNotification } from "@/lib/notifications/messaging";
@@ -59,4 +59,4 @@ export const POST = withApiAuth(async (req, session, context) => {
   sendNewMessageNotification(message.id).catch((err) => logger.error("Failed to send new message notification", { err, messageId: message.id }));
 
   return NextResponse.json(message, { status: 201 });
-});
+}, { roles: [...MESSAGING_ROLES] });

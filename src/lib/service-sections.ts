@@ -32,6 +32,7 @@ import {
   LayoutList,
   LogIn,
   MessageCircle,
+  MessageSquare,
   Mountain,
   Radio,
   Receipt,
@@ -180,6 +181,16 @@ export const tabGroups: TabGroup[] = [
     icon: Users,
     subTabs: [],
   },
+  // The centre's parent messages (2026-10-09, Daniel's decision): the
+  // same conversations the office sees in the Contact Centre, locked to
+  // this centre. Coordinators, the centre login and the office — never
+  // educators (canSeeMessages).
+  {
+    key: "messages",
+    label: "Messages",
+    icon: MessageSquare,
+    subTabs: [],
+  },
   {
     key: "program",
     label: "Program",
@@ -291,6 +302,8 @@ export function visibleServiceSections(opts: {
   canSeeCasualBookings: boolean;
   /** Admin tier or a Director — Documents → Staff files. */
   canSeeStaffFiles: boolean;
+  /** Admin tier, or this centre's Coordinator / centre login — parent messages. */
+  canSeeMessages?: boolean;
 }): TabGroup[] {
   if (opts.isEducator) {
     return tabGroups
@@ -306,6 +319,7 @@ export function visibleServiceSections(opts: {
   }
   return tabGroups
     .filter((g) => !g.adminOnly || opts.isAdminPlus)
+    .filter((g) => g.key !== "messages" || opts.canSeeMessages)
     .map((g) => {
       let subTabs = g.subTabs;
       // Strip admin-only sub-tabs (Weekly Data) for non-admins. Server

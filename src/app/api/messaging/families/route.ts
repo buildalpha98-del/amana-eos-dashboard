@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
-import { resolveServiceIdFilter } from "@/lib/authz-scope";
+import { resolveServiceIdFilter, MESSAGING_ROLES } from "@/lib/authz-scope";
 
 // ---------------------------------------------------------------------------
 // GET — List families (CentreContacts) for a service, used in message compose
@@ -34,4 +34,4 @@ export const GET = withApiAuth(async (req: NextRequest, session) => {
   });
 
   return NextResponse.json(families);
-});
+}, { roles: [...MESSAGING_ROLES] });

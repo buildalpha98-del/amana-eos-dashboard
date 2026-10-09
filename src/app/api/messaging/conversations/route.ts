@@ -5,7 +5,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendNewMessageNotification } from "@/lib/notifications/messaging";
 import { logger } from "@/lib/logger";
-import { assertServiceAccess, serviceScopeFilter } from "@/lib/authz-scope";
+import { assertServiceAccess, serviceScopeFilter, MESSAGING_ROLES } from "@/lib/authz-scope";
 import { attachmentUrlsField } from "@/lib/schemas/message-attachments";
 
 // ---------------------------------------------------------------------------
@@ -64,7 +64,7 @@ export const GET = withApiAuth(async (req: NextRequest, session) => {
   }));
 
   return NextResponse.json(result);
-});
+}, { roles: [...MESSAGING_ROLES] });
 
 // ---------------------------------------------------------------------------
 // POST — Create a new conversation with first message
@@ -136,4 +136,4 @@ export const POST = withApiAuth(async (req: NextRequest, session) => {
   }
 
   return NextResponse.json(conversation, { status: 201 });
-});
+}, { roles: [...MESSAGING_ROLES] });

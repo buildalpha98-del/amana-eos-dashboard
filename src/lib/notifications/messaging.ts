@@ -147,7 +147,12 @@ export async function sendNewMessageNotification(
           <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
             Log in to the dashboard to read and reply.
           </p>
-          ${buttonHtml("View Message", `${PORTAL_URL}/messaging`)}
+          ${buttonHtml(
+            "View Message",
+            // Their centre's Messages (2026-10-09). /messaging is an office
+            // page a Coordinator can't open, so the button led nowhere.
+            `${PORTAL_URL}/services/${conversation.service.id}?tab=messages`,
+          )}
         `),
         type: "message_new",
         relatedId: messageId,

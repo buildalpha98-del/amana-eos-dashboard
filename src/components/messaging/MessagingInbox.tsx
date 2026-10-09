@@ -51,10 +51,18 @@ const STATUS_TABS = [
 
 // ── Main Component ─────────────────────────────────────────
 
-export function MessagingInbox() {
+/**
+ * The parent-messages inbox. One set of conversations, two views
+ * (2026-10-09, Daniel's decision): the office sees every centre in the
+ * Contact Centre; a centre's Coordinators and centre login see the same
+ * threads, locked to their centre, from the centre page. Replies land in
+ * both places because they ARE the same thread — nothing is copied.
+ */
+export function MessagingInbox({ lockedServiceId }: { lockedServiceId?: string } = {}) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [status, setStatus] = useState("open");
-  const [serviceId, setServiceId] = useState("");
+  const [pickedServiceId, setServiceId] = useState("");
+  const serviceId = lockedServiceId ?? pickedServiceId;
   const [search, setSearch] = useState("");
   const [newMsgOpen, setNewMsgOpen] = useState(false);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
@@ -78,7 +86,14 @@ export function MessagingInbox() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+    <div
+      className={cn(
+        "flex overflow-hidden rounded-xl border border-border bg-card shadow-sm",
+        // On the centre page it sits under the centre header and above
+        // the phone tab bar, so it gets the space that's left.
+        lockedServiceId ? "h-[calc(100dvh-16rem)] min-h-[28rem] lg:h-[calc(100dvh-12rem)]" : "h-[calc(100vh-7rem)]",
+      )}
+    >
       {/* ── Left panel: conversation list ─────────────── */}
       <div
         className={cn(
@@ -123,7 +138,7 @@ export function MessagingInbox() {
           </div>
 
           {/* Service filter */}
-          {services && services.length > 1 && (
+          {!lockedServiceId && services && services.length > 1 && (
             <select
               value={serviceId}
               onChange={(e) => setServiceId(e.target.value)}
@@ -177,6 +192,7 @@ export function MessagingInbox() {
                 conversation={conv}
                 isActive={selectedId === conv.id}
                 onClick={() => handleSelect(conv.id)}
+                hideService={Boolean(lockedServiceId)}
               />
             ))
           )}
@@ -210,6 +226,7 @@ export function MessagingInbox() {
 
       {/* Dialogs */}
       <NewMessageDialog
+        lockedServiceId={lockedServiceId}
         open={newMsgOpen}
         onOpenChange={setNewMsgOpen}
         onCreated={(id) => {
@@ -217,7 +234,7 @@ export function MessagingInbox() {
           setMobileThread(true);
         }}
       />
-      <BroadcastDialog open={broadcastOpen} onOpenChange={setBroadcastOpen} />
+      <BroadcastDialog lockedServiceId={lockedServiceId} open={broadcastOpen} onOpenChange={setBroadcastOpen} />
     </div>
   );
 }
@@ -228,9 +245,12 @@ function ConversationRow({
   conversation: conv,
   isActive,
   onClick,
+  hideService,
 }: {
   conversation: ConversationListItem;
   isActive: boolean;
+  /** On a centre's own inbox every row is that centre. */
+  hideService?: boolean;
   onClick: () => void;
 }) {
   const familyName = [conv.family.firstName, conv.family.lastName]
@@ -257,7 +277,7 @@ function ConversationRow({
               </span>
             )}
           </div>
-          <p className="text-xs text-muted mt-0.5">{conv.service.name}</p>
+          {!hideService && <p className="text-xs text-muted mt-0.5">{conv.service.name}</p>}
           <p className="text-xs text-foreground/70 mt-0.5 truncate">
             {conv.subject}
           </p>
@@ -575,16 +595,18 @@ function ConversationThread({
 // ── New Message Dialog ─────────────────────────────────────
 
 function NewMessageDialog({
+  lockedServiceId,
   open,
   onOpenChange,
   onCreated,
 }: {
+  lockedServiceId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: (id: string) => void;
 }) {
   const { data: services } = useServices();
-  const [serviceId, setServiceId] = useState("");
+  const [serviceId, setServiceId] = useState(lockedServiceId ?? "");
   const { data: families } = useFamilies(serviceId || undefined);
   const createConversation = useCreateConversation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -617,7 +639,7 @@ function NewMessageDialog({
   }, [families, familySearch]);
 
   const resetForm = () => {
-    setServiceId("");
+    setServiceId(lockedServiceId ?? "");
     setFamilyId("");
     setSubject("");
     setBody("");
@@ -667,8 +689,8 @@ function NewMessageDialog({
         <DialogDescription>Start a conversation with a family.</DialogDescription>
 
         <div className="space-y-4 mt-4">
-          {/* Service selector */}
-          <div>
+          {/* Service selector — not on a centre's own inbox. */}
+          <div hidden={Boolean(lockedServiceId)}>
             <label className="block text-xs font-medium text-foreground/70 mb-1">
               Service
             </label>
@@ -822,9 +844,11 @@ function NewMessageDialog({
 // ── Broadcast Dialog ───────────────────────────────────────
 
 function BroadcastDialog({
+  lockedServiceId,
   open,
   onOpenChange,
 }: {
+  lockedServiceId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -832,7 +856,7 @@ function BroadcastDialog({
   const { data: families } = useFamilies(undefined);
   const sendBroadcast = useSendBroadcast();
 
-  const [serviceId, setServiceId] = useState("");
+  const [serviceId, setServiceId] = useState(lockedServiceId ?? "");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [emailChecked, setEmailChecked] = useState(true);
@@ -853,7 +877,7 @@ function BroadcastDialog({
   const serviceName = services?.find((s) => s.id === serviceId)?.name;
 
   const resetForm = () => {
-    setServiceId("");
+    setServiceId(lockedServiceId ?? "");
     setSubject("");
     setBody("");
     setEmailChecked(true);
@@ -886,7 +910,7 @@ function BroadcastDialog({
         </DialogDescription>
 
         <div className="space-y-4 mt-4">
-          <div>
+          <div hidden={Boolean(lockedServiceId)}>
             <label className="block text-xs font-medium text-foreground/70 mb-1">
               Service
             </label>

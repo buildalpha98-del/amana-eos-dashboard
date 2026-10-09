@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
+import { MESSAGING_ROLES } from "@/lib/authz-scope";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendBroadcastNotification } from "@/lib/notifications/messaging";
@@ -31,7 +32,7 @@ export const GET = withApiAuth(async (req: NextRequest, session) => {
   });
 
   return NextResponse.json(broadcasts);
-});
+}, { roles: [...MESSAGING_ROLES] });
 
 // ---------------------------------------------------------------------------
 // POST — Send a broadcast to all families at a service

@@ -41,6 +41,7 @@ import { ServiceChecklistsTab } from "@/components/services/ServiceChecklistsTab
 import { ServiceRollCallTab } from "@/components/services/ServiceRollCallTab";
 import { ParentCommunicationPanel } from "./parent-communication/page";
 import { ServiceFamiliesTab } from "@/components/services/ServiceFamiliesTab";
+import { MessagingInbox } from "@/components/messaging/MessagingInbox";
 import { ServiceChildrenTab } from "@/components/services/ServiceChildrenTab";
 import { ServiceWeeklyRosterTab } from "@/components/services/ServiceWeeklyRosterTab";
 import { ServiceTodayTab } from "@/components/services/ServiceTodayTab";
@@ -190,8 +191,15 @@ export default function ServiceDetailPage() {
   const isEducator = role === "staff";
   const { layout: navLayout } = useNavLayout();
   const visibleGroups = useMemo(
-    () => visibleServiceSections({ isEducator, isAdminPlus, canSeeCasualBookings, canSeeStaffFiles }),
-    [isEducator, isAdminPlus, canSeeCasualBookings, canSeeStaffFiles],
+    () =>
+      visibleServiceSections({
+        isEducator,
+        isAdminPlus,
+        canSeeCasualBookings,
+        canSeeStaffFiles,
+        canSeeMessages: canManageThisService,
+      }),
+    [isEducator, isAdminPlus, canSeeCasualBookings, canSeeStaffFiles, canManageThisService],
   );
 
   // Render what is VISIBLE, never what the URL merely asked for: a
@@ -440,6 +448,7 @@ export default function ServiceDetailPage() {
         {shownGroup === "families" && (
           <ServiceFamiliesTab serviceId={service.id} serviceName={service.name} />
         )}
+        {shownGroup === "messages" && <MessagingInbox lockedServiceId={service.id} />}
         {shownGroup === "children" && (
           <ServiceChildrenTab serviceId={service.id} serviceName={service.name} />
         )}

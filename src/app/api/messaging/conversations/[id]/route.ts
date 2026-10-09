@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
-import { assertServiceAccess } from "@/lib/authz-scope";
+import { assertServiceAccess, MESSAGING_ROLES } from "@/lib/authz-scope";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 
@@ -47,7 +47,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
   }
 
   return NextResponse.json(conversation);
-});
+}, { roles: [...MESSAGING_ROLES] });
 
 // ---------------------------------------------------------------------------
 // PATCH — Update conversation status
@@ -82,4 +82,4 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(updated);
-});
+}, { roles: [...MESSAGING_ROLES] });
