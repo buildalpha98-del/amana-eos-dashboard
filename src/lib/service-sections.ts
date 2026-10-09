@@ -107,7 +107,11 @@ const SECTION_ALIASES: Record<string, { tab: string; sub?: string }> = {
 export function resolveSectionLink(
   tab: string | null | undefined,
   sub: string | null | undefined,
+  attendanceView?: string | null,
 ): { tab: string | null; sub: string | null } {
+  if (tab === "daily" && ["roll-call", "attendance", "sign-in-out"].includes(sub ?? "") && attendanceView === "staff") {
+    return { tab: "staff", sub: "sign-in-out" };
+  }
   const hit = tab ? (SECTION_ALIASES[`${tab}:${sub ?? ""}`] ?? (tab === "family" ? SECTION_ALIASES["family:"] : undefined)) : undefined;
   if (hit) return { tab: hit.tab, sub: hit.sub ?? null };
   return { tab: tab ?? null, sub: sub ?? null };
@@ -163,12 +167,13 @@ export const tabGroups: TabGroup[] = [
     label: "Staff",
     icon: Users,
     // 2026-10-09, Daniel's OWNA screenshots: everything about staff in one
-    // dropdown. Roster becomes OWNA's Build Roster next; Logs / timesheets
-    // follows.
+    // dropdown, including clock logs and weekly payroll review.
     subTabs: [
       { key: "manage", label: "Manage staff", icon: Users },
+      { key: "sign-in-out", label: "Staff sign in & out", icon: LogIn },
       { key: "inductions", label: "Staff inductions", icon: GraduationCap },
       { key: "roster", label: "Roster", icon: CalendarDays },
+      { key: "timesheets", label: "Timesheets", icon: ClipboardList },
     ],
   },
   {
@@ -300,6 +305,7 @@ export const tabGroups: TabGroup[] = [
  */
 const EDUCATOR_SECTIONS: Record<string, string[]> = {
   today: [],
+  staff: ["sign-in-out"],
   daily: ["roll-call", "medication", "checklists", "posts"],
   children: [],
   program: ["activities", "menu", "observations"],

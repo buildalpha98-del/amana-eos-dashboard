@@ -5,7 +5,7 @@
  * the top:
  *   - Children: sign in & out for the day, with Day / Week / Month (OWNA's
  *     daily, weekly and monthly attendances)
- *   - Staff: staff sign in & out (clock in / out of today's shifts)
+ * Staff sign in & out lives in the Staff section.
  *   - Occupancy: the weekly occupancy figures (left as they were) — for the
  *     centre's account and the office
  * The tab rides its own `att` URL param — never `sub`, which is the page's
@@ -17,9 +17,8 @@ import { cn } from "@/lib/utils";
 import { isAdminRole } from "@/lib/role-permissions";
 import { ServiceRollCallTab } from "../ServiceRollCallTab";
 import { ServiceAttendanceTab } from "../ServiceAttendanceTab";
-import { StaffSignInOut } from "./StaffSignInOut";
 
-type Att = "children" | "staff" | "occupancy";
+type Att = "children" | "occupancy";
 
 export function AttendancesHub({ serviceId, serviceName }: { serviceId: string; serviceName?: string }) {
   const sp = useSearchParams();
@@ -29,7 +28,6 @@ export function AttendancesHub({ serviceId, serviceName }: { serviceId: string; 
   const runsCentre = isAdminRole(role) || (role === "member" && session?.user?.serviceId === serviceId);
   const tabs: { key: Att; label: string }[] = [
     { key: "children", label: "Children" },
-    { key: "staff", label: "Staff" },
     ...(runsCentre ? [{ key: "occupancy" as const, label: "Occupancy" }] : []),
   ];
   const raw = sp?.get("att");
@@ -55,12 +53,11 @@ export function AttendancesHub({ serviceId, serviceName }: { serviceId: string; 
               att === t.key ? "border-brand text-brand" : "border-transparent text-muted hover:text-foreground",
             )}
           >
-            {t.label === "Children" ? "Children attendances" : t.label === "Staff" ? "Staff sign in & out" : t.label}
+            {t.label === "Children" ? "Children attendances" : t.label}
           </button>
         ))}
       </div>
       {att === "children" && <ServiceRollCallTab serviceId={serviceId} serviceName={serviceName} />}
-      {att === "staff" && <StaffSignInOut serviceId={serviceId} />}
       {att === "occupancy" && runsCentre && <ServiceAttendanceTab serviceId={serviceId} serviceName={serviceName} />}
     </div>
   );

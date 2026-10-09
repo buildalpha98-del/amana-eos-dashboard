@@ -3,14 +3,20 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { approveTimesheet } from "@/lib/timesheet-approve";
+import { assertServiceAccess } from "@/lib/authz-scope";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 // POST /api/timesheets/[id]/approve — approve a submitted timesheet
 export const POST = withApiAuth(async (req, session, context) => {
-const { id } = await context!.params!;
+  const { id } = await context!.params!;
 
   const timesheet = await prisma.timesheet.findUnique({ where: { id } });
   if (!timesheet || timesheet.deleted) {
     return NextResponse.json({ error: "Timesheet not found" }, { status: 404 });
+  }
+
+  assertServiceAccess(session, timesheet.serviceId);
+  if (session.user.role === "member" && !session.user.isCentreAccount) {
+    throw ApiError.forbidden("Only the centre account can approve timesheets");
   }
 
   if (timesheet.status !== "submitted") {
@@ -28,4 +34,4 @@ const { id } = await context!.params!;
   const updated = await approveTimesheet(timesheet, session!.user.id);
 
   return NextResponse.json(updated);
-}, { roles: [...ADMIN_ROLES] });
+}, { roles: [...ADMIN_ROLES, "member"] });

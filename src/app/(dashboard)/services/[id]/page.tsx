@@ -36,12 +36,14 @@ import { ServiceMenuTab } from "@/components/services/ServiceMenuTab";
 import { ServiceAuditsTab } from "@/components/services/ServiceAuditsTab";
 import { ServiceQIPTab } from "@/components/services/ServiceQIPTab";
 import { ServiceChecklistsTab } from "@/components/services/ServiceChecklistsTab";
+import { StaffSignInOut } from "@/components/services/attendances/StaffSignInOut";
 import { AttendancesHub } from "@/components/services/attendances/AttendancesHub";
 import { ParentCommunicationPanel } from "./parent-communication/page";
 import { ServiceFamiliesTab } from "@/components/services/ServiceFamiliesTab";
 import { MessagingInbox } from "@/components/messaging/MessagingInbox";
 import { ServiceHazardsTab } from "@/components/services/ServiceHazardsTab";
 import { BuildRoster } from "@/components/services/staff/BuildRoster";
+import { CentreTimesheets } from "@/components/services/staff/CentreTimesheets";
 import { ManageStaff } from "@/components/services/staff/ManageStaff";
 import { StaffInductions } from "@/components/services/staff/StaffInductions";
 import { ServiceChildrenTab } from "@/components/services/ServiceChildrenTab";
@@ -113,6 +115,7 @@ export default function ServiceDetailPage() {
   const { tab: urlTab, sub: urlSub } = resolveSectionLink(
     searchParams.get("tab"),
     searchParams.get("sub"),
+    searchParams.get("att"),
   );
 
   const [activeGroup, setActiveGroup] = useState(urlTab || "today");
@@ -428,7 +431,9 @@ export default function ServiceDetailPage() {
           <ServiceContentTab serviceId={service.id} />
         )}
 
-        {/* Staff group (no subtabs) — assignments management */}
+        {/* Staff group — management, clocking, inductions and roster */}
+        {shownGroup === "staff" && currentSubKey === "sign-in-out" && <StaffSignInOut serviceId={service.id} />}
+        {shownGroup === "staff" && currentSubKey === "timesheets" && <CentreTimesheets serviceId={service.id} />}
         {shownGroup === "staff" && currentSubKey === "manage" && <ManageStaff serviceId={service.id} />}
         {shownGroup === "staff" && currentSubKey === "inductions" && <StaffInductions serviceId={service.id} />}
         {shownGroup === "staff" && currentSubKey === "roster" && <BuildRoster serviceId={service.id} />}
