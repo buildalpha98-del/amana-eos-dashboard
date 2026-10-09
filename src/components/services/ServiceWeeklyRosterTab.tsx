@@ -49,7 +49,10 @@ function getWeekDates(monday: Date): string[] {
 export function ServiceWeeklyRosterTab({ serviceId, serviceName }: ServiceWeeklyRosterTabProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const rawSub = searchParams?.get("sub") ?? "bookings";
+  // Its own param (2026-10-09). This used `sub`, which is the PAGE's
+  // section key: "Shifts" set sub=shifts, the page found no section called
+  // that and fell back to the first Daily Ops screen.
+  const rawSub = searchParams?.get("rosterView") ?? "bookings";
   const sub: "bookings" | "shifts" | "responsible" =
     rawSub === "shifts"
       ? "shifts"
@@ -59,7 +62,7 @@ export function ServiceWeeklyRosterTab({ serviceId, serviceName }: ServiceWeekly
 
   const setSub = (next: "bookings" | "shifts" | "responsible") => {
     const params = new URLSearchParams(searchParams?.toString() ?? "");
-    params.set("sub", next);
+    params.set("rosterView", next);
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
