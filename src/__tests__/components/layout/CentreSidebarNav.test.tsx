@@ -67,12 +67,15 @@ describe("CentreSidebarNav for an educator (2026-10-08)", () => {
     role = "staff";
     search = new URLSearchParams("");
     render(<CentreSidebarNav serviceId="svc-1" collapsed={false} footerLinks={false} />);
-    for (const label of ["Today", "Daily Ops", "Program", "Compliance", "Documents"]) {
+    for (const label of ["Today", "Staff", "Daily Ops", "Program", "Compliance", "Documents"]) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
-    for (const hidden of ["Configure", "Staff", "Families", "EOS", "Finance", "Notifications"]) {
+    for (const hidden of ["Configure", "Families", "EOS", "Finance", "Notifications"]) {
       expect(screen.queryByText(hidden)).toBeNull();
     }
+    fireEvent.click(screen.getByRole("button", { name: /Staff/ }));
+    expect(screen.getByRole("link", { name: "Staff sign in & out" }).getAttribute("href")).toBe("/services/svc-1?tab=staff&sub=sign-in-out");
+    expect(screen.queryByText("Manage staff")).toBeNull();
     role = "member";
   });
 });

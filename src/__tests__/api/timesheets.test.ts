@@ -304,6 +304,23 @@ describe("POST /api/timesheets/[id]/approve", () => {
     prismaMock.user.findUnique.mockResolvedValue({ active: true });
   });
 
+  it.each([
+    { role: "member" as const, isCentreAccount: true, serviceId: "svc-1", expected: 200 },
+    { role: "member" as const, isCentreAccount: true, serviceId: "svc-2", expected: 403 },
+    { role: "member" as const, isCentreAccount: true, serviceId: null, expected: 403 },
+    { role: "member" as const, isCentreAccount: false, serviceId: "svc-1", expected: 403 },
+    { role: "staff" as const, isCentreAccount: false, serviceId: "svc-1", expected: 403 },
+  ])("restricts approval by role and centre: %j", async ({ expected, ...user }) => {
+    mockSession({ id: "centre-1", name: "Centre", ...user });
+    prismaMock.timesheet.findUnique.mockResolvedValue({ id: "ts-1", serviceId: "svc-1", weekEnding: new Date("2026-10-11"), status: "submitted", submittedById: "someone-else", deleted: false });
+    prismaMock.timesheet.update.mockResolvedValue({ id: "ts-1", status: "approved" });
+    prismaMock.activityLog.create.mockResolvedValue({});
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 });
+    const res = await approveTimesheet(createRequest("POST", "/api/timesheets/ts-1/approve"), { params: Promise.resolve({ id: "ts-1" }) });
+    expect(res.status).toBe(expected);
+    if (expected === 403) expect(prismaMock.timesheet.update).not.toHaveBeenCalled();
+  });
+
   it("creates a TIMESHEET_APPROVED notification for the submitter", async () => {
     mockSession({ id: "approver-1", name: "Manager", role: "owner" });
 

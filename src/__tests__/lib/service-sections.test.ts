@@ -28,11 +28,12 @@ describe("visibleServiceSections", () => {
 });
 
 describe("educator menu (2026-10-08)", () => {
-  it("is the floor of the shift — no Staff, Families, EOS, Finance or Settings", () => {
+  it("is the floor of the shift — only staff clocking, no Families, EOS, Finance or Settings", () => {
     expect(
       keys({ isEducator: true, isAdminPlus: false, canSeeCasualBookings: false, canSeeStaffFiles: false }),
     ).toEqual([
       "today:",
+      "staff:sign-in-out",
       "daily:roll-call,medication,checklists,posts",
       "children:",
       "program:activities,menu,observations",
@@ -43,6 +44,9 @@ describe("educator menu (2026-10-08)", () => {
 });
 
 describe("retired links still land (2026-10-09)", () => {
+  it("moves existing staff attendance bookmarks to Staff", () => {
+    expect(resolveSectionLink("daily", "roll-call", "staff")).toEqual({ tab: "staff", sub: "sign-in-out" });
+  });
   it.each([
     [["daily", "sign-in-out"], { tab: "daily", sub: "roll-call" }],
     [["daily", "children"], { tab: "children", sub: null }],

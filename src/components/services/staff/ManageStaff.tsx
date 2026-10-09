@@ -20,7 +20,12 @@ import { cn } from "@/lib/utils";
 import { serviceTodayISO } from "@/lib/timezone";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/Dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/Dialog";
 import { AddServiceStaffDialog } from "../AddServiceStaffDialog";
 
 interface Member {
@@ -40,40 +45,82 @@ interface Member {
 }
 
 const INDUCTION: Record<string, { label: string; cls: string }> = {
-  cleared: { label: "Cleared", cls: "bg-green-50 text-green-800 dark:bg-green-950/40 dark:text-green-200" },
-  awaiting_signoff: { label: "Needs sign-off", cls: "bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200" },
-  in_training: { label: "In training", cls: "bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200" },
-  new_starter: { label: "New starter", cls: "bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200" },
+  cleared: {
+    label: "Cleared",
+    cls: "bg-green-50 text-green-800 dark:bg-green-950/40 dark:text-green-200",
+  },
+  awaiting_signoff: {
+    label: "Needs sign-off",
+    cls: "bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+  },
+  in_training: {
+    label: "In training",
+    cls: "bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+  },
+  new_starter: {
+    label: "New starter",
+    cls: "bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
+  },
 };
 
-const chip = "inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-semibold";
+const chip =
+  "inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-semibold";
 
 export function ManageStaff({ serviceId }: { serviceId: string }) {
   const { data: session } = useSession();
   const role = session?.user?.role ?? "";
-  const canManage = isAdminRole(role) || (role === "member" && session?.user?.serviceId === serviceId);
+  const canManage =
+    isAdminRole(role) ||
+    (role === "member" && session?.user?.serviceId === serviceId);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [sort, setSort] = useState("name");
+  const [view, setView] = useState<"cards" | "table">("cards");
   const [adding, setAdding] = useState<"new" | "existing" | null>(null);
   const [pinFor, setPinFor] = useState<Member | null>(null);
   const [editing, setEditing] = useState<Member | null>(null);
   const key = ["service-staff", serviceId, "manage"];
 
-  const { data, isLoading } = useQuery<{ members: Member[] }>({
-    queryKey: key,
-    queryFn: () => fetchApi(`/api/services/${serviceId}/staff?detail=1`),
-    retry: 2,
-  });
+  const { data, isLoading, isError, refetch } = useQuery<{ members: Member[] }>(
+    {
+      queryKey: key,
+      queryFn: () => fetchApi(`/api/services/${serviceId}/staff?detail=1`),
+      retry: 2,
+      staleTime: 30_000,
+    },
+  );
   const people = (data?.members ?? []).filter((m) => !m.isCentreAccount);
   const q = search.trim().toLowerCase();
-  const shown = q
-    ? people.filter((m) => m.name.toLowerCase().includes(q) || (m.email ?? "").toLowerCase().includes(q))
-    : people;
+  const shown = people
+    .filter((m) => {
+      if (q && !`${m.name} ${m.email ?? ""}`.toLowerCase().includes(q))
+        return false;
+      if (filter === "induction")
+        return !!m.detail && m.detail.inductionStatus !== "cleared";
+      if (filter === "certificates")
+        return (
+          !!m.detail &&
+          (m.detail.certs.expired > 0 || m.detail.certs.expiring > 0)
+        );
+      if (filter === "pin") return !!m.detail && !m.detail.pinSet;
+      return true;
+    })
+    .sort((a, b) =>
+      sort === "start"
+        ? (b.detail?.startDate ?? "").localeCompare(
+            a.detail?.startDate ?? "",
+          ) || a.name.localeCompare(b.name)
+        : a.name.localeCompare(b.name),
+    );
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto font-heading text-lg font-semibold text-foreground">
-          Manage staff <span className="text-sm font-normal text-muted">({people.length})</span>
+          Manage staff{" "}
+          <span className="text-sm font-normal text-muted">
+            ({people.length})
+          </span>
         </h2>
         {canManage && (
           <>
@@ -81,7 +128,10 @@ export function ManageStaff({ serviceId }: { serviceId: string }) {
               <UserPlus className="h-4 w-4" />
               From another centre
             </Button>
-            <Button className="bg-accent text-brand hover:bg-accent/90" onClick={() => setAdding("new")}>
+            <Button
+              className="bg-accent text-brand hover:bg-accent/90"
+              onClick={() => setAdding("new")}
+            >
               <Plus className="h-4 w-4" />
               Add new staff
             </Button>
@@ -89,19 +139,87 @@ export function ManageStaff({ serviceId }: { serviceId: string }) {
         )}
       </div>
 
-      <label className="relative block max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden />
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or email…"
-          aria-label="Search staff"
-          className="min-h-11 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-base"
-        />
-      </label>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <label className="relative block">
+          <Search
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or email…"
+            aria-label="Search staff"
+            className="min-h-11 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-base"
+          />
+        </label>
+        <label className="text-sm text-muted">
+          Show
+          <select
+            aria-label="Filter staff"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="mt-1 min-h-11 w-full rounded-lg border border-border bg-card px-3 text-base text-foreground"
+          >
+            <option value="all">All staff</option>
+            <option value="induction">Induction needs attention</option>
+            <option value="certificates">Certificates need attention</option>
+            <option value="pin">Missing clock-in PIN</option>
+          </select>
+        </label>
+        <label className="text-sm text-muted">
+          Sort
+          <select
+            aria-label="Sort staff"
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="mt-1 min-h-11 w-full rounded-lg border border-border bg-card px-3 text-base text-foreground"
+          >
+            <option value="name">Name A–Z</option>
+            <option value="start">Newest starters</option>
+          </select>
+        </label>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted">
+          Showing {shown.length} of {people.length} staff
+        </p>
+        <div
+          className="hidden gap-2 lg:flex"
+          role="group"
+          aria-label="Staff layout"
+        >
+          <Button
+            variant={view === "cards" ? "primary" : "secondary"}
+            aria-pressed={view === "cards"}
+            className="min-h-11"
+            onClick={() => setView("cards")}
+          >
+            Cards
+          </Button>
+          <Button
+            variant={view === "table" ? "primary" : "secondary"}
+            aria-pressed={view === "table"}
+            className="min-h-11"
+            onClick={() => setView("table")}
+          >
+            Table
+          </Button>
+        </div>
+      </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div
+          role="alert"
+          className="rounded-xl border border-border bg-card p-4"
+        >
+          Couldn’t load staff.{" "}
+          <Button variant="secondary" onClick={() => void refetch()}>
+            Try again
+          </Button>
+        </div>
+      ) : isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-20 w-full rounded-xl" />
@@ -109,24 +227,112 @@ export function ManageStaff({ serviceId }: { serviceId: string }) {
         </div>
       ) : shown.length === 0 ? (
         <p className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted">
-          {people.length === 0 ? "No staff at this centre yet. Add your first one above." : "Nobody matches that search."}
+          {people.length === 0
+            ? "No staff at this centre yet. Add your first one above."
+            : "Nobody matches these filters."}
         </p>
       ) : (
-        <ul className="space-y-2">
-          {shown.map((m) => (
-            <StaffRow
-              key={m.userId}
-              m={m}
-              serviceId={serviceId}
-              canManage={canManage}
-              onPin={() => setPinFor(m)}
-              onEdit={() => setEditing(m)}
-            />
-          ))}
-        </ul>
+        <>
+          {view === "table" && (
+            <div className="hidden overflow-x-auto rounded-xl border border-border bg-card lg:block">
+              <table className="w-full text-left text-sm">
+                <caption className="sr-only">Centre staff directory</caption>
+                <thead className="bg-surface text-muted">
+                  <tr>
+                    {[
+                      "Staff",
+                      "Role at centre",
+                      "Induction",
+                      "Certificates",
+                      "Clock-in PIN",
+                      "Actions",
+                    ].map((label) => (
+                      <th key={label} scope="col" className="p-3">
+                        {label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((m) => (
+                    <tr key={m.userId} className="border-t border-border">
+                      <th scope="row" className="p-3 font-medium">
+                        <Link
+                          href={`/staff/${m.userId}`}
+                          className="text-brand hover:underline"
+                        >
+                          {m.name}
+                        </Link>
+                        <p className="break-all text-xs text-muted">
+                          {m.email}
+                        </p>
+                      </th>
+                      <td className="p-3">{m.membership.roleAtService}</td>
+                      <td className="p-3">
+                        {m.detail
+                          ? (INDUCTION[m.detail.inductionStatus]?.label ??
+                            m.detail.inductionStatus)
+                          : "Not available"}
+                      </td>
+                      <td className="p-3">
+                        {m.detail
+                          ? `${m.detail.certs.expired} expired · ${m.detail.certs.expiring} expiring`
+                          : "Not available"}
+                      </td>
+                      <td className="p-3">
+                        {m.detail
+                          ? m.detail.pinSet
+                            ? "Set"
+                            : "Missing"
+                          : "Not available"}
+                      </td>
+                      <td className="p-3">
+                        {canManage && (
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              className="min-h-11"
+                              variant="secondary"
+                              onClick={() => setPinFor(m)}
+                            >
+                              PIN
+                            </Button>
+                            <Button
+                              className="min-h-11"
+                              variant="ghost"
+                              onClick={() => setEditing(m)}
+                            >
+                              Edit
+                            </Button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <ul className={cn("space-y-2", view === "table" && "lg:hidden")}>
+            {shown.map((m) => (
+              <StaffRow
+                key={m.userId}
+                m={m}
+                serviceId={serviceId}
+                canManage={canManage}
+                onPin={() => setPinFor(m)}
+                onEdit={() => setEditing(m)}
+              />
+            ))}
+          </ul>
+        </>
       )}
 
-      {adding === "new" && <AddNewStaffDialog serviceId={serviceId} onClose={() => setAdding(null)} />}
+      {adding === "new" && (
+        <AddNewStaffDialog
+          serviceId={serviceId}
+          onClose={() => setAdding(null)}
+        />
+      )}
       {adding === "existing" && (
         <AddServiceStaffDialog
           serviceId={serviceId}
@@ -136,8 +342,20 @@ export function ManageStaff({ serviceId }: { serviceId: string }) {
           }}
         />
       )}
-      {pinFor && <PinDialog member={pinFor} serviceId={serviceId} onClose={() => setPinFor(null)} />}
-      {editing && <EditDialog member={editing} serviceId={serviceId} onClose={() => setEditing(null)} />}
+      {pinFor && (
+        <PinDialog
+          member={pinFor}
+          serviceId={serviceId}
+          onClose={() => setPinFor(null)}
+        />
+      )}
+      {editing && (
+        <EditDialog
+          member={editing}
+          serviceId={serviceId}
+          onClose={() => setEditing(null)}
+        />
+      )}
     </div>
   );
 }
@@ -167,12 +385,23 @@ function StaffRow({
       // Shrink phone photos first — the avatar route takes up to 4 MB.
       const form = new FormData();
       form.append("file", await compressImage(file));
-      const res = await fetch(`/api/users/${m.userId}/avatar`, { method: "POST", body: form });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error ?? "Couldn't upload that photo");
+      const res = await fetch(`/api/users/${m.userId}/avatar`, {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok)
+        throw new Error(
+          (await res.json().catch(() => ({})))?.error ??
+            "Couldn't upload that photo",
+        );
       qc.invalidateQueries({ queryKey: ["service-staff", serviceId] });
       toast({ description: `Photo added for ${m.name}.` });
     } catch (e) {
-      toast({ variant: "destructive", description: e instanceof Error ? e.message : "Couldn't upload that photo" });
+      toast({
+        variant: "destructive",
+        description:
+          e instanceof Error ? e.message : "Couldn't upload that photo",
+      });
     } finally {
       setUploading(false);
     }
@@ -189,10 +418,19 @@ function StaffRow({
       >
         {m.avatar ? (
           // eslint-disable-next-line @next/next/no-img-element -- Blob-hosted avatar
-          <img src={m.avatar} alt="" className="h-12 w-12 rounded-full object-cover" />
+          <img
+            src={m.avatar}
+            alt=""
+            className="h-12 w-12 rounded-full object-cover"
+          />
         ) : (
           <span className="grid h-12 w-12 place-items-center rounded-full bg-brand text-sm font-bold text-white">
-            {m.name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()}
+            {m.name
+              .split(" ")
+              .map((p) => p[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase()}
           </span>
         )}
         {canManage && (
@@ -215,7 +453,10 @@ function StaffRow({
       />
 
       <div className="min-w-0 flex-1">
-        <Link href={`/staff/${m.userId}`} className="font-semibold text-foreground hover:underline">
+        <Link
+          href={`/staff/${m.userId}`}
+          className="font-semibold text-foreground hover:underline"
+        >
           {m.name}
         </Link>
         <p className="truncate text-xs text-muted">
@@ -246,7 +487,9 @@ function StaffRow({
             <span
               className={cn(
                 chip,
-                d.pinSet ? "bg-surface text-foreground" : "bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-200",
+                d.pinSet
+                  ? "bg-surface text-foreground"
+                  : "bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-200",
               )}
             >
               {d.pinSet ? "Clock-in PIN set" : "No clock-in PIN"}
@@ -257,11 +500,21 @@ function StaffRow({
 
       {canManage && (
         <div className="flex w-full gap-2 sm:w-auto">
-          <Button size="sm" variant="secondary" className="flex-1 sm:flex-none" onClick={onPin}>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="min-h-11 flex-1 sm:flex-none"
+            onClick={onPin}
+          >
             <KeyRound className="h-4 w-4" />
             {d?.pinSet ? "Change PIN" : "Set PIN"}
           </Button>
-          <Button size="sm" variant="ghost" className="flex-1 sm:flex-none" onClick={onEdit}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="min-h-11 flex-1 sm:flex-none"
+            onClick={onEdit}
+          >
             <Pencil className="h-4 w-4" />
             Edit
           </Button>
@@ -271,7 +524,13 @@ function StaffRow({
   );
 }
 
-function AddNewStaffDialog({ serviceId, onClose }: { serviceId: string; onClose: () => void }) {
+function AddNewStaffDialog({
+  serviceId,
+  onClose,
+}: {
+  serviceId: string;
+  onClose: () => void;
+}) {
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -293,10 +552,13 @@ function AddNewStaffDialog({ serviceId, onClose }: { serviceId: string; onClose:
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["service-staff", serviceId] });
       qc.invalidateQueries({ queryKey: ["staff-inductions", serviceId] });
-      toast({ description: `${name.trim()} added. They've been emailed an invite and their induction has started.` });
+      toast({
+        description: `${name.trim()} added. They've been emailed an invite and their induction has started.`,
+      });
       onClose();
     },
-    onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
+    onError: (e: Error) =>
+      toast({ variant: "destructive", description: e.message }),
   });
   const ok = name.trim().length > 1 && /\S+@\S+\.\S+/.test(email.trim());
   return (
@@ -304,7 +566,8 @@ function AddNewStaffDialog({ serviceId, onClose }: { serviceId: string; onClose:
       <DialogContent className="max-w-md">
         <DialogTitle>Add new staff</DialogTitle>
         <DialogDescription>
-          They get an email to set up their login, and start their induction. Head office is told.
+          They get an email to set up their login, and start their induction.
+          Head office is told.
         </DialogDescription>
         <form
           className="mt-4 space-y-3"
@@ -354,7 +617,15 @@ function AddNewStaffDialog({ serviceId, onClose }: { serviceId: string; onClose:
   );
 }
 
-function PinDialog({ member, serviceId, onClose }: { member: Member; serviceId: string; onClose: () => void }) {
+function PinDialog({
+  member,
+  serviceId,
+  onClose,
+}: {
+  member: Member;
+  serviceId: string;
+  onClose: () => void;
+}) {
   const qc = useQueryClient();
   const [pin, setPin] = useState("");
   const done = () => {
@@ -362,26 +633,41 @@ function PinDialog({ member, serviceId, onClose }: { member: Member; serviceId: 
     onClose();
   };
   const set = useMutation({
-    mutationFn: () => mutateApi(`/api/users/${member.userId}/kiosk-pin`, { method: "POST", body: { pin } }),
+    mutationFn: () =>
+      mutateApi(`/api/users/${member.userId}/kiosk-pin`, {
+        method: "POST",
+        body: { pin },
+      }),
     onSuccess: () => {
-      toast({ description: `PIN set for ${member.name}. Tell them in person; they can change it on their Profile.` });
+      toast({
+        description: `PIN set for ${member.name}. Tell them in person; they can change it on their Profile.`,
+      });
       done();
     },
-    onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
+    onError: (e: Error) =>
+      toast({ variant: "destructive", description: e.message }),
   });
   const clear = useMutation({
-    mutationFn: () => mutateApi(`/api/users/${member.userId}/reset-kiosk-pin`, { method: "POST" }),
+    mutationFn: () =>
+      mutateApi(`/api/users/${member.userId}/reset-kiosk-pin`, {
+        method: "POST",
+      }),
     onSuccess: () => {
-      toast({ description: `${member.name}'s PIN was cleared. They can set a new one on their Profile.` });
+      toast({
+        description: `${member.name}'s PIN was cleared. They can set a new one on their Profile.`,
+      });
       done();
     },
-    onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
+    onError: (e: Error) =>
+      toast({ variant: "destructive", description: e.message }),
   });
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-sm">
         <DialogTitle>Clock-in PIN for {member.name}</DialogTitle>
-        <DialogDescription>Four digits, used on the door iPad and the clock-in kiosk.</DialogDescription>
+        <DialogDescription>
+          Four digits, used on the door iPad and the clock-in kiosk.
+        </DialogDescription>
         <form
           className="mt-4 space-y-3"
           onSubmit={(e) => {
@@ -395,19 +681,29 @@ function PinDialog({ member, serviceId, onClose }: { member: Member; serviceId: 
             autoComplete="off"
             maxLength={4}
             value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            onChange={(e) =>
+              setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+            }
             aria-label="New 4-digit PIN"
             className="block min-h-14 w-full rounded-lg border border-border bg-card px-3 text-center text-2xl tracking-[0.5em]"
           />
           <div className="flex flex-wrap justify-between gap-2">
             {member.detail?.pinSet ? (
-              <Button type="button" variant="ghost" onClick={() => clear.mutate()} disabled={clear.isPending}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => clear.mutate()}
+                disabled={clear.isPending}
+              >
                 Clear their PIN
               </Button>
             ) : (
               <span />
             )}
-            <Button type="submit" disabled={!/^\d{4}$/.test(pin) || set.isPending}>
+            <Button
+              type="submit"
+              disabled={!/^\d{4}$/.test(pin) || set.isPending}
+            >
               Save PIN
             </Button>
           </div>
@@ -417,7 +713,15 @@ function PinDialog({ member, serviceId, onClose }: { member: Member; serviceId: 
   );
 }
 
-function EditDialog({ member, serviceId, onClose }: { member: Member; serviceId: string; onClose: () => void }) {
+function EditDialog({
+  member,
+  serviceId,
+  onClose,
+}: {
+  member: Member;
+  serviceId: string;
+  onClose: () => void;
+}) {
   const qc = useQueryClient();
   const [name, setName] = useState(member.name);
   const [phone, setPhone] = useState("");
@@ -425,21 +729,26 @@ function EditDialog({ member, serviceId, onClose }: { member: Member; serviceId:
     mutationFn: () =>
       mutateApi(`/api/users/${member.userId}/profile`, {
         method: "PATCH",
-        body: { name: name.trim(), ...(phone.trim() ? { phone: phone.trim() } : {}) },
+        body: {
+          name: name.trim(),
+          ...(phone.trim() ? { phone: phone.trim() } : {}),
+        },
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["service-staff", serviceId] });
       toast({ description: "Saved." });
       onClose();
     },
-    onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
+    onError: (e: Error) =>
+      toast({ variant: "destructive", description: e.message }),
   });
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
         <DialogTitle>Edit {member.name}</DialogTitle>
         <DialogDescription>
-          Email, bank and super details are changed by the staff member on their Profile, or by head office.
+          Email, bank and super details are changed by the staff member on their
+          Profile, or by head office.
         </DialogDescription>
         <form
           className="mt-4 space-y-3"
@@ -466,7 +775,10 @@ function EditDialog({ member, serviceId, onClose }: { member: Member; serviceId:
             />
           </label>
           <div className="flex items-center justify-between gap-2 pt-1">
-            <Link href={`/staff/${member.userId}`} className="text-sm font-medium text-brand underline underline-offset-2">
+            <Link
+              href={`/staff/${member.userId}`}
+              className="text-sm font-medium text-brand underline underline-offset-2"
+            >
               Open full profile
             </Link>
             <Button type="submit" disabled={save.isPending}>
