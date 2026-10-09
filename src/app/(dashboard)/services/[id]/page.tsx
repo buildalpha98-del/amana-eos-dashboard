@@ -465,7 +465,7 @@ export default function ServiceDetailPage() {
         {shownGroup === "daily" && currentSubKey === "medication" && (
           <ServiceMedicationTab serviceId={service.id} />
         )}
-        {shownGroup === "daily" && currentSubKey === "ratios" && (
+        {shownGroup === "compliance" && currentSubKey === "ratios" && (
           <ServiceRatiosTab serviceId={service.id} />
         )}
         {shownGroup === "daily" &&
