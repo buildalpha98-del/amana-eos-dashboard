@@ -262,7 +262,7 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
           }
           noteTone="warn"
         />
-        <Tile href={`${svc}?tab=daily&sub=children`} icon={ClipboardList} label="Children" note="details & contacts" />
+        <Tile href={`${svc}?tab=children`} icon={ClipboardList} label="Children" note="details & contacts" />
         <Tile href={`${svc}?tab=compliance&sub=incidents`} icon={AlertTriangle} label="Log an incident" />
         <Tile href={`${svc}?tab=daily&sub=posts`} icon={Megaphone} label="Post to families" />
         <Tile

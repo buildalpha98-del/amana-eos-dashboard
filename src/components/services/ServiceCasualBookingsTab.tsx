@@ -274,7 +274,7 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
         another — a homework club, an early-finish session — name a spare
         room under{" "}
         <strong className="text-foreground">
-          Service Information → Rooms &amp; fees
+          Configure → Rooms
         </strong>
         , then enable it below.
       </p>

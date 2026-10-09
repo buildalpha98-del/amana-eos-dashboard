@@ -211,7 +211,7 @@ describe("ServiceDetailPage — Today tab + default landing", () => {
     const todayButtons = screen.getAllByText("Today");
     // One tab now — "Service Overview" and "About" were an editing seam,
     // not a distinction anyone reasons about.
-    const overviewButtons = screen.getAllByText("Service Information");
+    const overviewButtons = screen.getAllByText("Configure");
     expect(todayButtons.length).toBeGreaterThan(0);
     expect(overviewButtons.length).toBeGreaterThan(0);
   });

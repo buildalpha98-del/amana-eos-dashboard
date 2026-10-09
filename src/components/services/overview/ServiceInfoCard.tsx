@@ -18,7 +18,7 @@ import { RoomConfigurationSuggestions } from "./RoomConfigurationSuggestions";
  * sub-navigation (mirroring OWNA's Configure list), and each sub-tab
  * asks this component for one section.
  */
-export type ServiceInfoSection = "info" | "settings" | "rooms" | "forms";
+export type ServiceInfoSection = "info" | "settings" | "rooms" | "fees" | "closures" | "forms";
 
 export function ServiceInfoCard({
   service,
@@ -39,35 +39,36 @@ export function ServiceInfoCard({
         <AppSettingsCard serviceId={service.id} canEdit={canEdit} />
       )}
 
-      {/* Rooms and everything priced or scheduled against them: the fee
-          changes and the days you're closed are the same subject one
-          step into the future. */}
+      {/* Rooms, Fees and Closures were one scroll (2026-10-09 split, as
+          OWNA does it). Room prices stay with the rooms — that's where a
+          coordinator looks for "what does Afternoons cost". */}
       {section === "rooms" && (
         <>
           {/* OWNA-style advisor, always visible (2026-10-08). */}
           <RoomConfigurationSuggestions service={service} />
           <RoomsAndFeesCard service={service} canEdit={canEdit} />
-          {/* Directly under the room prices, because it answers the
-              questions those prices don't: late pickup, absence,
-              cancellation. */}
-          <div id="fee-policy" className="scroll-mt-24">
-            <FeePolicyCard serviceId={service.id} canEdit={canEdit} />
-          </div>
-          <div id="fee-changes" className="scroll-mt-24">
+        </>
+      )}
+
+      {/* What families are charged beyond the session fee, and rate
+          changes booked for a future date. */}
+      {section === "fees" && (
+        <>
+          <FeePolicyCard serviceId={service.id} canEdit={canEdit} />
           <FeeChangesCard
             serviceId={service.id}
             sessionTimes={service.sessionTimes}
             canEdit={canEdit}
           />
-          </div>
-          <div id="blockout-dates" className="scroll-mt-24">
-          <BlockOutDatesCard
-            serviceId={service.id}
-            sessionTimes={service.sessionTimes}
-            canEdit={canEdit}
-          />
-          </div>
         </>
+      )}
+
+      {section === "closures" && (
+        <BlockOutDatesCard
+          serviceId={service.id}
+          sessionTimes={service.sessionTimes}
+          canEdit={canEdit}
+        />
       )}
 
       {/* Excursions above the general forms card: an outing creates a
