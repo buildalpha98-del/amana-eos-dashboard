@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import {
   Clock,
+  ChevronRight,
   Edit3,
   Plus,
   Trash2,
@@ -499,10 +500,10 @@ export function RoomsAndFeesCard({
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">Rooms &amp; fees</h3>
+          <h3 className="text-sm font-semibold text-foreground">Rooms</h3>
           <p className="text-xs text-muted mt-0.5">
-            What each room is called here, when it runs, and what it costs.
-          Name an extra room to add another booking type.
+            What each room is called here, when it runs, who it&rsquo;s for and
+            what it costs. Tap a room to see it; Edit to change any of them.
           </p>
         </div>
         {canEdit && (
@@ -562,39 +563,58 @@ export function RoomsAndFeesCard({
                 retired && "opacity-60",
               )}
             >
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                {/* Opens the room's own view — details, fees, block-outs
-                    and who's in it, without leaving this page.
-                    The panel is still keyed by the enum slot, so a room
-                    the enum never knew about isn't openable yet; it
-                    renders as plain text rather than a link that does
-                    nothing. That resolves when the panel moves in a
-                    later part of Stage 2. */}
-                {/* Every room opens now, including one the enum never
-                    knew about — the panel takes the record. */}
-                <button
-                  type="button"
-                  onClick={() => setOpenRoom(room)}
-                  className="text-sm font-medium text-foreground underline decoration-transparent underline-offset-2 hover:decoration-current"
-                >
-                  {room.name}
-                </button>
-                <p className="text-xs text-muted flex items-center gap-1.5">
-                  {room.capacity != null && room.capacity > 0 && (
-                    <span className="mr-1">
-                      {room.capacity} places
-                      {room.ratio ? ` at ${room.ratio}` : ""} ·
-                    </span>
-                  )}
-                  <Clock className="w-3.5 h-3.5" />
+              {/* The whole row opens the room's own view — details, fees,
+                  block-outs and who's in it. A big target on a phone
+                  (2026-10-09); it used to be the room name only. */}
+              <button
+                type="button"
+                onClick={() => setOpenRoom(room)}
+                className="-m-1 flex w-[calc(100%+0.5rem)] min-h-11 items-center justify-between gap-3 rounded-md p-1 text-left hover:bg-surface"
+              >
+                <span className="text-sm font-semibold text-foreground">{room.name}</span>
+                <span className="flex items-center gap-1.5 text-xs text-muted">
+                  <Clock className="w-3.5 h-3.5" aria-hidden />
                   {configured ? (
                     `${formatTime(room.startTime)} – ${formatTime(room.endTime)}`
                   ) : (
-                    <span className="text-amber-700 dark:text-amber-300">
-                      Hours not set
-                    </span>
+                    <span className="text-amber-700 dark:text-amber-300">Hours not set</span>
                   )}
-                </p>
+                  <ChevronRight className="w-4 h-4" aria-hidden />
+                </span>
+              </button>
+              {/* The facts OWNA lists per room. A missing capacity is the
+                  one that matters — without it ratio and over-booking
+                  can't be checked — so it says so instead of hiding. */}
+              <div className="mt-2 flex flex-wrap gap-1.5 text-2xs">
+                {room.capacity != null && room.capacity > 0 ? (
+                  <span className="rounded-full bg-surface px-2 py-0.5 font-medium text-foreground">
+                    {room.capacity} places
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                    Capacity not set
+                  </span>
+                )}
+                {room.ratio && (
+                  <span className="rounded-full bg-surface px-2 py-0.5 font-medium text-foreground">
+                    Ratio {room.ratio}
+                  </span>
+                )}
+                {(room.minAgeYears != null || room.maxAgeYears != null) && (
+                  <span className="rounded-full bg-surface px-2 py-0.5 font-medium text-foreground">
+                    Ages {room.minAgeYears ?? "?"}–{room.maxAgeYears ?? "?"}
+                  </span>
+                )}
+                {room.staffOnly && (
+                  <span className="rounded-full bg-surface px-2 py-0.5 font-medium text-foreground">
+                    Staff only
+                  </span>
+                )}
+                {retired && (
+                  <span className="rounded-full bg-surface px-2 py-0.5 font-medium text-muted">
+                    Disabled
+                  </span>
+                )}
               </div>
 
               {room.fees.length > 0 ? (
@@ -635,7 +655,7 @@ export function RoomsAndFeesCard({
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
-          <DialogTitle>Rooms &amp; fees</DialogTitle>
+          <DialogTitle>Edit rooms</DialogTitle>
 
           {advisories.length > 0 && (
             <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/40">

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { visibleServiceSections } from "@/lib/service-sections";
+import { visibleServiceSections, resolveSectionLink } from "@/lib/service-sections";
 
 const keys = (o: Parameters<typeof visibleServiceSections>[0]) =>
   visibleServiceSections(o).map((g) => `${g.key}:${g.subTabs.map((s) => s.key).join(",")}`);
@@ -7,7 +7,7 @@ const keys = (o: Parameters<typeof visibleServiceSections>[0]) =>
 describe("visibleServiceSections", () => {
   it("lists every section in page order", () => {
     expect(visibleServiceSections({ isAdminPlus: true, canSeeCasualBookings: true, canSeeStaffFiles: true }).map((g) => g.key)).toEqual([
-      "today", "overview", "staff", "family", "daily", "program", "eos", "compliance", "finance", "documents",
+      "today", "overview", "staff", "daily", "children", "families", "program", "eos", "compliance", "finance", "documents",
     ]);
   });
 
@@ -33,10 +33,24 @@ describe("educator menu (2026-10-08)", () => {
       keys({ isEducator: true, isAdminPlus: false, canSeeCasualBookings: false, canSeeStaffFiles: false }),
     ).toEqual([
       "today:",
-      "daily:roll-call,children,medication,checklists,posts,ratios",
+      "daily:roll-call,medication,checklists,posts,ratios",
+      "children:",
       "program:activities,menu,observations",
       "compliance:incidents,headcounts,registers,risk",
       "documents:policies,handbook",
     ]);
+  });
+});
+
+describe("retired links still land (2026-10-09)", () => {
+  it.each([
+    [["daily", "sign-in-out"], { tab: "daily", sub: "roll-call" }],
+    [["daily", "children"], { tab: "children", sub: null }],
+    [["family", "children"], { tab: "children", sub: null }],
+    [["family", "families"], { tab: "families", sub: null }],
+    [["family", null], { tab: "families", sub: null }],
+    [["overview", "fees"], { tab: "overview", sub: "fees" }],
+  ] as const)("%j", ([tab, sub], expected) => {
+    expect(resolveSectionLink(tab, sub)).toEqual(expected);
   });
 });

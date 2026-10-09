@@ -14,6 +14,7 @@ import {
   AlertCircle,
   AlertTriangle,
   Baby,
+  CalendarX,
   BarChart3,
   BookOpen,
   Building2,
@@ -76,7 +77,6 @@ export const DAILY_OPS_BASE_SUBTABS: SubTab[] = [
   // Moved here from the Families group 2026-08-01 per Daniel — posting
   // about the day is part of running the day.
   { key: "posts", label: "Posts", icon: MessageCircle },
-  { key: "children", label: "Children", icon: Users },
   { key: "medication", label: "Medication", icon: Activity },
   { key: "ratios", label: "Ratios", icon: Users },
   { key: "roster", label: "Weekly Roster", icon: CalendarDays },
@@ -84,12 +84,31 @@ export const DAILY_OPS_BASE_SUBTABS: SubTab[] = [
 ];
 
 /**
- * Retired sub-tab keys and where they live now. The page resolves these
- * before choosing what to draw, and the deep-link guard accepts them.
+ * Retired `?tab=&sub=` links and where they live now. The page resolves
+ * every link through `resolveSectionLink` before choosing what to draw,
+ * and the deep-link guard accepts these, so bookmarks keep working.
  */
-export const SUB_TAB_ALIASES: Record<string, string> = {
-  "sign-in-out": "roll-call",
+const SECTION_ALIASES: Record<string, { tab: string; sub?: string }> = {
+  // Round 3 (2026-10-09): Sign In / Out merged into the door.
+  "daily:sign-in-out": { tab: "daily", sub: "roll-call" },
+  // Children and Families became sections of their own (2026-10-09).
+  "daily:children": { tab: "children" },
+  "family:children": { tab: "children" },
+  "family:families": { tab: "families" },
+  "family:": { tab: "families" },
 };
+
+export function resolveSectionLink(
+  tab: string | null | undefined,
+  sub: string | null | undefined,
+): { tab: string | null; sub: string | null } {
+  const hit = tab ? (SECTION_ALIASES[`${tab}:${sub ?? ""}`] ?? (tab === "family" ? SECTION_ALIASES["family:"] : undefined)) : undefined;
+  if (hit) return { tab: hit.tab, sub: hit.sub ?? null };
+  return { tab: tab ?? null, sub: sub ?? null };
+}
+
+/** Every retired link, for the deep-link guard. */
+export const RETIRED_SECTION_LINKS = Object.keys(SECTION_ALIASES);
 
 export const CASUAL_BOOKINGS_SUBTAB: SubTab = {
   key: "casual-bookings",
@@ -113,12 +132,19 @@ export const tabGroups: TabGroup[] = [
     // the address and the welcome text belong to the same record. What
     // changed is that rooms, settings and forms are separate subjects
     // that were only sharing a page because they shared a tab.
-    label: "Service Information",
+    //
+    // 2026-10-09: named "Configure", as in OWNA, and "Rooms & fees" split
+    // in three. It was one phone-scroll holding five subjects — capacity
+    // advice, rooms, fee policy, fee changes, closures — and you only
+    // found the closures by scrolling past every fee setting.
+    label: "Configure",
     icon: Building2,
     subTabs: [
-      { key: "info", label: "Service Info", icon: Building2 },
+      { key: "info", label: "Service info", icon: Building2 },
       { key: "settings", label: "Settings", icon: SlidersHorizontal },
-      { key: "rooms", label: "Rooms & fees", icon: DoorOpen },
+      { key: "rooms", label: "Rooms", icon: DoorOpen },
+      { key: "fees", label: "Fees", icon: Receipt },
+      { key: "closures", label: "Closures", icon: CalendarX },
       { key: "forms", label: "Forms & excursions", icon: FileSignature },
       { key: "about", label: "What families see", icon: BookOpen },
     ],
@@ -132,23 +158,27 @@ export const tabGroups: TabGroup[] = [
     icon: Users,
     subTabs: [],
   },
-  // 2026-07-31, per Daniel: a per-service view of who attends here, so a
-  // coordinator can answer "which children/families are at this centre?"
-  // without filtering the org-wide Growth lists.
-  {
-    key: "family",
-    label: "Families",
-    icon: Users,
-    subTabs: [
-      { key: "families", label: "Families", icon: Users },
-      { key: "children", label: "Children", icon: Baby },
-    ],
-  },
   {
     key: "daily",
     label: "Daily Ops",
     icon: Activity,
     subTabs: DAILY_OPS_BASE_SUBTABS,
+  },
+  // Who attends here (2026-07-31). Separate sections since 2026-10-09,
+  // per Daniel and as in OWNA: a child and a family are different things
+  // to look up — Children was also duplicated inside Daily Ops, and
+  // Families sat behind a group that opened on the families list.
+  {
+    key: "children",
+    label: "Children",
+    icon: Baby,
+    subTabs: [],
+  },
+  {
+    key: "families",
+    label: "Families",
+    icon: Users,
+    subTabs: [],
   },
   {
     key: "program",
@@ -244,7 +274,8 @@ export const tabGroups: TabGroup[] = [
  */
 const EDUCATOR_SECTIONS: Record<string, string[]> = {
   today: [],
-  daily: ["roll-call", "children", "medication", "checklists", "posts", "ratios"],
+  daily: ["roll-call", "medication", "checklists", "posts", "ratios"],
+  children: [],
   program: ["activities", "menu", "observations"],
   compliance: ["incidents", "headcounts", "registers", "risk"],
   documents: ["policies", "handbook"],

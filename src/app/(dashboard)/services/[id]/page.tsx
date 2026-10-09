@@ -1,6 +1,6 @@
 "use client";
 
-import { SUB_TAB_ALIASES, tabGroups, visibleServiceSections } from "@/lib/service-sections";
+import { resolveSectionLink, tabGroups, visibleServiceSections } from "@/lib/service-sections";
 import { ServiceDocumentsTab } from "@/components/services/ServiceDocumentsTab";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
@@ -103,8 +103,12 @@ export default function ServiceDetailPage() {
   });
 
   // Read initial tab from URL ?tab=eos&sub=todos
-  const urlTab = searchParams.get("tab");
-  const urlSub = searchParams.get("sub");
+  // Retired links (Sign In / Out, the old Families group…) land where that
+  // page lives now.
+  const { tab: urlTab, sub: urlSub } = resolveSectionLink(
+    searchParams.get("tab"),
+    searchParams.get("sub"),
+  );
 
   const [activeGroup, setActiveGroup] = useState(urlTab || "today");
   const [navSheetOpen, setNavSheetOpen] = useState(false);
@@ -196,8 +200,7 @@ export default function ServiceDetailPage() {
   // falls back to the first one they do have.
   const currentGroup = visibleGroups.find((g) => g.key === activeGroup) || visibleGroups[0];
   const shownGroup = currentGroup?.key;
-  const askedSub = shownGroup ? activeSubTab[shownGroup] : undefined;
-  const rememberedSub = (askedSub && SUB_TAB_ALIASES[askedSub]) ?? askedSub;
+  const rememberedSub = shownGroup ? activeSubTab[shownGroup] : undefined;
   const currentSubKey =
     currentGroup?.subTabs.find((s) => s.key === rememberedSub)?.key ??
     currentGroup?.subTabs[0]?.key;
@@ -396,6 +399,8 @@ export default function ServiceDetailPage() {
         {shownGroup === "overview" &&
           (currentSubKey === "settings" ||
             currentSubKey === "rooms" ||
+            currentSubKey === "fees" ||
+            currentSubKey === "closures" ||
             currentSubKey === "forms") && (
             <div className="space-y-6">
               <ServiceInfoCard
@@ -432,13 +437,10 @@ export default function ServiceDetailPage() {
         {shownGroup === "daily" && currentSubKey === "roll-call" && (
           <ServiceRollCallTab serviceId={service.id} serviceName={service.name} />
         )}
-        {shownGroup === "family" && currentSubKey === "families" && (
+        {shownGroup === "families" && (
           <ServiceFamiliesTab serviceId={service.id} serviceName={service.name} />
         )}
-        {shownGroup === "family" && currentSubKey === "children" && (
-          <ServiceChildrenTab serviceId={service.id} serviceName={service.name} />
-        )}
-        {shownGroup === "daily" && currentSubKey === "children" && (
+        {shownGroup === "children" && (
           <ServiceChildrenTab serviceId={service.id} serviceName={service.name} />
         )}
         {shownGroup === "daily" && currentSubKey === "roster" && (

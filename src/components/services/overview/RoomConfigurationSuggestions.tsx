@@ -2,7 +2,7 @@
 
 /**
  * "Room configuration suggestions" — the always-visible box at the top of
- * Rooms & fees (2026-10-08, after OWNA's): rooms over the approved places,
+ * the Rooms tab (2026-10-08, after OWNA's): rooms over the approved places,
  * capacities that leave an educator part-used, rooms with no capacity.
  * Uses the saved setup (analyseSavedRooms); the edit dialog keeps its own
  * live version while typing. Says so when everything checks out — silence
@@ -11,10 +11,12 @@
 import { AlertTriangle, CheckCircle2, Info } from "lucide-react";
 import { analyseSavedRooms } from "@/lib/room-configuration";
 
-const QUICK_LINKS = [
-  { href: "#fee-policy", label: "Fee policy" },
-  { href: "#fee-changes", label: "Upcoming fee changes" },
-  { href: "#blockout-dates", label: "Block-out dates" },
+import Link from "next/link";
+
+// Fees and Closures are their own Configure tabs since 2026-10-09.
+const quickLinks = (id: string) => [
+  { href: `/services/${id}?tab=overview&sub=fees`, label: "Fees" },
+  { href: `/services/${id}?tab=overview&sub=closures`, label: "Closures" },
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,14 +41,14 @@ export function RoomConfigurationSuggestions({ service }: { service: any }) {
         )}
         <h4 className="text-sm font-semibold text-foreground">Room configuration suggestions</h4>
         <span className="ml-auto flex flex-wrap gap-1.5">
-          {QUICK_LINKS.map((l) => (
-            <a
+          {quickLinks(service.id).map((l) => (
+            <Link
               key={l.href}
               href={l.href}
-              className="rounded-md bg-brand px-2 py-0.5 text-2xs font-semibold text-white hover:bg-brand-hover"
+              className="rounded-md bg-brand px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-hover"
             >
               {l.label}
-            </a>
+            </Link>
           ))}
         </span>
       </div>

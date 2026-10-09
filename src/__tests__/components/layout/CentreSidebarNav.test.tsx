@@ -21,7 +21,7 @@ import { CentreSidebarNav } from "@/components/layout/CentreSidebarNav";
 describe("CentreSidebarNav", () => {
   it("is the centre's own menu, with Notifications and Handbook below", () => {
     render(<CentreSidebarNav serviceId="svc-1" collapsed={false} />);
-    for (const label of ["Today", "Service Information", "Staff", "Families", "Daily Ops", "Documents", "Notifications", "Handbook & Help"]) {
+    for (const label of ["Today", "Configure", "Staff", "Families", "Daily Ops", "Documents", "Notifications", "Handbook & Help"]) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
     expect(screen.queryByText(/My Pay|My Leave|My Contract/)).toBeNull();
@@ -48,9 +48,9 @@ describe("CentreSidebarNav", () => {
     search = new URLSearchParams("tab=overview&sub=forms");
     render(<CentreSidebarNav serviceId="svc-1" collapsed={false} />);
     expect(screen.getByRole("link", { name: "Forms & excursions" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Service Information/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Configure/ }));
     expect(screen.queryByRole("link", { name: "Forms & excursions" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Service Information/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Configure/ }));
     expect(screen.getByRole("link", { name: "Forms & excursions" })).toBeTruthy();
   });
 
@@ -70,7 +70,7 @@ describe("CentreSidebarNav for an educator (2026-10-08)", () => {
     for (const label of ["Today", "Daily Ops", "Program", "Compliance", "Documents"]) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
-    for (const hidden of ["Service Information", "Staff", "Families", "EOS", "Finance", "Notifications"]) {
+    for (const hidden of ["Configure", "Staff", "Families", "EOS", "Finance", "Notifications"]) {
       expect(screen.queryByText(hidden)).toBeNull();
     }
     role = "member";

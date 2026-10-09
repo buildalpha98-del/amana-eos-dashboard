@@ -9,7 +9,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { tabGroups, CASUAL_BOOKINGS_SUBTAB, SUB_TAB_ALIASES } from "@/lib/service-sections";
+import { tabGroups, CASUAL_BOOKINGS_SUBTAB, RETIRED_SECTION_LINKS } from "@/lib/service-sections";
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -24,9 +24,11 @@ function walk(dir: string, out: string[] = []): string[] {
 
 const groups = new Map(tabGroups.map((g) => [g.key, new Set(g.subTabs.map((s) => s.key))]));
 groups.get("daily")?.add(CASUAL_BOOKINGS_SUBTAB.key);
-// A retired key that the page redirects still lands somewhere real.
-for (const [from, to] of Object.entries(SUB_TAB_ALIASES)) {
-  for (const subs of groups.values()) if (subs.has(to)) subs.add(from);
+// Retired links that the page redirects still land somewhere real.
+for (const key of RETIRED_SECTION_LINKS) {
+  const [tab, sub] = key.split(":");
+  if (!groups.has(tab)) groups.set(tab, new Set());
+  if (sub) groups.get(tab)!.add(sub);
 }
 
 // A centre deep link: the 60 chars before "?tab=" mention the services route
