@@ -87,8 +87,13 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   // 2026-10-08, Daniel: an educator's sidebar is My Portal (their own
   // things, as a dropdown), then their centre's own menu under a "My
   // Centre" heading — the same shape as the centre login — then Handbook.
+  // 2026-10-09, Daniel: Coordinators (`member`) get the same shape — their
+  // centre's menu under "My Centre", not the old flat list — with the rest
+  // of what their role opens (Roster, People…) still below it.
   const educatorServiceId =
-    !centreServiceId && session?.user?.role === "staff" ? session.user.serviceId ?? null : null;
+    !centreServiceId && (session?.user?.role === "staff" || session?.user?.role === "member")
+      ? session.user.serviceId ?? null
+      : null;
 
   const groupedItems = useMemo(() => {
     const filtered = filterNavItems(

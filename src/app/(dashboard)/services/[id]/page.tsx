@@ -185,10 +185,12 @@ export default function ServiceDetailPage() {
 
   const isAdminPlus = hasMinRole(role, "admin");
   const canSeeStaffFiles = isAdminRole(role) || role === "member";
-  // The sidebar carries this centre's menu for its own centre login AND for
-  // an educator at their own centre (2026-10-08) — no second menu here.
+  // The sidebar carries this centre's menu for its own centre login, an
+  // educator at their own centre (2026-10-08) and the centre's Coordinator
+  // (2026-10-09) — no second menu here.
   const ownCentreAccount =
-    (session?.user?.isCentreAccount === true || role === "staff") && sessionServiceId === id;
+    (session?.user?.isCentreAccount === true || role === "staff" || role === "member") &&
+    sessionServiceId === id;
 
   const isEducator = role === "staff";
   const { layout: navLayout } = useNavLayout();
