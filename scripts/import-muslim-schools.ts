@@ -204,6 +204,25 @@ const schools: School[] = [
     postcode: "2179",
     contactName: "Sam Halbouni",
   },
+  {
+    schoolName: "International MAARIF Schools of Australia — Gallipoli Campus",
+    suburb: "Auburn",
+    state: "NSW",
+    address: "2 Percy Street",
+    postcode: "2144",
+    contactPhone: "1800 622 743",
+    contactEmail: "admin@maarif.nsw.edu.au",
+    website: "https://maarif.nsw.edu.au",
+  },
+  {
+    schoolName: "Islamic College of Sport — Sydney Olympic Park Campus",
+    suburb: "Sydney Olympic Park",
+    state: "NSW",
+    address: "10 Parkview Drive",
+    postcode: "2127",
+    contactName: "Osman Karolia",
+    website: "https://islamiccollegeofsportnsw.com.au",
+  },
 
   // ── VIC ─────────────────────────────────────────────────────────────
   {
@@ -406,6 +425,17 @@ const schools: School[] = [
     address: "10 Raymond McMahon Blvd",
     postcode: "3802",
   },
+  {
+    schoolName: "International MAARIF Schools of Australia — Melbourne Campus",
+    suburb: "Kilmore",
+    state: "VIC",
+    address: "32-42 White Street",
+    postcode: "3764",
+    contactPhone: "+61 3 4705 9555",
+    contactEmail: "admin@maarif.vic.edu.au",
+    contactName: "Suleyman Kor",
+    website: "https://maarif.vic.edu.au",
+  },
 
   // ── QLD ─────────────────────────────────────────────────────────────
   {
@@ -453,6 +483,14 @@ const schools: School[] = [
     postcode: "4211",
     contactPhone: "07 5596 6565",
     website: "https://aiic.qld.edu.au",
+  },
+  {
+    schoolName: "Two Rivers Community School",
+    suburb: "Mareeba",
+    state: "QLD",
+    address: "405 Chewko Rd",
+    postcode: "4880",
+    website: "https://www.tworivers.qld.edu.au",
   },
 
   // ── WA ──────────────────────────────────────────────────────────────
@@ -513,6 +551,15 @@ const schools: School[] = [
     address: "Cnr Hedley Street and Nyamup Way",
     postcode: "6102",
     contactPhone: "08 9351 8593",
+  },
+  {
+    schoolName: "Al-Ameen College — Malaga Campus",
+    suburb: "Malaga",
+    state: "WA",
+    address: "22 Masonry Way",
+    postcode: "6090",
+    contactPhone: "08 9458 5206",
+    website: "https://alameencollege.wa.edu.au",
   },
 
   // ── SA ──────────────────────────────────────────────────────────────
