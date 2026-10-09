@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO, serviceDateISO } from "@/lib/timezone";
 import { useRef, useState } from "react";
 import type { CreativeRequestType } from "@prisma/client";
 import { Button } from "@/components/ui/Button";
@@ -47,8 +48,8 @@ export function NewRequestModal({ onClose }: { onClose: () => void }) {
   const [uploading, setUploading] = useState(false);
 
   const minDue = type
-    ? defaultDueDate(type).toISOString().slice(0, 10)
-    : new Date().toISOString().slice(0, 10);
+    ? serviceDateISO(defaultDueDate(type))
+    : serviceTodayISO();
 
   async function handleUpload(files: FileList | null) {
     if (!files?.length) return;

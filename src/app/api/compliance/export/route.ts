@@ -1,3 +1,4 @@
+import { serviceDateOnly, serviceTodayISO } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -21,12 +22,9 @@ type CertStatus = "Valid" | "Expiring" | "Expired" | "Missing";
 function getCertStatus(expiryDate: Date | null): CertStatus {
   if (!expiryDate) return "Missing";
 
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const expiry = new Date(expiryDate);
-  expiry.setHours(0, 0, 0, 0);
-  const daysLeft = Math.ceil(
-    (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  const daysLeft = Math.round(
+    (serviceDateOnly(new Date(expiryDate)).getTime() - serviceDateOnly().getTime()) /
+      (1000 * 60 * 60 * 24),
   );
 
   if (daysLeft < 0) return "Expired";
@@ -134,7 +132,7 @@ const { searchParams } = new URL(req.url);
   });
 
   const csvString = [headerLine, ...dataLines].join("\n");
-  const today = new Date().toISOString().split("T")[0];
+  const today = serviceTodayISO();
 
   return new NextResponse(csvString, {
     headers: {

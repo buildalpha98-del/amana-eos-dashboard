@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { getWeekStart } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -98,11 +99,11 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
   const currentWeek = getWeekStart();
   const selectedWeek = new Date(currentWeek);
   selectedWeek.setDate(selectedWeek.getDate() - weekOffset * 7);
-  const weekKey = selectedWeek.toISOString().split("T")[0];
+  const weekKey = serviceDateISO(selectedWeek);
 
   const prevWeek = new Date(selectedWeek);
   prevWeek.setDate(prevWeek.getDate() - 7);
-  const prevWeekKey = prevWeek.toISOString().split("T")[0];
+  const prevWeekKey = serviceDateISO(prevWeek);
 
   const { data: menuWeek, isLoading } = useMenuWeek(serviceId, weekKey);
   const { data: prevMenuWeek } = useMenuWeek(serviceId, prevWeekKey);

@@ -1,3 +1,4 @@
+import { addDaysUTC, serviceDateOnly } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getResend, sendEmail } from "@/lib/email";
@@ -45,15 +46,14 @@ export const GET = withApiHandler(async (req) => {
     const baseUrl = siteUrl();
 
     // Yesterday's date
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    yesterday.setHours(0, 0, 0, 0);
-
-    const yesterdayEnd = new Date(yesterday);
-    yesterdayEnd.setHours(23, 59, 59, 999);
+    // Yesterday at the centre. This runs at 20:00 UTC (6–7am Sydney), when
+    // the server's own "yesterday" is two Sydney days back — Monday's run
+    // looked at Saturday and skipped Friday as "the weekend".
+    const yesterday = serviceDateOnly(now, -1);
+    const yesterdayEnd = new Date(addDaysUTC(yesterday, 1).getTime() - 1);
 
     // Skip weekends
-    const dayOfWeek = yesterday.getDay();
+    const dayOfWeek = yesterday.getUTCDay();
     if (dayOfWeek === 0 || dayOfWeek === 6) {
       return NextResponse.json({ message: "Skipped — yesterday was a weekend", alerts: 0 });
     }

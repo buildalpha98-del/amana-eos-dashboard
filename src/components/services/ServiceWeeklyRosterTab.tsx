@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO, serviceDateISO } from "@/lib/timezone";
 import { useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -41,7 +42,7 @@ function getWeekDates(monday: Date): string[] {
   return Array.from({ length: 5 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(d.getDate() + i);
-    return d.toISOString().split("T")[0];
+    return serviceDateISO(d);
   });
 }
 
@@ -71,7 +72,7 @@ export function ServiceWeeklyRosterTab({ serviceId, serviceName }: ServiceWeekly
     return m;
   }, [weekOffset]);
 
-  const weekStart = monday.toISOString().split("T")[0];
+  const weekStart = serviceDateISO(monday);
   const weekDates = useMemo(() => getWeekDates(monday), [monday]);
 
   const { data: roster, isLoading, error } = useRoster(serviceId, weekStart);
@@ -237,7 +238,7 @@ function BookingsView({
                   key={dateStr}
                   dayName={WEEKDAY_NAMES[i]}
                   dayNumber={dayDate.getUTCDate()}
-                  isToday={dateStr === new Date().toISOString().split("T")[0]}
+                  isToday={dateStr === serviceTodayISO()}
                 >
                   {dayChildren}
                 </DayColumn>
@@ -254,7 +255,7 @@ function BookingsView({
                 <div
                   key={dateStr}
                   className={`bg-card border rounded-xl p-3 ${
-                    dateStr === new Date().toISOString().split("T")[0]
+                    dateStr === serviceTodayISO()
                       ? "border-brand"
                       : "border-border"
                   }`}

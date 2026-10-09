@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRocks, type RockData } from "@/hooks/useRocks";
@@ -91,7 +92,7 @@ export default function RocksPage() {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = `amana-rocks-${quarter}-${new Date().toISOString().slice(0, 10)}.pdf`;
+                a.download = `amana-rocks-${quarter}-${serviceTodayISO()}.pdf`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
@@ -109,7 +110,7 @@ export default function RocksPage() {
             icon: Download,
             onClick: () =>
               exportToCsv(
-                `amana-rocks-${new Date().toISOString().slice(0, 10)}`,
+                `amana-rocks-${serviceTodayISO()}`,
                 rocks || [],
                 [
                   { header: "ID", accessor: (r) => r.id },

@@ -1,3 +1,4 @@
+import { serviceDayBounds } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseJsonField, gettingStartedProgressSchema } from "@/lib/schemas/json-fields";
@@ -20,8 +21,8 @@ function getTotalForRole(role: string): number {
 
 export const GET = withApiAuth(async (req, session) => {
   const now = new Date();
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
+  // Sydney midnight as an instant — lastLoginAt is a timestamp.
+  const todayStart = serviceDayBounds(now).start;
 
   const weekAgo = new Date(now);
   weekAgo.setDate(weekAgo.getDate() - 7);

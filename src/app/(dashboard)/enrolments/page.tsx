@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -99,7 +100,7 @@ export default function EnrolmentsPage() {
       // truncated CSV is worse than none when it is being reconciled to OWNA.
       const rows = await fetchAllEnrolments(activeTab, debouncedSearch);
       exportToCsv(
-        `amana-enrolments-${new Date().toISOString().slice(0, 10)}`,
+        `amana-enrolments-${serviceTodayISO()}`,
         rows,
         [
           { header: "ID", accessor: (s) => s.id },

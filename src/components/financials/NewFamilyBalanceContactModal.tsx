@@ -17,6 +17,7 @@
  * server defaults it to +1 day.
  */
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { X, Plus } from "lucide-react";
@@ -118,7 +119,7 @@ export function NewFamilyBalanceContactModal({
   const update = useUpdateFamilyBalanceContact();
 
   const isEdit = !!existing;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = serviceTodayISO();
 
   const [accountName, setAccountName] = useState(
     existing?.accountName ?? prefill?.accountName ?? "",

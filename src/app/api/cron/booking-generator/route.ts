@@ -22,6 +22,7 @@
  * educator opens it.
  */
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
@@ -51,7 +52,7 @@ export const GET = withApiHandler(async (req) => {
   if (authCheck) return authCheck.error;
 
   // 2. Idempotency lock — daily key is enough; the cron runs once per day.
-  const today = new Date().toISOString().split("T")[0];
+  const today = serviceTodayISO();
   const guard = await acquireCronLock(`booking-generator-${today}`, "daily");
   if (!guard.acquired) {
     return NextResponse.json({ message: guard.reason, skipped: true });

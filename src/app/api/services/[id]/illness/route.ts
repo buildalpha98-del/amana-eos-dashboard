@@ -9,6 +9,7 @@
  * GET surfaces `infectiousUnnotified` for exactly that reason, and
  * `currentlyExcluded` so staff know who shouldn't be at the door.
  */
+import { serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -47,8 +48,7 @@ export const GET = withApiAuth(
       },
     });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = serviceDateOnly();
 
     return NextResponse.json({
       records: rows.map((r) => ({

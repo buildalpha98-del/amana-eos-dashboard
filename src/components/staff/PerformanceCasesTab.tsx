@@ -12,6 +12,7 @@
  * other staff-profile modals. No separate page, no router push.
  */
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -318,7 +319,7 @@ function CaseModal({
   const [summary, setSummary] = useState(existing?.summary ?? "");
   const [occurredAt, setOccurredAt] = useState(
     existing?.occurredAt?.slice(0, 10) ??
-      new Date().toISOString().slice(0, 10),
+      serviceTodayISO(),
   );
   const [followUpAt, setFollowUpAt] = useState(
     existing?.followUpAt?.slice(0, 10) ?? "",

@@ -1,3 +1,4 @@
+import { serviceMonthStart } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -44,9 +45,7 @@ export const GET = withApiAuth(async (req) => {
   // Calendar-month range for the purchase-budget tracker. The Service
   // budget tab uses `monthStart = new Date(); setDate(1)` — match that
   // so the numbers reconcile.
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
+  const monthStart = serviceMonthStart(); // the centre's month (BudgetItem.date is @db.Date)
 
   // 2026-07-08: grocery rates now live on OrgSettings — one set of
   // rates shared by all centres, editable from /settings/organisation.

@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRock, useUpdateRock, useDeleteRock } from "@/hooks/useRocks";
@@ -378,7 +379,7 @@ export function RockDetailPanel({
   const getDefaultDueDate = () => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
-    return d.toISOString().split("T")[0];
+    return serviceDateISO(d);
   };
 
   return (
@@ -769,7 +770,7 @@ export function RockDetailPanel({
                     const dueDate = newTodoDue || getDefaultDueDate();
                     if (newTodoTitle.trim() && newTodoAssignee && dueDate) {
                       const dueDateObj = new Date(dueDate);
-                      const weekOf = getWeekStart(dueDateObj).toISOString().split("T")[0];
+                      const weekOf = serviceDateISO(getWeekStart(dueDateObj));
                       addLinkedTodo.mutate({
                         title: newTodoTitle.trim(),
                         assigneeId: newTodoAssignee,

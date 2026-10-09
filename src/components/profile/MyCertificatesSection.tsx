@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldCheck, Upload, CheckCircle2, AlertTriangle, ExternalLink } from "lucide-react";
@@ -59,7 +60,7 @@ export function MyCertificatesSection({ userId }: { userId: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: "wwcc",
-        issueDate: new Date().toISOString().slice(0, 10),
+        issueDate: serviceTodayISO(),
         expiryDate,
         fileUrl,
         fileName,

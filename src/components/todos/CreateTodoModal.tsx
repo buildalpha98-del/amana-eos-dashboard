@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,7 +45,7 @@ export function CreateTodoModal({
   const defaultDueDate = (() => {
     const end = new Date(weekOf);
     end.setDate(end.getDate() + 6);
-    return end.toISOString().split("T")[0];
+    return serviceDateISO(end);
   })();
 
   const {

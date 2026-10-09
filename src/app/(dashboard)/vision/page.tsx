@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useVTO } from "@/hooks/useVTO";
 import { useIssues, useUpdateIssue, usePromoteIssueToRock } from "@/hooks/useIssues";
 import { CreateIssueModal } from "@/components/issues/CreateIssueModal";
@@ -48,7 +49,7 @@ export default function VisionPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `amana-vto-${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.download = `amana-vto-${serviceTodayISO()}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();

@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { UserPlus, Download } from "lucide-react";
@@ -55,7 +56,7 @@ export default function EnquiriesContent() {
             icon: Download,
             onClick: () =>
               exportToCsv(
-                `amana-enquiries-${new Date().toISOString().slice(0, 10)}`,
+                `amana-enquiries-${serviceTodayISO()}`,
                 allEnquiries,
                 [
                   { header: "ID", accessor: (e) => e.id },

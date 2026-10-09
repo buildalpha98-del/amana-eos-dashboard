@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn, getWeekStart } from "@/lib/utils";
@@ -124,7 +125,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
     mutationFn: async ({ issueId, title, ownerId }: { issueId: string; title: string; ownerId: string | null }) => {
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 7); // Default: 1 week from now
-      const dueDateStr = dueDate.toISOString().split("T")[0];
+      const dueDateStr = serviceDateISO(dueDate);
       const weekOf = getWeekStart(dueDate).toISOString();
       const res = await fetch("/api/todos", {
         method: "POST",

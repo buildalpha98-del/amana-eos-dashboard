@@ -1,3 +1,4 @@
+import { serviceTodayISO } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -77,7 +78,7 @@ export const GET = withApiAuth(async () => {
 
   const buffer = Buffer.from(doc.output("arraybuffer"));
 
-  const filename = `amana-vto-${new Date().toISOString().slice(0, 10)}.pdf`;
+  const filename = `amana-vto-${serviceTodayISO()}.pdf`;
   return new NextResponse(new Uint8Array(buffer), {
     status: 200,
     headers: {

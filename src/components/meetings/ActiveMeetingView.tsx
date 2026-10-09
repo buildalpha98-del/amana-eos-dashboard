@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
@@ -444,7 +445,7 @@ export function ActiveMeetingView({
         issueId: data.issueId,
         serviceId: meetingServiceIds.length === 1 ? meetingServiceIds[0] : undefined,
         meetingId: meeting.id,
-        dueDate: new Date(ws.getTime() + 6 * 86400000).toISOString().split("T")[0],
+        dueDate: serviceDateISO(new Date(ws.getTime() + 6 * 86400000)),
         weekOf: ws.toISOString(),
       });
     },

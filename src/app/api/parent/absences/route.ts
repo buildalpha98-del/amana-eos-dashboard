@@ -1,3 +1,4 @@
+import { serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withParentAuth } from "@/lib/parent-auth";
@@ -56,8 +57,9 @@ export const POST = withParentAuth(async (req, { parent }) => {
 
   // Validate date is today or in the future (AEST)
   const absenceDate = new Date(date + "T00:00:00.000Z");
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // The centre's today. The (UTC) server's own day made "today" yesterday
+  // until 10–11am, and refused nothing it should have.
+  const today = serviceDateOnly();
   if (absenceDate < today) {
     throw ApiError.badRequest("Cannot record an absence for a past date");
   }

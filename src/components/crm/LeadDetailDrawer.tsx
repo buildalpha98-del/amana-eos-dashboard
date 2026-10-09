@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useLead, useUpdateLead, useDeleteLead, useCreateTouchpoint, useTouchpoints, useScoreLead } from "@/hooks/useCRM";
 import { useQuery } from "@tanstack/react-query";
@@ -182,11 +183,11 @@ export function LeadDetailDrawer({
       notes: lead.notes || "",
       tenderRef: lead.tenderRef || "",
       tenderCloseDate: lead.tenderCloseDate
-        ? new Date(lead.tenderCloseDate).toISOString().split("T")[0]
+        ? serviceDateISO(new Date(lead.tenderCloseDate))
         : "",
       tenderUrl: lead.tenderUrl || "",
       nextTouchpointAt: lead.nextTouchpointAt
-        ? new Date(lead.nextTouchpointAt).toISOString().split("T")[0]
+        ? serviceDateISO(new Date(lead.nextTouchpointAt))
         : "",
     });
     setEditing(true);

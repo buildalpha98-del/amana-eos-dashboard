@@ -16,6 +16,7 @@
  * this runs, and a missing to-do must never fail an onboarding.
  */
 
+import { serviceWeekStart } from "@/lib/timezone";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { logger } from "@/lib/logger";
 import { notifyUsers } from "@/lib/notify-user";
@@ -32,11 +33,7 @@ const DUE_IN_DAYS = 3;
  * /api/todos/bulk and /api/team/action-counts each carry their own copy.
  */
 function mondayOfThisWeek(): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  const day = d.getDay();
-  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
-  return d;
+  return serviceWeekStart();
 }
 
 export interface OwnerTodoInput {

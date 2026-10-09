@@ -1,3 +1,4 @@
+import { serviceTodayISO } from "@/lib/timezone";
 import { z } from "zod";
 import {
   CENTRE_IDS,
@@ -75,7 +76,7 @@ export const todosSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}/, "Must be an ISO date (YYYY-MM-DD)")
     .optional()
-    .default(() => new Date().toISOString().split("T")[0])
+    .default(() => serviceTodayISO())
     .transform((v) => new Date(v))
     .refine((d) => !isNaN(d.getTime()), "Invalid date"),
   todos: z.array(todoItem).min(1, "At least one todo is required"),

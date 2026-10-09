@@ -1,3 +1,4 @@
+import { serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { withParentAuth } from "@/lib/parent-auth";
 import { prisma } from "@/lib/prisma";
@@ -220,9 +221,7 @@ export const GET = withParentAuth(async (_req, { parent }) => {
   // Get service-level attendance for the last 7 days to fill attendanceThisWeek
   const serviceIds = [...new Set(children.map((c) => c.serviceId).filter(Boolean))] as string[];
   if (serviceIds.length > 0) {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
+    const sevenDaysAgo = serviceDateOnly(new Date(), -7);
 
     const attendance = await prisma.dailyAttendance.findMany({
       where: {

@@ -1,3 +1,4 @@
+import { addDaysUTC, serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -27,11 +28,9 @@ export const GET = withApiAuth(async (req, session, context) => {
     return NextResponse.json({ error: "Service not found" }, { status: 404 });
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const in30Days = new Date(today);
-  in30Days.setDate(in30Days.getDate() + 30);
+  // The centre's date (a @db.Date value), not the server's UTC day.
+  const today = serviceDateOnly();
+  const in30Days = addDaysUTC(today, 30);
 
   // Run all queries in parallel
   const [attendanceRecords, staffOnDuty, todosToday, openTickets, expiringCerts] =

@@ -1,3 +1,4 @@
+import { addDaysUTC, serviceDateOnly } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
@@ -30,10 +31,8 @@ export const GET = withApiHandler(async (req) => {
     if (from && to) {
       dateFilter = { gte: new Date(from), lte: new Date(to) };
     } else {
-      const targetDate = date ? new Date(date) : new Date();
-      targetDate.setHours(0, 0, 0, 0);
-      const nextDay = new Date(targetDate);
-      nextDay.setDate(nextDay.getDate() + 1);
+      const targetDate = date ? new Date(`${date.slice(0, 10)}T00:00:00Z`) : serviceDateOnly();
+      const nextDay = addDaysUTC(targetDate, 1);
       dateFilter = { gte: targetDate, lt: nextDay };
     }
 

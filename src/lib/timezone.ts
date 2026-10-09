@@ -112,3 +112,78 @@ export function serviceTodayISO(now: Date = new Date(), tz: string = SERVICE_TZ)
   const { year, month, day } = getLocalDateParts(now, tz);
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
+
+/**
+ * Any date as the centre's "YYYY-MM-DD" (2026-10-09). Use instead of
+ * `d.toISOString().slice(0, 10)`, which is the UTC day: for a date built
+ * at local midnight in the browser (`setHours(0,0,0,0)`, `new Date(y,m,d)`)
+ * that is the PREVIOUS day in Sydney, and for "now" it's yesterday until
+ * 10–11am. A UTC-midnight `@db.Date` value lands on the same day either way,
+ * so this is safe for both kinds of date, in the browser and on the server.
+ */
+export function serviceDateISO(d: Date | string | number, tz: string = SERVICE_TZ): string {
+  return serviceTodayISO(d instanceof Date ? d : new Date(d), tz);
+}
+
+/**
+ * The centre's day around `now`, for server code (2026-10-09). Vercel runs
+ * in UTC, so `d.setHours(0, 0, 0, 0)` there is UTC midnight — 10 or 11am
+ * in Sydney — and until then "today" on the server was still yesterday.
+ *
+ *  - `dateOnly`: UTC midnight of the Sydney date, for `@db.Date` columns
+ *    (booking dates, attendance dates, roster dates).
+ *  - `start` / `end`: the real instants of Sydney midnight → next midnight,
+ *    for timestamp columns (createdAt, clockInAt…).
+ */
+export function serviceDayBounds(now: Date = new Date(), tz: string = SERVICE_TZ) {
+  const { year, month, day, hour, minute } = getLocalDateParts(now, tz);
+  const dateOnly = new Date(Date.UTC(year, month - 1, day));
+  // How far the centre's wall clock is ahead of UTC right now.
+  const wall = Date.UTC(year, month - 1, day, hour, minute);
+  const offsetMs = wall - Math.floor(now.getTime() / 60_000) * 60_000;
+  const start = new Date(dateOnly.getTime() - offsetMs);
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  return { dateOnly, start, end };
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** `d` (a UTC-midnight date) moved by `n` whole days. */
+export function addDaysUTC(d: Date, n: number): Date {
+  return new Date(d.getTime() + n * DAY_MS);
+}
+
+/**
+ * The centre's calendar day as a UTC-midnight Date (the `@db.Date` value),
+ * `addDays` from today. Server code that did `new Date(); setHours(0,0,0,0)`
+ * got the UTC day — yesterday in Sydney until 10–11am, and every cron that
+ * runs on Sydney's morning (18:00–23:00 UTC) a whole day behind.
+ */
+export function serviceDateOnly(now: Date = new Date(), addDays = 0): Date {
+  return addDaysUTC(serviceDayBounds(now).dateOnly, addDays);
+}
+
+/**
+ * Start of the centre's week as a UTC-midnight Date: Monday by default,
+ * Sunday when `weekStartsOn` is 0 (for the few weekly keys that always
+ * used Sunday).
+ */
+export function serviceWeekStart(now: Date = new Date(), weekStartsOn: 0 | 1 = 1): Date {
+  const today = serviceDateOnly(now);
+  const back = (today.getUTCDay() - weekStartsOn + 7) % 7;
+  return addDaysUTC(today, -back);
+}
+
+/** First day of the centre's month (+`addMonths`) as a UTC-midnight Date. */
+export function serviceMonthStart(now: Date = new Date(), addMonths = 0): Date {
+  const today = serviceDateOnly(now);
+  return new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + addMonths, 1));
+}
+
+/** The real instant of Sydney midnight at the start of a centre date. */
+export function serviceMidnight(dateOnly: Date, tz: string = SERVICE_TZ): Date {
+  // Sydney's offset that day, read at UTC noon (clear of the 2–3am switch).
+  const noon = new Date(dateOnly.getTime() + 12 * 60 * 60 * 1000);
+  const { hour } = getLocalDateParts(noon, tz);
+  return new Date(dateOnly.getTime() - (hour - 12) * 60 * 60 * 1000);
+}

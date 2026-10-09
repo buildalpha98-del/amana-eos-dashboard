@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
@@ -32,7 +33,7 @@ interface AddMemberModalProps {
 function todayLocalIso(): string {
   const d = new Date();
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().slice(0, 10);
+  return serviceDateISO(d);
 }
 
 export function AddMemberModal({ open, onClose }: AddMemberModalProps) {

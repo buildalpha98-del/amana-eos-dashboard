@@ -11,6 +11,7 @@ const BREVO_API = "https://api.brevo.com/v3";
 // 2026-05-16: sender identity moved to OrgSettings.config so owner/admin
 // can rebrand without a deploy. Env vars still feed the code defaults
 // inside getOrgSettings() — see src/lib/org-settings.ts.
+import { serviceTodayISO } from "@/lib/timezone";
 import { getOrgSettings } from "@/lib/org-settings";
 
 async function getSender(): Promise<{ email: string; name: string }> {
@@ -228,7 +229,7 @@ export async function sendCampaignEmail(
 
   // 3. Create the campaign
   const campaignPayload: Record<string, unknown> = {
-    name: `Newsletter ${new Date().toISOString().split("T")[0]}`,
+    name: `Newsletter ${serviceTodayISO()}`,
     subject: params.subject,
     sender: await getSender(),
     htmlContent: params.htmlContent,

@@ -22,6 +22,7 @@
  * partial-success state surfaces it for monitoring.
  */
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
@@ -121,7 +122,7 @@ export const POST = withApiAuth(async (req, session) => {
 
   // Sanity: dateIncurred can't be in the future. EH would reject too,
   // but a friendly 400 here gives the user the right cursor target.
-  const today = new Date().toISOString().slice(0, 10);
+  const today = serviceTodayISO();
   if (parsed.data.dateIncurred > today) {
     throw ApiError.badRequest(
       "Expense date can't be in the future — pick today or earlier.",

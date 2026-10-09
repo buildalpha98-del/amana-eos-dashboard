@@ -14,6 +14,7 @@
  * Dismiss button (same pattern as GoToMarketStrategyCard).
  */
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState } from "react";
 import {
   Pencil,
@@ -46,7 +47,7 @@ function formatDateForInput(iso: string | null): string {
   if (!iso) return "";
   // Date input expects YYYY-MM-DD
   try {
-    return new Date(iso).toISOString().slice(0, 10);
+    return serviceDateISO(new Date(iso));
   } catch {
     return "";
   }

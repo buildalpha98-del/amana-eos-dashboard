@@ -9,6 +9,7 @@
  * Days come from the bookings themselves, so the answer is "Mon, Wed,
  * Fri" rather than a number nobody can act on.
  */
+import { addDaysUTC, serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -37,9 +38,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
 
   // Only bookings from here on: a pattern set last year still describes
   // the room today, but one from two years ago is noise.
-  const since = new Date();
-  since.setMonth(since.getMonth() - 1);
-  since.setHours(0, 0, 0, 0);
+  const since = addDaysUTC(serviceDateOnly(), -31);
 
   const bookings = await prisma.booking.findMany({
     where: {

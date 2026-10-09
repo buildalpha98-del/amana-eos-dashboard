@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import {
@@ -335,7 +336,7 @@ export default function QueuePage() {
         <ExportButton
           onClick={() =>
             exportToCsv(
-              `amana-queue-${new Date().toISOString().slice(0, 10)}`,
+              `amana-queue-${serviceTodayISO()}`,
               reports,
               [
                 { header: "ID", accessor: (r) => r.id },

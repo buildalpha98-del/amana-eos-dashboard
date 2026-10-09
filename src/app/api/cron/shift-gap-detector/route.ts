@@ -1,3 +1,4 @@
+import { serviceDateOnly } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
@@ -55,13 +56,10 @@ export const GET = withApiHandler(async (req) => {
     const now = new Date();
 
     // ── 1. Date range: tomorrow + day after tomorrow ────────
-    const tomorrow = new Date(now);
-    tomorrow.setDate(now.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-
-    const dayAfterTomorrow = new Date(now);
-    dayAfterTomorrow.setDate(now.getDate() + 2);
-    dayAfterTomorrow.setHours(23, 59, 59, 999);
+    // Sydney's tomorrow and the day after (RosterShift.date is @db.Date).
+    // At 18:15 UTC the server's "tomorrow" was Sydney's today.
+    const tomorrow = serviceDateOnly(now, 1);
+    const dayAfterTomorrow = new Date(serviceDateOnly(now, 3).getTime() - 1);
 
     // ── 2. Get roster shifts for next 2 days ────────────────
     const shifts = await prisma.rosterShift.findMany({

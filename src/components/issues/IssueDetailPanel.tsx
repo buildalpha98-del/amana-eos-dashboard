@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState, useEffect } from "react";
 import { useIssue, useUpdateIssue, useDeleteIssue, usePromoteIssueToRock } from "@/hooks/useIssues";
 import { useCreateTodo } from "@/hooks/useTodos";
@@ -110,7 +111,7 @@ export function IssueDetailPanel({
         title: newTodoTitle.trim(),
         assigneeId: newTodoAssignee,
         issueId,
-        dueDate: newTodoDueDate || new Date(weekStart.getTime() + 6 * 86400000).toISOString().split("T")[0],
+        dueDate: newTodoDueDate || serviceDateISO(new Date(weekStart.getTime() + 6 * 86400000)),
         weekOf: weekStart.toISOString(),
       },
       {

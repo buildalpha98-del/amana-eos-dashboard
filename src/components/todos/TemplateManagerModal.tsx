@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO, serviceDateISO } from "@/lib/timezone";
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -64,7 +65,7 @@ const emptyForm: TemplateFormData = {
   assigneeId: "",
   serviceId: "",
   recurrence: "weekly",
-  nextRunAt: new Date().toISOString().split("T")[0],
+  nextRunAt: serviceTodayISO(),
 };
 
 export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
@@ -112,7 +113,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
       assigneeId: template.assigneeId,
       serviceId: template.serviceId || "",
       recurrence: template.recurrence,
-      nextRunAt: new Date(template.nextRunAt).toISOString().split("T")[0],
+      nextRunAt: serviceDateISO(new Date(template.nextRunAt)),
     });
     setError("");
     setView("form");

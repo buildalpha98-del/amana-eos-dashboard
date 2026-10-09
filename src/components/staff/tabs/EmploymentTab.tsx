@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState } from "react";
 import type { User, Service, EmploymentContract } from "@prisma/client";
 import Link from "next/link";
@@ -54,7 +55,7 @@ function toDateInput(d: Date | null | undefined): string {
   if (!d) return "";
   const dt = new Date(d);
   if (Number.isNaN(dt.getTime())) return "";
-  return dt.toISOString().slice(0, 10);
+  return serviceDateISO(dt);
 }
 
 export function EmploymentTab({ targetUser, latestContract, canEdit }: EmploymentTabProps) {

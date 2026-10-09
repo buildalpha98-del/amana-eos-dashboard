@@ -1,3 +1,4 @@
+import { serviceWeekStart } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock } from "@/lib/cron-guard";
@@ -33,11 +34,9 @@ export const GET = withApiHandler(async (req) => {
     const now = new Date();
 
     // Calculate this Monday
-    const dayOfWeek = now.getDay();
-    const thisMonday = new Date(now);
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    thisMonday.setDate(now.getDate() + mondayOffset);
-    thisMonday.setHours(0, 0, 0, 0);
+    // The centre's Monday. This runs Sunday ~20:00 UTC — Monday morning in
+    // Sydney — so the server's own day put "this Monday" a week back.
+    const thisMonday = serviceWeekStart(now);
 
     // Find stale incomplete todos from previous weeks
     const staleTodos = await prisma.todo.findMany({

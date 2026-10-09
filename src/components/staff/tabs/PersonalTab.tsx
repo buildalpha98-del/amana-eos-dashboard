@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useEffect, useState } from "react";
 import type { User, EmergencyContact } from "@prisma/client";
 import { Phone, MapPin, Cake, CalendarDays, Loader2, User as UserIcon, Mail, Moon } from "lucide-react";
@@ -52,7 +53,7 @@ function toDateInput(d: Date | null | undefined): string {
   if (!d) return "";
   const dt = new Date(d);
   if (Number.isNaN(dt.getTime())) return "";
-  return dt.toISOString().slice(0, 10);
+  return serviceDateISO(dt);
 }
 
 export function PersonalTab({

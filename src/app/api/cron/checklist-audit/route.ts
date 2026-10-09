@@ -1,3 +1,4 @@
+import { addDaysUTC, serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
@@ -190,10 +191,10 @@ export const GET = withApiHandler(async (req) => {
   try {
     // Today's date range
     const now = new Date();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(now);
-    todayEnd.setHours(23, 59, 59, 999);
+    // DailyChecklist.date is the centre's date (UTC midnight). This cron
+    // runs at 08:15 UTC — evening in Sydney, same calendar day.
+    const todayStart = serviceDateOnly(now);
+    const todayEnd = new Date(addDaysUTC(todayStart, 1).getTime() - 1);
 
     const dateLabel = now.toLocaleDateString("en-AU", {
       weekday: "long",

@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useProject, useUpdateProject, useDeleteProject } from "@/hooks/useProjects";
 import { useRocks } from "@/hooks/useRocks";
@@ -53,7 +54,7 @@ export function ProjectDetailPanel({
   const [newTaskDueDate, setNewTaskDueDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
-    return d.toISOString().split("T")[0];
+    return serviceDateISO(d);
   });
 
   const { data: users } = useQuery<UserOption[]>({

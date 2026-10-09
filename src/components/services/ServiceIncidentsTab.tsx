@@ -15,6 +15,7 @@
  * can't quietly modify reports filed by other staff).
  */
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
@@ -429,7 +430,7 @@ function IncidentDialog({
 
   const [incidentDate, setIncidentDate] = useState(
     incident
-      ? new Date(incident.incidentDate).toISOString().split("T")[0]
+      ? serviceDateISO(new Date(incident.incidentDate))
       : todayDateInputValue(),
   );
   const [childName, setChildName] = useState(incident?.childName ?? "");

@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -180,7 +181,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
   const currentWeek = getWeekStart();
   const selectedWeek = new Date(currentWeek);
   selectedWeek.setDate(selectedWeek.getDate() - weekOffset * 7);
-  const weekKey = selectedWeek.toISOString().split("T")[0];
+  const weekKey = serviceDateISO(selectedWeek);
 
   const { data: activities, isLoading } = useWeeklyProgram(serviceId, weekKey);
   const createMutation = useCreateActivity(serviceId);
@@ -233,7 +234,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
   const handleCopyPrevious = async () => {
     const prevWeek = new Date(selectedWeek);
     prevWeek.setDate(prevWeek.getDate() - 7);
-    const prevKey = prevWeek.toISOString().split("T")[0];
+    const prevKey = serviceDateISO(prevWeek);
 
     try {
       const res = await fetch(

@@ -1,3 +1,4 @@
+import { serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { CertificateType } from "@prisma/client";
@@ -115,10 +116,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     data.expiryDate = null;
   } else if (parsed.data.expiryDate) {
     const value = new Date(parsed.data.expiryDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    value.setHours(0, 0, 0, 0);
-    if (value.getTime() < today.getTime()) {
+    if (serviceDateOnly(value).getTime() < serviceDateOnly().getTime()) {
       return NextResponse.json(
         { error: "Expiry date can't be in the past — pick today or later." },
         { status: 400 },

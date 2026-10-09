@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO, serviceDateISO } from "@/lib/timezone";
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -795,7 +796,7 @@ function ImportFromOWNAModal({
           } else {
             const d = new Date(String(rawDate));
             if (!isNaN(d.getTime())) {
-              dateStr = d.toISOString().split("T")[0];
+              dateStr = serviceDateISO(d);
             } else {
               dateStr = String(rawDate);
             }
@@ -1966,7 +1967,7 @@ export default function TimesheetsPage() {
         <ExportButton
           onClick={() =>
             exportToCsv(
-              `amana-timesheets-${new Date().toISOString().slice(0, 10)}`,
+              `amana-timesheets-${serviceTodayISO()}`,
               timesheets || [],
               [
                 { header: "ID", accessor: (t) => t.id },

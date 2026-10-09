@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState, useMemo } from "react";
 import {
   ChevronLeft,
@@ -207,7 +208,7 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
     return map;
   }, [availability]);
 
-  const todayStr = now.toISOString().split("T")[0];
+  const todayStr = serviceDateISO(now);
 
   function handleDayClick(dateStr: string) {
     setSelectedDates((prev) =>
@@ -284,7 +285,7 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
         {days.map((day, i) => {
           if (!day) return <div key={i} />;
 
-          const dateStr = day.toISOString().split("T")[0];
+          const dateStr = serviceDateISO(day);
           // Every session booked that day, so two sessions render two dots.
           const dayBookings = SESSION_ORDER.map((st) => ({
             sessionType: st,

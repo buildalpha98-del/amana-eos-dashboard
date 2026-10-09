@@ -1,3 +1,4 @@
+import { serviceTodayISO } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -54,7 +55,7 @@ export const GET = withApiAuth(async (_req, _session, context) => {
 
   const buffer = Buffer.from(doc.output("arraybuffer"));
   const safeTitle = scorecard.title.replace(/[^a-z0-9-_]+/gi, "-").toLowerCase();
-  const filename = `amana-scorecard-${safeTitle}-${new Date().toISOString().slice(0, 10)}.pdf`;
+  const filename = `amana-scorecard-${safeTitle}-${serviceTodayISO()}.pdf`;
   return new NextResponse(new Uint8Array(buffer), {
     status: 200,
     headers: {

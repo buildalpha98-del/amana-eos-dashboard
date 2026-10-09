@@ -1,3 +1,4 @@
+import { serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
@@ -20,8 +21,9 @@ export const GET = withApiHandler(async (req) => {
   }
 
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // The centre's today (dueDate is @db.Date). At 22:00 UTC the server's
+    // day was yesterday in Sydney, so statements went overdue a day late.
+    const today = serviceDateOnly();
 
     const overdueStatements = await prisma.statement.findMany({
       where: {

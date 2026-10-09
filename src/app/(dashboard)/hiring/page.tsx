@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -157,7 +158,7 @@ export default function RecruitmentPage() {
             <ExportButton
               onClick={() =>
                 exportToCsv(
-                  `amana-recruitment-${new Date().toISOString().slice(0, 10)}`,
+                  `amana-recruitment-${serviceTodayISO()}`,
                   vacancies,
                   [
                     { header: "ID", accessor: (v: Record<string, unknown>) => v.id as string },

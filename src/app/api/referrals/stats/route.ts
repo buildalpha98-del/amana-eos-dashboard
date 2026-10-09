@@ -1,3 +1,4 @@
+import { serviceMidnight, serviceMonthStart } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -55,9 +56,8 @@ export const GET = withApiAuth(async (req, session) => {
   }));
 
   // Rewards issued this month
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  // rewardIssuedAt is a timestamp: Sydney midnight on the 1st.
+  const startOfMonth = serviceMidnight(serviceMonthStart());
 
   const rewardsThisMonth = await prisma.referral.aggregate({
     where: {

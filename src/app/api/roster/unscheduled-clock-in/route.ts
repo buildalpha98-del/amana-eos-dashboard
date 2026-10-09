@@ -17,6 +17,7 @@
  * later").
  */
 
+import { serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
@@ -72,9 +73,10 @@ export const POST = withApiAuth(async (req, session) => {
   // need a sentinel. Admin reconciles when the actual times are in.
   const shiftEnd = shiftStart;
 
-  // Date column is a DATE (no time component) — strip the time.
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
+  // Date column is a DATE: the centre's date. On the (UTC) server,
+  // setHours(0) gave YESTERDAY to every walk-in before 10–11am — every
+  // before-school shift.
+  const today = serviceDateOnly(now);
 
   const created = await prisma.rosterShift.create({
     data: {

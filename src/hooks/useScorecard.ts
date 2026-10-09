@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
@@ -78,7 +79,7 @@ function isScorecardQueryKey(key: readonly unknown[]): boolean {
 
 /** Stable lookup key for an entry — UTC date portion of weekOf. */
 function weekKeyFromIso(iso: string): string {
-  return new Date(iso).toISOString().split("T")[0];
+  return serviceDateISO(new Date(iso));
 }
 
 export function useDeleteEntry() {

@@ -8,6 +8,7 @@
  * POST → sign someone in.
  * PATCH lives in [visitorId] and only ever signs them OUT.
  */
+import { addDaysUTC, serviceDateOnly, serviceMidnight } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -32,11 +33,14 @@ export const GET = withApiAuth(async (req, session, context) => {
 
   const url = new URL(req.url);
   const dateParam = url.searchParams.get("date");
-  const day = dateParam ? new Date(`${dateParam}T00:00:00`) : new Date();
-  const start = new Date(day);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
+  // signedInAt is a timestamp: the centre's midnight to midnight. Parsing
+  // "T00:00:00" on the (UTC) server started the day at 10–11am Sydney, so
+  // a morning visitor dropped off the day's register.
+  const dayOnly = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
+    ? new Date(`${dateParam}T00:00:00Z`)
+    : serviceDateOnly();
+  const start = serviceMidnight(dayOnly);
+  const end = serviceMidnight(addDaysUTC(dayOnly, 1));
 
   const [visitors, stillOnSite] = await Promise.all([
     prisma.serviceVisitor.findMany({

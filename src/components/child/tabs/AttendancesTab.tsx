@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useMemo, useState } from "react";
 import { Download, ListChecks } from "lucide-react";
 import { useChildAttendances } from "@/hooks/useChildAttendances";
@@ -20,7 +21,7 @@ function monthRangeUtc(year: number, monthIdx0: number): {
 } {
   const firstDay = new Date(Date.UTC(year, monthIdx0, 1));
   const lastDay = new Date(Date.UTC(year, monthIdx0 + 1, 0));
-  const iso = (d: Date) => d.toISOString().split("T")[0];
+  const iso = (d: Date) => serviceDateISO(d);
   return { from: iso(firstDay), to: iso(lastDay) };
 }
 

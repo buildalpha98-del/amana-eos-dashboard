@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useLeads } from "@/hooks/useCRM";
@@ -143,7 +144,7 @@ export default function CrmPage() {
             icon: Download,
             onClick: () =>
               exportToCsv(
-                `amana-crm-leads-${new Date().toISOString().slice(0, 10)}`,
+                `amana-crm-leads-${serviceTodayISO()}`,
                 leads || [],
                 [
                   { header: "ID", accessor: (l) => l.id },

@@ -12,7 +12,7 @@
  * shows the same children.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { getLocalDateParts } from "@/lib/timezone";
+import { getLocalDateParts, serviceDayBounds } from "@/lib/timezone";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
@@ -24,22 +24,8 @@ import {
   type SessionTimes,
 } from "@/lib/service-settings";
 
-/**
- * The centre's today: Sydney midnight → next Sydney midnight, plus the
- * `@db.Date` value (UTC midnight of the Sydney date). This used the
- * SERVER's local time — UTC on Vercel — so until 10–11am every morning
- * Today counted yesterday, and shift times read in UTC (2026-10-09).
- */
-function dayBounds(now: Date) {
-  const { year, month, day, hour, minute } = getLocalDateParts(now);
-  const dateOnly = new Date(Date.UTC(year, month - 1, day));
-  // How far Sydney's wall clock is ahead of UTC right now.
-  const wall = Date.UTC(year, month - 1, day, hour, minute);
-  const offsetMs = wall - Math.floor(now.getTime() / 60_000) * 60_000;
-  const start = new Date(dateOnly.getTime() - offsetMs);
-  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-  return { start, end, dateOnly };
-}
+/** The centre's today — see serviceDayBounds. */
+const dayBounds = (now: Date) => serviceDayBounds(now);
 
 const hhmm = (d: Date) => {
   const { hour, minute } = getLocalDateParts(d);

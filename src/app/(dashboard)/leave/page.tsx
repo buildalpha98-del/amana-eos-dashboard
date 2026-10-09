@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useState, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
@@ -1134,7 +1135,7 @@ export default function LeavePage() {
 
   const handleExport = useCallback(() => {
     exportToCsv(
-      `amana-leave-${new Date().toISOString().slice(0, 10)}`,
+      `amana-leave-${serviceTodayISO()}`,
       filteredRequests,
       [
         { header: "ID", accessor: (r: LeaveRequestData) => r.id },

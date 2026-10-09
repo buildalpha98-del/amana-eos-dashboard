@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState, useEffect } from "react";
 import { X, Trash2, Calendar, Flag, User, FolderOpen, FileText, Plus, CheckSquare, Square } from "lucide-react";
 import {
@@ -72,7 +73,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
     setPriority(task.priority);
     setDueDate(
       task.dueDate
-        ? new Date(task.dueDate).toISOString().split("T")[0]
+        ? serviceDateISO(new Date(task.dueDate))
         : ""
     );
     setAssigneeId(task.assigneeId ?? "");

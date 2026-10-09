@@ -1,3 +1,4 @@
+import { serviceDayBounds } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createHash } from "crypto";
@@ -39,8 +40,7 @@ export const POST = withApiHandler(async (req) => {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
     const ipHashed = hashIp(ip);
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const todayStart = serviceDayBounds().start;
 
     const todayCount = await prisma.quickFeedback.count({
       where: {

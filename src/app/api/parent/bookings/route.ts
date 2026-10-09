@@ -1,3 +1,4 @@
+import { serviceDateOnly } from "@/lib/timezone";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
@@ -52,8 +53,7 @@ export const GET = withParentAuth(async (req, { parent }) => {
   }
 
   const childIdArray = Array.from(childIds);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = serviceDateOnly();
 
   // Support ?period=past for past bookings
   const url = new URL(req.url);

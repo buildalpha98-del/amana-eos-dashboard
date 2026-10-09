@@ -1,5 +1,6 @@
 "use client";
 
+import { serviceDateISO } from "@/lib/timezone";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
@@ -49,7 +50,7 @@ function getTermRange() {
 }
 
 function fmt(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return serviceDateISO(d);
 }
 
 export function ReportsDashboard() {
