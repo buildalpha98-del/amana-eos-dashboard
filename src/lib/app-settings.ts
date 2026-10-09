@@ -22,6 +22,17 @@ export const appSettingsSchema = z.object({
        * why — which matters for a child protection flag.
        */
       canMarkAbsence: z.boolean().optional(),
+      /**
+       * Tell the family when their child is signed in and out — the app
+       * bell and a push. On by default (today's behaviour).
+       */
+      attendanceNotifications: z.boolean().optional(),
+      /**
+       * ALSO email them each time. Two emails a day per child adds up,
+       * so a centre can keep the app notice and drop the email. Ignored
+       * when attendanceNotifications is off.
+       */
+      attendanceEmails: z.boolean().optional(),
     })
     .optional(),
   posts: z
@@ -87,7 +98,7 @@ export type AppSettings = z.infer<typeof appSettingsSchema>;
  * remembering which way an absent value falls.
  */
 export const APP_SETTINGS_DEFAULTS = {
-  parents: { canMarkAbsence: true },
+  parents: { canMarkAbsence: true, attendanceNotifications: true, attendanceEmails: true },
   posts: { draftByDefault: false, onlyApproversPublish: false },
   signInOut: { requireSignature: false },
   staff: { phoneClockIn: true },
@@ -97,7 +108,7 @@ export const APP_SETTINGS_DEFAULTS = {
 export type ChecklistDueTimes = Partial<Record<"bsc" | "asc" | "vc", Record<string, string>>>;
 
 export type ResolvedAppSettings = {
-  parents: { canMarkAbsence: boolean };
+  parents: { canMarkAbsence: boolean; attendanceNotifications: boolean; attendanceEmails: boolean };
   posts: { draftByDefault: boolean; onlyApproversPublish: boolean };
   signInOut: { requireSignature: boolean };
   staff: { phoneClockIn: boolean };
@@ -125,6 +136,11 @@ export function resolveAppSettings(raw: unknown): ResolvedAppSettings {
     parents: {
       canMarkAbsence:
         v.parents?.canMarkAbsence ?? APP_SETTINGS_DEFAULTS.parents.canMarkAbsence,
+      attendanceNotifications:
+        v.parents?.attendanceNotifications ??
+        APP_SETTINGS_DEFAULTS.parents.attendanceNotifications,
+      attendanceEmails:
+        v.parents?.attendanceEmails ?? APP_SETTINGS_DEFAULTS.parents.attendanceEmails,
     },
     posts: {
       draftByDefault:
