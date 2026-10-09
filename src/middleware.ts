@@ -135,9 +135,10 @@ export const config = {
      * Public by design: the auth pages, the family portal, the public help
      * centre, careers, privacy, the anonymous safe-report form, token landing
      * pages (ramp/onboarding check-ins, surveys, enrolment), the enquiry form,
-     * the kiosk (bearer-token device auth) and `/a/[code]` QR redirects.
+     * the kiosk and the door iPad (bearer-token device auth) and `/a/[code]`
+     * QR redirects.
      */
-    "/((?!(?:api|_next|a|login|forgot-password|reset-password|parent|support|careers|privacy|safe-report|ramp-checkin|onboarding-checkin|enquire|enrol|kiosk|survey)(?:/|$)|notifications/preferences(?:/|$)|.*\\..*).+)",
+    "/((?!(?:api|_next|a|login|forgot-password|reset-password|parent|support|careers|privacy|safe-report|ramp-checkin|onboarding-checkin|enquire|enrol|kiosk|door|survey)(?:/|$)|notifications/preferences(?:/|$)|.*\\..*).+)",
 
     /**
      * API — unchanged. The middleware body early-returns for `/api/`, so these

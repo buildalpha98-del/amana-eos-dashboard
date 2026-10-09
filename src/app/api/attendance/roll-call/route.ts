@@ -5,10 +5,9 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { assertServiceAccess } from "@/lib/authz-scope";
 import { z } from "zod";
 import { $Enums, type SessionType } from "@prisma/client";
-import { sendSignInNotification, sendSignOutNotification } from "@/lib/notifications/attendance";
-import { logger } from "@/lib/logger";
 import { requireRoomId } from "@/lib/room-resolver";
 import { resolveAppSettings } from "@/lib/app-settings";
+import { recordHandover, syncDailyAttendance } from "@/lib/attendance-handover";
 
 // YYYY-MM-DD regex used by both handlers for DST-safe parsing.
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -386,67 +385,23 @@ export const POST = withApiAuth(async (req, session) => {
   let record;
 
   switch (action) {
-    case "sign_in": {
-      const signInTime = actionTime;
-      record = await prisma.attendanceRecord.upsert({
-        where: uniqueKey,
-        update: {
-          status: "present",
-          signInTime,
-          signedInById: session.user.id,
-          ...(signedByName ? { signedInByName: signedByName } : {}),
-          ...(signMethod ? { signedInMethod: signMethod } : {}),
-          ...(signature ? { signedInSignature: signature } : {}),
-          notes,
-        },
-        create: {
-          childId,
-          serviceId,
-          date: dateObj,
-          roomId,
-          sessionType,
-          status: "present",
-          signInTime,
-          signedInById: session.user.id,
-          ...(signedByName ? { signedInByName: signedByName } : {}),
-          ...(signMethod ? { signedInMethod: signMethod } : {}),
-          ...(signature ? { signedInSignature: signature } : {}),
-          notes,
-        },
+    case "sign_in":
+    case "sign_out":
+      // Shared with the door iPad — see src/lib/attendance-handover.ts.
+      record = await recordHandover({
+        childId,
+        serviceId,
+        date: dateObj,
+        sessionType,
+        action,
+        at: actionTime,
+        recordedById: session.user.id,
+        signedByName,
+        signMethod,
+        signature,
+        notes: action === "sign_in" ? notes : undefined,
       });
-      // Fire-and-forget — don't block the response
-      sendSignInNotification(childId, serviceId, signInTime).catch((err) => logger.error("Failed to send sign-in notification", { err, childId, serviceId }));
       break;
-    }
-
-    case "sign_out": {
-      const signOutTime = actionTime;
-      record = await prisma.attendanceRecord.upsert({
-        where: uniqueKey,
-        update: {
-          signOutTime,
-          signedOutById: session.user.id,
-          ...(signedByName ? { signedOutByName: signedByName } : {}),
-          ...(signMethod ? { signedOutMethod: signMethod } : {}),
-          ...(signature ? { signedOutSignature: signature } : {}),
-        },
-        create: {
-          childId,
-          serviceId,
-          date: dateObj,
-          roomId,
-          sessionType,
-          status: "present",
-          signInTime: signOutTime, // auto sign-in if missing
-          signedInById: session.user.id,
-          signOutTime,
-          signedOutById: session.user.id,
-        },
-      });
-      // Fire-and-forget
-      sendSignOutNotification(childId, serviceId, signOutTime).catch((err) => logger.error("Failed to send sign-out notification", { err, childId, serviceId }));
-      break;
-    }
 
     case "mark_absent":
       record = await prisma.attendanceRecord.upsert({
@@ -511,43 +466,7 @@ export const POST = withApiAuth(async (req, session) => {
     }
   }
 
-  // ── Sync aggregate DailyAttendance ─────────────────────
-  // Count all individual records for this session to update the totals
-  const counts = await prisma.attendanceRecord.groupBy({
-    by: ["status"],
-    where: { serviceId, date: dateObj, sessionType },
-    _count: { id: true },
-  });
-
-  const attended = counts.find((c) => c.status === "present")?._count.id ?? 0;
-  const absent = counts.find((c) => c.status === "absent")?._count.id ?? 0;
-  const totalBooked = counts.reduce((sum, c) => sum + c._count.id, 0);
-
-  await prisma.dailyAttendance.upsert({
-    where: {
-      serviceId_date_sessionType: {
-        serviceId,
-        date: dateObj,
-        sessionType,
-      },
-    },
-    update: {
-      attended,
-      absent,
-      enrolled: totalBooked,
-      recordedById: session.user.id,
-    },
-    create: {
-      serviceId,
-      date: dateObj,
-      roomId,
-      sessionType,
-      attended,
-      absent,
-      enrolled: totalBooked,
-      recordedById: session.user.id,
-    },
-  });
+  await syncDailyAttendance(serviceId, dateObj, sessionType, session.user.id);
 
   return NextResponse.json(record, { status: 200 });
 });

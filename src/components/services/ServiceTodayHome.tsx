@@ -44,6 +44,7 @@ import { RatioWidget } from "./RatioWidget";
 import { ChecklistsTodayWidget } from "./ChecklistsTodayWidget";
 import { ShiftHandoverWidget } from "./ShiftHandoverWidget";
 import { ServiceTodayPanel } from "./ServiceTodayPanel";
+import { DoorIpadCard } from "./DoorIpadCard";
 import type { ServiceDashboardResponse } from "@/app/api/services/[id]/dashboard/route";
 
 function useCentreDay(serviceId: string) {
@@ -144,6 +145,9 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-4">
+      {/* 0 · The door iPad — Coordinators / centre login, on an iPad. */}
+      {canManage && <DoorIpadCard serviceId={serviceId} />}
+
       {/* 1 · Am I clocked in? (A shared centre login isn't a person —
           it can't clock in, so it gets no card.) */}
       {!isCentreAccount && session?.user?.id && <MyClockCard userId={session.user.id} />}

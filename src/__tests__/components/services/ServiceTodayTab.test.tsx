@@ -46,6 +46,9 @@ vi.mock("@/components/my-portal/MyClockCard", () => ({
 vi.mock("@/components/services/RatioWidget", () => ({ RatioWidget: () => <div /> }));
 vi.mock("@/components/services/ShiftHandoverWidget", () => ({ ShiftHandoverWidget: () => <div /> }));
 vi.mock("@/components/services/ChecklistsTodayWidget", () => ({ ChecklistsTodayWidget: () => <div /> }));
+vi.mock("@/components/services/DoorIpadCard", () => ({
+  DoorIpadCard: () => <div data-testid="door-ipad-card" />,
+}));
 vi.mock("@/components/services/ServiceTodayPanel", () => ({
   ServiceTodayPanel: () => <div data-testid="todo-panel" />,
 }));
@@ -88,6 +91,8 @@ describe("Today — educator", () => {
     await screen.findByRole("link", { name: /27 in/ });
     expect(screen.queryByText("Needs you")).toBeNull();
     expect(screen.queryByTestId("todo-panel")).toBeNull();
+    // Educators don't set up or switch the door iPad.
+    expect(screen.queryByTestId("door-ipad-card")).toBeNull();
   });
 
   it("flags a staff member who hasn't clocked in", async () => {
@@ -139,5 +144,6 @@ describe("Today — centre login (shared mailbox)", () => {
     await screen.findByRole("link", { name: /27 in/ });
     expect(screen.queryByTestId("clock-card")).toBeNull();
     expect(screen.getByText("Needs you")).toBeDefined();
+    expect(screen.getByTestId("door-ipad-card")).toBeDefined();
   });
 });
