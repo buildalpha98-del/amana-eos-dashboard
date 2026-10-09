@@ -615,7 +615,7 @@ function GlanceTiles({
         testId="glance-leave"
       />
       <GlanceTile
-        href="/my-expenses"
+        href="/my-pay?tab=expenses"
         icon={Receipt}
         label="Reimbursements"
         value={expensesValue}

@@ -48,7 +48,7 @@ export function QuickAddMenu({
           { label: "New To-Do", icon: CheckSquare, action: () => { openTodoModal(); onClose(); } },
           { label: "Upload a document", icon: Upload, action: go("/compliance") },
           { label: "Apply for leave", icon: Plane, action: go("/my-leave") },
-          { label: "Claim an expense", icon: Receipt, action: go("/my-expenses") },
+          { label: "Claim an expense", icon: Receipt, action: go("/my-pay?tab=expenses") },
         ]
       : [
           { label: "New To-Do", icon: CheckSquare, action: () => { openTodoModal(); onClose(); } },
