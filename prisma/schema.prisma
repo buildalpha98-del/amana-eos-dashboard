@@ -1010,6 +1010,7 @@ model User {
   // single staff member be at multiple centres with per-service role+access.
   serviceMemberships UserServiceMembership[] @relation("UserMemberships")
   shiftInterests     ShiftInterest[]         @relation("UserShiftInterests")
+  hazardsReported    HazardReport[]          @relation("HazardReporter")
 
   // 2026-07-23: family balance follow-up contacts this user logged.
   familyBalanceContactsCreated FamilyBalanceContact[] @relation("FamilyBalanceContactCreator")
@@ -3159,6 +3160,7 @@ model Service {
   // top of staffMembers (which is the User.serviceId one-to-many). Lets a
   // single staff member be at multiple centres with per-service role+access.
   serviceMemberships UserServiceMembership[] @relation("ServiceMemberships")
+  hazards            HazardReport[]          @relation("ServiceHazards")
 
   // 2026-07-23: family balance follow-up log — parent contact attempts
   // for outstanding balances at this centre.
@@ -5995,6 +5997,39 @@ model ShiftInterest {
 
   @@unique([shiftId, userId])
   @@index([userId])
+}
+
+/// Hazard & maintenance log (2026-10-09, OWNA parity). Anyone at the
+/// centre reports ("back gate latch doesn't catch"); the Coordinator sets
+/// who's fixing it and by when, and closes it off. Open high-priority
+/// hazards surface in the Coordinator's "Needs you".
+model HazardReport {
+  id             String    @id @default(cuid())
+  serviceId      String
+  service        Service   @relation("ServiceHazards", fields: [serviceId], references: [id], onDelete: Cascade)
+  title          String
+  details        String?   @db.Text
+  location       String?
+  /// low | medium | high
+  priority       String    @default("medium")
+  /// open | in_progress | waiting | fixed
+  status         String    @default("open")
+  /// Vercel Blob only (safeAttachmentUrl).
+  photoUrl       String?
+  reportedById   String?
+  reportedBy     User?     @relation("HazardReporter", fields: [reportedById], references: [id], onDelete: SetNull)
+  reportedByName String
+  /// Who's fixing it — free text, because it's often not staff
+  /// ("Ahmed (maintenance)", "the school", "plumber").
+  assignedTo     String?
+  dueDate        DateTime? @db.Date
+  fixedAt        DateTime?
+  fixedByName    String?
+  fixNotes       String?   @db.Text
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([serviceId, status])
 }
 
 model ShiftTemplate {

@@ -33,6 +33,7 @@ import {
   ShieldAlert,
   UserCheck,
   Users,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
@@ -141,6 +142,7 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
     { n: attention.pendingBookingRequests, label: "Booking requests", href: "/bookings", icon: CalendarPlus },
     { n: attention.purchaseApprovalsPending, label: "Purchase approvals", href: `${svc}?tab=finance&sub=approvals`, icon: Receipt },
     { n: attention.expiringCerts, label: "Staff documents expiring", href: "/compliance", icon: FileWarning },
+    { n: attention.hazardsOpen ?? 0, label: "Hazards to fix", href: `${svc}?tab=compliance&sub=hazards`, icon: Wrench },
   ].filter((r) => r.n > 0);
 
   return (
@@ -238,7 +240,7 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
       </Link>
 
       {/* 5 · What's due + quick ways to log things */}
-      <nav aria-label="Shift actions" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <nav aria-label="Shift actions" className="grid grid-cols-3 gap-2">
         <Tile
           href={`${svc}?tab=daily&sub=checklists`}
           icon={ClipboardCheck}
@@ -277,6 +279,14 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
           note={attention.visitorsOnSite > 0 ? "on site now" : "sign one in"}
         />
         <Tile href={`${svc}?tab=compliance&sub=headcounts`} icon={Users} label="Headcount" />
+        <Tile
+          href={`${svc}?tab=compliance&sub=hazards`}
+          icon={Wrench}
+          value={attention.hazardsOpen || undefined}
+          label="Hazards"
+          note={attention.hazardsOpen ? "still to fix" : "report one"}
+          noteTone={attention.hazardsOpen ? "warn" : "muted"}
+        />
       </nav>
 
       <div>

@@ -68,10 +68,10 @@ export function DoorIpadCard({ serviceId }: { serviceId: string }) {
   return (
     <section
       aria-label="Door iPad"
-      className="flex flex-wrap items-center gap-4 rounded-xl border-2 border-accent bg-card p-4"
+      className="flex flex-col gap-3 rounded-xl border-2 border-accent bg-card p-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4"
     >
-      <Tablet className="h-8 w-8 shrink-0 text-brand" aria-hidden />
-      <div className="min-w-0 flex-1">
+      <Tablet className="hidden h-8 w-8 shrink-0 text-brand sm:block" aria-hidden />
+      <div className="min-w-0 sm:flex-1">
         <p className="font-heading font-semibold text-foreground">
           {paired ? "This is the door iPad" : "Use this iPad at the door?"}
         </p>
@@ -82,11 +82,11 @@ export function DoorIpadCard({ serviceId }: { serviceId: string }) {
         </p>
       </div>
       {paired ? (
-        <Button size="lg" className="bg-accent text-brand hover:bg-accent/90" onClick={() => router.push("/door")}>
+        <Button size="lg" className="w-full bg-accent text-brand hover:bg-accent/90 sm:w-auto" onClick={() => router.push("/door")}>
           Switch to Parent mode
         </Button>
       ) : (
-        <Button size="lg" onClick={setUp} disabled={busy}>
+        <Button size="lg" className="w-full sm:w-auto" onClick={setUp} disabled={busy}>
           {busy ? "Setting up…" : "Set up as the door iPad"}
         </Button>
       )}

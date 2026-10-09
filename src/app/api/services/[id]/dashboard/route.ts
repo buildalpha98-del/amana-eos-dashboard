@@ -69,6 +69,7 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
     postsAwaitingApproval,
     purchaseApprovalsPending,
     visitorsOnSite,
+    hazardsOpen,
   ] = await Promise.all([
     prisma.attendanceRecord.findMany({
       where: { serviceId: id, date: dateOnly },
@@ -150,6 +151,8 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
     prisma.purchaseApproval.count({ where: { serviceId: id, status: "pending" } }),
     // Visitors still signed in — the register is a regulatory record.
     prisma.serviceVisitor.count({ where: { serviceId: id, signedOutAt: null } }),
+    // Hazards not yet fixed (2026-10-09, the hazard & maintenance log).
+    prisma.hazardReport.count({ where: { serviceId: id, status: { not: "fixed" } } }),
   ]);
 
   // ── Per-programme snapshot ──────────────────────────────────────────
@@ -272,6 +275,7 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
       postsAwaitingApproval,
       purchaseApprovalsPending,
       visitorsOnSite,
+      hazardsOpen,
     },
   });
 });
@@ -324,5 +328,6 @@ export type ServiceDashboardResponse = {
     postsAwaitingApproval: number;
     purchaseApprovalsPending: number;
     visitorsOnSite: number;
+    hazardsOpen: number;
   };
 };

@@ -42,6 +42,7 @@ import { ServiceRollCallTab } from "@/components/services/ServiceRollCallTab";
 import { ParentCommunicationPanel } from "./parent-communication/page";
 import { ServiceFamiliesTab } from "@/components/services/ServiceFamiliesTab";
 import { MessagingInbox } from "@/components/messaging/MessagingInbox";
+import { ServiceHazardsTab } from "@/components/services/ServiceHazardsTab";
 import { ServiceChildrenTab } from "@/components/services/ServiceChildrenTab";
 import { ServiceWeeklyRosterTab } from "@/components/services/ServiceWeeklyRosterTab";
 import { ServiceTodayTab } from "@/components/services/ServiceTodayTab";
@@ -531,6 +532,9 @@ export default function ServiceDetailPage() {
         )}
         {shownGroup === "compliance" && currentSubKey === "risk" && (
           <ServiceRiskTab serviceId={service.id} />
+        )}
+        {shownGroup === "compliance" && currentSubKey === "hazards" && (
+          <ServiceHazardsTab serviceId={service.id} />
         )}
         {shownGroup === "compliance" && currentSubKey === "headcounts" && (
           <ServiceHeadcountsTab serviceId={service.id} />
