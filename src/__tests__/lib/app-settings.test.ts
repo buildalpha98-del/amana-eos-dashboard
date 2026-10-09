@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from "vitest";
 import {
+  appSettingsSchema,
   canPublishPosts,
   resolveAppSettings,
 } from "@/lib/app-settings";
@@ -73,5 +74,22 @@ describe("sign in/out + staff settings (2026-10-08)", () => {
     });
     expect(s.signInOut.requireSignature).toBe(true);
     expect(s.staff.phoneClockIn).toBe(false);
+  });
+});
+
+describe("roster settings (Build Roster)", () => {
+  it("defaults to no presets and no cost limit", () => {
+    expect(resolveAppSettings(null).roster).toEqual({ shiftPresets: [], weeklyCostLimit: null });
+  });
+
+  it("keeps saved presets and limit", () => {
+    const s = resolveAppSettings({ roster: { shiftPresets: [{ start: "14:30", end: "18:30" }], weeklyCostLimit: 4000 } });
+    expect(s.roster.shiftPresets).toEqual([{ start: "14:30", end: "18:30" }]);
+    expect(s.roster.weeklyCostLimit).toBe(4000);
+  });
+
+  it("rejects a malformed preset time", () => {
+    const r = appSettingsSchema.safeParse({ roster: { shiftPresets: [{ start: "2:30pm", end: "18:30" }] } });
+    expect(r.success).toBe(false);
   });
 });
