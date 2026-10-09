@@ -28,7 +28,6 @@ import { ServiceIssuesTab } from "@/components/services/ServiceIssuesTab";
 import { ServiceProjectsTab } from "@/components/services/ServiceProjectsTab";
 import { WeeklyDataEntry } from "@/components/services/WeeklyDataEntry";
 import { ServiceCommTab } from "@/components/services/ServiceCommTab";
-import { ServiceAttendanceTab } from "@/components/services/ServiceAttendanceTab";
 import { ServiceBudgetTab } from "@/components/services/ServiceBudgetTab";
 import { FamilyBillingSection } from "@/components/billing/FamilyBillingSection";
 import { ServicePurchaseApprovalsTab } from "@/components/services/ServicePurchaseApprovalsTab";
@@ -37,7 +36,7 @@ import { ServiceMenuTab } from "@/components/services/ServiceMenuTab";
 import { ServiceAuditsTab } from "@/components/services/ServiceAuditsTab";
 import { ServiceQIPTab } from "@/components/services/ServiceQIPTab";
 import { ServiceChecklistsTab } from "@/components/services/ServiceChecklistsTab";
-import { ServiceRollCallTab } from "@/components/services/ServiceRollCallTab";
+import { AttendancesHub } from "@/components/services/attendances/AttendancesHub";
 import { ParentCommunicationPanel } from "./parent-communication/page";
 import { ServiceFamiliesTab } from "@/components/services/ServiceFamiliesTab";
 import { MessagingInbox } from "@/components/messaging/MessagingInbox";
@@ -80,6 +79,7 @@ const TAB_OWNED_PARAMS: Record<string, { tab: string; sub: string }> = {
   rollCallView: { tab: "daily", sub: "roll-call" },
   date: { tab: "daily", sub: "roll-call" },
   rosterView: { tab: "daily", sub: "roster" },
+  att: { tab: "daily", sub: "roll-call" },
 };
 
 const statusBadgeStyles: Record<string, string> = {
@@ -119,7 +119,7 @@ export default function ServiceDetailPage() {
   const [navSheetOpen, setNavSheetOpen] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<Record<string, string>>(() => {
     const defaults: Record<string, string> = {
-      daily: "attendance",
+      daily: "roll-call",
       program: "activities",
       eos: "todos",
       compliance: "audits",
@@ -443,17 +443,11 @@ export default function ServiceDetailPage() {
         )}
 
         {/* Daily Ops group */}
-        {shownGroup === "daily" && currentSubKey === "attendance" && (
-          <ServiceAttendanceTab
-            serviceId={service.id}
-            serviceName={service.name}
-          />
-        )}
         {shownGroup === "daily" && currentSubKey === "posts" && (
           <ParentCommunicationPanel serviceId={service.id} embedded />
         )}
         {shownGroup === "daily" && currentSubKey === "roll-call" && (
-          <ServiceRollCallTab serviceId={service.id} serviceName={service.name} />
+          <AttendancesHub serviceId={service.id} serviceName={service.name} />
         )}
         {shownGroup === "families" && (
           <ServiceFamiliesTab serviceId={service.id} serviceName={service.name} />

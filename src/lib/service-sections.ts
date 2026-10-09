@@ -71,12 +71,11 @@ export interface TabGroup {
 // Base Daily Ops sub-tabs always visible. `casual-bookings` is appended
 // at render-time for admin/coord only (see `visibleGroups` below).
 export const DAILY_OPS_BASE_SUBTABS: SubTab[] = [
-  { key: "attendance", label: "Attendance", icon: ClipboardList },
   // The door (staff-UX Round 3, 2026-10-09): Sign In / Out and Roll Call
   // were two screens over the same records, each missing half of the job.
   // One screen now; the old `sign-in-out` key is an alias (SUB_TAB_ALIASES)
   // so bookmarks and links keep landing here.
-  { key: "roll-call", label: "Sign in & out", icon: LogIn },
+  { key: "roll-call", label: "Attendances", icon: LogIn },
   // Moved here from the Families group 2026-08-01 per Daniel — posting
   // about the day is part of running the day.
   { key: "posts", label: "Posts", icon: MessageCircle },
@@ -93,6 +92,8 @@ export const DAILY_OPS_BASE_SUBTABS: SubTab[] = [
 const SECTION_ALIASES: Record<string, { tab: string; sub?: string }> = {
   // Round 3 (2026-10-09): Sign In / Out merged into the door.
   "daily:sign-in-out": { tab: "daily", sub: "roll-call" },
+  // Attendances (2026-10-09): children, staff and occupancy in one place.
+  "daily:attendance": { tab: "daily", sub: "roll-call" },
   // Children and Families became sections of their own (2026-10-09).
   "daily:children": { tab: "children" },
   // Live ratio is on each room's card on Today; the history is the
