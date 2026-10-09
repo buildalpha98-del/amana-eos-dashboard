@@ -22,6 +22,9 @@ vi.mock("@/hooks/useRollCall", () => ({
     error: null,
   }),
   useUpdateRollCall: () => ({ mutate: vi.fn(), isPending: false }),
+  useBulkRollCall: () => ({ mutate: vi.fn(), isPending: false }),
+  useSendFirstDayPhoto: () => ({ mutate: vi.fn(), isPending: false }),
+  uploadFirstDayPhoto: vi.fn(),
 }));
 
 // Stub the new weekly grid hook so we don't need real session/data.
@@ -63,6 +66,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { ServiceRollCallTab } from "@/components/services/ServiceRollCallTab";
+import { serviceTodayISO } from "@/lib/timezone";
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -127,7 +131,7 @@ describe("ServiceRollCallTab — view toggle", () => {
 
     // Daily view content — the date picker + session buttons are daily-only markup.
     // "Total Enrolled" summary card is part of the daily view.
-    expect(screen.getByText(/Total Enrolled/i)).toBeDefined();
+    expect(screen.getByText(/Everyone/)).toBeDefined();
 
     // Weekly / monthly placeholders should NOT be visible.
     expect(screen.queryByText(/Weekly view — ships/i)).toBeNull();
@@ -144,7 +148,7 @@ describe("ServiceRollCallTab — view toggle", () => {
     // Weekly grid renders its week-range label (Week of ...).
     expect(screen.getByTestId("weekly-range-label").textContent).toMatch(/week of/i);
     // Daily markup should not be visible — the summary cards are daily-only.
-    expect(screen.queryByText(/Total Enrolled/i)).toBeNull();
+    expect(screen.queryByText(/Everyone/)).toBeNull();
   });
 
   it("renders monthly calendar when ?rollCallView=monthly", () => {
@@ -156,7 +160,7 @@ describe("ServiceRollCallTab — view toggle", () => {
 
     // Monthly view renders its own range label.
     expect(screen.getByTestId("monthly-range-label")).toBeDefined();
-    expect(screen.queryByText(/Total Enrolled/i)).toBeNull();
+    expect(screen.queryByText(/Everyone/)).toBeNull();
   });
 
   it("clicking the Weekly button calls router.replace with ?rollCallView=weekly", () => {
@@ -165,7 +169,7 @@ describe("ServiceRollCallTab — view toggle", () => {
       wrapper: makeWrapper(qc),
     });
 
-    const weeklyBtn = screen.getByRole("button", { name: /^weekly$/i });
+    const weeklyBtn = screen.getByRole("button", { name: /^week$/i });
     fireEvent.click(weeklyBtn);
 
     expect(routerReplace).toHaveBeenCalledTimes(1);
@@ -180,7 +184,7 @@ describe("ServiceRollCallTab — view toggle", () => {
       wrapper: makeWrapper(qc),
     });
 
-    const monthlyBtn = screen.getByRole("button", { name: /^monthly$/i });
+    const monthlyBtn = screen.getByRole("button", { name: /^month$/i });
     fireEvent.click(monthlyBtn);
 
     expect(routerReplace).toHaveBeenCalledTimes(1);
@@ -199,7 +203,7 @@ describe("ServiceRollCallTab — view toggle", () => {
     });
 
     // Daily view content should render — not a blank page, not the placeholders.
-    expect(screen.getByText(/Total Enrolled/i)).toBeDefined();
+    expect(screen.getByText(/Everyone/)).toBeDefined();
     expect(screen.queryByText(/Weekly view — ships/i)).toBeNull();
     expect(screen.queryByText(/Monthly view — ships/i)).toBeNull();
   });
@@ -230,7 +234,7 @@ describe("ServiceRollCallTab — view toggle", () => {
     // Should NOT have a 2026-04-15 value — should render a today fallback.
     expect(screen.queryByDisplayValue("not-a-date")).toBeNull();
     // Today's date string in YYYY-MM-DD (ISO) should appear in the date input.
-    const today = new Date().toISOString().split("T")[0];
+    const today = serviceTodayISO(); // the centre's date, not UTC's
     expect(screen.getByDisplayValue(today)).toBeDefined();
   });
 
@@ -248,7 +252,7 @@ describe("ServiceRollCallTab — view toggle", () => {
 
     // Find the date input and change it. Use a date guaranteed to differ
     // from "today" in any timezone — 2025-01-01 is safe.
-    const today = new Date().toISOString().split("T")[0];
+    const today = serviceTodayISO(); // the centre's date, not UTC's
     const dateInput = screen.getByDisplayValue(today) as HTMLInputElement;
     fireEvent.change(dateInput, { target: { value: "2025-01-01" } });
 

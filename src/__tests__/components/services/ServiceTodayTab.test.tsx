@@ -73,7 +73,7 @@ describe("Today — educator", () => {
   it("leads with the door: in vs booked, and who's still to arrive", async () => {
     renderToday();
     const door = await screen.findByRole("link", { name: /27 in · 35 booked/ });
-    expect(door.getAttribute("href")).toBe("/services/svc-1?tab=daily&sub=sign-in-out");
+    expect(door.getAttribute("href")).toBe("/services/svc-1?tab=daily&sub=roll-call");
     expect(door.textContent).toMatch(/8 still to arrive/);
   });
 

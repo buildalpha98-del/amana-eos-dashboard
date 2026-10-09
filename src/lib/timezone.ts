@@ -49,7 +49,8 @@ export function getLocalDateParts(date: Date = new Date(), tz: string = SERVICE_
     month: Number(parts.month),
     day: Number(parts.day),
     dayOfWeek: weekdayMap[parts.weekday] ?? 0,
-    hour: Number(parts.hour),
+    // hour12:false renders midnight as "24" in V8.
+    hour: Number(parts.hour) % 24,
     minute: Number(parts.minute),
   };
 }
@@ -100,4 +101,14 @@ export function isTodayOrFutureInServiceTz(
   const target = new Date(bookingDate);
   if (Number.isNaN(target.getTime())) return false;
   return target.getTime() >= getTodayUtcFromServiceTz(now, tz).getTime();
+}
+
+/**
+ * Today's date at the centre, as "YYYY-MM-DD". `new Date().toISOString()`
+ * gives the UTC date, which in Sydney is YESTERDAY until 10–11am — so a
+ * morning roll opened on it showed the previous day's children.
+ */
+export function serviceTodayISO(now: Date = new Date(), tz: string = SERVICE_TZ): string {
+  const { year, month, day } = getLocalDateParts(now, tz);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }

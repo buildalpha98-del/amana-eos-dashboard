@@ -33,7 +33,7 @@ describe("educator menu (2026-10-08)", () => {
       keys({ isEducator: true, isAdminPlus: false, canSeeCasualBookings: false, canSeeStaffFiles: false }),
     ).toEqual([
       "today:",
-      "daily:sign-in-out,roll-call,children,medication,checklists,posts,ratios",
+      "daily:roll-call,children,medication,checklists,posts,ratios",
       "program:activities,menu,observations",
       "compliance:incidents,headcounts,registers,risk",
       "documents:policies,handbook",

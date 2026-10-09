@@ -12,6 +12,7 @@
  * shows the same children.
  */
 import { NextRequest, NextResponse } from "next/server";
+import { getLocalDateParts } from "@/lib/timezone";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
@@ -23,23 +24,27 @@ import {
   type SessionTimes,
 } from "@/lib/service-settings";
 
-/** Local midnight → next local midnight, for "today" comparisons. */
+/**
+ * The centre's today: Sydney midnight → next Sydney midnight, plus the
+ * `@db.Date` value (UTC midnight of the Sydney date). This used the
+ * SERVER's local time — UTC on Vercel — so until 10–11am every morning
+ * Today counted yesterday, and shift times read in UTC (2026-10-09).
+ */
 function dayBounds(now: Date) {
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-  // Date-only columns (`@db.Date`) are stored at UTC midnight; build the
-  // matching value rather than passing a local-midnight Date, which
-  // lands on the previous day for AEST.
-  const dateOnly = new Date(
-    Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()),
-  );
+  const { year, month, day, hour, minute } = getLocalDateParts(now);
+  const dateOnly = new Date(Date.UTC(year, month - 1, day));
+  // How far Sydney's wall clock is ahead of UTC right now.
+  const wall = Date.UTC(year, month - 1, day, hour, minute);
+  const offsetMs = wall - Math.floor(now.getTime() / 60_000) * 60_000;
+  const start = new Date(dateOnly.getTime() - offsetMs);
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   return { start, end, dateOnly };
 }
 
-const hhmm = (d: Date) =>
-  `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+const hhmm = (d: Date) => {
+  const { hour, minute } = getLocalDateParts(d);
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+};
 
 export const GET = withApiAuth(async (req: NextRequest, session, context) => {
   const { id } = await context!.params!;

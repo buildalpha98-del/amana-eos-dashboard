@@ -173,6 +173,10 @@ export const GET = withApiAuth(async (req, session) => {
       signOutTime: record?.signOutTime ?? null,
       signedInBy: record?.signedInBy ?? null,
       signedOutBy: record?.signedOutBy ?? null,
+      // Who handed over / collected (Reg 158). Stored since 2026-08-01 but
+      // never returned, so the door's "signed in by" line was always blank.
+      signedInByName: record?.signedInByName ?? null,
+      signedOutByName: record?.signedOutByName ?? null,
       absenceReason: record?.absenceReason ?? null,
       notes: record?.notes ?? null,
       firstDayPhotoSentAt: record?.firstDayPhotoSentAt ?? null,
@@ -219,6 +223,8 @@ export const GET = withApiAuth(async (req, session) => {
           signOutTime: record.signOutTime,
           signedInBy: record.signedInBy,
           signedOutBy: record.signedOutBy,
+          signedInByName: record.signedInByName,
+          signedOutByName: record.signedOutByName,
           absenceReason: record.absenceReason,
           notes: record.notes,
           firstDayPhotoSentAt: record.firstDayPhotoSentAt,
@@ -258,6 +264,20 @@ export const GET = withApiAuth(async (req, session) => {
 
 // ── POST: Update an individual child's attendance ─────────
 
+/**
+ * Who handed over / collected, and how. Undo and absent clear these with
+ * the times — otherwise the next sign-in shows the last collector's name
+ * against a hand-over they had nothing to do with.
+ */
+const CLEAR_HANDOVER = {
+  signedInByName: null,
+  signedOutByName: null,
+  signedInMethod: null,
+  signedOutMethod: null,
+  signedInSignature: null,
+  signedOutSignature: null,
+} as const;
+
 const actionSchema = z.object({
   childId: z.string().min(1),
   serviceId: z.string().min(1),
@@ -268,7 +288,7 @@ const actionSchema = z.object({
    * this centre, so a slot the centre doesn't run still gets refused.
    */
   sessionType: z.nativeEnum($Enums.SessionType),
-  action: z.enum(["sign_in", "sign_out", "mark_absent", "undo"]),
+  action: z.enum(["sign_in", "sign_out", "mark_absent", "undo", "note"]),
   absenceReason: z.string().max(500).optional(),
   notes: z.string().max(1000).optional(),
   /**
@@ -438,6 +458,7 @@ export const POST = withApiAuth(async (req, session) => {
           signOutTime: null,
           signedInById: null,
           signedOutById: null,
+          ...CLEAR_HANDOVER,
           notes,
         },
         create: {
@@ -462,6 +483,7 @@ export const POST = withApiAuth(async (req, session) => {
           signOutTime: null,
           signedInById: null,
           signedOutById: null,
+          ...CLEAR_HANDOVER,
           absenceReason: null,
         },
         create: {
@@ -474,6 +496,19 @@ export const POST = withApiAuth(async (req, session) => {
         },
       });
       break;
+
+    case "note": {
+      // A note on its own. The door used to save a note by re-sending
+      // "sign_in", which moved the sign-in time to now and sent the parent
+      // a second "signed in" message (fixed 2026-10-09).
+      const existing = await prisma.attendanceRecord.findUnique({ where: uniqueKey });
+      if (!existing) throw ApiError.badRequest("Sign the child in or mark them absent before adding a note.");
+      record = await prisma.attendanceRecord.update({
+        where: uniqueKey,
+        data: { notes: notes ?? null },
+      });
+      break;
+    }
   }
 
   // ── Sync aggregate DailyAttendance ─────────────────────

@@ -7,6 +7,7 @@ import { logger } from "@/lib/logger";
 import { requireRoomId } from "@/lib/room-resolver";
 import { assertServiceAccess } from "@/lib/authz-scope";
 import { $Enums } from "@prisma/client";
+import { sendSignInNotification, sendSignOutNotification } from "@/lib/notifications/attendance";
 
 // ── Schema ─────────────────────────────────────────────────
 
@@ -23,6 +24,12 @@ const itemSchema = z.object({
   action: z.enum(["sign_in", "sign_out", "mark_absent", "undo"]),
   absenceReason: z.string().max(500).optional(),
   notes: z.string().max(1000).optional(),
+  /**
+   * Who handed over, for the register (Reg 158) — the door screen's bulk
+   * actions send e.g. "Collected from class by educators". Staff escorts,
+   * not parents, so no signature is asked for.
+   */
+  signedByName: z.string().trim().max(120).optional(),
 });
 
 const bulkSchema = z.object({
@@ -31,6 +38,13 @@ const bulkSchema = z.object({
     .array(itemSchema)
     .min(1, "At least one item required")
     .max(100, "Max 100 items per batch"),
+  /**
+   * Send the parent sign-in / sign-out notifications, as a single tap
+   * would. The door screen sets it — a real hand-over is happening. The
+   * weekly grid leaves it off: that's backfill, and a parent shouldn't get
+   * "signed in at 3:05" for last Tuesday.
+   */
+  notify: z.boolean().optional(),
 });
 
 // ── POST: Transactional bulk attendance update ──────────────
@@ -57,7 +71,7 @@ export const POST = withApiAuth(
         parsed.error.flatten().fieldErrors,
       );
     }
-    const { serviceId, items } = parsed.data;
+    const { serviceId, items, notify } = parsed.data;
     // Same centre scope as the GET — writing a roll you can't read was
     // possible until 2026-10-08.
     assertServiceAccess(session, serviceId);
@@ -92,6 +106,9 @@ export const POST = withApiAuth(
                     status: "present",
                     signInTime,
                     signedInById: session.user.id,
+                    ...(item.signedByName
+                      ? { signedInByName: item.signedByName, signedInMethod: "staff" }
+                      : {}),
                     notes: item.notes,
                   },
                   create: {
@@ -103,6 +120,9 @@ export const POST = withApiAuth(
                     status: "present",
                     signInTime,
                     signedInById: session.user.id,
+                    ...(item.signedByName
+                      ? { signedInByName: item.signedByName, signedInMethod: "staff" }
+                      : {}),
                     notes: item.notes,
                   },
                 });
@@ -115,6 +135,9 @@ export const POST = withApiAuth(
                   update: {
                     signOutTime,
                     signedOutById: session.user.id,
+                    ...(item.signedByName
+                      ? { signedOutByName: item.signedByName, signedOutMethod: "staff" }
+                      : {}),
                   },
                   create: {
                     childId: item.childId,
@@ -141,6 +164,13 @@ export const POST = withApiAuth(
                     signOutTime: null,
                     signedInById: null,
                     signedOutById: null,
+                    // Clear the hand-over with the times (see the single route).
+                    signedInByName: null,
+                    signedOutByName: null,
+                    signedInMethod: null,
+                    signedOutMethod: null,
+                    signedInSignature: null,
+                    signedOutSignature: null,
                     notes: item.notes,
                   },
                   create: {
@@ -165,6 +195,13 @@ export const POST = withApiAuth(
                     signOutTime: null,
                     signedInById: null,
                     signedOutById: null,
+                    // Clear the hand-over with the times (see the single route).
+                    signedInByName: null,
+                    signedOutByName: null,
+                    signedInMethod: null,
+                    signedOutMethod: null,
+                    signedInSignature: null,
+                    signedOutSignature: null,
                     absenceReason: null,
                   },
                   create: {
@@ -240,6 +277,22 @@ export const POST = withApiAuth(
 
         return createdIds;
       });
+
+      if (notify) {
+        // After commit, fire-and-forget — same as the single-tap route.
+        const now = new Date();
+        for (const item of items) {
+          if (item.action === "sign_in") {
+            sendSignInNotification(item.childId, serviceId, now).catch((err) =>
+              logger.error("Bulk sign-in notification failed", { err, childId: item.childId }),
+            );
+          } else if (item.action === "sign_out") {
+            sendSignOutNotification(item.childId, serviceId, now).catch((err) =>
+              logger.error("Bulk sign-out notification failed", { err, childId: item.childId }),
+            );
+          }
+        }
+      }
 
       return NextResponse.json(
         { created: result.length, failed: 0 },

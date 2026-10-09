@@ -59,6 +59,9 @@ export interface RollCallEntry {
   signOutTime: string | null;
   signedInBy: { id: string; name: string } | null;
   signedOutBy: { id: string; name: string } | null;
+  /** The person who handed over / collected (Reg 158) — a parent, usually. */
+  signedInByName?: string | null;
+  signedOutByName?: string | null;
   absenceReason: string | null;
   notes: string | null;
   firstDayPhotoSentAt: string | null;
@@ -84,7 +87,7 @@ export interface RollCallResponse {
   summary: RollCallSummary;
 }
 
-export type RollCallAction = "sign_in" | "sign_out" | "mark_absent" | "undo";
+export type RollCallAction = "sign_in" | "sign_out" | "mark_absent" | "undo" | "note";
 
 interface RollCallActionPayload {
   childId: string;
@@ -94,6 +97,10 @@ interface RollCallActionPayload {
   action: RollCallAction;
   absenceReason?: string;
   notes?: string;
+  /** Who dropped off / collected, and how — see the door's SignDialog. */
+  signedByName?: string;
+  signMethod?: "staff" | "parent_kiosk" | "parent_app";
+  signature?: string;
 }
 
 /**
@@ -211,6 +218,8 @@ export function useUpdateRollCall() {
         queryKey: ["roll-call", variables.serviceId, variables.date, variables.sessionType],
       });
       queryClient.invalidateQueries({ queryKey: ["attendance"] });
+      // The Today screen's "27 in · 35 booked" reads the same records.
+      queryClient.invalidateQueries({ queryKey: ["centre-day", variables.serviceId] });
     },
   });
 }
@@ -277,4 +286,53 @@ export async function uploadFirstDayPhoto(file: File): Promise<string> {
   const json = (await res.json()) as { url?: string };
   if (!json.url) throw new Error("Upload succeeded but server returned no URL");
   return json.url;
+}
+
+/**
+ * Whole-programme sign in / out from the door screen — one request through
+ * the transactional bulk route (chunked at its 100-item cap), with the
+ * parent notifications a single tap would send.
+ */
+export function useBulkRollCall() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      serviceId: string;
+      date: string;
+      sessionType: string;
+      action: "sign_in" | "sign_out";
+      childIds: string[];
+      signedByName: string;
+      notify: boolean;
+    }) => {
+      for (let i = 0; i < input.childIds.length; i += 100) {
+        await mutateApi("/api/attendance/roll-call/bulk", {
+          method: "POST",
+          body: {
+            serviceId: input.serviceId,
+            notify: input.notify,
+            items: input.childIds.slice(i, i + 100).map((childId) => ({
+              childId,
+              date: input.date,
+              sessionType: input.sessionType,
+              action: input.action,
+              signedByName: input.signedByName,
+            })),
+          },
+        });
+      }
+      return input.childIds.length;
+    },
+    onSuccess: (n, v) => {
+      toast({ description: `${n} ${n === 1 ? "child" : "children"} signed ${v.action === "sign_in" ? "in" : "out"}.` });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Couldn't update the roll" });
+    },
+    onSettled: (_d, _e, v) => {
+      queryClient.invalidateQueries({ queryKey: ["roll-call", v.serviceId, v.date, v.sessionType] });
+      queryClient.invalidateQueries({ queryKey: ["attendance"] });
+      queryClient.invalidateQueries({ queryKey: ["centre-day", v.serviceId] });
+    },
+  });
 }

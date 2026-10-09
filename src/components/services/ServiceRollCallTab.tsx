@@ -1,5 +1,29 @@
 "use client";
 
+/**
+ * The door — sign children in and out, and keep the roll (staff-UX
+ * Round 3, 2026-10-09).
+ *
+ * This used to be two screens over the same AttendanceRecords: "Sign In /
+ * Out" recorded WHO handed over (Reg 158) but had no absent, no walk-ins,
+ * no history; "Roll Call" had all of that but signed out with no name.
+ * Staff had to know which one to open. Now there is one, modelled on what
+ * centres already know from OWNA:
+ *
+ *  - a coloured dot per child — orange to arrive, green here, blue gone
+ *    home, red absent — and the same colours on the filter chips;
+ *  - sign-in is ONE tap for the afternoon programme (children come from
+ *    class, educators collect them) and asks who's dropping off otherwise;
+ *  - sign-out ALWAYS asks who is collecting, plus a signature when the
+ *    centre's Sign in & out setting wants one;
+ *  - absent is one tap, with Undo right there on the row;
+ *  - the whole programme can be signed in or out at once, with a note for
+ *    the register saying who did the hand-over.
+ *
+ * Rows stay in name order whatever happens to them — a list that reshuffles
+ * every time someone is signed in is how the wrong child gets tapped.
+ */
+
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -9,8 +33,6 @@ import {
   Undo2,
   Search,
   Users,
-  UserCheck,
-  Clock,
   MoreVertical,
   StickyNote,
   Loader2,
@@ -20,27 +42,33 @@ import {
   Sparkles,
   ChevronDown,
   ChevronRight,
+  PenLine,
 } from "lucide-react";
 import {
   useRollCall,
   useUpdateRollCall,
+  useBulkRollCall,
   useSendFirstDayPhoto,
   uploadFirstDayPhoto,
   type RollCallEntry,
+  type RollCallAction,
 } from "@/hooks/useRollCall";
 import { toast } from "@/hooks/useToast";
 import { useChildren } from "@/hooks/useChildren";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/Button";
 import { MedicalAlertBadge } from "@/components/children/MedicalAlertBadge";
 import { CustodyChip } from "@/components/children/CustodyChip";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { ServiceWeeklyRollCallGrid } from "./ServiceWeeklyRollCallGrid";
 import { ServiceMonthlyRollCallView } from "./ServiceMonthlyRollCallView";
+import { SignDialog, BulkDialog } from "./DoorDialogs";
 import { cn } from "@/lib/utils";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 import { useServiceRooms } from "@/hooks/useServiceRooms";
+import { serviceTodayISO } from "@/lib/timezone";
 
 type RollCallView = "daily" | "weekly" | "monthly";
 
@@ -59,6 +87,26 @@ interface ServiceRollCallTabProps {
  */
 const slotCode = (s: string) => s.toUpperCase();
 
+/** Where a child is at, in the door's four colours. */
+export type DoorState = "arriving" | "here" | "gone" | "absent";
+
+export function doorState(e: Pick<RollCallEntry, "status" | "signOutTime">): DoorState {
+  if (e.status === "absent") return "absent";
+  if (e.status === "present") return e.signOutTime ? "gone" : "here";
+  return "arriving";
+}
+
+const DOOR: Record<DoorState, { label: string; dot: string }> = {
+  arriving: { label: "To arrive", dot: "bg-orange-500" },
+  here: { label: "Here", dot: "bg-green-600" },
+  gone: { label: "Gone home", dot: "bg-blue-600" },
+  absent: { label: "Absent", dot: "bg-red-600" },
+};
+
+type DoorFilter = "all" | DoorState;
+
+type SignRequest = { entry: RollCallEntry; action: "in" | "out" };
+
 function formatTime(dt: string | null): string {
   if (!dt) return "";
   return new Date(dt).toLocaleTimeString("en-AU", {
@@ -68,10 +116,8 @@ function formatTime(dt: string | null): string {
   });
 }
 
-function todayDateString(): string {
-  const now = new Date();
-  return now.toISOString().split("T")[0];
-}
+/** The centre's date, not UTC's — see serviceTodayISO. */
+const todayDateString = () => serviceTodayISO();
 
 function ChildAvatar({ child }: { child: RollCallEntry["child"] }) {
   if (child.photo) {
@@ -115,19 +161,16 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
   const initialDate =
     urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate) ? urlDate : todayDateString();
   const [date, setDateState] = useState(initialDate);
+  const isToday = date === todayDateString();
   /**
    * Which room's roll is showing.
-   *
-   * Stage 2 of docs/rooms-migration-plan.md — the tab row was a literal
-   * `["bsc","asc","vc"]`, so a centre running an extra room had no way
-   * to open its roll even though attendance was already being recorded
-   * against it.
    *
    * The selection is DERIVED rather than corrected in an effect: a
    * stored key that isn't one of this centre's rooms falls back to the
    * afternoon programme, then to whatever the centre's first room is.
    * An effect that fixed up the state after the fact would render one
    * frame asking the API for a room that doesn't exist here.
+   * (Stage 2 of docs/rooms-migration-plan.md.)
    */
   const { data: roomData } = useServiceRooms(serviceId);
   const rooms = (roomData?.rooms ?? []).filter((r) => r.legacyKey !== null);
@@ -138,17 +181,18 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
       : ((rooms.find((r) => r.legacyKey === "asc") ?? rooms[0])?.legacyKey ??
         "asc");
   const currentRoom = rooms.find((r) => r.legacyKey === sessionType);
+  const roomName = currentRoom?.name ?? slotCode(sessionType);
   const [search, setSearch] = useState("");
-  // Walk-in flow: educators + directors should be able to add a child to
-  // today's roll call when they show up without a booking. The roll-call
-  // POST endpoint already creates a fresh AttendanceRecord on sign_in
-  // (no Booking required), and the GET surfaces walk-ins under
-  // bookingType="casual". This dialog wires the UI half.
+  const [filter, setFilter] = useState<DoorFilter>("all");
+  const [signing, setSigning] = useState<SignRequest | null>(null);
+  const [bulk, setBulk] = useState<"in" | "out" | null>(null);
+  // Walk-ins: a child who turns up without a booking. The roll-call POST
+  // creates a fresh AttendanceRecord on sign_in (no Booking needed) and the
+  // GET returns it as bookingType="casual".
   const [showAddChild, setShowAddChild] = useState(false);
 
   // Keep URL in sync when the user changes the date picker. Using a ref to
-  // avoid re-syncing on first render (the URL already has the initial date, or
-  // we don't need a date in the URL on first daily-view mount).
+  // avoid re-syncing on first render.
   const didMountRef = useRef(false);
   useEffect(() => {
     if (!didMountRef.current) {
@@ -163,156 +207,252 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
-  function setDate(next: string) {
-    setDateState(next);
-  }
-
   const { data, isLoading, error } = useRollCall(serviceId, date, sessionType);
   const updateRollCall = useUpdateRollCall();
+  const bulkRollCall = useBulkRollCall();
 
-  const entries = data?.records ?? [];
-  const summary = data?.summary ?? { total: 0, present: 0, absent: 0, notMarked: 0 };
+  // Name order, always (see the header comment).
+  const entries = useMemo(
+    () =>
+      [...(data?.records ?? [])].sort(
+        (a, b) =>
+          a.child.firstName.localeCompare(b.child.firstName) ||
+          a.child.surname.localeCompare(b.child.surname),
+      ),
+    [data],
+  );
 
-  // Filter by search
-  const filtered = useMemo(() => {
-    if (!search.trim()) return entries;
-    const q = search.toLowerCase();
+  const counts = useMemo(() => {
+    const c: Record<DoorState, number> = { arriving: 0, here: 0, gone: 0, absent: 0 };
+    for (const e of entries) c[doorState(e)] += 1;
+    return c;
+  }, [entries]);
+
+  const shown = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return entries.filter(
       (e) =>
-        e.child.firstName.toLowerCase().includes(q) ||
-        e.child.surname.toLowerCase().includes(q),
+        (filter === "all" || doorState(e) === filter) &&
+        (!q || `${e.child.firstName} ${e.child.surname}`.toLowerCase().includes(q)),
     );
-  }, [entries, search]);
+  }, [entries, filter, search]);
 
-  function handleAction(
-    childId: string,
-    action: "sign_in" | "sign_out" | "mark_absent" | "undo",
-    extra?: { absenceReason?: string; notes?: string },
+  /**
+   * Afternoon children come from their classrooms with an educator, so
+   * there's no parent to name — one tap. Mornings and vacation care have a
+   * parent at the door, so we ask who.
+   */
+  const quickSignIn = sessionType === "asc";
+
+  function act(
+    entry: RollCallEntry,
+    action: RollCallAction,
+    extra?: { absenceReason?: string; notes?: string; signedByName?: string; signature?: string },
   ) {
     updateRollCall.mutate({
-      childId,
+      childId: entry.childId,
       serviceId,
       date,
       sessionType,
       action,
       ...extra,
+      ...(extra?.signedByName ? { signMethod: "staff" as const } : {}),
     });
   }
 
+  function signIn(entry: RollCallEntry) {
+    if (quickSignIn) act(entry, "sign_in");
+    else setSigning({ entry, action: "in" });
+  }
+
+  const bulkTargets = (action: "in" | "out") =>
+    entries.filter((e) => doorState(e) === (action === "in" ? "arriving" : "here"));
+
+  const bulkNote = (action: "in" | "out") =>
+    action === "in"
+      ? sessionType === "asc"
+        ? "Collected from class by educators"
+        : "Signed in by educators"
+      : sessionType === "bsc"
+        ? "Walked to school by educators"
+        : "Signed out by educators";
+
+  const FILTERS: DoorFilter[] = ["all", "arriving", "here", "gone", "absent"];
+
   return (
     <div className="space-y-4">
-      {/* ── View Toggle (Daily / Weekly / Monthly) ─────── */}
-      <div className="flex gap-2">
-        {(["daily", "weekly", "monthly"] as const).map((v) => (
-          <button
-            key={v}
-            type="button"
-            aria-pressed={view === v}
-            onClick={() => setView(v)}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]",
-              view === v
-                ? "bg-brand text-white"
-                : "bg-card text-muted border border-border hover:bg-surface",
+      {/* ── Room, search, walk-in ──────────────────────── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        {/* One button per ROOM this centre has, in the centre's own order. */}
+        <div className="flex overflow-x-auto rounded-lg border border-border">
+          {rooms.map((room) => (
+            <button
+              key={room.id}
+              type="button"
+              aria-pressed={sessionType === room.legacyKey}
+              onClick={() => setPickedRoom(room.legacyKey)}
+              className={cn(
+                "min-h-11 whitespace-nowrap px-4 text-sm font-medium transition-colors",
+                sessionType === room.legacyKey
+                  ? "bg-brand text-white"
+                  : "bg-card text-muted hover:bg-surface",
+              )}
+            >
+              {room.name}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative w-full flex-1 sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden />
+          <input
+            type="search"
+            placeholder="Find a child…"
+            aria-label="Find a child"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="min-h-11 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-base text-foreground focus:border-transparent focus:ring-2 focus:ring-brand"
+          />
+        </div>
+
+        <Button
+          variant="secondary"
+          onClick={() => setShowAddChild(true)}
+          title="Sign in a child who isn't booked today (walk-in)"
+          className="sm:ml-auto"
+        >
+          <Plus className="h-4 w-4" />
+          Walk-in
+        </Button>
+      </div>
+
+      {/* ── Day / week / month, and the date ───────────── */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex rounded-lg border border-border bg-card p-0.5" role="group" aria-label="Roll view">
+          {(["daily", "weekly", "monthly"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={view === v}
+              onClick={() => setView(v)}
+              className={cn(
+                "min-h-9 rounded-md px-3 text-sm font-medium transition-colors",
+                view === v ? "bg-brand text-white" : "text-muted hover:text-foreground",
+              )}
+            >
+              {v === "daily" ? "Day" : v === "weekly" ? "Week" : "Month"}
+            </button>
+          ))}
+        </div>
+        {view === "daily" && (
+          <>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDateState(e.target.value)}
+              aria-label="Date"
+              className="min-h-9 rounded-lg border border-border bg-card px-3 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-brand"
+            />
+            {!isToday && (
+              <button
+                type="button"
+                onClick={() => setDateState(todayDateString())}
+                className="text-sm font-medium text-brand underline underline-offset-2"
+              >
+                Back to today
+              </button>
             )}
-          >
-            {v.charAt(0).toUpperCase() + v.slice(1)}
-          </button>
-        ))}
+          </>
+        )}
       </div>
 
       {view === "daily" && (
         <>
-          {/* ── Date & Session Picker ──────────────────────── */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="px-3 py-2 border border-border rounded-lg text-foreground bg-card text-sm focus:ring-2 focus:ring-brand focus:border-transparent min-h-[44px]"
-            />
-
-            {/* One tab per ROOM this centre has, in the centre's own
-                order — however many that is. */}
-            <div className="flex rounded-lg border border-border overflow-hidden overflow-x-auto">
-              {rooms.map((room) => (
+          {/* ── Status chips — the door's four colours ────── */}
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Show">
+            {FILTERS.map((f) => {
+              const n = f === "all" ? entries.length : counts[f];
+              return (
                 <button
-                  key={room.id}
-                  onClick={() => setPickedRoom(room.legacyKey)}
-                  className={`px-5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors min-h-[44px] ${
-                    sessionType === room.legacyKey
-                      ? "bg-brand text-white"
-                      : "bg-card text-muted hover:bg-surface"
-                  }`}
+                  key={f}
+                  type="button"
+                  aria-pressed={filter === f}
+                  onClick={() => setFilter(f)}
+                  className={cn(
+                    "inline-flex min-h-10 items-center gap-2 rounded-full border px-3 text-sm font-medium transition-colors",
+                    filter === f
+                      ? "border-brand bg-brand/10 text-brand"
+                      : "border-border bg-card text-foreground hover:bg-surface",
+                  )}
                 >
-                  {room.name}
+                  {f !== "all" && <span className={cn("h-2.5 w-2.5 rounded-full", DOOR[f].dot)} aria-hidden />}
+                  {f === "all" ? "Everyone" : DOOR[f].label}
+                  <span className="tabular-nums text-muted">{n}</span>
                 </button>
-              ))}
-            </div>
-
-            <div className="relative flex-1 w-full sm:w-auto">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-              <input
-                type="text"
-                placeholder="Search by name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-border rounded-lg text-foreground bg-card text-sm focus:ring-2 focus:ring-brand focus:border-transparent min-h-[44px]"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowAddChild(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand text-white text-sm font-medium hover:bg-brand-hover transition-colors min-h-[44px]"
-              title="Sign in a child who isn't on the booking list (walk-in)"
-            >
-              <Plus className="w-4 h-4" />
-              Add Child
-            </button>
+              );
+            })}
           </div>
 
-          {/* ── Summary Cards ──────────────────────────────── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <SummaryCard icon={Users} label="Total Enrolled" value={summary.total} color="text-foreground" bgColor="bg-surface" />
-            <SummaryCard icon={UserCheck} label="Present" value={summary.present} color="text-green-600" bgColor="bg-green-50 dark:bg-green-950/40" />
-            <SummaryCard icon={UserX} label="Absent" value={summary.absent} color="text-red-600" bgColor="bg-red-50 dark:bg-red-950/40" />
-            <SummaryCard icon={Clock} label="Not Yet Marked" value={summary.notMarked} color="text-amber-600" bgColor="bg-amber-50 dark:bg-amber-950/40" />
-          </div>
+          {/* ── Bulk, for the whole programme ─────────────── */}
+          {(counts.arriving > 0 || counts.here > 0) && (
+            <div className="flex flex-wrap gap-2">
+              {counts.arriving > 0 && (
+                <Button variant="outline" size="sm" onClick={() => setBulk("in")}>
+                  <LogIn className="h-4 w-4" />
+                  Sign in all {counts.arriving}
+                </Button>
+              )}
+              {counts.here > 0 && (
+                <Button variant="outline" size="sm" onClick={() => setBulk("out")}>
+                  <LogOut className="h-4 w-4" />
+                  Sign out all {counts.here}
+                </Button>
+              )}
+            </div>
+          )}
 
-          {/* ── Roll Call List ─────────────────────────────── */}
+          {/* ── The list ──────────────────────────────────── */}
           {isLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-20 w-full rounded-xl" />
               ))}
             </div>
           ) : error ? (
             <ErrorState error={error} />
-          ) : filtered.length === 0 ? (
+          ) : shown.length === 0 ? (
             <EmptyState
               icon={Users}
-              title={entries.length === 0 ? "No children booked for this session" : "No matching children"}
+              title={
+                entries.length === 0
+                  ? `No ${roomName} bookings${isToday ? " today" : " on this day"}`
+                  : search
+                    ? "No children match that search"
+                    : `Nobody is “${DOOR[filter as DoorState]?.label ?? "here"}”`
+              }
               description={
                 entries.length === 0
-                  ? "There are no confirmed bookings for this date and session type."
-                  : "Try a different search term."
+                  ? "A child who turns up anyway can be added as a walk-in."
+                  : undefined
               }
             />
           ) : (
-            <div className="space-y-2">
-              {filtered.map((entry) => (
+            <ul className="space-y-2">
+              {shown.map((entry) => (
                 <RollCallRow
                   key={entry.childId}
                   entry={entry}
-                  onAction={handleAction}
+                  onSignIn={() => signIn(entry)}
+                  onSignInNamed={() => setSigning({ entry, action: "in" })}
+                  onSignOut={() => setSigning({ entry, action: "out" })}
+                  onAction={(action, extra) => act(entry, action, extra)}
                   isPending={updateRollCall.isPending}
                   serviceId={serviceId}
                   date={date}
                   sessionType={sessionType}
                 />
               ))}
-            </div>
+            </ul>
           )}
         </>
       )}
@@ -320,6 +460,47 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
       {view === "weekly" && <ServiceWeeklyRollCallGrid serviceId={serviceId} />}
 
       {view === "monthly" && <ServiceMonthlyRollCallView serviceId={serviceId} />}
+
+      {signing && (
+        <SignDialog
+          serviceId={serviceId}
+          childFirstName={signing.entry.child.firstName}
+          action={signing.action}
+          defaultName={signing.action === "out" ? signing.entry.signedInByName : null}
+          onCancel={() => setSigning(null)}
+          onConfirm={(who) => {
+            act(signing.entry, signing.action === "in" ? "sign_in" : "sign_out", who);
+            setSigning(null);
+          }}
+        />
+      )}
+
+      {bulk && (
+        <BulkDialog
+          action={bulk}
+          count={bulkTargets(bulk).length}
+          roomName={roomName}
+          defaultNote={bulkNote(bulk)}
+          isPending={bulkRollCall.isPending}
+          onCancel={() => setBulk(null)}
+          onConfirm={(note) =>
+            bulkRollCall.mutate(
+              {
+                serviceId,
+                date,
+                sessionType,
+                action: bulk === "in" ? "sign_in" : "sign_out",
+                childIds: bulkTargets(bulk).map((e) => e.childId),
+                signedByName: note,
+                // A parent is told about a real hand-over, not a correction
+                // to an earlier day.
+                notify: isToday,
+              },
+              { onSettled: () => setBulk(null) },
+            )
+          }
+        />
+      )}
 
       {showAddChild && (
         <AddChildDialog
@@ -330,7 +511,7 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
           existingChildIds={new Set(entries.map((e) => e.childId))}
           onClose={() => setShowAddChild(false)}
           onSignIn={(childId) =>
-            handleAction(childId, "sign_in", undefined)
+            updateRollCall.mutate({ childId, serviceId, date, sessionType, action: "sign_in" })
           }
           isPending={updateRollCall.isPending}
         />
@@ -492,36 +673,13 @@ function AboutMeLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-// ── Summary Card ─────────────────────────────────────────
-
-function SummaryCard({
-  icon: Icon,
-  label,
-  value,
-  color,
-  bgColor,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: number;
-  color: string;
-  bgColor: string;
-}) {
-  return (
-    <div className={`${bgColor} rounded-xl p-3 flex items-center gap-3`}>
-      <Icon className={`w-5 h-5 ${color} shrink-0`} />
-      <div>
-        <p className={`text-xl font-bold ${color}`}>{value}</p>
-        <p className="text-xs text-muted">{label}</p>
-      </div>
-    </div>
-  );
-}
-
-// ── Individual Roll Call Row ─────────────────────────────
+// ── One child at the door ────────────────────────────────
 
 function RollCallRow({
   entry,
+  onSignIn,
+  onSignInNamed,
+  onSignOut,
   onAction,
   isPending,
   serviceId,
@@ -529,7 +687,11 @@ function RollCallRow({
   sessionType,
 }: {
   entry: RollCallEntry;
-  onAction: (childId: string, action: "sign_in" | "sign_out" | "mark_absent" | "undo", extra?: { absenceReason?: string; notes?: string }) => void;
+  onSignIn: () => void;
+  /** Sign in with a named adult, even where sign-in is normally one tap. */
+  onSignInNamed: () => void;
+  onSignOut: () => void;
+  onAction: (action: RollCallAction, extra?: { absenceReason?: string; notes?: string }) => void;
   isPending: boolean;
   serviceId: string;
   date: string;
@@ -558,6 +720,8 @@ function RollCallRow({
       aboutMe.calmingTechniques,
       aboutMe.additionalNotes,
     ].some((v) => v && v.trim().length > 0);
+  const state = doorState(entry);
+  const name = `${entry.child.firstName} ${entry.child.surname}`;
 
   async function handlePhotoFile(file: File) {
     if (!entry.attendanceId) {
@@ -592,25 +756,43 @@ function RollCallRow({
     entry.child.dietaryRequirements.length > 0 ||
     entry.child.anaphylaxisActionPlan;
 
+  const inBy = entry.signedInByName ?? entry.signedInBy?.name;
+  const outBy = entry.signedOutByName ?? entry.signedOutBy?.name;
+
+  const menuItem =
+    "w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-surface flex items-center gap-2 min-h-[44px] disabled:opacity-50";
+
   return (
-    <>
-      <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-        {/* Avatar */}
-        <ChildAvatar child={entry.child} />
+    <li data-door-state={state}>
+      <div
+        className={cn(
+          "bg-card border border-border rounded-xl p-3 sm:p-4 flex items-center gap-3",
+          state === "gone" || state === "absent" ? "opacity-80" : "",
+        )}
+      >
+        {/* Avatar with the door colour — readable at arm's length. */}
+        <span className="relative shrink-0">
+          <ChildAvatar child={entry.child} />
+          <span
+            className={cn(
+              "absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full ring-2 ring-[var(--color-card)]",
+              DOOR[state].dot,
+            )}
+            title={DOOR[state].label}
+          />
+          <span className="sr-only">{DOOR[state].label}</span>
+        </span>
 
         {/* Child info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-semibold text-foreground text-base">
-              {entry.child.firstName} {entry.child.surname}
-            </p>
+            <p className="font-semibold text-foreground text-base">{name}</p>
             {entry.bookingType === "casual" && (
               <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
                 Casual
               </span>
             )}
-            {/* Their first ever session. Sits beside the name rather than
-                in the detail panel: it's the one thing you want to know
+            {/* Their first ever session — the one thing you want to know
                 BEFORE you greet a child nobody recognises. */}
             {entry.isFirstSession && (
               <span className="inline-flex items-center gap-1 text-2xs font-bold px-1.5 py-0.5 rounded-full bg-brand text-white uppercase tracking-wide">
@@ -619,50 +801,49 @@ function RollCallRow({
               </span>
             )}
           </div>
-          {entry.child.yearLevel && (
-            <p className="text-xs text-muted">{entry.child.yearLevel}</p>
-          )}
+          {/* The hand-over is where a medical or custody alert matters most. */}
           {(hasMedFlags || entry.child.custodyArrangements) && (
             <div className="mt-1 flex flex-wrap items-center gap-1">
-              {hasMedFlags && (
-                <MedicalAlertBadge child={entry.child} compact />
+              {entry.child.anaphylaxisActionPlan && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-600 text-white text-2xs font-bold uppercase tracking-wide">
+                  Anaphylaxis
+                </span>
               )}
-              <CustodyChip
-                custody={entry.child.custodyArrangements}
-                childName={`${entry.child.firstName} ${entry.child.surname}`}
-                compact
-              />
+              {hasMedFlags && <MedicalAlertBadge child={entry.child} compact />}
+              <CustodyChip custody={entry.child.custodyArrangements} childName={name} compact />
             </div>
           )}
-          {entry.child.anaphylaxisActionPlan && (
-            <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-2xs font-bold uppercase tracking-wide">
-              Anaphylaxis
-            </span>
-          )}
 
-          {/* Time info */}
-          {entry.status === "present" && (
-            <p className="text-xs text-green-600 mt-1 font-medium">
-              Signed in {formatTime(entry.signInTime)}
-              {entry.signOutTime && (
-                <span className="text-muted font-normal"> → Signed out {formatTime(entry.signOutTime)}</span>
-              )}
+          <p className="mt-1 text-xs text-muted">
+            {state === "arriving" && (entry.child.yearLevel ? `${entry.child.yearLevel} · not here yet` : "Not here yet")}
+            {state === "here" && (
+              <>
+                In {formatTime(entry.signInTime)}
+                {inBy ? ` · ${inBy}` : ""}
+              </>
+            )}
+            {state === "gone" && (
+              <>
+                In {formatTime(entry.signInTime)} · Out {formatTime(entry.signOutTime)}
+                {outBy ? ` · ${outBy}` : ""}
+              </>
+            )}
+            {state === "absent" && (entry.absenceReason ? `Absent · ${entry.absenceReason}` : "Absent")}
+          </p>
+          {entry.notes && (
+            <p className="mt-0.5 flex items-start gap-1 text-xs text-foreground">
+              <StickyNote className="mt-0.5 h-3 w-3 shrink-0 text-muted" aria-hidden />
+              <span className="min-w-0 break-words">{entry.notes}</span>
             </p>
           )}
-          {entry.status === "absent" && entry.absenceReason && (
-            <p className="text-xs text-muted mt-1">Reason: {entry.absenceReason}</p>
-          )}
+
           {hasAboutMe && (
             <button
               type="button"
               onClick={() => setShowAboutMe((s) => !s)}
               className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
             >
-              {showAboutMe ? (
-                <ChevronDown className="w-3 h-3" />
-              ) : (
-                <ChevronRight className="w-3 h-3" />
-              )}
+              {showAboutMe ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
               <Sparkles className="w-3 h-3" />
               All About Me
               {aboutMe?.nickname && (
@@ -672,116 +853,150 @@ function RollCallRow({
           )}
         </div>
 
-        {/* Action area */}
-        <div className="flex items-center gap-2 shrink-0">
-          {entry.status === "booked" && (
-            <button
-              disabled={isPending}
-              onClick={() => onAction(entry.childId, "sign_in")}
-              className="min-h-[44px] min-w-[120px] px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-            >
-              <LogIn className="w-4 h-4" />
-              Sign In
-            </button>
+        {/* Actions — one obvious button per state */}
+        <div className="flex shrink-0 flex-col items-stretch gap-1.5 sm:flex-row sm:items-center">
+          {state === "arriving" && (
+            <>
+              <Button size="md" disabled={isPending} onClick={onSignIn} className="min-w-[112px]">
+                <LogIn className="w-4 h-4" />
+                Sign in
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={isPending}
+                onClick={() => onAction("mark_absent")}
+                aria-label={`Mark ${entry.child.firstName} absent`}
+                className="text-red-700 dark:text-red-400"
+              >
+                <UserX className="w-4 h-4" />
+                Absent
+              </Button>
+            </>
           )}
-
-          {entry.status === "present" && !entry.signOutTime && (
-            <button
-              disabled={isPending}
-              onClick={() => onAction(entry.childId, "sign_out")}
-              className="min-h-[44px] min-w-[120px] px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-            >
+          {state === "here" && (
+            <Button size="md" variant="outline" disabled={isPending} onClick={onSignOut} className="min-w-[112px]">
               <LogOut className="w-4 h-4" />
-              Sign Out
-            </button>
+              Sign out
+            </Button>
           )}
-
-          {entry.status === "present" && entry.signOutTime && (
-            <span className="text-xs text-muted italic">Complete</span>
-          )}
-
-          {entry.status === "absent" && (
-            <span className="min-h-[44px] px-4 py-2.5 text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 rounded-xl flex items-center">
-              Absent
+          {state === "gone" && (
+            <span className="inline-flex items-center gap-1.5 pr-1 text-sm text-blue-700 dark:text-blue-400">
+              <Check className="w-4 h-4" /> Gone home
             </span>
           )}
-
-          {/* Three-dot menu */}
-          <div className="relative">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-muted hover:bg-surface hover:text-foreground transition-colors"
-              aria-label="More actions"
+          {state === "absent" && (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={isPending}
+              onClick={() => onAction("undo")}
+              aria-label={`Undo absent for ${entry.child.firstName}`}
             >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-            {showMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-                <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-xl shadow-lg py-1 min-w-[160px]">
-                  {entry.status === "booked" && (
+              <Undo2 className="w-4 h-4" />
+              Undo
+            </Button>
+          )}
+        </div>
+
+        {/* More */}
+        <div className="relative self-start sm:self-center">
+          <button
+            type="button"
+            onClick={() => setShowMenu(!showMenu)}
+            className="min-h-[44px] min-w-[36px] flex items-center justify-center rounded-xl text-muted hover:bg-surface hover:text-foreground transition-colors"
+            aria-label={`More for ${entry.child.firstName}`}
+          >
+            <MoreVertical className="w-4 h-4" />
+          </button>
+          {showMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+              <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-xl shadow-lg py-1 min-w-[200px]">
+                {state === "arriving" && (
+                  <>
                     <button
+                      type="button"
+                      onClick={() => {
+                        onSignInNamed();
+                        setShowMenu(false);
+                      }}
+                      className={menuItem}
+                    >
+                      <PenLine className="w-3.5 h-3.5" />
+                      Sign in with a name
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         setShowAbsentDialog(true);
                         setShowMenu(false);
                       }}
-                      className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-surface flex items-center gap-2 min-h-[44px]"
+                      className={menuItem}
                     >
                       <UserX className="w-3.5 h-3.5" />
-                      Mark Absent
+                      Absent, with a reason
                     </button>
-                  )}
-                  {entry.status !== "booked" && (
-                    <button
-                      onClick={() => {
-                        onAction(entry.childId, "undo");
-                        setShowMenu(false);
-                      }}
-                      disabled={isPending}
-                      className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-surface flex items-center gap-2 min-h-[44px]"
-                    >
-                      <Undo2 className="w-3.5 h-3.5" />
-                      Undo
-                    </button>
-                  )}
+                  </>
+                )}
+                {(state === "here" || state === "gone") && (
                   <button
+                    type="button"
                     onClick={() => {
+                      onAction("undo");
+                      setShowMenu(false);
+                    }}
+                    disabled={isPending}
+                    className={menuItem}
+                  >
+                    <Undo2 className="w-3.5 h-3.5" />
+                    Undo — back to “to arrive”
+                  </button>
+                )}
+                {/* A note needs a record to sit on — there isn't one until
+                    the child is signed in or marked absent. */}
+                {state !== "arriving" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNote(entry.notes ?? "");
                       setShowNoteDialog(true);
                       setShowMenu(false);
                     }}
-                    className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-surface flex items-center gap-2 min-h-[44px]"
+                    className={menuItem}
                   >
                     <StickyNote className="w-3.5 h-3.5" />
-                    Add Note
+                    {entry.notes ? "Edit note" : "Add note"}
                   </button>
-                  {entry.status === "present" && entry.attendanceId && (
-                    photoAlreadySent ? (
-                      <div className="w-full px-3 py-2.5 text-left text-sm text-green-600 flex items-center gap-2 min-h-[44px]">
-                        <Check className="w-3.5 h-3.5" />
-                        Photo sent
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          photoInputRef.current?.click();
-                          setShowMenu(false);
-                        }}
-                        disabled={isPhotoUploading || sendFirstDayPhoto.isPending}
-                        className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-surface flex items-center gap-2 min-h-[44px] disabled:opacity-50"
-                      >
-                        {isPhotoUploading || sendFirstDayPhoto.isPending ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Camera className="w-3.5 h-3.5" />
-                        )}
-                        Send first-day photo
-                      </button>
-                    )
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+                )}
+                {state !== "arriving" && state !== "absent" && entry.attendanceId && (
+                  photoAlreadySent ? (
+                    <div className="w-full px-3 py-2.5 text-left text-sm text-green-600 flex items-center gap-2 min-h-[44px]">
+                      <Check className="w-3.5 h-3.5" />
+                      Photo sent
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        photoInputRef.current?.click();
+                        setShowMenu(false);
+                      }}
+                      disabled={isPhotoUploading || sendFirstDayPhoto.isPending}
+                      className={menuItem}
+                    >
+                      {isPhotoUploading || sendFirstDayPhoto.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Camera className="w-3.5 h-3.5" />
+                      )}
+                      Send first-day photo
+                    </button>
+                  )
+                )}
+              </div>
+            </>
+          )}
         </div>
         <input
           ref={photoInputRef}
@@ -797,16 +1012,10 @@ function RollCallRow({
         />
       </div>
       {showAboutMe && aboutMe && (
-        <div className="bg-[color:var(--color-brand-soft)] border border-border rounded-xl p-3 -mt-1 mb-1 text-xs space-y-1.5">
-          {aboutMe.nickname && (
-            <AboutMeLine label="Goes by" value={aboutMe.nickname} />
-          )}
-          {aboutMe.favouriteFood && (
-            <AboutMeLine label="Loves" value={aboutMe.favouriteFood} />
-          )}
-          {aboutMe.favouriteToys && (
-            <AboutMeLine label="Plays with" value={aboutMe.favouriteToys} />
-          )}
+        <div className="bg-[color:var(--color-brand-soft)] border border-border rounded-xl p-3 mt-1 text-xs space-y-1.5">
+          {aboutMe.nickname && <AboutMeLine label="Goes by" value={aboutMe.nickname} />}
+          {aboutMe.favouriteFood && <AboutMeLine label="Loves" value={aboutMe.favouriteFood} />}
+          {aboutMe.favouriteToys && <AboutMeLine label="Plays with" value={aboutMe.favouriteToys} />}
           {aboutMe.favouriteSubjects && (
             <AboutMeLine label="Favourite subjects" value={aboutMe.favouriteSubjects} />
           )}
@@ -815,61 +1024,70 @@ function RollCallRow({
           {aboutMe.calmingTechniques && (
             <AboutMeLine label="What helps when upset" value={aboutMe.calmingTechniques} />
           )}
-          {aboutMe.additionalNotes && (
-            <AboutMeLine label="Notes" value={aboutMe.additionalNotes} />
-          )}
+          {aboutMe.additionalNotes && <AboutMeLine label="Notes" value={aboutMe.additionalNotes} />}
         </div>
       )}
 
-      {/* Mark Absent Dialog */}
+      {/* Absent, with a reason */}
       {showAbsentDialog && (
         <Dialog open onOpenChange={() => setShowAbsentDialog(false)}>
           <DialogContent size="sm">
             <DialogTitle className="text-lg font-semibold text-foreground">
-              Mark {entry.child.firstName} as Absent
+              {entry.child.firstName} is absent
             </DialogTitle>
-            <div className="space-y-3 mt-3">
-              <div>
-                <label className="text-sm font-medium text-foreground">Reason *</label>
-                <input
-                  type="text"
-                  value={absenceReason}
-                  onChange={(e) => setAbsenceReason(e.target.value)}
-                  placeholder="e.g. Sick, Family holiday"
-                  className="w-full mt-1 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted focus:ring-2 focus:ring-brand focus:border-transparent min-h-[44px]"
-                  autoFocus
-                />
+            <form
+              className="space-y-3 mt-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!absenceReason.trim()) return;
+                onAction("mark_absent", { absenceReason: absenceReason.trim() });
+                setShowAbsentDialog(false);
+                setAbsenceReason("");
+              }}
+            >
+              <div className="flex flex-wrap gap-2">
+                {["Sick", "Family holiday", "Parent called", "No show"].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setAbsenceReason(r)}
+                    aria-pressed={absenceReason === r}
+                    className={cn(
+                      "min-h-10 rounded-full border px-3 text-sm",
+                      absenceReason === r ? "border-brand bg-brand/10 text-brand" : "border-border text-foreground",
+                    )}
+                  >
+                    {r}
+                  </button>
+                ))}
               </div>
+              <input
+                type="text"
+                value={absenceReason}
+                onChange={(e) => setAbsenceReason(e.target.value)}
+                placeholder="Or type a reason"
+                aria-label="Reason"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted focus:ring-2 focus:ring-brand focus:border-transparent min-h-[44px]"
+              />
               <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => setShowAbsentDialog(false)}
-                  className="px-3 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-surface transition-colors min-h-[44px]"
-                >
+                <Button type="button" variant="secondary" onClick={() => setShowAbsentDialog(false)}>
                   Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    onAction(entry.childId, "mark_absent", { absenceReason: absenceReason.trim() });
-                    setShowAbsentDialog(false);
-                    setAbsenceReason("");
-                  }}
-                  disabled={!absenceReason.trim()}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors min-h-[44px]"
-                >
-                  Mark Absent
-                </button>
+                </Button>
+                <Button type="submit" variant="destructive" disabled={!absenceReason.trim()}>
+                  Mark absent
+                </Button>
               </div>
-            </div>
+            </form>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Add Note Dialog */}
+      {/* Add note */}
       {showNoteDialog && (
         <Dialog open onOpenChange={() => setShowNoteDialog(false)}>
           <DialogContent size="sm">
             <DialogTitle className="text-lg font-semibold text-foreground">
-              Add Note for {entry.child.firstName}
+              Note for {entry.child.firstName}
             </DialogTitle>
             <div className="space-y-3 mt-3">
               <textarea
@@ -881,30 +1099,24 @@ function RollCallRow({
                 autoFocus
               />
               <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => setShowNoteDialog(false)}
-                  className="px-3 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-surface transition-colors min-h-[44px]"
-                >
+                <Button variant="secondary" onClick={() => setShowNoteDialog(false)}>
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => {
-                    // Re-submit current status with added note
-                    const action = entry.status === "absent" ? "mark_absent" : entry.status === "present" ? "sign_in" : "sign_in";
-                    onAction(entry.childId, action, { notes: note.trim() });
+                    onAction("note", { notes: note.trim() });
                     setShowNoteDialog(false);
                     setNote("");
                   }}
                   disabled={!note.trim()}
-                  className="px-4 py-2 bg-brand text-white rounded-lg text-sm font-medium hover:bg-brand/90 disabled:opacity-50 transition-colors min-h-[44px]"
                 >
-                  Save Note
-                </button>
+                  Save note
+                </Button>
               </div>
             </div>
           </DialogContent>
         </Dialog>
       )}
-    </>
+    </li>
   );
 }
