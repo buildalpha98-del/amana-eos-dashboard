@@ -249,15 +249,19 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
     return (
       <div data-v2="parent" className="parent-portal min-h-screen bg-parent-bg">
         <header
-          className="bg-brand flex items-center px-4 shadow-md"
+          className="bg-brand flex items-center gap-3 px-4 shadow-sm"
           style={{
             paddingTop: "env(safe-area-inset-top, 0px)",
-            height: "calc(3.5rem + env(safe-area-inset-top, 0px))",
+            height: "calc(5rem + env(safe-area-inset-top, 0px))",
           }}
         >
-          <span className="text-white font-heading font-semibold">
-            Amana OSHC
-          </span>
+          <Image
+            src="/amana-assets/amana-oshc-logo-white.svg"
+            alt="Amana OSHC"
+            width={119}
+            height={60}
+            className="h-12 w-auto shrink-0"
+          />
           {/* Families mid-enrolment are the ones most likely to get stuck,
               and had no way to help from here at all. They can't message
               us yet (no centre until they submit), so Help is the route. */}
@@ -270,7 +274,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
           </Link>
           <button
             onClick={logout}
-            className="ml-4 text-xs text-white/70 hover:text-white underline underline-offset-2"
+            className="ml-1 min-h-11 text-xs text-white/80 hover:text-white underline underline-offset-2"
           >
             Sign out
           </button>

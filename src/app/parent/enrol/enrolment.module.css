@@ -1,0 +1,12 @@
+@font-face {
+  font-family: "Amana Fredoka";
+  src: url("/fonts/fredoka-600.woff") format("woff");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+.enrolment :is(h1, h2, h3) {
+  font-family: "Amana Fredoka", ui-rounded, system-ui, sans-serif;
+  font-weight: 600;
+}
