@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { recalcFinancialsForWeek } from "@/lib/budget-helpers";
 import { withApiAuth } from "@/lib/server-auth";
-import { ensureCoordOwnService } from "../../route";
+import { ensureCoordOwnService } from "../../handlers";
 
 import { parseJsonBody } from "@/lib/api-error";
 const updateSchema = z.object({

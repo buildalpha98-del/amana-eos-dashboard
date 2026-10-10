@@ -94,7 +94,7 @@ describe("POST /api/upload", () => {
     fd.append("file", new File([pdfBytes()], "test.pdf", { type: "application/pdf" }));
 
     const req = createFormDataRequest("/api/upload", fd);
-    const res = await POST(req, {});
+    const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(401);
   });
 
@@ -103,7 +103,7 @@ describe("POST /api/upload", () => {
     const fd = new FormData();
 
     const req = createFormDataRequest("/api/upload", fd);
-    const res = await POST(req, {});
+    const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.error).toMatch(/no file/i);
@@ -118,7 +118,7 @@ describe("POST /api/upload", () => {
     );
 
     const req = createFormDataRequest("/api/upload", fd);
-    const res = await POST(req, {});
+    const res = await POST(req, { params: Promise.resolve({}) });
 
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -144,7 +144,7 @@ describe("POST /api/upload", () => {
     );
 
     const req = createFormDataRequest("/api/upload", fd);
-    const res = await POST(req, {});
+    const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(200);
   });
 
@@ -167,7 +167,7 @@ describe("POST /api/upload", () => {
     );
 
     const req = createFormDataRequest("/api/upload", fd);
-    const res = await POST(req, {});
+    const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.error).toMatch(/too large/i);
@@ -184,7 +184,7 @@ describe("POST /api/upload", () => {
     );
 
     const req = createFormDataRequest("/api/upload", fd);
-    const res = await POST(req, {});
+    const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.error).toMatch(/not allowed/i);
@@ -200,7 +200,7 @@ describe("POST /api/upload", () => {
     );
 
     const req = createFormDataRequest("/api/upload", fd);
-    const res = await POST(req, {});
+    const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.error).toMatch(/does not match/i);
@@ -212,7 +212,7 @@ describe("POST /api/upload", () => {
     fd.append("file", new File([pngBytes()], "logo.png", { type: "image/png" }));
 
     const req = createFormDataRequest("/api/upload", fd);
-    const res = await POST(req, {});
+    const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(200);
   });
 
@@ -222,7 +222,7 @@ describe("POST /api/upload", () => {
     fd.append("file", new File([jpegBytes()], "photo.jpg", { type: "image/jpeg" }));
 
     const req = createFormDataRequest("/api/upload", fd);
-    const res = await POST(req, {});
+    const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(200);
   });
 });

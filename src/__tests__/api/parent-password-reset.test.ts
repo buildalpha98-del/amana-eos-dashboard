@@ -39,7 +39,7 @@ vi.mock("@/lib/password-breach-check", () => ({
   checkPasswordBreach: (...a: unknown[]) => checkPasswordBreach(...(a as [])),
 }));
 
-const sendMock = vi.fn(() => Promise.resolve({ error: null }));
+const sendMock = vi.fn<() => Promise<{ error: { message: string } | null }>>(() => Promise.resolve({ error: null }));
 vi.mock("@/lib/email", () => ({
   getResend: () => ({ emails: { send: (...a: unknown[]) => sendMock(...(a as [])) } }),
   FROM_EMAIL: "noreply@amanaoshc.com.au",

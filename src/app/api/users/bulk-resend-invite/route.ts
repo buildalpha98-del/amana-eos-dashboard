@@ -4,7 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { logger } from "@/lib/logger";
-import { issueInvite } from "@/app/api/employees/[id]/resend-invite/route";
+import { issueInvite } from "@/app/api/employees/[id]/resend-invite/handlers";
 
 /**
  * POST /api/users/bulk-resend-invite

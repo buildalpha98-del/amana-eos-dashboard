@@ -5,7 +5,7 @@ import { ApiError } from "@/lib/api-error";
 import { getSuppressedEmails } from "@/lib/email-suppression";
 import { recordMarketingSends } from "@/lib/frequency-cap";
 import { dispatchPerRecipient } from "@/lib/email-dispatch";
-import { REPORT_ROLES } from "../route";
+import { REPORT_ROLES } from "../handlers";
 
 /**
  * POST /api/email/reports/:deliveryLogId/resend — one-click retry of a

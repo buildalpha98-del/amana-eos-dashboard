@@ -27,9 +27,8 @@ vi.mock("@/components/staff/StaffProfileLayout", () => ({
   },
 }));
 
-import StaffProfilePage, {
-  canAccessProfile,
-} from "@/app/(dashboard)/staff/[id]/page";
+import StaffProfilePage from "@/app/(dashboard)/staff/[id]/page";
+import { canAccessStaffProfile as canAccessProfile } from "@/lib/staff-access";
 
 function wrap<T>(value: T): Promise<T> {
   return Promise.resolve(value);

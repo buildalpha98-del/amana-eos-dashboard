@@ -1,3 +1,4 @@
+import type { WrappedRouteHandler } from "@/lib/route-handler";
 import { NextRequest, NextResponse } from "next/server";
 import { ApiError } from "@/lib/api-error";
 import { logger, generateRequestId } from "@/lib/logger";
@@ -39,7 +40,7 @@ const DEFAULT_TIMEOUT_MS = 55_000;
 export function withApiHandler(
   handler: ApiHandler,
   options?: { timeoutMs?: number },
-) {
+): WrappedRouteHandler {
   const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   return async (req: NextRequest, context?: RouteContext): Promise<NextResponse> => {

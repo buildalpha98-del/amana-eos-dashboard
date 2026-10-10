@@ -287,7 +287,7 @@ describe("scheduleNurtureFromStageChange (sequence system)", () => {
     // The only findMany calls are the dedupe lookup (status: { in: [...] }) —
     // never the cancellation-shaped query (status: "pending").
     const pendingCalls = prismaMock.sequenceStepExecution.findMany.mock.calls.filter(
-      (c) => (c[0] as { where?: { status?: unknown } })?.where?.status === "pending",
+      (c: unknown[]) => (c[0] as { where?: { status?: unknown } })?.where?.status === "pending",
     );
     expect(pendingCalls).toHaveLength(0);
   });
@@ -326,7 +326,7 @@ describe("scheduleNurtureFromStageChange (sequence system)", () => {
     await scheduleNurtureFromStageChange("enq-1", "new_enquiry");
 
     const scheduledStepIds = prismaMock.sequenceStepExecution.create.mock.calls.map(
-      (c) => (c[0] as { data: { stepId: string } }).data.stepId,
+      (c: unknown[]) => (c[0] as { data: { stepId: string } }).data.stepId,
     );
     expect(scheduledStepIds).toEqual(["s-ccs"]);
   });

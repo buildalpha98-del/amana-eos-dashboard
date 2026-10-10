@@ -15,14 +15,13 @@ describe("MergeTagNode", () => {
 
   it("has a key attribute defined", () => {
     // addAttributes is a function on the config; call it to get the attribute map
-    const attrs = MergeTagNode.config.addAttributes?.();
+    const attrs = MergeTagNode.config.addAttributes?.call({ name: MergeTagNode.name, options: MergeTagNode.options, storage: MergeTagNode.storage, parent: undefined });
     expect(attrs).toBeDefined();
-    expect(attrs?.key).toBeDefined();
-    expect(attrs?.key.default).toBe("");
+    expect(attrs).toHaveProperty("key.default", "");
   });
 
   it("parses span[data-merge-tag] elements", () => {
-    const rules = MergeTagNode.config.parseHTML?.();
+    const rules = MergeTagNode.config.parseHTML?.call({ name: MergeTagNode.name, options: MergeTagNode.options, storage: MergeTagNode.storage, parent: undefined });
     expect(Array.isArray(rules)).toBe(true);
     expect(rules?.[0].tag).toBe("span[data-merge-tag]");
   });

@@ -37,7 +37,7 @@ function routeCounts({ packedServiceIds = [] as string[] } = {}) {
   );
 }
 
-function createArgs() {
+function createArgs(): Record<string, unknown>[] {
   return prismaMock.creativeRequest.create.mock.calls.map(
     (c: Array<{ data: Record<string, unknown> }>) => c[0].data,
   );

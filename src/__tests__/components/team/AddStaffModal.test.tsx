@@ -4,8 +4,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const mutateApi = vi.fn(() => Promise.resolve({ id: "u-new" }));
-vi.mock("@/lib/fetch-api", () => ({ mutateApi: (...a: unknown[]) => mutateApi(...a) }));
+const mutateApi = vi.fn<(url: string, options: { method: string; body: Record<string, unknown> }) => Promise<{ id: string }>>(() => Promise.resolve({ id: "u-new" }));
+vi.mock("@/lib/fetch-api", () => ({ mutateApi: (...a: Parameters<typeof mutateApi>) => mutateApi(...a) }));
 vi.mock("@/hooks/useToast", () => ({ toast: vi.fn() }));
 
 import { AddStaffModal } from "@/components/team/AddStaffModal";

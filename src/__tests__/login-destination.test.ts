@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { destinationForSession } from "@/app/(auth)/login/page";
+import { destinationForSession } from "@/lib/login-destination";
 
 describe("destinationForSession", () => {
   it("honours an explicit non-default callbackUrl", () => {

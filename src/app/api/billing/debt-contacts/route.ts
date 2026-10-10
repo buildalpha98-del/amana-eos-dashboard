@@ -17,7 +17,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { getServiceScope } from "@/lib/service-scope";
 
-export const CONTACT_METHODS = [
+const CONTACT_METHODS = [
   "call",
   "email",
   "sms",

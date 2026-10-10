@@ -5,7 +5,7 @@ import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { resolveAppSettings } from "@/lib/app-settings";
-import { getParentChildIds } from "@/app/api/parent/bookings/route";
+import { getParentChildIds } from "@/app/api/parent/bookings/handlers";
 import { sendAbsenceConfirmationNotification } from "@/lib/notifications/bookings";
 import { logger } from "@/lib/logger";
 import { requireRoomId } from "@/lib/room-resolver";

@@ -12,7 +12,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import Image from "next/image";
+import { Button } from "@/components/ui/Button";
+import { WebsiteEnrolContext } from "@/components/enrol/WebsiteEnrolContext";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { MetaPixel } from "@/components/analytics/MetaPixel";
 
@@ -45,13 +47,15 @@ export default function ParentSignupPage() {
    * this must never be treated as proof of who they are.
    */
   useEffect(() => {
-    const enquiryId = new URLSearchParams(window.location.search).get("enquiry");
+    const enquiryId = new URLSearchParams(window.location.search).get(
+      "enquiry",
+    );
     if (!enquiryId) return;
     let cancelled = false;
 
-    fetchApi<{ prefill: { firstName: string; surname: string; email: string } }>(
-      `/api/enrol/${encodeURIComponent(enquiryId)}`,
-    )
+    fetchApi<{
+      prefill: { firstName: string; surname: string; email: string };
+    }>(`/api/enrol/${encodeURIComponent(enquiryId)}`)
       .then(({ prefill }) => {
         if (cancelled) return;
         const name = [prefill.firstName, prefill.surname]
@@ -100,7 +104,8 @@ export default function ParentSignupPage() {
     e.preventDefault();
     setError("");
     if (!passwordsMatch) return setError("Passwords don't match.");
-    if (!longEnough) return setError("Password must be at least 10 characters.");
+    if (!longEnough)
+      return setError("Password must be at least 10 characters.");
     setLoading(true);
     try {
       const res = await mutateApi<{ redirectTo?: string }>(
@@ -127,117 +132,184 @@ export default function ParentSignupPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-gradient-to-br from-[#001824] via-[#003344] to-[#0A5E7E] px-4 py-10">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-surface px-4 py-10">
       {/* Meta Pixel (production only) — signup page, not the staff dashboard. */}
       <MetaPixel />
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-heading font-bold text-white tracking-tight">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-6">
+          <a
+            href="https://amanaoshc.com.au"
+            aria-label="Amana OSHC website"
+            className="inline-block"
+          >
+            <Image
+              src="/logo-full.svg"
+              alt="Amana OSHC"
+              width={150}
+              height={60}
+              className="mx-auto mb-6 h-14 w-auto"
+              priority
+            />
+          </a>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-brand">
+            Your Amana parent account
+          </p>
+          <h1 className="text-3xl font-heading font-bold text-foreground tracking-tight">
             Create your account
           </h1>
-          <p className="text-white/60 mt-2 text-sm">
-            One account for enrolments, bookings and billing.
+          <p className="text-muted mt-3 text-sm leading-relaxed">
+            Start with your account. Then tell us about your family, review your
+            enrolment and submit it to our team.
           </p>
         </div>
 
-        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-6 sm:p-8 border border-white/50">
+        <ol
+          aria-label="Enrolment stages"
+          className="mb-6 grid grid-cols-3 gap-2 text-center text-xs text-muted"
+        >
+          <li aria-current="step" className="font-semibold text-brand">
+            1. Account
+          </li>
+          <li>2. Family details</li>
+          <li>3. Review &amp; submit</li>
+        </ol>
+        <div className="mb-5">
+          <WebsiteEnrolContext />
+        </div>
+        <div className="bg-card rounded-2xl shadow-xl p-6 sm:p-8 border border-border">
           <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="su-name" className="block text-sm font-medium text-foreground mb-1">
-                  Full name
-                </label>
-                <input
-                  id="su-name"
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Sara Ahmed"
-                  autoComplete="name"
-                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
-                />
-              </div>
-              <div>
-                <label htmlFor="su-email" className="block text-sm font-medium text-foreground mb-1">
-                  Email address
-                </label>
-                <input
-                  id="su-email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
-                />
-              </div>
-              <div>
-                <label htmlFor="su-pw" className="block text-sm font-medium text-foreground mb-1">
-                  Password
-                </label>
-                <input
-                  id="su-pw"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="new-password"
-                  aria-describedby="su-pw-hint"
-                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
-                />
-                <p
-                  id="su-pw-hint"
-                  className={
-                    "mt-1 text-xs " +
-                    (password && !longEnough ? "text-red-600" : "text-muted")
-                  }
-                >
-                  At least 10 characters.
-                </p>
-              </div>
-              <div>
-                <label htmlFor="su-pw2" className="block text-sm font-medium text-foreground mb-1">
-                  Confirm password
-                </label>
-                <input
-                  id="su-pw2"
-                  type="password"
-                  required
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  autoComplete="new-password"
-                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
-                />
-                {confirm && !passwordsMatch && (
-                  <p className="mt-1 text-xs text-red-600">
-                    Passwords don&apos;t match.
-                  </p>
-                )}
-              </div>
-
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={!canSubmit}
-                className="w-full inline-flex items-center justify-center gap-2 bg-brand text-white font-medium px-4 py-3 rounded-lg hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            <div>
+              <label
+                htmlFor="su-name"
+                className="block text-sm font-medium text-foreground mb-1"
               >
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                Sign up
-              </button>
-
-              <p className="text-center text-xs text-muted">
-                Already have an account?{" "}
-                <Link href="/parent/login" className="text-brand underline">
-                  Sign in
-                </Link>
+                Full name
+              </label>
+              <input
+                id="su-name"
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Sara Ahmed"
+                autoComplete="name"
+                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="su-email"
+                className="block text-sm font-medium text-foreground mb-1"
+              >
+                Email address
+              </label>
+              <input
+                id="su-email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="su-pw"
+                className="block text-sm font-medium text-foreground mb-1"
+              >
+                Password
+              </label>
+              <input
+                id="su-pw"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                aria-describedby="su-pw-hint"
+                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+              />
+              <p
+                id="su-pw-hint"
+                className={
+                  "mt-1 text-xs " +
+                  (password && !longEnough ? "text-red-600" : "text-muted")
+                }
+              >
+                At least 10 characters.
               </p>
+            </div>
+            <div>
+              <label
+                htmlFor="su-pw2"
+                className="block text-sm font-medium text-foreground mb-1"
+              >
+                Confirm password
+              </label>
+              <input
+                id="su-pw2"
+                type="password"
+                required
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                autoComplete="new-password"
+                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+              />
+              {confirm && !passwordsMatch && (
+                <p className="mt-1 text-xs text-red-600">
+                  Passwords don&apos;t match.
+                </p>
+              )}
+            </div>
+
+            {error && (
+              <div
+                role="alert"
+                className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"
+              >
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={!canSubmit}
+              loading={loading}
+              className="w-full"
+            >
+              Create account &amp; continue
+            </Button>
+
+            <p className="text-center text-xs text-muted">
+              Already have an account?{" "}
+              <Link href="/parent/login" className="text-brand underline">
+                Sign in
+              </Link>
+            </p>
           </form>
         </div>
+        <p className="mt-6 text-center text-sm text-muted">
+          Need help?{" "}
+          <a
+            href="tel:1300200262"
+            className="font-semibold text-brand underline"
+          >
+            1300 200 262
+          </a>
+        </p>
+        <p className="mt-3 text-center text-xs text-muted">
+          <a href="https://amanaoshc.com.au/fees" className="underline">
+            Fees &amp; booking conditions
+          </a>{" "}
+          ·{" "}
+          <a
+            href="https://amanaoshc.com.au/privacy-policy"
+            className="underline"
+          >
+            Privacy policy
+          </a>
+        </p>
       </div>
     </div>
   );

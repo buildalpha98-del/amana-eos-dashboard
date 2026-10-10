@@ -38,7 +38,7 @@ import { ServiceQIPTab } from "@/components/services/ServiceQIPTab";
 import { ServiceChecklistsTab } from "@/components/services/ServiceChecklistsTab";
 import { StaffSignInOut } from "@/components/services/attendances/StaffSignInOut";
 import { AttendancesHub } from "@/components/services/attendances/AttendancesHub";
-import { ParentCommunicationPanel } from "./parent-communication/page";
+import { ParentCommunicationPanel } from "@/components/services/ParentCommunicationPanel";
 import { ServiceFamiliesTab } from "@/components/services/ServiceFamiliesTab";
 import { MessagingInbox } from "@/components/messaging/MessagingInbox";
 import { ServiceHazardsTab } from "@/components/services/ServiceHazardsTab";

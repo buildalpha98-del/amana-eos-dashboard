@@ -26,7 +26,7 @@ vi.mock("@/lib/budget-helpers", () => ({
   recalcFinancialsForWeek: vi.fn(() => Promise.resolve()),
 }));
 
-import { equipmentItemSchema } from "@/app/api/services/[id]/budget/equipment/route";
+import { equipmentItemSchema } from "@/app/api/services/[id]/budget/equipment/handlers";
 
 const basePayload = {
   name: "Paper towels",

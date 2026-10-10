@@ -30,7 +30,7 @@ vi.mock("@/lib/service-scope", () => ({
   getStateScope: vi.fn(() => null),
 }));
 // Mock the propagate import used by the attendance route
-vi.mock("@/app/api/attendance/propagate/route", () => ({
+vi.mock("@/app/api/attendance/propagate/handlers", () => ({
   propagateEnrolledCounts: vi.fn(() => Promise.resolve()),
 }));
 

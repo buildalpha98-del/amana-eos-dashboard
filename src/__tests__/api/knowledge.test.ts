@@ -272,6 +272,7 @@ describe("POST /api/knowledge/ask", () => {
         documentTitle: "Leave Policy",
         documentCategory: "policy",
         fileName: "leave-policy.pdf",
+        fileUrl: "https://example.invalid/leave-policy.pdf",
         chunks: [
           {
             id: "chunk-1",
