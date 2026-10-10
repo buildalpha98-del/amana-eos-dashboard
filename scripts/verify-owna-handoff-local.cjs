@@ -5,9 +5,9 @@ const assert = require("node:assert/strict");
 const url = new URL(process.env.DATABASE_URL || "postgresql://invalid");
 if (
   !["127.0.0.1", "localhost"].includes(url.hostname) ||
-  url.pathname !== "/amana_ux_review"
+  !(url.pathname === "/amana_ux_review" || /^\/amana_migration_[a-z0-9_]+$/.test(url.pathname))
 )
-  throw Error("Requires isolated amana_ux_review database");
+  throw Error("Requires isolated localhost review or migration-test database");
 const db = new PrismaClient();
 const rollback = new Error("ROLLBACK_VERIFICATION");
 (async () => {
