@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Session } from "next-auth";
+import { resolveServiceIdFilter } from "@/lib/authz-scope";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 
-async function handler(req: NextRequest) {
+async function handler(req: NextRequest, session: Session) {
   const url = new URL(req.url);
-  const serviceId = url.searchParams.get("serviceId") || undefined;
+  const serviceId = resolveServiceIdFilter(session, url.searchParams.get("serviceId"));
   const dateFrom = url.searchParams.get("dateFrom");
   const dateTo = url.searchParams.get("dateTo");
 
@@ -23,7 +25,7 @@ async function handler(req: NextRequest) {
 
   const payWhere = {
     receivedAt: { gte: from, lte: to },
-    ...(serviceId ? { statement: { serviceId } } : {}),
+    ...(serviceId ? { serviceId } : {}),
   };
 
   const [statements, payments, overdueCount, byServiceRaw] = await Promise.all([
