@@ -1,0 +1,15 @@
+# Report centre isolation
+
+Branch: codex/report-centre-isolation. Base: production merge4f524e4d1edae3a18298c8b602efc0af8d795f01. Primary checkout and its unrelated decision-review log are preserved.
+
+The original security review warned that related attendance exports shared the medical export's missing centre scope. Follow-up inspection confirmed six remaining report handlers trusted a caller-supplied centre or returned all centres. Attendance/revenue JSON and CSV, booking summaries and enrolment summaries now resolve the existing authenticated centre filter. Members with a foreign request or missing centre receive empty results; owner/head_office/admin cross-centre access is preserved. Payment totals filter on Payment.serviceId and include legitimate unallocated payments.
+
+Reproduction: the initial four-route unit regression failed20 checks before the fix. Verification:70 focused tests passed, including48 new boundary checks; full unit suite7655 passed,3 skipped; lint0errors1116 existing warnings; standalone TypeScript passed; normal production build passed. Five real PostgreSQL tests exercise all6handlers with2synthetic centres across member, foreign-centre, unassigned, owner-all and owner-filter modes, validating JSON and CSV output and unallocated payments. The full PostgreSQL integration suite passed all63tests across7files. The first sandboxed build was blocked by Turbopack's local helper port; the same build passed outside the sandbox with dummy localhost configuration and no migrations.
+
+Independent read-only review by report_scope_review found no material source defects and independently ran70 focused tests. It inspected the PostgreSQL test and passing evidence; a minor fixture cleanup gap was fixed by tracking each created user immediately, then the5tests passed again. Database tests used only new disposable localhost database amana_report_scope_20261010_test; synthetic fixtures are removed by ID. No production data or environment changes, no schema migration and no UI change.
+
+This review is limited to these report boundaries and does not establish a complete application authorization audit. Next: reviewed draft PR and CI checks, then a separate merge decision. Invoice delivery recovery is a separate approved branch and does not depend on this patch.
+
+CI follow-up: the PR integration job passed63tests and lint/build checks passed. A UTC CI run after Sydney midnight exposed6failures in an existing CertStatusBadge fixture that truncated dates in the runner timezone. The assertions are unchanged; the fixture now uses a fixed clock and elapsed-day offsets, matching the date-library tests. All17badge/date tests passed under both TZ=UTC and TZ=Australia/Sydney. This test-only correction is a separate commit; CI is rerun on that head.
+
+The next UTC CI pass confirmed the badge correction and exposed the same runner-calendar assumption in compliance-expiry-nullable's today fixture (1failure). That test now uses the existing service calendar helpers, matching the route's Sydney validation. All25calendar/badge/compliance checks passed in UTC and Sydney; production implementation and assertions are unchanged.
