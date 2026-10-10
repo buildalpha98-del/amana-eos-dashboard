@@ -2,7 +2,8 @@
  * Tests for the public careers funnel.
  *
  * What MUST be true:
- *   - GET lists only open, website-published vacancies (no auth needed)
+ *   - GET lists only website-published vacancies that are still being hired for
+ *     (open / interviewing / offered) — no auth needed
  *   - POST apply creates a Candidate with source "website" (no auth needed)
  *   - `?src=` on the ad link attributes the candidate to that channel, and a
  *     made-up src is treated as an ordinary website visit rather than trusted
@@ -32,6 +33,7 @@ vi.mock("@/lib/file-validation", () => ({ validateFileContent: vi.fn(() => true)
 
 import { GET } from "@/app/api/public/careers/route";
 import { POST } from "@/app/api/public/careers/[id]/apply/route";
+import { publicVacancyWhere } from "@/lib/recruitment/public-vacancy";
 import { POST as REGISTER } from "@/app/api/public/careers/register/route";
 
 const openVacancy = {
@@ -70,9 +72,11 @@ describe("GET /api/public/careers", () => {
       location: "Greenacre, NSW",
       description: "Come work with us!",
     });
-    // Must filter on status open + website channel.
+    // Must use the shared public predicate: still-hiring statuses + website channel.
     const where = prismaMock.recruitmentVacancy.findMany.mock.calls[0]?.[0]?.where;
-    expect(where).toMatchObject({ status: "open", postedChannels: { has: "website" } });
+    expect(where).toEqual(publicVacancyWhere());
+    expect(where.status.in).toContain("interviewing");
+    expect(where.status.in).not.toContain("filled");
   });
 });
 
@@ -90,6 +94,9 @@ describe("POST /api/public/careers/[id]/apply", () => {
       ctx,
     );
     expect(res.status).toBe(201);
+    // Eligibility must come from the shared public predicate, scoped to this id.
+    const where = prismaMock.recruitmentVacancy.findFirst.mock.calls[0]?.[0]?.where;
+    expect(where).toEqual(publicVacancyWhere("vac-1"));
     const createArg = prismaMock.recruitmentCandidate.create.mock.calls[0]?.[0];
     expect(createArg?.data).toMatchObject({
       vacancyId: "vac-1",
