@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
+import { hasFeature } from "@/lib/role-permissions";
 import { parseJsonBody } from "@/lib/api-error";
 const bulkSchema = z.object({
   action: z.enum(["resolve", "delete", "assign", "move"]),
@@ -24,6 +25,9 @@ const body = await parseJsonBody(req);
 
   const { action, ids, assigneeId, category } = parsed.data;
 
+  if (action === "delete" && !hasFeature(session.user.role, "issues.delete")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   try {
     let result: { count: number } = { count: 0 };
 
@@ -92,4 +96,4 @@ const body = await parseJsonBody(req);
       { status: 500 }
     );
   }
-});
+}, { feature: "issues.edit" });

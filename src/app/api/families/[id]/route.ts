@@ -342,6 +342,7 @@ export const PATCH = withApiAuth(
               deactivatedAt: d.deactivated
                 ? (existing.deactivatedAt ?? new Date())
                 : null,
+              ...(d.deactivated ? { sessionVersion: { increment: 1 } } : {}),
               deactivatedById: d.deactivated ? session!.user.id : null,
               deactivatedReason: d.deactivated
                 ? (d.deactivatedReason ?? null)

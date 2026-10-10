@@ -169,6 +169,7 @@ export async function completeParentPasswordReset(params: {
       where: { id: account.id },
       data: {
         passwordHash,
+        sessionVersion: { increment: 1 },
         // Completing a reset proves they control the mailbox, which is all
         // email verification ever asserted. A family who verified long ago is
         // unaffected; one who never did should not be left half-locked-out
@@ -225,7 +226,7 @@ export async function setParentPasswordDirect(params: {
   await prisma.$transaction([
     prisma.parentAccount.update({
       where: { id: account.id },
-      data: { passwordHash },
+      data: { passwordHash, sessionVersion: { increment: 1 } },
     }),
     prisma.parentPasswordReset.updateMany({
       where: { email: account.email, usedAt: null },

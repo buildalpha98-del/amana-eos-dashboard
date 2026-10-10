@@ -110,6 +110,8 @@ jobs:
       DATABASE_URL: postgresql://test:test@localhost:5432/amana_eos_test
       DATABASE_URL_UNPOOLED: postgresql://test:test@localhost:5432/amana_eos_test
       NEXTAUTH_SECRET: test-secret
+      NEXTAUTH_URL: http://localhost:3000
+      PARENT_JWT_SECRET: test-parent-jwt-secret-at-least-32-chars-long
       CRON_SECRET: test-cron-secret
       COWORK_API_KEY: test-cowork-api-key
 

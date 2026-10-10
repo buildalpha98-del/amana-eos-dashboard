@@ -34,7 +34,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   const updated = await prisma.milestone.update({ where: { id }, data });
   return NextResponse.json(updated);
-});
+}, { feature: "rocks.edit" });
 
 // DELETE /api/milestones/:id
 export const DELETE = withApiAuth(async (req, session, context) => {
@@ -58,4 +58,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json({ success: true });
-});
+}, { feature: "rocks.edit" });

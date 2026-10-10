@@ -30,6 +30,8 @@ export interface ParentJwtPayload {
    * authenticated, but not yet account-backed.
    */
   accountId?: string;
+  /** Missing on pre-migration sessions, which belong to version zero. */
+  sessionVersion?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -52,7 +54,16 @@ function getSecret(): Uint8Array {
  * Sign a JWT for a parent session. Expires in 30 days.
  */
 export async function signParentJwt(payload: ParentJwtPayload): Promise<string> {
-  return new SignJWT({ ...payload })
+  const account = await prisma.parentAccount.findUnique({
+    where: payload.accountId ? { id: payload.accountId } : { email: payload.email.toLowerCase().trim() },
+    select: { id: true, email: true, deactivatedAt: true, sessionVersion: true },
+  });
+  if ((payload.accountId && !account) || account?.deactivatedAt ||
+      (account && (account.email.toLowerCase().trim() !== payload.email.toLowerCase().trim() ||
+       (payload.sessionVersion !== undefined && payload.sessionVersion !== account.sessionVersion)))) {
+    throw ApiError.unauthorized("Invalid parent account");
+  }
+  return new SignJWT({ ...payload, ...(account ? { accountId: account.id, sessionVersion: account.sessionVersion } : {}) })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
@@ -67,14 +78,17 @@ export async function verifyParentJwt(
 ): Promise<ParentJwtPayload | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    const { email, name, enrolmentIds, accountId } =
+    const { email, name, enrolmentIds, accountId, sessionVersion } =
       payload as unknown as ParentJwtPayload;
-    if (!email || !name || !Array.isArray(enrolmentIds)) return null;
+    if (typeof email !== "string" || !email || typeof name !== "string" || !name ||
+        (accountId !== undefined && (typeof accountId !== "string" || !accountId)) || !Array.isArray(enrolmentIds) ||
+        !enrolmentIds.every(id => typeof id === "string") ||
+        (sessionVersion !== undefined && (!Number.isInteger(sessionVersion) || sessionVersion < 0))) return null;
     // accountId is carried through when present. Sessions minted before
     // parent accounts existed simply omit it — still valid, just not
     // account-backed. Dropping it here (as this did) meant the id never
     // survived verification.
-    return { email, name, enrolmentIds, ...(accountId ? { accountId } : {}) };
+    return { email, name, enrolmentIds, ...(accountId ? { accountId } : {}), sessionVersion: sessionVersion ?? 0 };
   } catch {
     return null;
   }
@@ -93,7 +107,17 @@ export async function getParentSession(
 ): Promise<ParentJwtPayload | null> {
   const token = req.cookies.get("parent-session")?.value;
   if (!token) return null;
-  return verifyParentJwt(token);
+  const parent = await verifyParentJwt(token);
+  if (!parent) return null;
+  const account = await prisma.parentAccount.findUnique({
+    where: parent.accountId ? { id: parent.accountId } : { email: parent.email.toLowerCase().trim() },
+    select: { id: true, email: true, deactivatedAt: true, sessionVersion: true },
+  });
+  if ((parent.accountId && !account) || account?.deactivatedAt ||
+      (account && (account.email.toLowerCase().trim() !== parent.email.toLowerCase().trim() ||
+       account.sessionVersion !== parent.sessionVersion))) return null;
+  if (account) parent.accountId = account.id;
+  return parent;
 }
 
 // ---------------------------------------------------------------------------
@@ -149,34 +173,19 @@ export function withParentAuth(
       // Verify enrolmentIds still exist and belong to this parent
       const validEnrolments = await prisma.enrolmentSubmission.findMany({
         where: { id: { in: parent.enrolmentIds }, status: { not: "draft" } },
-        select: { id: true },
+        select: { id: true, primaryParent: true, secondaryParent: true },
       });
-      parent.enrolmentIds = validEnrolments.map(e => e.id);
+      const email = parent.email.toLowerCase().trim();
+      const ownsEmail = (value: unknown) => {
+        if (!value || typeof value !== "object" || !("email" in value)) return false;
+        return typeof value.email === "string" && value.email.toLowerCase().trim() === email;
+      };
+      parent.enrolmentIds = validEnrolments
+        .filter(e => ownsEmail(e.primaryParent) || ownsEmail(e.secondaryParent))
+        .map(e => e.id);
 
-      /**
-       * Backfill `accountId` onto a session that predates it.
-       *
-       * The magic-link route only started signing `accountId` on
-       * 2026-08-13; `login` always did. Those JWTs last 30 days, so
-       * without this every parent holding an older magic-link session
-       * stays locked out of their own enrolment draft until it expires
-       * — and the portal REDIRECTS them into that form, where they type
-       * the whole thing against a status line reading "Not saved" and
-       * are refused on submit.
-       *
-       * Resolving it here rather than in each route means one lookup
-       * fixes every caller, and a parent who is already signed in never
-       * finds out there was a problem.
-       */
-      if (!parent.accountId) {
-        const account = await prisma.parentAccount.findUnique({
-          where: { email: parent.email.toLowerCase().trim() },
-          select: { id: true, deactivatedAt: true },
-        });
-        if (account && !account.deactivatedAt) {
-          parent.accountId = account.id;
-        }
-      }
+      // getParentSession validates and backfills the current account before
+      // either account-bound handlers or legacy magic-link handlers may run.
 
       // Rate limit: 60 req/min per parent per endpoint
       const endpoint = new URL(req.url).pathname;

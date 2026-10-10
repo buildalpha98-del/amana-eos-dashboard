@@ -5,7 +5,7 @@ import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { recomputeRockProgress } from "@/lib/todos/recompute-rock-progress";
-import { canViewTodo } from "@/lib/todos/private-filter";
+import { canViewTodo, privateTodoWhere } from "@/lib/todos/private-filter";
 
 const updateTodoSchema = z.object({
   title: z.string().min(1).optional(),
@@ -95,7 +95,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   if (parsed.data.isPrivate !== undefined) data.isPrivate = parsed.data.isPrivate;
 
   const todo = await prisma.todo.update({
-    where: { id },
+    where: { id, deleted: false, AND: [privateTodoWhere(session)] },
     data,
     include: {
       assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
@@ -149,14 +149,22 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   }
 
   return NextResponse.json(todo);
-});
+}, { feature: "todos.edit" });
 
 // DELETE /api/todos/[id] — soft delete
 export const DELETE = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
 
+  const existing = await prisma.todo.findUnique({
+    where: { id, deleted: false },
+    include: { assignees: { select: { userId: true } } },
+  });
+  if (!existing || !canViewTodo(session, existing)) {
+    return NextResponse.json({ error: "Todo not found" }, { status: 404 });
+  }
+
   const todo = await prisma.todo.update({
-    where: { id },
+    where: { id, deleted: false, AND: [privateTodoWhere(session)] },
     data: { deleted: true },
   });
 
@@ -169,5 +177,6 @@ const { id } = await context!.params!;
     },
   });
 
+  if (existing.rockId) await recomputeRockProgress(prisma, existing.rockId);
   return NextResponse.json({ success: true });
-});
+}, { feature: "todos.delete" });

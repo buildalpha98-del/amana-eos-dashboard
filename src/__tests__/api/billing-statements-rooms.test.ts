@@ -77,6 +77,7 @@ beforeEach(() => {
   _clearRoomNameCache();
   vi.clearAllMocks();
   prismaMock.user.findUnique.mockResolvedValue({ active: true });
+  prismaMock.child.findMany.mockResolvedValue([{ id: "child-1" }]);
   prismaMock.statement.create.mockResolvedValue({ id: "stmt-1" });
   mockSession({ id: "u-1", name: "Admin", role: "admin" });
 });

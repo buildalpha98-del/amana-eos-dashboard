@@ -5,6 +5,8 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { recomputeRocksProgress } from "@/lib/todos/recompute-rock-progress";
 
+import { hasFeature } from "@/lib/role-permissions";
+import { privateTodoWhere } from "@/lib/todos/private-filter";
 import { parseJsonBody } from "@/lib/api-error";
 const bulkActionSchema = z.object({
   action: z.enum(["complete", "delete", "assign"]),
@@ -26,9 +28,13 @@ try {
 
   const { action, ids, assigneeId } = parsed.data;
 
+  if (action === "delete" && !hasFeature(session.user.role, "todos.delete")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   // Validate the todos exist (and aren't already soft-deleted)
   const todos = await prisma.todo.findMany({
-    where: { id: { in: ids }, deleted: false },
+    where: { id: { in: ids }, deleted: false, AND: [privateTodoWhere(session)] },
     select: { id: true, rockId: true },
   });
   const validIds = todos.map((t) => t.id);
@@ -43,7 +49,7 @@ try {
   switch (action) {
     case "complete": {
       await prisma.todo.updateMany({
-        where: { id: { in: validIds } },
+        where: { id: { in: validIds }, deleted: false, AND: [privateTodoWhere(session)] },
         data: { status: "complete", completedAt: new Date() },
       });
       // updateMany bypasses the single-todo PATCH path, so recompute
@@ -56,7 +62,7 @@ try {
       // Soft delete, matching DELETE /api/todos/[id] — a bulk hard
       // deleteMany here used to silently bypass the audit trail.
       await prisma.todo.updateMany({
-        where: { id: { in: validIds } },
+        where: { id: { in: validIds }, deleted: false, AND: [privateTodoWhere(session)] },
         data: { deleted: true },
       });
       await prisma.activityLog.create({
@@ -93,7 +99,7 @@ try {
       }
 
       await prisma.todo.updateMany({
-        where: { id: { in: validIds } },
+        where: { id: { in: validIds }, deleted: false, AND: [privateTodoWhere(session)] },
         data: { assigneeId },
       });
       return NextResponse.json({ updated: validIds.length });
@@ -109,4 +115,4 @@ try {
       { status: 500 },
     );
   }
-});
+}, { feature: "todos.edit" });

@@ -172,4 +172,4 @@ const body = await parseJsonBody(req);
   }
 
   return NextResponse.json(todo, { status: 201 });
-});
+}, { feature: "todos.create" });

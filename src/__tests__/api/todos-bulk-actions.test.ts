@@ -37,7 +37,7 @@ describe("POST /api/todos/bulk-actions", () => {
     expect(res.status).toBe(200);
     expect(prismaMock.todo.deleteMany).not.toHaveBeenCalled();
     expect(prismaMock.todo.updateMany).toHaveBeenCalledWith({
-      where: { id: { in: ["t1", "t2"] } },
+      where: { id: { in: ["t1", "t2"] }, deleted: false, AND: [{}] },
       data: { deleted: true },
     });
     expect(prismaMock.activityLog.create).toHaveBeenCalledTimes(1);
@@ -60,7 +60,7 @@ describe("POST /api/todos/bulk-actions", () => {
     await POST(req);
 
     expect(prismaMock.todo.findMany).toHaveBeenCalledWith({
-      where: { id: { in: ["t1", "t-already-deleted"] }, deleted: false },
+      where: { id: { in: ["t1", "t-already-deleted"] }, deleted: false, AND: [{}] },
       select: { id: true, rockId: true },
     });
   });

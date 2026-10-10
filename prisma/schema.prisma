@@ -7840,6 +7840,8 @@ model SequenceStepExecution {
 // own enrolment.
 model ParentAccount {
   id                        String    @id @default(cuid())
+  /// Increment on deactivation or password reset to revoke existing sessions.
+  sessionVersion            Int       @default(0)
   // Always stored lowercased+trimmed — the lookup path depends on it.
   email                     String    @unique
   passwordHash              String

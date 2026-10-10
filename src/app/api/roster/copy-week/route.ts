@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { z } from "zod";
+import { assertStaffCertsValidForShift } from "../_lib/cert-guard";
+import { assertUserCleared } from "@/lib/induction";
 import { requireRoomId } from "@/lib/room-resolver";
 
 // ---------------------------------------------------------------------------
@@ -91,16 +93,21 @@ export const POST = withApiAuth(async (req, session) => {
             },
       });
 
+      if (collision?.status === "published") {
+        skipped.push({
+          date: targetDateIso,
+          sessionType: src.sessionType,
+          staffName: src.staffName,
+          reason: "target cell already published",
+        });
+        continue;
+      }
+      if (src.userId) {
+        await assertStaffCertsValidForShift({ userId: src.userId, shiftDate: targetDate });
+        await assertUserCleared(src.userId);
+      }
+
       if (collision) {
-        if (collision.status === "published") {
-          skipped.push({
-            date: targetDateIso,
-            sessionType: src.sessionType,
-            staffName: src.staffName,
-            reason: "target cell already published",
-          });
-          continue;
-        }
         // Draft collision → delete-then-create.
         await tx.rosterShift.delete({ where: { id: collision.id } });
         await tx.rosterShift.create({

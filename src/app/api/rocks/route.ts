@@ -1,3 +1,4 @@
+import { privateTodoWhere } from "@/lib/todos/private-filter";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
@@ -47,7 +48,7 @@ export const GET = withApiAuth(async (req, session) => {
     oneYearGoal: { select: { id: true, title: true } },
     _count: {
       select: {
-        todos: { where: { deleted: false } },
+        todos: { where: { deleted: false, AND: [privateTodoWhere(session)] } },
         issues: { where: { deleted: false } },
         milestones: true,
       },
@@ -102,7 +103,7 @@ const body = await parseJsonBody(req);
       oneYearGoal: { select: { id: true, title: true } },
       _count: {
         select: {
-          todos: { where: { deleted: false } },
+          todos: { where: { deleted: false, AND: [privateTodoWhere(session)] } },
           issues: { where: { deleted: false } },
           milestones: true,
         },
