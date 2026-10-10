@@ -1,3 +1,4 @@
+import { privateTodoWhere } from "@/lib/todos/private-filter";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -27,7 +28,7 @@ export const GET = withApiAuth(async (req, session, context) => {
       owner: { select: { id: true, name: true, email: true, avatar: true } },
       rock: { select: { id: true, title: true } },
       spawnedTodos: {
-        where: { deleted: false },
+        where: { deleted: false, AND: [privateTodoWhere(session)] },
         include: {
           assignee: { select: { id: true, name: true } },
         },
@@ -89,7 +90,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
       owner: { select: { id: true, name: true, email: true, avatar: true } },
       rock: { select: { id: true, title: true } },
       _count: {
-        select: { spawnedTodos: { where: { deleted: false } } },
+        select: { spawnedTodos: { where: { deleted: false, AND: [privateTodoWhere(session)] } } },
       },
     },
   });
@@ -120,7 +121,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   }
 
   return NextResponse.json(issue);
-});
+}, { feature: "issues.edit" });
 
 // DELETE /api/issues/[id] — soft delete
 export const DELETE = withApiAuth(async (req, session, context) => {
@@ -141,4 +142,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json({ success: true });
-});
+}, { feature: "issues.delete" });

@@ -1,3 +1,4 @@
+import { privateTodoWhere } from "@/lib/todos/private-filter";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -27,7 +28,7 @@ export const GET = withApiAuth(async (req, session, context) => {
       rock: { select: { id: true, title: true } },
       template: { select: { id: true, name: true } },
       todos: {
-        where: { deleted: false },
+        where: { deleted: false, AND: [privateTodoWhere(session)] },
         include: {
           assignee: { select: { id: true, name: true } },
         },

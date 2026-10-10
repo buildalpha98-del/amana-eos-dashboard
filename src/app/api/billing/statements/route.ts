@@ -6,6 +6,8 @@ import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { resolveServiceIdFilter } from "@/lib/authz-scope";
+import { assertUnbilledLines } from "@/lib/billing/unbilled-lines";
+import { withStatementLock } from "@/lib/billing/statement-lock";
 import { requireFromMap, resolveRoomIds } from "@/lib/room-resolver";
 
 /* ------------------------------------------------------------------ */
@@ -97,20 +99,6 @@ export const POST = withApiAuth(async (req) => {
 
   const { contactId, serviceId, periodStart, periodEnd, lineItems, dueDate, notes } = parsed.data;
 
-  // Duplicate check: reject if non-void statement exists for same contact + period
-  const existing = await prisma.statement.findFirst({
-    where: {
-      contactId,
-      periodStart: new Date(periodStart),
-      periodEnd: new Date(periodEnd),
-      status: { not: "void" },
-    },
-    select: { id: true },
-  });
-  if (existing) {
-    throw ApiError.conflict("A statement already exists for this contact and period");
-  }
-
   // Auto-calculate totals
   /**
    * Stage 1 dual key. A line item has no serviceId of its own — it
@@ -126,7 +114,27 @@ export const POST = withApiAuth(async (req) => {
   const totalCcs = lineItems.reduce((sum, li) => sum + li.ccsAmount, 0);
   const gapFee = totalFees - totalCcs;
 
-  const statement = await prisma.$transaction(async (tx) => {
+  const statement = await withStatementLock(serviceId, async (tx) => {
+    // Duplicate check: reject if non-void statement exists for same contact + period
+    const existing = await tx.statement.findFirst({
+      where: {
+        contactId,
+        serviceId,
+        periodStart: new Date(periodStart),
+        periodEnd: new Date(periodEnd),
+        status: { not: "void" },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw ApiError.conflict("A statement already exists for this contact and period");
+    }
+
+    // The same booking must not appear on overlapping invoices or on a
+    // second contact's invoice. Discount lines within this new statement
+    // may share a session, but no live existing statement may own it.
+    await assertUnbilledLines(tx, serviceId, lineItems);
+
     const created = await tx.statement.create({
       data: {
         contactId,

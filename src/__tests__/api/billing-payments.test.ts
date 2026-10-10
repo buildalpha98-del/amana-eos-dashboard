@@ -66,7 +66,7 @@ describe("POST /api/billing/payments", () => {
     const paymentWithStatement = { ...validPaymentBody, statementId: "stmt-1" };
 
     // Statement lookup for verification
-    prismaMock.statement.findUnique.mockResolvedValue({ id: "stmt-1", contactId: "contact-1" });
+    prismaMock.statement.findUnique.mockResolvedValue({ id: "stmt-1", contactId: "contact-1", serviceId: "svc-1", status: "issued" });
 
     // Transaction mock
     prismaMock.$transaction.mockImplementation(async (fn: unknown) => {
@@ -160,5 +160,12 @@ describe("POST /api/billing/payments", () => {
     // Verify no aggregate/update was called (no statement balance to recalculate)
     expect(prismaMock.payment.aggregate).not.toHaveBeenCalled();
     expect(prismaMock.statement.update).not.toHaveBeenCalled();
+  });
+  it("rejects payment against a void invoice without creating a payment", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "admin" });
+    prismaMock.statement.findUnique.mockResolvedValue({ id: "stmt-1", contactId: "contact-1", serviceId: "svc-1", status: "void" });
+    const res = await POST(createRequest("POST", "/api/billing/payments", { body: { ...validPaymentBody, statementId: "stmt-1" } }));
+    expect(res.status).toBe(409);
+    expect(prismaMock.payment.create).not.toHaveBeenCalled();
   });
 });

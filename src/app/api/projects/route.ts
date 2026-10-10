@@ -1,3 +1,4 @@
+import { privateTodoWhere } from "@/lib/todos/private-filter";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -45,7 +46,7 @@ export const GET = withApiAuth(async (req, session) => {
     ids.length > 0
       ? await prisma.todo.groupBy({
           by: ["projectId", "status"],
-          where: { projectId: { in: ids }, deleted: false },
+          where: { projectId: { in: ids }, deleted: false, AND: [privateTodoWhere(session)] },
           _count: true,
         })
       : [];

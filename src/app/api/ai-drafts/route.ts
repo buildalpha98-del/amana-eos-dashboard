@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { assignedDraftWhere } from "@/lib/ai-draft-access";
 import { withApiAuth } from "@/lib/server-auth";
 
 /**
@@ -21,14 +22,7 @@ export const GET = withApiAuth(async (req, session) => {
   // Find drafts linked to tasks assigned to the current user
   const where = {
     ...statusWhere,
-    OR: [
-      { todo: { assigneeId: userId } },
-      { todo: { assignees: { some: { userId } } } },
-      { marketingTask: { assigneeId: userId } },
-      { coworkTodo: { assignedToId: userId } },
-      { ticket: { assignedToId: userId } },
-      { issue: { ownerId: userId } },
-    ],
+    ...assignedDraftWhere(userId),
   };
 
   if (countOnly) {

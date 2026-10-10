@@ -33,4 +33,4 @@ export const PUT = withApiAuth(async (req) => {
   );
 
   return NextResponse.json({ ok: true });
-});
+}, { feature: "scorecard.edit" });

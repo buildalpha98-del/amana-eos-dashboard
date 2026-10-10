@@ -9,6 +9,8 @@ import { notifyOpenShiftsPosted } from "@/lib/open-shift-notify";
 import { logger } from "@/lib/logger";
 import type { OpenShiftSummary } from "@/lib/email-templates";
 import { z } from "zod";
+import { assertStaffCertsValidForShift } from "../_lib/cert-guard";
+import { assertUserCleared } from "@/lib/induction";
 
 // ---------------------------------------------------------------------------
 // POST /api/roster/publish
@@ -50,6 +52,7 @@ export const POST = withApiAuth(async (req, session) => {
         status: "draft",
       },
       select: {
+        id: true,
         userId: true,
         date: true,
         sessionType: true,
@@ -59,8 +62,16 @@ export const POST = withApiAuth(async (req, session) => {
       },
     });
 
+    for (const shift of draftShifts) {
+      if (shift.userId) {
+        await assertStaffCertsValidForShift({ userId: shift.userId, shiftDate: shift.date });
+        await assertUserCleared(shift.userId);
+      }
+    }
+
     const updated = await tx.rosterShift.updateMany({
       where: {
+        id: { in: draftShifts.map(shift => shift.id) },
         serviceId,
         date: { gte: start, lt: end },
         status: "draft",

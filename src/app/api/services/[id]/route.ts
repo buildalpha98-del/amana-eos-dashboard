@@ -1,3 +1,4 @@
+import { privateTodoWhere } from "@/lib/todos/private-filter";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -85,7 +86,7 @@ export const GET = withApiAuth(
       include: {
         manager: { select: { id: true, name: true, email: true, avatar: true } },
         todos: {
-          where: { deleted: false },
+          where: { deleted: false, AND: [privateTodoWhere(session)] },
           include: {
             assignee: { select: { id: true, name: true } },
           },
@@ -104,7 +105,7 @@ export const GET = withApiAuth(
           where: { deleted: false },
           include: {
             owner: { select: { id: true, name: true } },
-            _count: { select: { todos: { where: { deleted: false } } } },
+            _count: { select: { todos: { where: { deleted: false, AND: [privateTodoWhere(session)] } } } },
           },
           orderBy: { createdAt: "desc" },
           take: 50,
@@ -115,7 +116,7 @@ export const GET = withApiAuth(
             owner: { select: { id: true, name: true } },
             _count: {
               select: {
-                todos: { where: { deleted: false } },
+                todos: { where: { deleted: false, AND: [privateTodoWhere(session)] } },
                 milestones: true,
               },
             },
@@ -125,7 +126,7 @@ export const GET = withApiAuth(
         },
         _count: {
           select: {
-            todos: { where: { deleted: false } },
+            todos: { where: { deleted: false, AND: [privateTodoWhere(session)] } },
             issues: { where: { deleted: false } },
             projects: { where: { deleted: false } },
             rocks: { where: { deleted: false } },

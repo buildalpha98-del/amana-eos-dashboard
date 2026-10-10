@@ -1,3 +1,4 @@
+import { privateTodoWhere } from "@/lib/todos/private-filter";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getStateScope } from "@/lib/service-scope";
@@ -69,7 +70,7 @@ const { serviceIds } = role === "marketing" ? { serviceIds: null } : await getCe
     rock: { select: { id: true, title: true } },
     service: { select: { id: true, name: true } },
     _count: {
-      select: { spawnedTodos: { where: { deleted: false } } },
+      select: { spawnedTodos: { where: { deleted: false, AND: [privateTodoWhere(session)] } } },
     },
   };
   const orderBy = [{ priority: "asc" as const }, { createdAt: "desc" as const }];
@@ -121,7 +122,7 @@ const body = await parseJsonBody(req);
       owner: { select: { id: true, name: true, email: true, avatar: true } },
       rock: { select: { id: true, title: true } },
       _count: {
-        select: { spawnedTodos: { where: { deleted: false } } },
+        select: { spawnedTodos: { where: { deleted: false, AND: [privateTodoWhere(session)] } } },
       },
     },
   });
@@ -158,4 +159,4 @@ const body = await parseJsonBody(req);
   }
 
   return NextResponse.json(issue, { status: 201 });
-});
+}, { feature: "issues.create" });

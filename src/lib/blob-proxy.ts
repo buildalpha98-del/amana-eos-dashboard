@@ -28,19 +28,23 @@ import { logger } from "@/lib/logger";
 
 const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
 const BLOB_HOSTS = new Set(["public.blob.vercel-storage.com"]);
+const INLINE_SAFE_TYPES = new Set([
+  "application/pdf", "image/png", "image/jpeg", "image/gif", "image/webp",
+  "text/plain", "text/csv",
+]);
 
 /**
- * True when `url` points at our own Blob storage.
+ * True when `url` points at public Vercel Blob storage.
  *
  * This is an SSRF guard, not a formality: the helper fetches whatever it is
- * given from inside our own network, so a caller that forwards a
- * user-supplied URL must be refused. Mirrors `safeAttachmentUrl`
+ * given from inside our own network. This host check is not ownership:
+ * callers must resolve an authorised stored record first. Mirrors `safeAttachmentUrl`
  * (src/lib/schemas/message-attachments.ts) — keep the two in step.
  */
 export function isStoredFileUrl(url: string): boolean {
   try {
-    const { protocol, hostname } = new URL(url);
-    if (protocol !== "https:") return false;
+    const { protocol, hostname, username, password, port } = new URL(url);
+    if (protocol !== "https:" || username || password || port) return false;
     return BLOB_HOSTS.has(hostname) || hostname.endsWith(BLOB_HOST_SUFFIX);
   } catch {
     return false;
@@ -88,7 +92,7 @@ export async function streamStoredFile(
 
   let upstream: Response;
   try {
-    upstream = await fetch(fileUrl);
+    upstream = await fetch(fileUrl, { redirect: "error" });
   } catch (err) {
     logger.error("Stored file fetch failed", { err, fileUrl });
     throw ApiError.notFound("File not found");
@@ -99,12 +103,18 @@ export async function streamStoredFile(
     throw ApiError.notFound("File not found");
   }
 
+  const contentType = upstream.headers.get("content-type") ??
+    opts.fallbackContentType ?? "application/octet-stream";
+  // Only inert document formats may render on the application origin.
+  // Never forward HTML, SVG or an unknown active MIME type as inline content.
+  const inlineSafe = INLINE_SAFE_TYPES.has(contentType.split(";")[0].trim().toLowerCase());
+  const isPdf = contentType.split(";")[0].trim().toLowerCase() === "application/pdf";
   const headers: Record<string, string> = {
-    "Content-Type":
-      upstream.headers.get("content-type") ??
-      opts.fallbackContentType ??
-      "application/octet-stream",
-    "Content-Disposition": dispositionFor(opts.fileName, opts.download === true),
+    "Content-Type": inlineSafe ? contentType : "application/octet-stream",
+    "Content-Disposition": dispositionFor(opts.fileName, opts.download === true || !inlineSafe),
+    // CSP sandbox disables native PDF viewers in some browsers. PDFs are
+    // handled by the browser's PDF viewer, with nosniff enforced below.
+    ...(!isPdf ? { "Content-Security-Policy": "sandbox; default-src 'none'" } : {}),
     // HR documents: never let a shared or intermediary cache keep a copy.
     "Cache-Control": "private, no-store, no-cache, must-revalidate",
     "X-Content-Type-Options": "nosniff",

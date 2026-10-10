@@ -19,6 +19,46 @@ Authentication is implemented using **NextAuth.js** with a credentials provider.
 | Maximum session age | 30 days (remember-me path) |
 | Token signing | HS256 with `NEXTAUTH_SECRET` |
 
+### Authentication and API hardening — 10 October 2026
+
+Staff JWTs are checked against the current account on each server session read:
+active status, session version, role, centre and MFA setup must still be valid.
+Revocation, expiry, an unverified second factor or a database failure terminates
+the session. MFA-enabled credentials logins verify TOTP or atomically consume a
+backup code before issuing the full session.
+
+Parent JWTs use `ParentAccount.sessionVersion` and a live deactivation check.
+Deactivation and both password-reset paths increment the version; reactivation
+never restores old sessions. Signing and refreshing carry the version observed
+when the password, account or existing session was authenticated, so an in-flight
+request cannot adopt a post-reset version. Existing tokens without the claim mean
+version zero. Accountless magic-link sessions remain supported, but account lookup and
+enrolment ownership checks still apply. The migration
+`20261010000000_parent_session_revocation` must be applied before parent routes
+run the new code. Production builds already apply tracked migrations first;
+previews skip migrations and must use a separate migrated test database for
+parent-flow verification.
+
+EOS mutation handlers declare write capabilities independently of page access.
+Private ToDo visibility applies to nested results, counts and bulk writes.
+AI draft review requires write capability and draft assignment (admin triage
+exempt); accepting a draft cannot bypass private-ToDo access or Issue editing
+permissions.
+Document downloads resolve a visible library record before proxying bytes;
+HTML, SVG and unknown formats use inert attachments, while PDFs retain native
+viewing. Medical CSV exports use the same centre scope as the JSON report.
+Xero OAuth callbacks require the current owner and the short-lived HttpOnly
+state cookie created by that owner's connect request.
+
+Bulk roster copying and publication run the existing certificate and induction
+gates before writes. Statement creators, draft editors and payment writers serialize billed-session
+checks and writes with a transaction-scoped PostgreSQL advisory lock per centre;
+void invoices remain re-billable. Status updates repeat their permitted source
+state at the write: issue, overdue and payment processing cannot revive a void
+invoice, and a concurrent void rolls back payment creation. Invoice PDF/email processing uses Next.js
+`after` through `runAfter`. This extends the request lifetime; it is not a durable
+job queue, and provider failures still require operational follow-up.
+
 ### Password Hashing
 
 All passwords are hashed using **bcrypt** with a salt factor of **12 rounds** before storage. Plaintext passwords are never logged, stored, or transmitted. Password comparison uses bcrypt's constant-time compare to prevent timing attacks.
@@ -87,8 +127,8 @@ Three protection patterns are used depending on the caller type:
 
 | Pattern | Use case |
 |---|---|
-| `requireAuth()` | Internal dashboard API routes — validates JWT session and attaches user context |
-| `withApiAuth()` | Routes that accept both session and API key authentication |
+| `withApiHandler()` | Public and integration handlers; the handler must validate its own credentials where required |
+| `withApiAuth()` | Staff session API routes; validates the session and declared role or feature |
 | `authenticateApiKey(req, scope)` | External/integration endpoints — validates hashed API key and checks the required scope |
 
 ### Service and State Scoping

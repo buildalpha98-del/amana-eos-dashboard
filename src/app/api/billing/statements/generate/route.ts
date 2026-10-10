@@ -21,6 +21,7 @@ import { logger } from "@/lib/logger";
 import { sumDollars, fromCents } from "@/lib/money";
 import { requireFromMap, resolveRoomIds } from "@/lib/room-resolver";
 import { roomsForService } from "@/lib/room-names";
+import { withStatementLock } from "@/lib/billing/statement-lock";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const bodySchema = z.object({
@@ -119,209 +120,211 @@ export const POST = withApiAuth(
       });
     }
 
-    /**
-     * DOUBLE-BILLING GUARD.
-     *
-     * A session already on a live invoice must never be billed again.
-     * Matched on child + date + sessionType, which is exactly the
-     * uniqueness Booking itself enforces. Void statements are excluded —
-     * voiding is how staff undo an invoice, so those sessions are
-     * legitimately re-billable.
-     */
-    const alreadyBilled = await prisma.statementLineItem.findMany({
-      where: {
-        childId: { in: childIds },
-        date: { gte: start, lte: end },
-        statement: { status: { not: "void" } },
-      },
-      select: { childId: true, date: true, sessionType: true },
-    });
-    const billedKey = new Set(
-      alreadyBilled.map(
-        (l) => `${l.childId}|${l.date.toISOString().slice(0, 10)}|${l.sessionType}`,
-      ),
-    );
-
-    /**
-     * Room names for the line descriptions, keyed by the slot the
-     * booking still carries. One query for the centre, cached — see
-     * room-names.ts. A room the enum never knew about has no slot to
-     * key on, which is why this is a stopgap until Stage 4 drops
-     * `sessionType` from the booking itself.
-     */
-    const roomLabels = new Map(
-      (await roomsForService(serviceId))
-        .filter((r) => r.legacyKey !== null)
-        .map((r) => [r.legacyKey!, r.name]),
-    );
-
-    const fresh = bookings.filter(
-      (b) =>
-        !billedKey.has(
-          `${b.childId}|${b.date.toISOString().slice(0, 10)}|${b.sessionType}`,
-        ),
-    );
-    const skipped = bookings.length - fresh.length;
-
-    if (fresh.length === 0) {
-      return NextResponse.json({
-        ok: false,
-        reason: "all_billed",
-        message: `All ${bookings.length} sessions in that period are already on an invoice.`,
+    return withStatementLock(serviceId, async (tx) => {
+      /**
+       * DOUBLE-BILLING GUARD.
+       *
+       * A session already on a live invoice must never be billed again.
+       * Matched on child + date + sessionType, which is exactly the
+       * uniqueness Booking itself enforces. Void statements are excluded —
+       * voiding is how staff undo an invoice, so those sessions are
+       * legitimately re-billable.
+       */
+      const alreadyBilled = await tx.statementLineItem.findMany({
+        where: {
+          childId: { in: childIds },
+          date: { gte: start, lte: end },
+          statement: { status: { not: "void" } },
+        },
+        select: { childId: true, date: true, sessionType: true },
       });
-    }
+      const billedKey = new Set(
+        alreadyBilled.map(
+          (l) => `${l.childId}|${l.date.toISOString().slice(0, 10)}|${l.sessionType}`,
+        ),
+      );
 
-    const lineItems = fresh.map((b) => {
-      const gross = b.fee ?? 0;
-      const ccs = b.ccsApplied ?? 0;
-      // Trust a stored gap when present; otherwise derive it. Deriving in
-      // cents so a float subtraction can't leave 0.009999 behind.
-      const gap =
-        b.gapFee ?? fromCents(sumDollars([gross]) - sumDollars([ccs]));
-      return {
-        childId: b.childId,
-        date: b.date,
-        sessionType: b.sessionType,
-        description: `${nameById.get(b.childId) ?? "Child"} — ${
-          roomLabels.get(b.sessionType) ?? b.sessionType
-        } ${b.date.toISOString().slice(0, 10)}`,
-        grossFee: gross,
-        ccsHours: 0,
-        ccsRate: 0,
-        ccsAmount: ccs,
-        gapAmount: gap,
+      /**
+       * Room names for the line descriptions, keyed by the slot the
+       * booking still carries. One query for the centre, cached — see
+       * room-names.ts. A room the enum never knew about has no slot to
+       * key on, which is why this is a stopgap until Stage 4 drops
+       * `sessionType` from the booking itself.
+       */
+      const roomLabels = new Map(
+        (await roomsForService(serviceId))
+          .filter((r) => r.legacyKey !== null)
+          .map((r) => [r.legacyKey!, r.name]),
+      );
+
+      const fresh = bookings.filter(
+        (b) =>
+          !billedKey.has(
+            `${b.childId}|${b.date.toISOString().slice(0, 10)}|${b.sessionType}`,
+          ),
+      );
+      const skipped = bookings.length - fresh.length;
+
+      if (fresh.length === 0) {
+        return NextResponse.json({
+          ok: false,
+          reason: "all_billed",
+          message: `All ${bookings.length} sessions in that period are already on an invoice.`,
+        });
+      }
+
+      const lineItems = fresh.map((b) => {
+        const gross = b.fee ?? 0;
+        const ccs = b.ccsApplied ?? 0;
+        // Trust a stored gap when present; otherwise derive it. Deriving in
+        // cents so a float subtraction can't leave 0.009999 behind.
+        const gap =
+          b.gapFee ?? fromCents(sumDollars([gross]) - sumDollars([ccs]));
+        return {
+          childId: b.childId,
+          date: b.date,
+          sessionType: b.sessionType,
+          description: `${nameById.get(b.childId) ?? "Child"} — ${
+            roomLabels.get(b.sessionType) ?? b.sessionType
+          } ${b.date.toISOString().slice(0, 10)}`,
+          grossFee: gross,
+          ccsHours: 0,
+          ccsRate: 0,
+          ccsAmount: ccs,
+          gapAmount: gap,
+        };
+      });
+
+      // ── Discounts ────────────────────────────────────────────────────
+      // Sibling, staff, hardship. Read for every line because a discount
+      // can be scoped to one child or one room, and a fortnight's invoice
+      // covers several of both.
+      const discountRules = await tx.familyDiscount.findMany({
+        where: {
+          contactId,
+          serviceId,
+          startDate: { lte: end },
+          OR: [{ endDate: null }, { endDate: { gte: start } }],
+        },
+        select: {
+          id: true,
+          childId: true,
+          sessionType: true,
+          kind: true,
+          value: true,
+          reason: true,
+          startDate: true,
+          endDate: true,
+        },
+      });
+
+      /** What each line would be discounted by, and under what name. */
+      const discountFor = (l: (typeof lineItems)[number]) => {
+        const forThisChild = discountRules.filter(
+          (r) => r.childId === null || r.childId === l.childId,
+        );
+        if (forThisChild.length === 0) return null;
+        const outcome = applyFamilyDiscount(
+          Math.round(l.gapAmount * 100),
+          forThisChild,
+          l.sessionType,
+          l.date,
+        );
+        return outcome.applied
+          ? { cents: outcome.discountCents, reason: outcome.applied.reason }
+          : null;
       };
-    });
 
-    // ── Discounts ────────────────────────────────────────────────────
-    // Sibling, staff, hardship. Read for every line because a discount
-    // can be scoped to one child or one room, and a fortnight's invoice
-    // covers several of both.
-    const discountRules = await prisma.familyDiscount.findMany({
-      where: {
+      const discountable = lineItems
+        .map((l) => ({ line: l, discount: discountFor(l) }))
+        .filter((x) => x.discount !== null);
+      const availableDiscountCents = discountable.reduce(
+        (sum, x) => sum + (x.discount?.cents ?? 0),
+        0,
+      );
+
+      // A discount is its own LINE, not a quietly smaller fee: a family
+      // reading the invoice should see the full price and what came off.
+      const discountLines =
+        applyDiscounts && discountable.length > 0
+          ? discountable.map(({ line, discount }) => ({
+              childId: line.childId,
+              date: line.date,
+              sessionType: line.sessionType,
+              description: `${nameById.get(line.childId) ?? "Child"} — ${
+                discount!.reason
+              }`,
+              grossFee: 0,
+              ccsHours: 0,
+              ccsRate: 0,
+              ccsAmount: 0,
+              gapAmount: -fromCents(discount!.cents),
+            }))
+          : [];
+
+      const allLines = [...lineItems, ...discountLines];
+
+      /**
+       * Stage 1 dual key. A line item reaches a service only through its
+       * statement, so the rooms resolve against that one service.
+       */
+      const lineRoomIds = await resolveRoomIds(
+        serviceId,
+        allLines.map((l) => l.sessionType),
+      );
+      const linesWithRooms = allLines.map((l) => ({
+        ...l,
+        roomId: requireFromMap(lineRoomIds, l.sessionType),
+      }));
+
+      // Totals in cents, then back — summing floats across a fortnight of
+      // sessions drifts, and this figure is what a family is asked to pay.
+      const totalFeesCents = sumDollars(allLines.map((l) => l.grossFee));
+      const totalCcsCents = sumDollars(allLines.map((l) => l.ccsAmount));
+      const gapCents = sumDollars(allLines.map((l) => l.gapAmount));
+
+      const statement = await tx.statement.create({
+        data: {
+          contactId,
+          serviceId,
+          periodStart: start,
+          periodEnd: end,
+          totalFees: fromCents(totalFeesCents),
+          totalCcs: fromCents(totalCcsCents),
+          gapFee: fromCents(gapCents),
+          amountPaid: 0,
+          balance: fromCents(gapCents),
+          // Draft, always. Staff review before a family sees anything.
+          status: "draft",
+          ...(dueDate ? { dueDate: day(dueDate) } : {}),
+          lineItems: { create: linesWithRooms },
+        },
+        include: { lineItems: true },
+      });
+
+      logger.info("Statement generated from bookings", {
+        userId: session?.user?.id,
+        statementId: statement.id,
         contactId,
         serviceId,
-        startDate: { lte: end },
-        OR: [{ endDate: null }, { endDate: { gte: start } }],
-      },
-      select: {
-        id: true,
-        childId: true,
-        sessionType: true,
-        kind: true,
-        value: true,
-        reason: true,
-        startDate: true,
-        endDate: true,
-      },
-    });
+        sessions: fresh.length,
+        skippedAlreadyBilled: skipped,
+      });
 
-    /** What each line would be discounted by, and under what name. */
-    const discountFor = (l: (typeof lineItems)[number]) => {
-      const forThisChild = discountRules.filter(
-        (r) => r.childId === null || r.childId === l.childId,
-      );
-      if (forThisChild.length === 0) return null;
-      const outcome = applyFamilyDiscount(
-        Math.round(l.gapAmount * 100),
-        forThisChild,
-        l.sessionType,
-        l.date,
-      );
-      return outcome.applied
-        ? { cents: outcome.discountCents, reason: outcome.applied.reason }
-        : null;
-    };
-
-    const discountable = lineItems
-      .map((l) => ({ line: l, discount: discountFor(l) }))
-      .filter((x) => x.discount !== null);
-    const availableDiscountCents = discountable.reduce(
-      (sum, x) => sum + (x.discount?.cents ?? 0),
-      0,
-    );
-
-    // A discount is its own LINE, not a quietly smaller fee: a family
-    // reading the invoice should see the full price and what came off.
-    const discountLines =
-      applyDiscounts && discountable.length > 0
-        ? discountable.map(({ line, discount }) => ({
-            childId: line.childId,
-            date: line.date,
-            sessionType: line.sessionType,
-            description: `${nameById.get(line.childId) ?? "Child"} — ${
-              discount!.reason
-            }`,
-            grossFee: 0,
-            ccsHours: 0,
-            ccsRate: 0,
-            ccsAmount: 0,
-            gapAmount: -fromCents(discount!.cents),
-          }))
-        : [];
-
-    const allLines = [...lineItems, ...discountLines];
-
-    /**
-     * Stage 1 dual key. A line item reaches a service only through its
-     * statement, so the rooms resolve against that one service.
-     */
-    const lineRoomIds = await resolveRoomIds(
-      serviceId,
-      allLines.map((l) => l.sessionType),
-    );
-    const linesWithRooms = allLines.map((l) => ({
-      ...l,
-      roomId: requireFromMap(lineRoomIds, l.sessionType),
-    }));
-
-    // Totals in cents, then back — summing floats across a fortnight of
-    // sessions drifts, and this figure is what a family is asked to pay.
-    const totalFeesCents = sumDollars(allLines.map((l) => l.grossFee));
-    const totalCcsCents = sumDollars(allLines.map((l) => l.ccsAmount));
-    const gapCents = sumDollars(allLines.map((l) => l.gapAmount));
-
-    const statement = await prisma.statement.create({
-      data: {
-        contactId,
-        serviceId,
-        periodStart: start,
-        periodEnd: end,
-        totalFees: fromCents(totalFeesCents),
-        totalCcs: fromCents(totalCcsCents),
-        gapFee: fromCents(gapCents),
-        amountPaid: 0,
-        balance: fromCents(gapCents),
-        // Draft, always. Staff review before a family sees anything.
-        status: "draft",
-        ...(dueDate ? { dueDate: day(dueDate) } : {}),
-        lineItems: { create: linesWithRooms },
-      },
-      include: { lineItems: true },
-    });
-
-    logger.info("Statement generated from bookings", {
-      userId: session?.user?.id,
-      statementId: statement.id,
-      contactId,
-      serviceId,
-      sessions: fresh.length,
-      skippedAlreadyBilled: skipped,
-    });
-
-    return NextResponse.json({
-      ok: true,
-      statement,
-      sessionsBilled: fresh.length,
-      skippedAlreadyBilled: skipped,
-      // Whether or not it was applied, say what's on file. An unapplied
-      // discount that nobody was told about is the same as not having
-      // recorded one.
-      discountsApplied: applyDiscounts === true && discountLines.length > 0,
-      availableDiscount: fromCents(availableDiscountCents),
-      discountReasons: [
-        ...new Set(discountable.map((x) => x.discount!.reason)),
-      ],
+      return NextResponse.json({
+        ok: true,
+        statement,
+        sessionsBilled: fresh.length,
+        skippedAlreadyBilled: skipped,
+        // Whether or not it was applied, say what's on file. An unapplied
+        // discount that nobody was told about is the same as not having
+        // recorded one.
+        discountsApplied: applyDiscounts === true && discountLines.length > 0,
+        availableDiscount: fromCents(availableDiscountCents),
+        discountReasons: [
+          ...new Set(discountable.map((x) => x.discount!.reason)),
+        ],
+      });
     });
   },
   { roles: [...ADMIN_ROLES] },

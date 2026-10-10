@@ -130,6 +130,8 @@ export const POST = withApiHandler(async (req) => {
     name: [firstName, surname].filter(Boolean).join(" ") || parentName || "Parent",
     enrolmentIds,
     accountId: result.accountId,
+    // Only a newly created account may auto-login; its initial version is zero.
+    sessionVersion: 0,
   });
 
   const res = NextResponse.json({

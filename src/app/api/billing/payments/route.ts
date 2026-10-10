@@ -5,6 +5,7 @@ import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { sendPaymentReceivedNotification } from "@/lib/notifications/billing";
+import { withStatementLock } from "@/lib/billing/statement-lock";
 
 const createPaymentSchema = z.object({
   statementId: z.string().optional(),
@@ -35,19 +36,19 @@ export const POST = withApiAuth(async (req, session) => {
     notes,
   } = parsed.data;
 
-  // If statementId provided, verify it exists and belongs to the contact
-  if (statementId) {
-    const statement = await prisma.statement.findUnique({
-      where: { id: statementId },
-      select: { id: true, contactId: true },
-    });
-    if (!statement) throw ApiError.notFound("Statement not found");
-    if (statement.contactId !== contactId) {
-      throw ApiError.badRequest("Statement does not belong to this contact");
+  const payment = await withStatementLock(serviceId, async (tx) => {
+    // Validate inside the transaction, after other payment/invoice writers.
+    if (statementId) {
+      const statement = await tx.statement.findUnique({
+        where: { id: statementId },
+        select: { id: true, contactId: true, serviceId: true, status: true },
+      });
+      if (!statement) throw ApiError.notFound("Statement not found");
+      if (statement.contactId !== contactId || statement.serviceId !== serviceId) {
+        throw ApiError.badRequest("Statement does not belong to this contact and service");
+      }
+      if (statement.status === "void") throw ApiError.conflict("Cannot record payment against a void statement");
     }
-  }
-
-  const payment = await prisma.$transaction(async (tx) => {
     const created = await tx.payment.create({
       data: {
         statementId: statementId ?? null,
@@ -77,12 +78,18 @@ export const POST = withApiAuth(async (req, session) => {
 
       const newBalance = stmt.gapFee - totalPayments;
       await tx.statement.update({
-        where: { id: statementId },
+        // A concurrent void must roll back this payment, never revive its invoice.
+        where: { id: statementId, status: { not: "void" } },
         data: {
           amountPaid: totalPayments,
           balance: newBalance,
           status: newBalance <= 0 ? "paid" : undefined,
         },
+      }).catch((err: unknown) => {
+        if (err && typeof err === "object" && "code" in err && err.code === "P2025") {
+          throw ApiError.conflict("Statement changed; reload before recording payment");
+        }
+        throw err;
       });
     }
 

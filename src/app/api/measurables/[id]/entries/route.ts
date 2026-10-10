@@ -93,7 +93,7 @@ const { id: measurableId } = await context!.params!;
   });
 
   return NextResponse.json(entry, { status: 201 });
-});
+}, { roles: ["owner", "head_office", "admin", "member", "eos_implementer"] });
 
 // DELETE /api/measurables/[id]/entries?weekOf=ISO
 //
@@ -155,4 +155,4 @@ export const DELETE = withApiAuth(async (req, session, context) => {
   }
 
   return NextResponse.json({ ok: true });
-});
+}, { roles: ["owner", "head_office", "admin", "member", "eos_implementer"] });

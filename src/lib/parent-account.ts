@@ -333,6 +333,7 @@ export async function confirmParentEmail(rawToken: string): Promise<{
 export async function findParentAccountForLogin(emailLower: string): Promise<{
   accountId: string;
   name: string | null;
+  sessionVersion: number;
 } | null> {
   const account = await prisma.parentAccount.findUnique({
     where: { email: emailLower },
@@ -341,20 +342,21 @@ export async function findParentAccountForLogin(emailLower: string): Promise<{
       firstName: true,
       surname: true,
       deactivatedAt: true,
+      sessionVersion: true,
     },
   });
   if (!account || account.deactivatedAt) return null;
 
   const name =
     [account.firstName, account.surname].filter(Boolean).join(" ") || null;
-  return { accountId: account.id, name };
+  return { accountId: account.id, name, sessionVersion: account.sessionVersion };
 }
 
 export async function authenticateParent(
   email: string,
   password: string,
 ): Promise<
-  | { accountId: string; email: string; name: string | null; deactivated?: false }
+  | { accountId: string; email: string; name: string | null; sessionVersion: number; deactivated?: false }
   | { deactivated: true }
   | null
 > {
@@ -369,6 +371,7 @@ export async function authenticateParent(
       firstName: true,
       surname: true,
       deactivatedAt: true,
+      sessionVersion: true,
     },
   });
 
@@ -392,7 +395,7 @@ export async function authenticateParent(
   const name =
     [account.firstName, account.surname].filter(Boolean).join(" ") || null;
 
-  return { accountId: account.id, email: account.email, name };
+  return { accountId: account.id, email: account.email, name, sessionVersion: account.sessionVersion };
 }
 
 /** Mint a fresh confirmation token for an unverified account. */

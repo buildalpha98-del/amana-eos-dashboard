@@ -1,117 +1,94 @@
-/**
- * A session minted before the magic link learned to carry `accountId`.
- *
- * `login` has always signed it; `verify` only started on 2026-08-13.
- * Those JWTs last 30 days, so without a backfill every parent holding
- * an older magic-link session stays locked out of their own enrolment
- * draft until it expires — and the portal REDIRECTS them into that
- * form, where they type the whole thing against a status line reading
- * "Not saved" and are refused on submit.
- */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { SignJWT } from "jose";
+import { NextResponse } from "next/server";
 import { prismaMock } from "../helpers/prisma-mock";
 import { createRequest } from "../helpers/request";
+import { signParentJwt, verifyParentJwt, withParentAuth, type ParentJwtPayload } from "@/lib/parent-auth";
 
-vi.mock("@/lib/rate-limit", () => ({
-  checkRateLimit: vi.fn(() => Promise.resolve({ limited: false })),
-}));
-vi.mock("@/lib/logger", () => ({
-  logger: {
-    debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(),
-    withRequestId: () => ({
-      debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(),
-    }),
-  },
-  generateRequestId: () => "rid",
-}));
+vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn(async () => ({ limited: false })) }));
+process.env.PARENT_JWT_SECRET = "test-secret-at-least-32-characters-long";
 
-/**
- * A real signed JWT, not a stubbed session.
- *
- * `withParentAuth` calls `getParentSession` module-locally, so spying
- * on the export doesn't intercept it — and a test that thinks it has
- * stubbed the session passes vacuously. Minting a genuine token and
- * putting it on the cookie exercises the path the parent actually
- * takes.
- */
-process.env.PARENT_JWT_SECRET =
-  process.env.PARENT_JWT_SECRET ?? "test-secret-at-least-32-characters-long";
-
-import { signParentJwt, withParentAuth } from "@/lib/parent-auth";
-
-const run = async (payload: Parameters<typeof signParentJwt>[0]) => {
-  const token = await signParentJwt(payload);
-  let seen: Record<string, unknown> | undefined;
-
+const legacySession = { email: "Aysha@Example.com", name: "Aysha Khan", enrolmentIds: [] as string[] };
+const account = { id: "acc-1", email: "aysha@example.com", deactivatedAt: null, sessionVersion: 0 };
+// Mint the actual pre-migration shape, independently of today's signer.
+const legacyToken = (payload: ParentJwtPayload) => new SignJWT({ ...payload })
+  .setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("30d")
+  .sign(new TextEncoder().encode(process.env.PARENT_JWT_SECRET));
+async function run(payload: ParentJwtPayload) {
+  const token = await legacyToken(payload);
+  let parent: ParentJwtPayload | undefined;
   const handler = withParentAuth(async (_req, ctx) => {
-    seen = { ...ctx.parent } as unknown as Record<string, unknown>;
-    const { NextResponse } = await import("next/server");
+    parent = ctx.parent;
     return NextResponse.json({ ok: true });
   });
-
-  await handler(
-    createRequest("GET", "/api/parent/state", {
-      headers: { cookie: `parent-session=${token}` },
-    }) as never,
-  );
-  return seen;
-};
-
-const legacySession = {
-  email: "Aysha@Example.com",
-  name: "Aysha Khan",
-  enrolmentIds: [] as string[],
-};
-
+  const response = await handler(createRequest("GET", "/api/parent/state", { headers: { cookie: `parent-session=${token}` } }));
+  return { parent, response };
+}
 beforeEach(() => {
   vi.clearAllMocks();
+  prismaMock.parentAccount.findUnique.mockResolvedValue(account);
   prismaMock.enrolmentSubmission.findMany.mockResolvedValue([]);
 });
 
-describe("withParentAuth — legacy sessions with no accountId", () => {
-  it("resolves the account from the email", async () => {
-    prismaMock.parentAccount.findUnique.mockResolvedValue({
-      id: "acc-1",
-      deactivatedAt: null,
-    });
-
-    const parent = await run(legacySession);
-    expect(parent?.accountId).toBe("acc-1");
+describe("parent session revocation and legacy compatibility", () => {
+  it("backfills an active account from a normalised legacy email", async () => {
+    const { parent, response } = await run(legacySession);
+    expect(response.status).toBe(200);
+    expect(parent?.accountId).toBe(account.id);
+    expect(prismaMock.parentAccount.findUnique.mock.calls[0][0].where).toEqual({ email: account.email });
   });
-
-  it("normalises the email before looking it up", async () => {
-    // The JWT carries whatever case was typed; the column is lowercase.
-    prismaMock.parentAccount.findUnique.mockResolvedValue({
-      id: "acc-1",
-      deactivatedAt: null,
-    });
-
-    await run(legacySession);
-    const arg = prismaMock.parentAccount.findUnique.mock.calls[0][0] as {
-      where: { email: string };
-    };
-    expect(arg.where.email).toBe("aysha@example.com");
+  it.each([undefined, "acc-1"])("rejects disabled accounts with accountId=%s", async accountId => {
+    prismaMock.parentAccount.findUnique.mockResolvedValue({ ...account, deactivatedAt: new Date() });
+    const { parent, response } = await run({ ...legacySession, accountId });
+    expect(response.status).toBe(401);
+    expect(parent).toBeUndefined();
   });
-
-  it("refuses to adopt a deactivated account", async () => {
-    prismaMock.parentAccount.findUnique.mockResolvedValue({
-      id: "acc-1",
-      deactivatedAt: new Date(),
-    });
-
-    const parent = await run(legacySession);
-    expect(parent?.accountId).toBeUndefined();
-  });
-
-  it("leaves a session with no matching account alone", async () => {
+  it("keeps legitimate accountless magic-link sessions usable", async () => {
     prismaMock.parentAccount.findUnique.mockResolvedValue(null);
-    const parent = await run(legacySession);
+    const { parent, response } = await run(legacySession);
+    expect(response.status).toBe(200);
     expect(parent?.accountId).toBeUndefined();
   });
-
-  it("doesn't re-query when the session already carries one", async () => {
-    const parent = await run({ ...legacySession, accountId: "acc-existing" });
-    expect(parent?.accountId).toBe("acc-existing");
-    expect(prismaMock.parentAccount.findUnique).not.toHaveBeenCalled();
+  it("validates account-bound sessions on every request", async () => {
+    expect((await run({ ...legacySession, accountId: account.id })).response.status).toBe(200);
+    prismaMock.parentAccount.findUnique.mockResolvedValue({ ...account, deactivatedAt: new Date() });
+    expect((await run({ ...legacySession, accountId: account.id })).response.status).toBe(401);
+    expect(prismaMock.parentAccount.findUnique).toHaveBeenCalledTimes(2);
+  });
+  it("rejects a deleted or mismatched account", async () => {
+    prismaMock.parentAccount.findUnique.mockResolvedValue(null);
+    expect((await run({ ...legacySession, accountId: account.id })).response.status).toBe(401);
+    prismaMock.parentAccount.findUnique.mockResolvedValue({ ...account, email: "other@example.com" });
+    expect((await run({ ...legacySession, accountId: account.id })).response.status).toBe(401);
+  });
+  it.each([undefined, 0, 1])("revokes earlier versions even after reactivation: %s", async sessionVersion => {
+    prismaMock.parentAccount.findUnique.mockResolvedValue({ ...account, sessionVersion: 2 });
+    expect((await run({ ...legacySession, sessionVersion })).response.status).toBe(401);
+  });
+  it("signs fresh sessions with the account's current revocation version", async () => {
+    prismaMock.parentAccount.findUnique.mockResolvedValue({ ...account, sessionVersion: 3 });
+    expect(await verifyParentJwt(await signParentJwt({ ...legacySession, sessionVersion: 3 }))).toMatchObject({ accountId: account.id, sessionVersion: 3 });
+  });
+  it("cannot refresh a session revoked while its request was in progress", async () => {
+    prismaMock.parentAccount.findUnique.mockResolvedValue({ ...account, sessionVersion: 3 });
+    await expect(signParentJwt({ ...legacySession, accountId: account.id, sessionVersion: 2 })).rejects.toMatchObject({ status: 401 });
+  });
+  it("does not silently upgrade an omitted legacy version after revocation", async () => {
+    prismaMock.parentAccount.findUnique.mockResolvedValue({ ...account, sessionVersion: 1 });
+    // @ts-expect-error Deliberately exercise untyped/legacy callers omitting the required version.
+    await expect(signParentJwt({ ...legacySession, accountId: account.id })).rejects.toMatchObject({ status: 401 });
+  });
+  it("cannot mint a new session for a disabled account", async () => {
+    prismaMock.parentAccount.findUnique.mockResolvedValue({ ...account, deactivatedAt: new Date() });
+    await expect(signParentJwt({ ...legacySession, sessionVersion: 0 })).rejects.toMatchObject({ status: 401 });
+  });
+  it("rechecks ownership and retains primary and secondary carers only", async () => {
+    prismaMock.enrolmentSubmission.findMany.mockResolvedValue([
+      { id: "primary", primaryParent: { email: "AYSHA@example.com" }, secondaryParent: null },
+      { id: "secondary", primaryParent: {}, secondaryParent: { email: "aysha@example.com" } },
+      { id: "removed", primaryParent: { email: "another@example.com" }, secondaryParent: {} },
+    ]);
+    const { parent } = await run({ ...legacySession, enrolmentIds: ["primary", "secondary", "removed"] });
+    expect(parent?.enrolmentIds).toEqual(["primary", "secondary"]);
   });
 });

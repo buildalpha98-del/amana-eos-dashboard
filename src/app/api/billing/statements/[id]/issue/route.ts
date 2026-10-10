@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { generateStatementPdf } from "@/lib/billing/statement-pdf";
 import { sendStatementIssuedNotification } from "@/lib/notifications/billing";
+import { runAfter } from "@/lib/run-after";
 import { logger } from "@/lib/logger";
 
 /* ------------------------------------------------------------------ */
@@ -24,7 +25,7 @@ export const POST = withApiAuth(async (_req, _session, context) => {
   }
 
   const statement = await prisma.statement.update({
-    where: { id },
+    where: { id, status: "draft" },
     data: {
       status: "issued",
       issuedAt: new Date(),
@@ -33,17 +34,22 @@ export const POST = withApiAuth(async (_req, _session, context) => {
       contact: { select: { id: true, firstName: true, lastName: true, email: true } },
       service: { select: { id: true, name: true } },
     },
+  }).catch((err: unknown) => {
+    if (err && typeof err === "object" && "code" in err && err.code === "P2025") {
+      throw ApiError.conflict("Statement changed; reload before issuing");
+    }
+    throw err;
   });
 
-  // Fire-and-forget: generate PDF then send notification
-  void (async () => {
+  // Keep PDF generation and delivery alive after the serverless response.
+  runAfter(async () => {
     try {
       await generateStatementPdf(id);
       await sendStatementIssuedNotification(id);
     } catch (err) {
       logger.error("Issue post-processing failed", { statementId: id, err });
     }
-  })();
+  });
 
   return NextResponse.json(statement);
 }, { roles: [...ADMIN_ROLES] });

@@ -6,6 +6,8 @@ import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { assertServiceAccess } from "@/lib/authz-scope";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { assertUnbilledLines } from "@/lib/billing/unbilled-lines";
+import { withStatementLock } from "@/lib/billing/statement-lock";
 import { requireFromMap, resolveRoomIds } from "@/lib/room-resolver";
 
 /* ------------------------------------------------------------------ */
@@ -85,7 +87,7 @@ export const PATCH = withApiAuth(async (req, _session, context) => {
 
   const existing = await prisma.statement.findUnique({
     where: { id },
-    select: { id: true, status: true },
+    select: { id: true, status: true, serviceId: true },
   });
   if (!existing) throw ApiError.notFound("Statement not found");
   if (existing.status !== "draft") {
@@ -100,9 +102,10 @@ export const PATCH = withApiAuth(async (req, _session, context) => {
 
   const { periodStart, periodEnd, dueDate, notes, lineItems } = parsed.data;
 
-  const statement = await prisma.$transaction(async (tx) => {
+  const statement = await withStatementLock(existing.serviceId, async (tx) => {
     // If lineItems provided, delete existing and create new ones
     if (lineItems) {
+      await assertUnbilledLines(tx, existing.serviceId, lineItems, id);
       /**
        * Stage 1 dual key. A line item reaches a service only through its
        * statement, so the rooms resolve against that.
@@ -146,7 +149,7 @@ export const PATCH = withApiAuth(async (req, _session, context) => {
     }
 
     return tx.statement.update({
-      where: { id },
+      where: { id, status: "draft" },
       data: {
         ...(periodStart !== undefined ? { periodStart: new Date(periodStart) } : {}),
         ...(periodEnd !== undefined ? { periodEnd: new Date(periodEnd) } : {}),

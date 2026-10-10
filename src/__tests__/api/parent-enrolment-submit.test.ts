@@ -72,6 +72,7 @@ vi.mock("@/lib/parent-auth", () => ({
             name: "Aysha Khan",
             enrolmentIds: parentRef.enrolmentIds,
             accountId: parentRef.accountId,
+            sessionVersion: 7,
           },
         });
       } catch (err) {
@@ -844,6 +845,7 @@ describe("submit — after it commits", () => {
       expect.objectContaining({
         enrolmentIds: ["old-sub", "sub-1"],
         accountId: "acc-1",
+        sessionVersion: 7,
       }),
     );
     expect(setParentSessionCookie).toHaveBeenCalled();

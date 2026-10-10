@@ -45,4 +45,4 @@ const { id: rockId } = await context!.params!;
   });
 
   return NextResponse.json(milestone, { status: 201 });
-});
+}, { feature: "rocks.edit" });

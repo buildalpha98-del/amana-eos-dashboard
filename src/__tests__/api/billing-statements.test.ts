@@ -106,9 +106,11 @@ describe("GET /api/billing/statements", () => {
 
 describe("POST /api/billing/statements", () => {
   beforeEach(() => {
+    prismaMock.$transaction.mockImplementation(async (arg: unknown) => typeof arg === "function" ? arg(prismaMock) : Promise.all(arg as Promise<unknown>[]));
     vi.clearAllMocks();
     _clearUserActiveCache();
     prismaMock.user.findUnique.mockResolvedValue({ active: true });
+    prismaMock.child.findMany.mockResolvedValue([{ id: "child-1" }]);
   });
 
   it("returns 401 when not authenticated", async () => {

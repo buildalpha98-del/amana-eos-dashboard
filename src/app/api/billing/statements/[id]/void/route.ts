@@ -21,12 +21,17 @@ export const POST = withApiAuth(async (_req, _session, context) => {
   }
 
   const statement = await prisma.statement.update({
-    where: { id },
+    where: { id, status: { in: ["draft", "issued"] } },
     data: { status: "void" },
     include: {
       contact: { select: { id: true, firstName: true, lastName: true, email: true } },
       service: { select: { id: true, name: true } },
     },
+  }).catch((err: unknown) => {
+    if (err && typeof err === "object" && "code" in err && err.code === "P2025") {
+      throw ApiError.conflict("Statement changed; reload before voiding");
+    }
+    throw err;
   });
 
   return NextResponse.json(statement);

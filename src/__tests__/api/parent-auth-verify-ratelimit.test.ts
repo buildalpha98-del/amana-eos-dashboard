@@ -90,13 +90,14 @@ describe("GET /api/parent/auth/verify — the session it creates", () => {
       firstName: "Aysha",
       surname: "Khan",
       deactivatedAt: null,
+      sessionVersion: 4,
     });
 
     const { signParentJwt } = await import("@/lib/parent-auth");
     await GET(createRequest("GET", "/api/parent/auth/verify?token=abc"));
 
     expect(signParentJwt).toHaveBeenCalledWith(
-      expect.objectContaining({ accountId: "acc-1" }),
+      expect.objectContaining({ accountId: "acc-1", sessionVersion: 4 }),
     );
   });
 

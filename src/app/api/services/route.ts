@@ -1,3 +1,4 @@
+import { privateTodoWhere } from "@/lib/todos/private-filter";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -56,7 +57,7 @@ export const GET = withApiAuth(async (req, session) => {
       manager: { select: { id: true, name: true, email: true, avatar: true } },
       _count: {
         select: {
-          todos: { where: { deleted: false, status: { not: "complete" as const } } },
+          todos: { where: { deleted: false, status: { not: "complete" as const }, AND: [privateTodoWhere(session)] } },
           issues: { where: { deleted: false, status: { not: "closed" as const } } },
           projects: { where: { deleted: false, status: { not: "complete" as const } } },
         },

@@ -4,6 +4,8 @@ import path from "path";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { streamStoredFile } from "@/lib/blob-proxy";
+import { prisma } from "@/lib/prisma";
+import { documentVisibilityWhere } from "@/lib/document-visibility";
 // Mapping of file extensions to MIME types
 const MIME_TYPES: Record<string, string> = {
   ".pdf": "application/pdf",
@@ -27,34 +29,46 @@ const MIME_TYPES: Record<string, string> = {
 
 export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
-  const file = searchParams.get("file");
+  const requestedFile = searchParams.get("file");
+  const documentId = searchParams.get("id");
 
-  if (!file) {
+  if (!documentId && !requestedFile) {
     return NextResponse.json(
-      { error: "Missing 'file' query parameter" },
+      { error: "Missing document identifier" },
       { status: 400 }
     );
   }
 
-  // Stored in Vercel Blob: stream it back over our own origin.
-  //
-  // 2026-09-15: this used to `NextResponse.redirect(file)` for ANY https
-  // URL, which was two bugs in one line. It made the file unviewable in the
-  // in-app viewer (CSP has no frame-src, so `default-src 'self'` blocks the
-  // cross-origin hop — see src/lib/blob-proxy.ts), and it turned this route
-  // into an open redirect: a caller could send a signed-in user anywhere by
-  // passing their own URL. `streamStoredFile` refuses any host that isn't
-  // our Blob storage, which closes both.
+  // Legacy file links must resolve to a visible record too. Never let a
+  // supplied URL become an arbitrary same-origin proxy or expose hidden HR files.
+  const document = await prisma.document.findFirst({
+    where: {
+      deleted: false,
+      AND: [
+        documentId
+          ? { id: documentId }
+          : { fileUrl: requestedFile!.startsWith("https://") || requestedFile!.startsWith("/uploads/")
+              ? requestedFile! : `/uploads/${requestedFile}` },
+        documentVisibilityWhere(session.user),
+      ],
+    },
+    select: { fileUrl: true, fileName: true },
+  });
+  if (!document) {
+    return NextResponse.json({ error: "File not found" }, { status: 404 });
+  }
+  const file = document.fileUrl;
   if (file.startsWith("https://")) {
     return streamStoredFile(file, {
-      fileName: path.basename(new URL(file).pathname) || "document",
+      fileName: document.fileName,
       download: searchParams.get("download") === "1",
     });
   }
 
   // Sanitize: prevent directory traversal attacks
-  const sanitized = path.basename(file);
-  if (sanitized !== file || file.includes("..") || file.includes("/")) {
+  const localFile = file.startsWith("/uploads/") ? file.slice("/uploads/".length) : file;
+  const sanitized = path.basename(localFile);
+  if (sanitized !== localFile || localFile.includes("..") || localFile.includes("/")) {
     return NextResponse.json(
       { error: "Invalid file name" },
       { status: 400 }
@@ -100,7 +114,7 @@ export const GET = withApiAuth(async (req, session) => {
       "text/plain",
       "text/csv",
     ];
-    const disposition = inlineTypes.includes(contentType)
+    const disposition = inlineTypes.includes(contentType) && searchParams.get("download") !== "1"
       ? `inline; filename="${sanitized}"`
       : `attachment; filename="${sanitized}"`;
 
@@ -110,7 +124,9 @@ export const GET = withApiAuth(async (req, session) => {
         "Content-Type": contentType,
         "Content-Disposition": disposition,
         "Content-Length": fileStat.size.toString(),
-        "Cache-Control": "private, max-age=3600",
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+        ...(contentType !== "application/pdf" ? { "Content-Security-Policy": "sandbox; default-src 'none'" } : {}),
       },
     });
   } catch (err: unknown) {
