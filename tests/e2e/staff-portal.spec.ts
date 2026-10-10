@@ -43,7 +43,7 @@ test.describe("Staff portal flow", () => {
     );
     await expect(page.getByTestId("glance-expenses")).toHaveAttribute(
       "href",
-      "/my-expenses",
+      "/my-pay?tab=expenses",
     );
     await expect(page.getByTestId("glance-compliance")).toHaveAttribute(
       "href",
