@@ -31,6 +31,14 @@ export interface StatementListItem {
 }
 
 export interface StatementDetail extends Omit<StatementListItem, "_count"> {
+  delivery: {
+    status: string;
+    attemptCount: number;
+    nextAttemptAt: string | null;
+    sentAt: string | null;
+    errorCode: string | null;
+    canRetry: boolean;
+  } | null;
   lineItems: {
     id: string;
     childId: string;
@@ -115,6 +123,10 @@ export function useBillingStatementDetail(id: string | null) {
     enabled: !!id,
     retry: 2,
     staleTime: 30_000,
+    refetchInterval: query => {
+      const delivery = query.state.data?.delivery;
+      return delivery && (["pending", "processing"].includes(delivery.status) || delivery.nextAttemptAt) ? 5_000 : false;
+    },
   });
 }
 
@@ -171,6 +183,18 @@ export function useIssueStatement() {
         description: err.message || "Something went wrong",
       });
     },
+  });
+}
+
+export function useRetryStatementDelivery() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => mutateApi(`/api/billing/statements/${id}/delivery/retry`, { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["billing"] });
+      toast({ description: "Delivery retry queued" });
+    },
+    onError: (err: Error) => toast({ variant: "destructive", description: err.message || "Could not queue delivery retry" }),
   });
 }
 

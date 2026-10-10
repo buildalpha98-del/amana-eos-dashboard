@@ -8123,11 +8123,46 @@ model Statement {
 
   lineItems StatementLineItem[]
   payments  Payment[]
+  delivery  StatementDelivery?
 
   @@index([contactId])
   @@index([serviceId, periodStart])
   @@index([status])
   @@index([status, dueDate])
+}
+
+enum StatementDeliveryStatus {
+  pending
+  processing
+  failed
+  sent
+  blocked
+  needs_review
+  cancelled
+}
+
+/// One recoverable initial delivery per newly issued statement. Legacy invoices
+/// have no row and are never implicitly resent. Payload is field-encrypted.
+model StatementDelivery {
+  id                   String                  @id @default(cuid())
+  statementId          String                  @unique
+  statement            Statement               @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  status               StatementDeliveryStatus @default(pending)
+  attemptCount         Int                     @default(0)
+  nextAttemptAt        DateTime?               @default(now())
+  leaseToken           String?
+  leaseExpiresAt       DateTime?
+  pdfUrl               String?
+  emailPayload         String?                 @db.Text
+  firstSendStartedAt   DateTime?
+  providerMessageId    String?
+  lastErrorCode        String?
+  sentAt               DateTime?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([status, leaseExpiresAt])
 }
 
 model StatementLineItem {
