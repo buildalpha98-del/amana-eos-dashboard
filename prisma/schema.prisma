@@ -7594,6 +7594,7 @@ model EnrolmentSubmission {
   updatedAt DateTime @updatedAt
 
   childRecords Child[]
+  ownaHandoff EnrolmentOwnaHandoff?
 
   ambassadorRecords AmbassadorEnrolment[] @relation("AmbassadorFromSubmission")
 
@@ -11059,4 +11060,13 @@ model AmbassadorAdjustment {
   createdAt       DateTime  @default(now())
 
   @@unique([pilotId, educatorId, type])
+}
+
+// Staff-recorded OWNA handoff. Kept separate from parent-facing submission data.
+model EnrolmentOwnaHandoff {
+  enrolmentId String @id
+  enrolment EnrolmentSubmission @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  revision Int @default(1)
+  state Json
+  updatedAt DateTime @updatedAt
 }
