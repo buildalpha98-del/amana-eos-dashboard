@@ -99,6 +99,7 @@ describe("parent booking writes while the portal is locked", () => {
 
 describe("pages that stay open while locked", () => {
   it.each([
+    "/parent",
     "/parent/enrol",
     "/parent/enrol/thank-you",
     "/parent/messages",
@@ -107,7 +108,7 @@ describe("pages that stay open while locked", () => {
     "/parent/account/security",
   ])("%s is open", (p) => expect(isAllowedWhileLocked(p)).toBe(true));
 
-  it.each(["/parent", "/parent/bookings", "/parent/billing", "/parent/enrolments", "/parent/children"])(
+  it.each(["/parent/bookings", "/parent/billing", "/parent/enrolments", "/parent/children"])(
     "%s shows the notice",
     (p) => expect(isAllowedWhileLocked(p)).toBe(false),
   );

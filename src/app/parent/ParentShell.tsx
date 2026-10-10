@@ -28,8 +28,6 @@ import {
   FileSignature,
   LogOut,
   UserPlus,
-  Construction,
-  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -206,144 +204,39 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   const allowedWhileLocked =
     !PARENT_PORTAL_LOCKED || isAllowedWhileLocked(pathname);
 
-  if (!allowedWhileLocked) {
+  if (!allowedWhileLocked && !mustEnrol) {
     return (
-      <div data-v2="parent" className="parent-portal min-h-screen bg-parent-bg">
-        <header
-          className="bg-brand flex items-center justify-between px-4 shadow-md"
-          style={{
-            paddingTop: "env(safe-area-inset-top, 0px)",
-            height: "calc(3.5rem + env(safe-area-inset-top, 0px))",
-          }}
-        >
-          <span className="text-white font-heading font-semibold">
-            Amana OSHC
-          </span>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/parent/my-centre"
-              className="text-xs text-white/70 hover:text-white underline underline-offset-2"
-            >
-              My Centre
-            </Link>
-            <Link
-              href="/parent/messages"
-              className="text-xs text-white/70 hover:text-white underline underline-offset-2"
-            >
-              Messages
-            </Link>
-            <Link
-              href="/support"
-              className="text-xs text-white/70 hover:text-white underline underline-offset-2"
-            >
-              Help
-            </Link>
-            <button
-              onClick={logout}
-              className="text-xs text-white/70 hover:text-white underline underline-offset-2"
-            >
-              Sign out
-            </button>
-          </div>
-        </header>
-
-        <main className="flex items-center justify-center px-4 py-12">
-          <div className="w-full max-w-lg">
-            <div className="bg-card rounded-2xl shadow-2xl p-8 sm:p-10 text-center space-y-6">
-              <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
-                <Construction className="h-10 w-10 text-amber-600" />
-              </div>
-
-              <div>
-                <h1 className="text-2xl font-heading font-bold text-foreground mb-2">
-                  App Coming Soon!
-                </h1>
-                <p className="text-muted text-sm leading-relaxed">
-                  Assalamu Alaikum! Thank you for being part of the Amana OSHC family.
-                </p>
-              </div>
-
-              <div className="bg-red-50 dark:bg-red-950/40 border-2 border-red-300 rounded-xl p-5 text-left">
-                <p className="text-base font-bold text-red-800 dark:text-red-200 mb-2">
-                  Please don&apos;t book or pay through this app
-                </p>
-                <p className="text-sm text-red-700 dark:text-red-300 leading-relaxed">
-                  We&apos;re <strong>not using the Amana parent app</strong> for
-                  bookings, fees or family details yet. Anything you book or
-                  change here <strong>won&apos;t reach your centre</strong>.
-                </p>
-              </div>
-
-              <div className="bg-brand/5 border border-brand/20 rounded-xl p-5 text-left">
-                <p className="text-sm font-bold text-foreground mb-2">
-                  Use OWNA for now
-                </p>
-                <p className="text-sm text-muted leading-relaxed mb-3">
-                  <strong>We&apos;ll email you new OWNA login details</strong> —
-                  keep an eye on your inbox (and your junk folder). OWNA is
-                  where you manage:
-                </p>
-                <ul className="text-sm text-muted space-y-1.5 ml-4 list-disc">
-                  <li><strong>All bookings</strong> — permanent and casual</li>
-                  <li><strong>Invoices and fees</strong></li>
-                  <li><strong>Family details</strong></li>
-                </ul>
-              </div>
-
-              <Link
-                href="/parent/messages"
-                className="flex items-center justify-center gap-2 px-5 py-3 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-brand-hover transition-colors"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Need help? Message us
-              </Link>
-              <Link
-                href="/support"
-                className="flex items-center justify-center gap-2 px-5 py-3 border border-brand/30 text-brand rounded-xl text-sm font-semibold hover:bg-brand/5 transition-colors"
-              >
-                <LifeBuoy className="h-4 w-4" />
-                Browse common questions
-              </Link>
-
-              {/* A family still to enrol is redirected into the form by the
-                  effect above — but only once /api/parent/state answers. If
-                  that call fails (retry: false) they would sit here with no
-                  way forward, so the form is always one tap away. */}
-              {parentState?.state !== "pending_review" &&
-              parentState?.state !== "active" ? (
-                <Link
-                  href={ENROL_PATH}
-                  className="block bg-accent/20 border border-accent rounded-xl p-4 text-sm font-medium text-foreground hover:bg-accent/30 transition-colors"
-                >
-                  New to Amana OSHC? Start or continue your enrolment →
-                </Link>
-              ) : (
-                <Link
-                  href="/parent/children/new"
-                  className="block bg-accent/20 border border-accent rounded-xl p-4 text-sm font-medium text-foreground hover:bg-accent/30 transition-colors"
-                >
-                  Enrolling another child? Start their enrolment here →
-                </Link>
-              )}
-
-              <div className="border-t border-border pt-5">
-                <p className="text-sm text-muted mb-3">
-                  Questions? Contact our enrolment team:
-                </p>
-                <a
-                  href="mailto:enrolment@amanaoshc.com.au"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-xl text-sm font-medium hover:bg-brand-hover transition-colors"
-                >
-                  <Mail className="h-4 w-4" />
-                  enrolment@amanaoshc.com.au
-                </a>
-              </div>
-
-              <p className="text-xs text-muted">
-                We look forward to launching this app for you soon, inshallah!
-              </p>
-            </div>
-          </div>
+      <div
+        data-v2="parent"
+        className="parent-portal min-h-screen bg-parent-bg px-4 py-16"
+      >
+        <main className="mx-auto max-w-lg rounded-3xl bg-card p-8 space-y-5 shadow-sm">
+          <Image src="/logo-icon.svg" alt="Amana OSHC" width={32} height={44} />
+          <h1 className="text-2xl font-heading font-semibold">
+            Bookings and fees with OWNA
+          </h1>
+          <p className="text-muted leading-relaxed">
+            Your Amana family hub brings together school information, enrolment
+            and messages. Please use OWNA for bookings, invoices and changes to
+            your family details.
+          </p>
+          <p className="text-sm text-muted">
+            If your OWNA invitation hasn’t arrived, check your junk folder or
+            ask our team for help. Your Amana password doesn’t sign you into
+            OWNA.
+          </p>
+          <Link
+            href="/parent"
+            className="flex min-h-11 items-center text-brand font-semibold underline underline-offset-4"
+          >
+            Back to your Amana home
+          </Link>
+          <Link
+            href="/parent/messages"
+            className="flex min-h-11 items-center text-brand font-semibold underline underline-offset-4"
+          >
+            Get help with OWNA access
+          </Link>
         </main>
       </div>
     );
@@ -401,68 +294,91 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   // each lead to the "coming soon" notice — a row of dead ends.
   if (PARENT_PORTAL_LOCKED) {
     const links = [
+      { href: "/parent", label: "Home", icon: Home },
       { href: "/parent/my-centre", label: "My Centre", icon: MapPin },
       { href: "/parent/messages", label: "Messages", icon: MessageCircle },
-      { href: "/support", label: "Help", icon: LifeBuoy },
       { href: "/parent/account", label: "Account", icon: Settings },
     ];
     return (
       <div data-v2="parent" className="parent-portal min-h-screen bg-parent-bg">
         <header
-          className="bg-brand flex items-center gap-1 px-3 shadow-md overflow-x-auto"
-          style={{
-            paddingTop: "env(safe-area-inset-top, 0px)",
-            minHeight: "calc(3.5rem + env(safe-area-inset-top, 0px))",
-          }}
+          className="bg-brand flex items-center justify-between gap-3 px-4 py-3"
+          style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top, 0px))" }}
         >
-          <Image
-            src="/logo-icon-white.svg"
-            alt="Amana OSHC"
-            width={18}
-            height={26}
-            className="mr-2 shrink-0"
-            priority
-          />
+          <Link href="/parent" aria-label="Amana home">
+            <Image
+              src="/logo-full-white.svg"
+              alt="Amana OSHC"
+              width={86}
+              height={44}
+              priority
+            />
+          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/support"
+              className="inline-flex min-h-11 items-center text-sm text-white/85 underline underline-offset-4"
+            >
+              Help
+            </Link>
+            <button
+              onClick={logout}
+              className="inline-flex min-h-11 items-center text-sm text-white/85 underline underline-offset-4"
+            >
+              Sign out
+            </button>
+          </div>
+        </header>
+        <nav
+          aria-label="Family navigation"
+          className={cn(
+            "fixed bottom-0 inset-x-0 z-30 grid grid-cols-4 border-t border-border bg-card shadow-sm sm:static sm:mx-auto sm:max-w-2xl sm:border-0 sm:bg-transparent sm:shadow-none",
+            pathname === ENROL_PATH && "hidden sm:hidden",
+          )}
+          style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        >
           {links.map((l) => {
-            const active = pathname.startsWith(l.href);
+            const active =
+              l.href === "/parent"
+                ? pathname === l.href
+                : pathname.startsWith(l.href);
             const badge = l.href === "/parent/messages" && unreadCount > 0;
             return (
               <Link
                 key={l.href}
                 href={l.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap min-h-11",
+                  "relative flex min-h-16 flex-col items-center justify-center gap-1 px-1 py-2 text-xs font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand",
                   active
-                    ? "bg-white/15 text-accent"
-                    : "text-white/75 hover:text-white hover:bg-white/10",
+                    ? "text-brand bg-brand/5"
+                    : "text-muted hover:text-brand",
                 )}
               >
-                <l.icon className="w-4 h-4 shrink-0" />
+                <l.icon aria-hidden="true" className="h-5 w-5" />
                 <span>{l.label}</span>
                 {badge && (
-                  <span className="absolute top-0.5 right-0 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-2xs font-bold">
+                  <span
+                    aria-label={`${unreadCount} unread messages`}
+                    className="absolute top-1 right-3 rounded-full bg-brand px-1.5 text-xs text-white"
+                  >
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
               </Link>
             );
           })}
-          <button
-            onClick={logout}
-            className="ml-auto pl-2 text-xs text-white/70 hover:text-white underline underline-offset-2 whitespace-nowrap min-h-11"
-          >
-            Sign out
-          </button>
-        </header>
+        </nav>
 
         {/* Said on every open page, not just the notice: a parent who lands
             on My Centre from an email has never seen the notice. */}
         <div className="bg-accent/25 border-b border-accent/60 px-4 py-2.5 text-center text-xs sm:text-sm text-foreground">
-          <strong>Please don&apos;t book or pay in this app.</strong> Bookings
-          and fees are in OWNA — we&apos;ll email you new OWNA login details.
+          Your Amana family hub. <strong>Bookings and fees in OWNA.</strong>
         </div>
 
-        <main className="max-w-2xl mx-auto px-4 py-6 pb-12">{children}</main>
+        <main className="max-w-2xl mx-auto px-4 py-6 pb-28 sm:pb-12">
+          {children}
+        </main>
       </div>
     );
   }
