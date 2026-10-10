@@ -4,6 +4,7 @@ import { mockSession } from "../helpers/auth-mock";
 import { createRequest } from "../helpers/request";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 import { privateTodoWhereFor } from "@/lib/todos/private-filter";
+import { PATCH as reviewDraft } from "@/app/api/ai-drafts/[id]/route";
 import * as rock from "@/app/api/rocks/[id]/route";
 import * as rocks from "@/app/api/rocks/route";
 import * as issue from "@/app/api/issues/[id]/route";
@@ -27,6 +28,7 @@ beforeEach(() => {
 
 describe("EOS read-only accounts cannot mutate through APIs", () => {
   const writes = [
+    ["PATCH", "/ai-drafts/target", reviewDraft],
     ["PATCH", "/rocks/target", rock.PATCH], ["DELETE", "/rocks/target", rock.DELETE],
     ["POST", "/rocks", rocks.POST], ["POST", "/rocks/target/milestones", milestones.POST],
     ["PATCH", "/milestones/target", milestone.PATCH], ["DELETE", "/milestones/target", milestone.DELETE],
@@ -40,11 +42,19 @@ describe("EOS read-only accounts cannot mutate through APIs", () => {
   it.each(writes)("denies %s %s before a write", async (method, path, handler) => {
     const response = await handler(createRequest(method, `/api${path}`, { body: {} }), ctx);
     expect(response.status).toBe(403);
-    for (const model of ["rock", "issue", "todo", "milestone", "measurableEntry"]) {
+    for (const model of ["rock", "issue", "todo", "milestone", "measurableEntry", "aiTaskDraft"]) {
       for (const operation of ["create", "update", "updateMany", "delete", "deleteMany"]) {
         expect(prismaMock[model][operation]).not.toHaveBeenCalled();
       }
     }
+  });
+  it("does not let staff solve an assigned Issue through AI draft acceptance", async () => {
+    mockSession({ ...user, role: "staff" });
+    prismaMock.aiTaskDraft.findUnique.mockResolvedValue({ id: "target", issueId: "issue", todoId: null });
+    const response = await reviewDraft(createRequest("PATCH", "/api/ai-drafts/target", { body: { status: "accepted" } }), ctx);
+    expect(response.status).toBe(403);
+    expect(prismaMock.aiTaskDraft.update).not.toHaveBeenCalled();
+    expect(prismaMock.issue.update).not.toHaveBeenCalled();
   });
   it("keeps reads available to an EOS viewer", async () => {
     prismaMock.rock.findUnique.mockResolvedValue({ id: "target", todos: [] });

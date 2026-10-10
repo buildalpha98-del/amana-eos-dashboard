@@ -3,6 +3,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { hasFeature, isAdminRole } from "@/lib/role-permissions";
+import { privateTodoWhere } from "@/lib/todos/private-filter";
+import { assignedDraftWhere } from "@/lib/ai-draft-access";
 import { logger } from "@/lib/logger";
 
 const PatchSchema = z.object({
@@ -28,9 +31,18 @@ export const PATCH = withApiAuth(
 
     const { status, editedContent } = parsed.data;
 
+    // Match the personal draft list, with the admin triage exemption. A
+    // linked private/deleted ToDo must also remain visible at the write.
+    const where = {
+      id,
+      AND: [
+        isAdminRole(session.user.role) ? {} : assignedDraftWhere(session.user.id),
+        { OR: [{ todoId: null }, { todo: { is: { deleted: false, AND: [privateTodoWhere(session)] } } }] },
+      ],
+    };
     // Fetch the draft
     const draft = await prisma.aiTaskDraft.findUnique({
-      where: { id },
+      where,
       select: {
         id: true,
         status: true,
@@ -46,6 +58,10 @@ export const PATCH = withApiAuth(
       throw ApiError.notFound("Draft not found");
     }
 
+    if (draft.issueId && !hasFeature(session.user.role, "issues.edit")) {
+      throw ApiError.forbidden();
+    }
+
     // Update the draft
     const updateData: Record<string, unknown> = {
       status,
@@ -58,7 +74,7 @@ export const PATCH = withApiAuth(
     }
 
     const updated = await prisma.aiTaskDraft.update({
-      where: { id },
+      where,
       data: updateData,
     });
 
@@ -66,7 +82,7 @@ export const PATCH = withApiAuth(
     if (status === "accepted") {
       if (draft.todoId) {
         await prisma.todo.update({
-          where: { id: draft.todoId },
+          where: { id: draft.todoId, deleted: false, AND: [privateTodoWhere(session)] },
           data: { status: "complete", completedAt: new Date() },
         }).catch((err) => logger.error("Failed to complete todo after AI draft accept", { err, draftId: id, todoId: draft.todoId }));
       }
@@ -102,4 +118,5 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json(updated);
   },
+  { feature: "todos.edit" },
 );

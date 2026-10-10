@@ -9,6 +9,7 @@ import { _clearUserActiveCache } from "@/lib/server-auth";
 import { POST as generate } from "@/app/api/billing/statements/generate/route";
 import { PATCH as editStatement } from "@/app/api/billing/statements/[id]/route";
 import { POST as manual } from "@/app/api/billing/statements/route";
+import { PATCH as acceptDraft } from "@/app/api/ai-drafts/[id]/route";
 import { GET as rockDetail } from "@/app/api/rocks/[id]/route";
 import { GET as issueDetail } from "@/app/api/issues/[id]/route";
 import { GET as projectDetail } from "@/app/api/projects/[id]/route";
@@ -25,6 +26,7 @@ vi.mock("@/lib/password-breach-check", () => ({ checkPasswordBreach: vi.fn(async
 let serviceId: string, childId: string, contactId: string, enrolmentId: string, accountId: string;
 let rockId: string, issueId: string, projectId: string, hiddenId: string, publicId: string, coassignedId: string;
 let owner: User, member: User, implementer: User;
+let hiddenDraftId: string, coassignedDraftId: string;
 const email = `security-${Date.now()}@amana-test.local`;
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 const sessionAs = (user: User) => { _clearUserActiveCache(); mockSession(user); };
@@ -56,6 +58,8 @@ beforeAll(async () => {
   publicId = (await prisma.todo.create({ data: { ...base, title: "Public" } })).id;
   hiddenId = (await prisma.todo.create({ data: { ...base, title: "Private", isPrivate: true } })).id;
   coassignedId = (await prisma.todo.create({ data: { ...base, title: "Coassigned", isPrivate: true, assignees: { create: { userId: member.id } } } })).id;
+  hiddenDraftId = (await prisma.aiTaskDraft.create({ data: { todoId: hiddenId, taskType: "admin", title: "Private draft", content: "Private content" } })).id;
+  coassignedDraftId = (await prisma.aiTaskDraft.create({ data: { todoId: coassignedId, taskType: "admin", title: "Coassigned draft", content: "Shared content" } })).id;
 });
 afterAll(async () => {
   if (!serviceId) return;
@@ -159,6 +163,18 @@ describe("private ToDos with real nested Prisma reads and writes", () => {
     expect((await response.json()).updated).toBe(2);
     expect((await prisma.todo.findUniqueOrThrow({ where: { id: hiddenId } })).status).toBe("pending");
     expect((await prisma.todo.findUniqueOrThrow({ where: { id: coassignedId } })).status).toBe("complete");
+  });
+  it("does not expose or complete another user's private ToDo through AI draft review", async () => {
+    sessionAs(implementer);
+    const response = await acceptDraft(createRequest("PATCH", `/api/ai-drafts/${hiddenDraftId}`, { body: { status: "accepted" } }), ctx(hiddenDraftId));
+    expect(response.status).toBe(404);
+    expect((await prisma.todo.findUniqueOrThrow({ where: { id: hiddenId } })).status).toBe("pending");
+    expect((await prisma.aiTaskDraft.findUniqueOrThrow({ where: { id: hiddenDraftId } })).status).toBe("ready");
+  });
+  it("allows a co-assignee to review and complete their own private draft", async () => {
+    const response = await acceptDraft(createRequest("PATCH", `/api/ai-drafts/${coassignedDraftId}`, { body: { status: "accepted" } }), ctx(coassignedDraftId));
+    expect(response.status).toBe(200);
+    expect((await prisma.aiTaskDraft.findUniqueOrThrow({ where: { id: coassignedDraftId } })).status).toBe("accepted");
   });
   it("denies a hidden private deletion even for an EOS role with delete permission", async () => {
     sessionAs(implementer);

@@ -39,6 +39,9 @@ parent-flow verification.
 
 EOS mutation handlers declare write capabilities independently of page access.
 Private ToDo visibility applies to nested results, counts and bulk writes.
+AI draft review requires write capability and draft assignment (admin triage
+exempt); accepting a draft cannot bypass private-ToDo access or Issue editing
+permissions.
 Document downloads resolve a visible library record before proxying bytes;
 HTML, SVG and unknown formats use inert attachments, while PDFs retain native
 viewing. Medical CSV exports use the same centre scope as the JSON report.
