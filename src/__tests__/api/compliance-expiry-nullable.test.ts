@@ -15,6 +15,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession } from "../helpers/auth-mock";
 import { createRequest } from "../helpers/request";
+import { serviceDateOnly, serviceTodayISO } from "@/lib/timezone";
 
 vi.mock("@/lib/logger", () => ({
   logger: {
@@ -40,21 +41,12 @@ import { POST } from "@/app/api/compliance/route";
 import { PATCH } from "@/app/api/compliance/[id]/route";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 
-// LOCAL calendar dates, matching what the date picker sends. Plain
-// toISOString() is the UTC date, which is locally *yesterday* between
-// midnight and 10am AEST — the route validates in local time, so the
-// UTC form made the today-boundary test fail every Sydney morning.
-function localIso(d: Date): string {
-  const tz = d.getTimezoneOffset() * 60_000;
-  return new Date(d.getTime() - tz).toISOString().slice(0, 10);
-}
+// Date pickers and validation use the centre calendar, even on UTC runners.
 function todayIso(): string {
-  return localIso(new Date());
+  return serviceTodayISO();
 }
 function isoOffsetDays(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return localIso(d);
+  return serviceDateOnly(new Date(), days).toISOString().slice(0, 10);
 }
 
 function callPost(body: Record<string, unknown>) {
