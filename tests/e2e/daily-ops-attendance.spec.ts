@@ -32,7 +32,7 @@ test.describe("Daily Ops attendance & Finance budget", () => {
     const serviceId = await openFirstService(page);
     test.skip(!serviceId, "No services available in this environment");
 
-    await page.goto(`/services/${serviceId}?tab=daily&sub=attendance`);
+    await page.goto(`/services/${serviceId}?tab=daily&sub=roll-call&att=occupancy`);
     await page.waitForLoadState("networkidle");
 
     await expect(
@@ -61,7 +61,7 @@ test.describe("Daily Ops attendance & Finance budget", () => {
     const serviceId = await openFirstService(page);
     test.skip(!serviceId, "No services available in this environment");
 
-    await page.goto(`/services/${serviceId}?tab=daily&sub=attendance`);
+    await page.goto(`/services/${serviceId}?tab=daily&sub=roll-call&att=occupancy`);
     await page.waitForLoadState("networkidle");
 
     // Default: VC hidden.
@@ -84,7 +84,7 @@ test.describe("Daily Ops attendance & Finance budget", () => {
     const serviceId = await openFirstService(page);
     test.skip(!serviceId, "No services available in this environment");
 
-    await page.goto(`/services/${serviceId}?tab=daily&sub=attendance`);
+    await page.goto(`/services/${serviceId}?tab=daily&sub=roll-call&att=occupancy`);
     await page.waitForLoadState("networkidle");
     await expect(
       page.getByText("Rise and Shine Club (BSC)").filter({ visible: true }).first()

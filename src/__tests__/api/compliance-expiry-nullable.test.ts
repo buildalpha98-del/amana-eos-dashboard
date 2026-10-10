@@ -11,11 +11,10 @@
  *   - PATCH with expiryDate in the past → 400
  *   - PATCH with expiryDate unchanged-not-supplied → no overwrite
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession } from "../helpers/auth-mock";
 import { createRequest } from "../helpers/request";
-import { serviceDateOnly, serviceTodayISO } from "@/lib/timezone";
 
 vi.mock("@/lib/logger", () => ({
   logger: {
@@ -41,12 +40,22 @@ import { POST } from "@/app/api/compliance/route";
 import { PATCH } from "@/app/api/compliance/[id]/route";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 
-// Date pickers and validation use the centre calendar, even on UTC runners.
+// Fixed Sydney calendar dates: at this instant Sydney is on 11 October,
+// while UTC runners are still on the 10th. Do not derive fixtures from the
+// runner timezone or the wall clock.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-10T14:00:00Z"));
+});
+afterEach(() => vi.useRealTimers());
+
 function todayIso(): string {
-  return serviceTodayISO();
+  return "2026-10-11";
 }
 function isoOffsetDays(days: number): string {
-  return serviceDateOnly(new Date(), days).toISOString().slice(0, 10);
+  const d = new Date("2026-10-11T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 function callPost(body: Record<string, unknown>) {

@@ -28,7 +28,7 @@ test.describe("Login flow", () => {
 
     // Should show the subtitle
     await expect(
-      page.getByText("EOS Management Dashboard"),
+      page.getByText("Management Dashboard", { exact: true }),
     ).toBeVisible();
 
     // Email input field

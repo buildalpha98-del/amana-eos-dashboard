@@ -36,9 +36,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Bookings",
-      "short_name": "Bookings",
-      "url": "/parent/bookings",
+      "name": "My Centre",
+      "short_name": "My Centre",
+      "url": "/parent/my-centre",
       "icons": [
         {
           "src": "/icons/icon-192.png",

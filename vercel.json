@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "codex/amana-parent-journey": false
+    }
+  },
   "buildCommand": "bash scripts/vercel-build.sh",
   "crons": [
     {

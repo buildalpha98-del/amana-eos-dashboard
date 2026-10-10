@@ -12,6 +12,7 @@ import { fetchApi, mutateApi } from "@/lib/fetch-api";
 export interface EnrolmentSubmission {
   id: string;
   token: string;
+  ownaHandoffSummary?: string;
   enquiryId: string | null;
   serviceId: string | null;
   primaryParent: {

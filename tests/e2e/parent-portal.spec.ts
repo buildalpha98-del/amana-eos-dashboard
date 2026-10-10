@@ -76,9 +76,9 @@ test.describe("Parent portal — authenticated round-trip", () => {
     await expect(page.locator("header, nav").first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test("children list shows seeded child", async ({ page }) => {
+  test("children list preserves the OWNA boundary", async ({ page }) => {
     await page.goto("/parent/children");
-    await expect(page.getByText("E2EChild", { exact: false })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Bookings and fees with OWNA" })).toBeVisible();
   });
 
   test("child detail page loads without error", async ({ page }) => {
@@ -100,7 +100,7 @@ test.describe("Parent portal — authenticated round-trip", () => {
 
   test("logout clears the session and returns to /parent/login", async ({ page, context }) => {
     await page.goto("/parent");
-    const logout = page.getByRole("button", { name: /log ?out/i });
+    const logout = page.getByRole("button", { name: "Sign out", exact: true });
     await logout.waitFor({ state: "visible", timeout: 10_000 });
     await logout.click();
     await expect(page).toHaveURL(/\/parent\/login/, { timeout: 10_000 });
