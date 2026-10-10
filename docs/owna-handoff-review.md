@@ -1,6 +1,6 @@
 # OWNA handoff — review build
 
-Branch: `codex/amana-parent-journey`. Implementation is local and unmerged. No production records, OWNA invitations or emails were changed for this feature.
+Branch: `codex/amana-parent-journey`. Feature commit: `c1257b3d`. Implementation is local and unmerged. No production records, OWNA invitations or emails were changed for this feature.
 
 ## Scope and acceptance
 
@@ -34,7 +34,7 @@ Automated verification:
 - Full lint: zero errors, 1,122 warnings. A focused lint pass after final test additions also passed (one explicit-any warning in the transaction mock).
 - Isolated PostgreSQL trigger verification: passed, rollback-only synthetic transaction.
 - `git diff --check`: passed.
-- Production webpack compilation passed; final TypeScript/page-generation result is pending.
+- Full production build passed (`next build --webpack`, following Prisma client generation): compilation, TypeScript, all 769 pages and build traces. The interrupted first run was rerun to completion using the isolated review environment.
 
 ## Next action
 
