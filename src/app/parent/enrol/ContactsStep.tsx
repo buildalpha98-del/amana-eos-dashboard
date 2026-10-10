@@ -117,10 +117,14 @@ export function ContactsStep({
             order question above.
           </p>
         </div>
-      ) : (
+      ) : courtOrders === true ? (
         <p className="text-xs text-muted -mt-2">
           Optional because a court order applies — but please add them if you
           can.
+        </p>
+      ) : (
+        <p className="text-xs text-muted -mt-2">
+          Answer the court order question above so we can show which carer details are required.
         </p>
       )}
 
