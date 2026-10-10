@@ -1,11 +1,11 @@
-# Parent signup and build review — 10 October 2026
+# Parent signup release review — 10 October 2026
 
-Branch codex/parent-enrol-welcome, base 4fa13185, isolated worktree /private/tmp/amana-parent-enrol-review. Uncommitted; do not merge or deploy before user review. Original dashboard checkout and unrelated log unchanged.
+User approved the design and explicitly authorised final mobile verification followed by merge and push. Current release branch: codex/parent-enrol-release, integrated onto origin/main afbe8f67. The original review branch codex/parent-enrol-welcome preserves commit 782a4c89; its unrelated earlier ancestry was excluded. Original dashboard checkout and its unrelated log remain unchanged.
 
-Production build passes with webpack and 8GB Node heap (dependency symlink requires webpack). Type-only route handler overloads fix generated Next route contracts without changing auth execution. Invalid route helpers/components moved to ordinary modules with HTTP-only route exports; outdated fixtures corrected. No type checks disabled.
+The integration retains current main's login routing, parent enrolment and draft logic, policy-document visibility, attendance/bookings rules and communication permissions. Moved helper/component implementations preserve current main, with HTTP-only route exports and type-only wrapper overloads. No auth checks or tests disabled. Independent release_integration_review inspected the integrated diff and found no actionable code defects (source review only).
 
-479 unique tests / 44 files pass; focused 14-test rerun passes. Lint 0 errors / 1121 existing warnings. Build log /private/tmp/amana-parent-production-build.txt. Independent build_contract_review found two test defects, both fixed and clean on re-review. Prior signup source reviews clean.
+Verification: all 715 unit-test files pass: 7517 tests passed, 3 skipped. Lint: 0 errors, 1123 warnings. Log /private/tmp/amana-parent-release-tests.txt. The 8GB production build exhausted its heap; a 12GB retry is pending and must pass before merge. Log /private/tmp/amana-parent-release-build.txt. Webpack is used because dependencies are symlinked outside the isolated worktree.
 
-Local browser checks: signup, mismatch prevention, duplicate-account guidance, allowed centre context, incomplete-step feedback, saved draft reload, sign-out and returning sign-in pass against synthetic local PostgreSQL only (127.0.0.1:55438, amana_ux_review). No final enrolment, legal acceptance, payment or live email submitted; cross-domain completion attribution unverified. Preview http://localhost:3111/parent/signup, local runner /private/tmp/amana-parent-run-local.py.
+Final mobile browser checks on current main integration: fresh synthetic signup, mismatch prevention, Greenacre interest, incomplete-step feedback, draft save/reload, reachable sign-out all pass. All five enrolment steps fit 390px without overflow, with Agreement also fitting 320px. The latest local schema is applied only to temporary PostgreSQL at 127.0.0.1:55438, amana_ux_review. No final enrolment, legal acceptance, payment or production email submitted. Cross-domain completion attribution not exercised.
 
-Website comparison http://127.0.0.1:3122/. User visual review next; nothing merged, pushed or deployed.
+Website PR: https://github.com/buildalpha98-del/amana-oshc-website/pull/4. Local comparison http://127.0.0.1:3122/; signup http://localhost:3111/parent/signup. Final next action: confirm production build and repository checks, then merge and push as authorised.

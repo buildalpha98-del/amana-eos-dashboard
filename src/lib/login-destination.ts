@@ -30,4 +30,3 @@ export function destinationForSession(
   // EOS roles → /rocks; everyone else → /dashboard.
   return getLandingPage(role);
 }
-
