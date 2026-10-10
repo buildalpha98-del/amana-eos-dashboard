@@ -46,7 +46,7 @@ Give staff a visible, auditable OWNA handoff checklist: assigned owner, child en
 
 Greenacre content required from its team: exact gate/room/meeting point, session hours, pickup instructions, first-day packing list, service contact person, welcome message and optional approved photo/map. Do not fill these with guessed operational facts.
 
-The sampled family's OWNA invitation still needs checking directly in OWNA. Existing families should retain their access; do not automatically issue duplicate accounts or invitations.
+The sampled family's OWNA access was subsequently verified directly in OWNA; see the follow-up below. Existing families should retain their access; do not automatically issue duplicate accounts or invitations.
 
 ## Final review additions
 
@@ -58,3 +58,15 @@ The sampled family's OWNA invitation still needs checking directly in OWNA. Exis
 - Final targeted rerun: 137 tests passed (nurture email templates, welcome home and booking restrictions). Final focused lint has 0 errors; account page retains its pre-existing unused `toast` warning.
 - First complete local webpack production build passed (compile, TypeScript and all 769 static pages), with existing Sentry Edge-runtime/deprecation warnings. The final-source production build also passed after the last copy changes (exit 0), including TypeScript and page generation.
 - No merge, push, production deployment, production write or outgoing communication performed for this increment.
+
+## OWNA follow-up — 10 October 2026
+
+Read-only inspection after the owner signed into OWNA HQ and directed the review to Greenacre:
+
+- Primary parent profile is Active and links both the earlier child and the child confirmed in Amana on 7 October.
+- OWNA Email Log records “Amana OSHC Greenacre App Access” as **sent** on 23 September 2026 at 14:26:09 (as displayed by OWNA). This is a sent status, not a delivery/open webhook.
+- Login History records app use on 6 October (three entries) and 7 October at 09:03:34. This establishes actual app access, independently of email delivery status.
+- Other primary-parent email entries include CCS Enrolment Confirmation Required on 23 September and 7 October, and updated care arrangements on 28 September and 8 October. All are marked sent. No second App Access email appeared in the inspected 23 September–10 October range.
+- No invitations, resets, messages or record changes were made.
+
+The earlier uncertainty about whether this family received access is resolved: OWNA issued the access email and the parent used the app. The absence of OWNA mapping IDs in Amana remains a reconciliation/visibility gap, not evidence of failed provisioning. The newest child is linked now; login history alone does not prove the parent has viewed that child's information or accepted every outstanding arrangement.
