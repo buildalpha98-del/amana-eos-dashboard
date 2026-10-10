@@ -132,12 +132,11 @@ it("routine child timestamp updates do not invalidate manual checks", () => {
       },
     ],
   };
-  expect(
-    placementKey({
-      ...e,
-      childRecords: [
-        { ...e.childRecords[0], updatedAt: "2026-10-02T00:00:00Z" },
-      ],
-    }),
-  ).toBe(placementKey(e));
+  const updated = {
+    ...e,
+    childRecords: [
+      { ...e.childRecords[0], updatedAt: "2026-10-02T00:00:00Z" },
+    ],
+  };
+  expect(placementKey(updated)).toBe(placementKey(e));
 });

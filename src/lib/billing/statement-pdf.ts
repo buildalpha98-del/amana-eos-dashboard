@@ -27,7 +27,7 @@ function fmtCurrency(n: number): string {
  * Generate a branded statement PDF and upload it to Vercel Blob.
  * Returns the public URL of the uploaded PDF.
  */
-export async function generateStatementPdf(statementId: string): Promise<string> {
+export async function generateStatementPdf(statementId: string, options?: { persist?: boolean }): Promise<string> {
   // ── 1. Fetch data ──
   const statement = await prisma.statement.findUniqueOrThrow({
     where: { id: statementId },
@@ -210,12 +210,12 @@ export async function generateStatementPdf(statementId: string): Promise<string>
   });
 
   // ── 4. Update statement record ──
-  await prisma.statement.update({
+  if (options?.persist !== false) await prisma.statement.update({
     where: { id: statementId },
     data: { pdfUrl: url },
   });
 
-  logger.info("Statement PDF generated", { statementId, url });
+  logger.info("Statement PDF generated", options?.persist === false ? { statementId } : { statementId, url });
 
   return url;
 }
