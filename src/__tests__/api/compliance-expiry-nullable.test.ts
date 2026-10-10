@@ -11,7 +11,7 @@
  *   - PATCH with expiryDate in the past → 400
  *   - PATCH with expiryDate unchanged-not-supplied → no overwrite
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession } from "../helpers/auth-mock";
 import { createRequest } from "../helpers/request";
@@ -40,21 +40,22 @@ import { POST } from "@/app/api/compliance/route";
 import { PATCH } from "@/app/api/compliance/[id]/route";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 
-// LOCAL calendar dates, matching what the date picker sends. Plain
-// toISOString() is the UTC date, which is locally *yesterday* between
-// midnight and 10am AEST — the route validates in local time, so the
-// UTC form made the today-boundary test fail every Sydney morning.
-function localIso(d: Date): string {
-  const tz = d.getTimezoneOffset() * 60_000;
-  return new Date(d.getTime() - tz).toISOString().slice(0, 10);
-}
+// Fixed Sydney calendar dates: at this instant Sydney is on 11 October,
+// while UTC runners are still on the 10th. Do not derive fixtures from the
+// runner timezone or the wall clock.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-10T14:00:00Z"));
+});
+afterEach(() => vi.useRealTimers());
+
 function todayIso(): string {
-  return localIso(new Date());
+  return "2026-10-11";
 }
 function isoOffsetDays(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return localIso(d);
+  const d = new Date("2026-10-11T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 function callPost(body: Record<string, unknown>) {

@@ -1,17 +1,22 @@
 // @vitest-environment jsdom
 import React from "react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { CertStatusBadge } from "@/components/staff/CertStatusBadge";
 
 function daysFromNow(n: number): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + n);
+  const d = new Date("2026-10-11T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
   return d;
 }
 
 describe("CertStatusBadge", () => {
+  beforeEach(() => {
+    // Sydney is already 11 October while a UTC CI runner is still on the 10th.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-10T14:00:00Z"));
+  });
+  afterEach(() => vi.useRealTimers());
   it("shows 'Not uploaded' for null", () => {
     const { container } = render(<CertStatusBadge expiryDate={null} />);
     expect(container.textContent).toContain("Not uploaded");
