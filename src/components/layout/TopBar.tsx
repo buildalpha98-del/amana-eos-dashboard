@@ -67,6 +67,7 @@ const pageTitles: Record<string, string> = {
   "/contracts": "Contracts",
   "/crm": "CRM",
   "/crm/templates": "Email Templates",
+  "/crm/flows": "Email Flows",
   "/activity-library": "Activity Library",
   "/my-portal": "My Portal",
   "/my-pay": "My Pay & Leave",
@@ -123,7 +124,7 @@ export function TopBar() {
     if (pageTitles[pathname]) return pageTitles[pathname];
     // Dynamic detail pages
     if (pathname.startsWith("/services/") && pathname !== "/services") return "Service Detail";
-    if (pathname.startsWith("/crm/") && pathname !== "/crm" && !pathname.startsWith("/crm/templates")) return "Lead Detail";
+    if (pathname.startsWith("/crm/") && pathname !== "/crm" && !pathname.startsWith("/crm/templates") && !pathname.startsWith("/crm/flows")) return "Lead Detail";
     if (pathname.startsWith("/recruitment/") && pathname !== "/recruitment") return "Vacancy Detail";
     if (pathname.startsWith("/tickets/") && pathname !== "/tickets") return "Ticket Detail";
     return "Dashboard";
