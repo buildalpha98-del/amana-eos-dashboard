@@ -4,6 +4,9 @@ import { withApiAuth } from "@/lib/server-auth";
 import { serviceScopeFilter } from "@/lib/authz-scope";
 import { searchEnrolmentIds } from "@/lib/enrolment-search";
 
+import { canAccessEnrolment } from "@/lib/enrolment-access";
+import { handoffSummary, placementKey, readHandoff } from "@/lib/owna-handoff";
+
 const DEFAULT_LIMIT = 50;
 
 /**
@@ -28,8 +31,18 @@ export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status") || undefined;
   const search = (searchParams.get("search") ?? "").trim();
-  const limit = intParam(searchParams.get("limit"), DEFAULT_LIMIT, 1, MAX_LIMIT);
-  const offset = intParam(searchParams.get("offset"), 0, 0, Number.MAX_SAFE_INTEGER);
+  const limit = intParam(
+    searchParams.get("limit"),
+    DEFAULT_LIMIT,
+    1,
+    MAX_LIMIT,
+  );
+  const offset = intParam(
+    searchParams.get("offset"),
+    0,
+    0,
+    Number.MAX_SAFE_INTEGER,
+  );
 
   // Centre-scope: non-admins only see their own service's submissions
   // (child/parent DOB, address, CRN, medical); admins see all centres.
@@ -69,6 +82,12 @@ export const GET = withApiAuth(async (req, session) => {
   const [submissions, total, byStatus, unplaced] = await Promise.all([
     prisma.enrolmentSubmission.findMany({
       where,
+      include: {
+        ownaHandoff: true,
+        childRecords: {
+          select: { id: true, serviceId: true, status: true },
+        },
+      },
       orderBy: { createdAt: "desc" },
       take: limit,
       skip: offset,
@@ -98,5 +117,26 @@ export const GET = withApiAuth(async (req, session) => {
     counts.all += row._count._all;
   }
 
-  return NextResponse.json({ submissions, total, counts, unplaced, limit, offset });
+  return NextResponse.json({
+    submissions: submissions.map(({ ownaHandoff, childRecords, ...s }) => ({
+      ...s,
+      ...(canAccessEnrolment(session, s.serviceId) &&
+      (childRecords ?? []).every((c) =>
+        canAccessEnrolment(session, c.serviceId),
+      )
+        ? {
+            ownaHandoffSummary: handoffSummary(
+              readHandoff(ownaHandoff?.state),
+              placementKey({ ...s, childRecords: childRecords ?? [] }),
+              s.status,
+            ),
+          }
+        : {}),
+    })),
+    total,
+    counts,
+    unplaced,
+    limit,
+    offset,
+  });
 });

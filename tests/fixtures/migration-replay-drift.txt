@@ -1,0 +1,108 @@
+-- Reviewed residual metadata after full replay (Prisma 5.22.0), 11 October 2026.
+-- This is a comparison fixture, NOT SQL to apply.
+-- Preserve 26 historical nonunique/GIN indexes absent from Prisma's model.
+-- Preserve production's NO ACTION update behaviour on the two ParentAccount FKs;
+-- account identifiers are immutable. Delete cascades already match the model.
+-- Preserve database timestamp defaults and the existing IncidentRecord index name.
+-- Any change to this exact fixture requires inspection; never auto-refresh it.
+-- DropForeignKey
+ALTER TABLE "EnrolmentDraft" DROP CONSTRAINT "EnrolmentDraft_accountId_fkey";
+
+-- DropForeignKey
+ALTER TABLE "ParentEmailVerification" DROP CONSTRAINT "ParentEmailVerification_accountId_fkey";
+
+-- DropIndex
+DROP INDEX "Absence_roomId_idx";
+
+-- DropIndex
+DROP INDEX "AttendanceRecord_roomId_idx";
+
+-- DropIndex
+DROP INDEX "Booking_roomId_idx";
+
+-- DropIndex
+DROP INDEX "BookingForecast_roomId_idx";
+
+-- DropIndex
+DROP INDEX "CasualDayConfig_roomId_idx";
+
+-- DropIndex
+DROP INDEX "ChildFeeAssignment_roomId_idx";
+
+-- DropIndex
+DROP INDEX "ConversionOpportunity_roomId_idx";
+
+-- DropIndex
+DROP INDEX "DailyAttendance_roomId_idx";
+
+-- DropIndex
+DROP INDEX "DailyChecklist_roomId_idx";
+
+-- DropIndex
+DROP INDEX "DocumentChunk_searchVector_idx";
+
+-- DropIndex
+DROP INDEX "EmploymentContract_adminSignedById_idx";
+
+-- DropIndex
+DROP INDEX "FamilyDiscount_childId_idx";
+
+-- DropIndex
+DROP INDEX "FamilyDiscount_roomId_idx";
+
+-- DropIndex
+DROP INDEX "ParentEnquiry_sourceActivationId_idx";
+
+-- DropIndex
+DROP INDEX "RecruitmentVacancy_positionDescriptionId_idx";
+
+-- DropIndex
+DROP INDEX "ResponsiblePersonEntry_roomId_idx";
+
+-- DropIndex
+DROP INDEX "RosterShift_roomId_idx";
+
+-- DropIndex
+DROP INDEX "ServiceBlockOutDate_roomId_idx";
+
+-- DropIndex
+DROP INDEX "ServiceExcursion_roomId_idx";
+
+-- DropIndex
+DROP INDEX "ServiceFeeChange_roomId_idx";
+
+-- DropIndex
+DROP INDEX "ServiceHeadcount_roomId_idx";
+
+-- DropIndex
+DROP INDEX "ShiftTemplate_roomId_idx";
+
+-- DropIndex
+DROP INDEX "StatementLineItem_roomId_idx";
+
+-- DropIndex
+DROP INDEX "Todo_surveyId_idx";
+
+-- DropIndex
+DROP INDEX "User_positionDescriptionId_idx";
+
+-- DropIndex
+DROP INDEX "User_tags_idx";
+
+-- AlterTable
+ALTER TABLE "EnrolFormTranslation" ALTER COLUMN "updatedAt" DROP DEFAULT;
+
+-- AlterTable
+ALTER TABLE "EnrolmentDraft" ALTER COLUMN "updatedAt" DROP DEFAULT;
+
+-- AlterTable
+ALTER TABLE "ParentAccount" ALTER COLUMN "updatedAt" DROP DEFAULT;
+
+-- AddForeignKey
+ALTER TABLE "ParentEmailVerification" ADD CONSTRAINT "ParentEmailVerification_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "ParentAccount"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EnrolmentDraft" ADD CONSTRAINT "EnrolmentDraft_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "ParentAccount"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- RenameIndex
+ALTER INDEX "IncidentRecord_serviceId_reportable_reported_idx" RENAME TO "IncidentRecord_serviceId_reportableToAuthority_reportedToAu_idx";

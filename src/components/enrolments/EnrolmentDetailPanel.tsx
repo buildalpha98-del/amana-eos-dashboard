@@ -33,6 +33,8 @@ import { toast } from "@/hooks/useToast";
 import { mutateApi } from "@/lib/fetch-api";
 import { AssignServiceDialog } from "@/components/enrolments/AssignServiceDialog";
 
+import { OwnaHandoffPanel } from "./OwnaHandoffPanel";
+
 interface Props {
   enrolmentId: string;
   onClose: () => void;
@@ -383,7 +385,7 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors disabled:opacity-50"
               >
                 <Send className="h-3.5 w-3.5" />
-                {resending ? "Sending..." : "Resend Invite"}
+                {resending ? "Sending..." : "Resend Amana Invite"}
               </button>
               <button
                 onClick={() => handleStatusChange("archived")}
@@ -439,6 +441,7 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <OwnaHandoffPanel key={JSON.stringify([e.id,e.serviceId,e.status,e.processedAt,e.childRecords])} id={e.id} status={e.status} childrenLabel={(e.childRecords ?? []).map(c => `${c.firstName} ${c.surname} (${c.serviceId === e.serviceId ? e.service?.name ?? "Assigned service" : "Different service"})`).join(", ") || "No linked child records"} />
           {/* Children */}
           <Section title={`Children (${e.children.length})`} icon={Baby} defaultOpen>
             {e.children.map((child, i) => (

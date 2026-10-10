@@ -20,6 +20,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Building2,
   Clock,
@@ -34,6 +35,7 @@ import { fetchApi } from "@/lib/fetch-api";
 import { useParentDailyInfo } from "@/hooks/useParentPortal";
 import { SectionLabel } from "@/components/parent/ui";
 import { ParentFormsSection } from "@/components/parent/ParentFormsList";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 interface Contact {
@@ -101,11 +103,13 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 function MyCentreContent() {
-  const tabParam = useSearchParams()?.get("tab");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams?.get("tab");
+  const centreParam = searchParams?.get("centre");
   const [tab, setTab] = useState<TabKey>(
     TABS.some((t) => t.key === tabParam) ? (tabParam as TabKey) : "centre",
   );
-  const { data, isLoading } = useQuery<{ centres: Centre[] }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ centres: Centre[] }>({
     queryKey: ["parent", "centres"],
     queryFn: () => fetchApi("/api/parent/centres"),
     retry: 1,
@@ -123,19 +127,23 @@ function MyCentreContent() {
     );
   }
 
+  if (isError) {
+    return <div className="warm-card p-6 space-y-4"><p role="alert" className="text-sm text-muted">We couldn’t load your centre information. Please try again.</p><Button variant="outline" onClick={() => void refetch()}>Try again</Button></div>;
+  }
+
   if (centres.length === 0) {
     return (
       <div className="warm-card text-center py-10">
         <Building2 className="w-7 h-7 mx-auto text-[color:var(--color-muted)] mb-2" />
         <p className="text-sm text-[color:var(--color-muted)]">
           Your centre details will appear here once your enrolment is
-          confirmed.
+          linked to a centre. Please contact our team if you need help.
         </p>
       </div>
     );
   }
 
-  const centre = centres.find((x) => x.id === activeId) ?? centres[0];
+  const centre = centres.find((x) => x.id === (activeId ?? centreParam)) ?? centres[0];
   const c = centre.content;
   const namedContacts = c.contacts.filter((x) => x.name?.trim());
 
@@ -217,6 +225,15 @@ function MyCentreContent() {
           </div>
         )}
       </section>
+
+      {(!c.meetingPoints || !c.parentOnboarding) && (
+        <section className="warm-card space-y-3" aria-labelledby="first-visit-heading">
+          <h2 id="first-visit-heading" className="font-heading text-lg font-semibold">Planning your first visit?</h2>
+          <p className="text-sm text-muted leading-relaxed">Contact our team before your child’s first day to confirm where to meet us, what to bring and your booked sessions. We’ll help you feel ready.</p>
+          <p className="text-sm text-muted leading-relaxed">Afternoon pickup is flexible: collect your child at any time during the session, before the centre closes.</p>
+          <Link href="/parent/messages" className="inline-flex min-h-11 items-center font-semibold text-sm text-brand underline underline-offset-4">Ask about your first day</Link>
+        </section>
+      )}
 
       {/* ── 2. Where to find us ──────────────────────────── */}
       {(centre.address || c.locationWithinSchool || c.serviceMapUrl) && (

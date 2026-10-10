@@ -10,6 +10,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { mutateApi } from "@/lib/fetch-api";
 
@@ -56,8 +57,16 @@ function ConfirmInner() {
   }, [token, router]);
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-gradient-to-br from-[#001824] via-[#003344] to-[#0A5E7E] px-4">
-      <div className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/50 text-center">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-parent-bg px-4">
+      <div className="w-full max-w-sm bg-card rounded-3xl shadow-sm p-8 border border-border text-center">
+        <Image
+          src="/email/amana-logo-blue.png"
+          alt="Amana OSHC"
+          width={112}
+          height={60}
+          className="mx-auto mb-6"
+          priority
+        />
         {state === "working" && (
           <>
             <Loader2 className="w-10 h-10 text-brand mx-auto mb-3 animate-spin" />
@@ -103,8 +112,8 @@ export default function ParentConfirmPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[100dvh] flex items-center justify-center bg-[#001824]">
-          <Loader2 className="w-8 h-8 text-white animate-spin" />
+        <div className="min-h-[100dvh] flex items-center justify-center bg-parent-bg">
+          <Loader2 className="w-8 h-8 text-brand animate-spin" />
         </div>
       }
     >

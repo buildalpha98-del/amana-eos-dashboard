@@ -27,6 +27,39 @@ env:
   NODE_VERSION: "20"
 
 jobs:
+  # db push cannot detect missing or out-of-order migration history.
+  migration-replay:
+    name: Migration replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: amana_migration_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/amana_migration_ci
+      DATABASE_URL_UNPOOLED: postgresql://test:test@localhost:5432/amana_migration_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - name: Replay migrations, compare schema and check handoff triggers
+        run: node scripts/verify-migration-replay.cjs
+
   # ── Lint (every push) ──────────────────────────────────────
   # Errors fail the build; warnings (unused-vars, design-token rails,
   # exhaustive-deps) are visible in the log but non-blocking. The repo was

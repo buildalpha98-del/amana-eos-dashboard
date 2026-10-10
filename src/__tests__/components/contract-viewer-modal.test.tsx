@@ -16,7 +16,7 @@
  *   - Already-acknowledged contracts don't render an Acknowledge button
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ContractViewerModal, type ContractViewerContract } from "@/components/my-portal/ContractViewerModal";
@@ -149,48 +149,31 @@ describe("ContractViewerModal", () => {
     expect(fetchSpy).not.toHaveBeenCalledWith(expect.stringContaining("/render"));
   });
 
-  it("clicking Acknowledge POSTs to /api/contracts/[id]/acknowledge and flips the footer", async () => {
-    const fetchSpy = vi
-      .fn()
-      // First call: GET /render
-      .mockResolvedValueOnce(
-        new Response("<html></html>", { status: 200, headers: { "Content-Type": "text/html" } }),
-      )
-      // Second call: POST /acknowledge
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ id: "ct-1", acknowledgedByStaff: true }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
+  it("keeps signing pending until saved, then refreshes both contract summaries", async () => {
+    let resolveAcknowledgement!: (response: Response) => void;
+    const pendingAcknowledgement = new Promise<Response>((resolve) => { resolveAcknowledgement = resolve; });
+    const fetchSpy = vi.fn()
+      .mockResolvedValueOnce(new Response("<html></html>", { status: 200 }))
+      .mockReturnValueOnce(pendingAcknowledgement);
     global.fetch = fetchSpy;
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    qc.setQueryData(["my-contracts"], { contracts: [] });
+    qc.setQueryData(["my-portal"], { activeContract: {} });
+    render(<QueryClientProvider client={qc}><ContractViewerModal contract={baseTemplateContract} onClose={() => {}} /></QueryClientProvider>);
 
-    render(wrap(<ContractViewerModal contract={baseTemplateContract} onClose={() => {}} />));
+    fireEvent.click(await screen.findByTestId("contract-viewer-acknowledge"));
+    fireEvent.click(await screen.findByTestId("mock-sign-here"));
+    fireEvent.click(await screen.findByText("Confirm signature"));
+    expect(await screen.findByRole("button", { name: "Signing…" })).toBeDisabled();
+    expect(screen.queryByText(/signed just now/i)).not.toBeInTheDocument();
+    expect(qc.getQueryState(["my-contracts"])?.isInvalidated).toBe(false);
+    expect(fetchSpy).toHaveBeenCalledWith("/api/contracts/ct-1/acknowledge", expect.objectContaining({ method: "POST" }));
 
-    // Click the Sign Contract button to open signing mode.
-    const btn = await screen.findByTestId("contract-viewer-acknowledge");
-    fireEvent.click(btn);
-
-    // Mock SignaturePad renders a "Draw Signature" button; clicking it sets the sig data URL.
-    const drawBtn = await screen.findByTestId("mock-sign-here");
-    fireEvent.click(drawBtn);
-
-    // Now click "Confirm signature" (enabled once a sig data URL is set).
-    const confirmBtn = await screen.findByText("Confirm signature");
-    fireEvent.click(confirmBtn);
-
-    await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledWith(
-        "/api/contracts/ct-1/acknowledge",
-        expect.objectContaining({ method: "POST" }),
-      );
-    });
-
-    // Footer transitions to "Signed just now" and the button is gone.
-    await waitFor(() => {
-      expect(screen.getByText(/signed just now/i)).toBeInTheDocument();
-    });
+    await act(async () => resolveAcknowledgement(new Response(JSON.stringify({ id: "ct-1", acknowledgedByStaff: true }), { status: 200 })));
+    expect(await screen.findByText(/signed just now/i)).toBeInTheDocument();
     expect(screen.queryByTestId("contract-viewer-acknowledge")).toBeNull();
+    expect(qc.getQueryState(["my-contracts"])?.isInvalidated).toBe(true);
+    expect(qc.getQueryState(["my-portal"])?.isInvalidated).toBe(true);
   });
 
   it("does NOT render the Acknowledge button when canAcknowledge is false (historical / already acked)", async () => {

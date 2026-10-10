@@ -122,36 +122,17 @@ test.describe("Services management flow", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveURL(/\/services\/.+/, { timeout: 15_000 });
 
-    // Click through different tab groups
-    const eosTab = page.getByText("EOS").first();
-    const hasEosTab = await eosTab.isVisible().catch(() => false);
+    // Wait for actual navigation and selected controls, not a one-shot
+    // isVisible() immediately after clicking while React is still updating.
+    await page.getByRole("button", { name: "EOS", exact: true }).click();
+    await expect(page).toHaveURL(/tab=eos/);
+    await expect(page.getByRole("button", { name: "Scorecard", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Rocks", exact: true })).toBeVisible();
 
-    if (hasEosTab) {
-      await eosTab.click();
-      await page.waitForLoadState("networkidle");
-
-      // EOS tab should show sub-tabs: Scorecard, Rocks, To-Dos, Issues, Projects, Weekly Data
-      const hasScorecard = await page.getByText("Scorecard").isVisible().catch(() => false);
-      const hasRocks = await page.getByText("Rocks").isVisible().catch(() => false);
-      const hasTodos = await page.getByText("To-Dos").isVisible().catch(() => false);
-
-      expect(hasScorecard || hasRocks || hasTodos).toBeTruthy();
-    }
-
-    // Try clicking Daily Ops tab
-    const dailyOpsTab = page.getByText("Daily Ops").first();
-    const hasDailyOps = await dailyOpsTab.isVisible().catch(() => false);
-
-    if (hasDailyOps) {
-      await dailyOpsTab.click();
-      await page.waitForLoadState("networkidle");
-
-      // Should show Attendance or Checklists sub-tabs
-      const hasAttendance = await page.getByText("Attendance").isVisible().catch(() => false);
-      const hasChecklists = await page.getByText("Checklists").isVisible().catch(() => false);
-
-      expect(hasAttendance || hasChecklists).toBeTruthy();
-    }
+    await page.getByRole("button", { name: "Daily Ops", exact: true }).click();
+    await expect(page).toHaveURL(/tab=daily/);
+    await expect(page.getByRole("button", { name: "Attendances", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Checklists", exact: true })).toBeVisible();
 
     // No error states after tab navigation
     await expect(page.getByText("Something went wrong")).not.toBeVisible();

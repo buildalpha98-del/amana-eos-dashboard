@@ -72,17 +72,19 @@ export async function enrolmentReceivedEmail(params: {
       <p>In the meantime you can sign in to the Family Portal any time to
       see where things are up to.</p>
       ${buttonHtml("Go to my Family Portal", `${base}/parent`)}
-      <p><strong>One thing to know:</strong> the Family Portal is our new
-      system and we're still building it. Insha'Allah we'll let you know
-      as soon as it's fully up and running. You'll receive a separate
-      email within 24 hours with your login details for <strong>OWNA</strong>,
-      the parent app we currently use for bookings and daily updates.</p>
+      <p><strong>Your Amana family hub:</strong> find your school information
+      and message our team. Bookings, fees and day-to-day updates are managed
+      separately in <strong>OWNA</strong>.</p>
+      <p>After reviewing your enrolment, our team will arrange your OWNA setup.
+      Follow the instructions in your separate OWNA invitation. If you already
+      have access, keep using it. Please contact us if you need help finding
+      your invitation.</p>
       <p><strong>Claiming Child Care Subsidy?</strong> Once we confirm
       your enrolment, Services Australia will ask you to confirm it in your
       <strong>myGov / Centrelink online account</strong>. Please do it as
       soon as you see it — your fees can't be subsidised until you do.</p>
       <p style="font-size:13px;color:#6b7280;">Any questions in the
-      meantime, just reply to this email or contact us at
+      meantime, contact us at
       enrolments@amanaoshc.com.au.</p>
     `,
       "family",
@@ -189,10 +191,18 @@ export async function enrolmentApprovedEmail(params: {
       <p>Good news — ${child}'s enrolment with Amana OSHC has been
       confirmed. We're looking forward to having them with us.</p>
       ${verifyBlock}
-      <p>You'll receive your OWNA login details separately; that's the app
-      we currently use day to day for bookings and updates.</p>
-      <p style="font-size:13px;color:#6b7280;">Any questions, just reply to
-      this email or contact us at enrolments@amanaoshc.com.au.</p>
+      <p><strong>Get to know your centre:</strong> find your team’s contact
+      details, arrival and pickup information, and school resources in your
+      Amana family hub.</p>
+      ${buttonHtml("Explore my centre", `${base}/parent/my-centre`)}
+      <p><strong>Before your first day:</strong> our team sets up your family
+      in OWNA separately. Please make sure your OWNA access and booked sessions
+      are confirmed with us before attending. Your Amana password does not sign
+      you into OWNA.</p>
+      <p>Already using OWNA? Keep using your existing access for bookings,
+      fees and daily updates. If your invitation hasn’t arrived, check your
+      junk folder or contact our team.</p>
+      <p style="font-size:13px;color:#6b7280;">Any questions? Contact us at enrolments@amanaoshc.com.au.</p>
     `,
       "family",
     ),
@@ -238,8 +248,9 @@ export async function secondaryCarerInviteEmail(params: {
       <p>${params.invitedBy} has listed you as a parent or carer on
       ${child}'s enrolment with Amana OSHC.</p>
       <p>That means you can have your own access to the Family Portal, where
-      you can see bookings, account statements and updates about
-      ${child}'s time with us.</p>
+      you can find school information and message the Amana team.
+      Bookings, fees and day-to-day updates are managed separately in OWNA;
+      contact us if you also need OWNA access.</p>
       ${buttonHtml("Set up my access", `${base}/parent/signup`)}
       <p>Use this same email address when you sign up and we'll connect you
       to ${child}'s enrolment automatically. You'll choose your own password
