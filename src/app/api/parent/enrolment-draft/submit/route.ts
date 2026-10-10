@@ -598,6 +598,7 @@ export const POST = withParentAuth(async (req, ctx) => {
       name: ctx.parent.name,
       enrolmentIds: [...ctx.parent.enrolmentIds, submission.id],
       accountId,
+      sessionVersion: ctx.parent.sessionVersion ?? 0,
     });
     setParentSessionCookie(res, jwt);
   } catch (err) {

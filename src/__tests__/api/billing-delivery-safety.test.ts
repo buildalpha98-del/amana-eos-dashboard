@@ -22,6 +22,12 @@ beforeEach(() => {
   prismaMock.child.findMany.mockResolvedValue([{ id: "child" }]);
 });
 describe("invoice delivery lifecycle", () => {
+  it("rejects a draft that was voided before the issue write without queuing delivery", async () => {
+    prismaMock.statement.findUnique.mockResolvedValue({ id: "statement", status: "draft" });
+    prismaMock.statement.update.mockRejectedValueOnce({ code: "P2025" });
+    expect((await issue(createRequest("POST", "/api/billing/statements/statement/issue"), { params: Promise.resolve({ id: "statement" }) })).status).toBe(409);
+    expect(runAfter).not.toHaveBeenCalled();
+  });
   it("registers PDF and email with the request lifecycle and sends in order", async () => {
     prismaMock.statement.findUnique.mockResolvedValue({ id: "statement", status: "draft" });
     prismaMock.statement.update.mockResolvedValue({ id: "statement", status: "issued" });

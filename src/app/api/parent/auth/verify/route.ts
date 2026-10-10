@@ -99,6 +99,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     name: parentName,
     enrolmentIds: matchingEnrolmentIds,
     ...(account ? { accountId: account.accountId } : {}),
+    sessionVersion: account?.sessionVersion ?? 0,
   });
 
   logger.info("Parent session created", {

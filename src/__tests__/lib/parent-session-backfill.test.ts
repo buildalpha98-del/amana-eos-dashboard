@@ -67,15 +67,20 @@ describe("parent session revocation and legacy compatibility", () => {
   });
   it("signs fresh sessions with the account's current revocation version", async () => {
     prismaMock.parentAccount.findUnique.mockResolvedValue({ ...account, sessionVersion: 3 });
-    expect(await verifyParentJwt(await signParentJwt(legacySession))).toMatchObject({ accountId: account.id, sessionVersion: 3 });
+    expect(await verifyParentJwt(await signParentJwt({ ...legacySession, sessionVersion: 3 }))).toMatchObject({ accountId: account.id, sessionVersion: 3 });
   });
   it("cannot refresh a session revoked while its request was in progress", async () => {
     prismaMock.parentAccount.findUnique.mockResolvedValue({ ...account, sessionVersion: 3 });
     await expect(signParentJwt({ ...legacySession, accountId: account.id, sessionVersion: 2 })).rejects.toMatchObject({ status: 401 });
   });
+  it("does not silently upgrade an omitted legacy version after revocation", async () => {
+    prismaMock.parentAccount.findUnique.mockResolvedValue({ ...account, sessionVersion: 1 });
+    // @ts-expect-error Deliberately exercise untyped/legacy callers omitting the required version.
+    await expect(signParentJwt({ ...legacySession, accountId: account.id })).rejects.toMatchObject({ status: 401 });
+  });
   it("cannot mint a new session for a disabled account", async () => {
     prismaMock.parentAccount.findUnique.mockResolvedValue({ ...account, deactivatedAt: new Date() });
-    await expect(signParentJwt(legacySession)).rejects.toMatchObject({ status: 401 });
+    await expect(signParentJwt({ ...legacySession, sessionVersion: 0 })).rejects.toMatchObject({ status: 401 });
   });
   it("rechecks ownership and retains primary and secondary carers only", async () => {
     prismaMock.enrolmentSubmission.findMany.mockResolvedValue([

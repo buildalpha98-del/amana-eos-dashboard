@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Statement creators and editors take the same centre lock before checking billed
+ * Statement creators, editors and payment writers take the same centre lock before checking billed
  * sessions. ReadCommitted gives a waiter a fresh view after the first writer
  * commits. A transaction lock releases on rollback too, including with a
  * pooled connection. Keep the overlap check and the insert inside this work.

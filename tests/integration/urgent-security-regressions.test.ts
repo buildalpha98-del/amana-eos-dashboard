@@ -9,6 +9,10 @@ import { _clearUserActiveCache } from "@/lib/server-auth";
 import { POST as generate } from "@/app/api/billing/statements/generate/route";
 import { PATCH as editStatement } from "@/app/api/billing/statements/[id]/route";
 import { POST as manual } from "@/app/api/billing/statements/route";
+import { POST as issueStatement } from "@/app/api/billing/statements/[id]/issue/route";
+import { POST as voidStatement } from "@/app/api/billing/statements/[id]/void/route";
+import { POST as recordPayment } from "@/app/api/billing/payments/route";
+import { GET as markOverdue } from "@/app/api/cron/overdue-statements/route";
 import { PATCH as acceptDraft } from "@/app/api/ai-drafts/[id]/route";
 import { GET as rockDetail } from "@/app/api/rocks/[id]/route";
 import { GET as issueDetail } from "@/app/api/issues/[id]/route";
@@ -17,11 +21,15 @@ import { GET as serviceDetail } from "@/app/api/services/[id]/route";
 import { POST as bulkTodos } from "@/app/api/todos/bulk-actions/route";
 import { DELETE as deleteTodo } from "@/app/api/todos/[id]/route";
 import { PATCH as familyPatch } from "@/app/api/families/[id]/route";
-import { signParentJwt, withParentAuth } from "@/lib/parent-auth";
+import { getParentSession, signParentJwt, withParentAuth } from "@/lib/parent-auth";
+import { authenticateParent } from "@/lib/parent-account";
 import { completeParentPasswordReset, createParentPasswordReset, setParentPasswordDirect } from "@/lib/parent-password-reset";
 import type { User } from "@prisma/client";
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn(async () => ({ limited: false })) }));
 vi.mock("@/lib/password-breach-check", () => ({ checkPasswordBreach: vi.fn(async () => 0) }));
+vi.mock("@/lib/run-after", () => ({ runAfter: vi.fn() }));
+vi.mock("@/lib/notifications/billing", () => ({ sendPaymentReceivedNotification: vi.fn(async () => {}), sendOverdueStatementNotification: vi.fn(async () => {}) }));
+vi.mock("@/lib/cron-guard", () => ({ verifyCronSecret: vi.fn(() => null), acquireCronLock: vi.fn(async () => ({ acquired: true, complete: vi.fn(), fail: vi.fn() })) }));
 
 let serviceId: string, childId: string, contactId: string, enrolmentId: string, accountId: string;
 let rockId: string, issueId: string, projectId: string, hiddenId: string, publicId: string, coassignedId: string;
@@ -32,6 +40,35 @@ const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 const sessionAs = (user: User) => { _clearUserActiveCache(); mockSession(user); };
 const parentHandler = withParentAuth(async (_req, context) => NextResponse.json({ ids: context.parent.enrolmentIds }));
 const parentRequest = (token: string) => parentHandler(createRequest("GET", "/api/parent/state", { headers: { cookie: `parent-session=${token}` } }));
+
+// Hold an uncommitted status change until the real route's UPDATE blocks on
+// that row. Its earlier read sees the old committed status. No Prisma mocks.
+async function acrossStatusChange(id: string, status: "void" | "paid", request: () => Promise<Response>) {
+  let release!: () => void, ready!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const locked = new Promise<void>(resolve => { ready = resolve; });
+  const transaction = prisma.$transaction(async tx => {
+    await tx.statement.update({ where: { id }, data: { status } });
+    ready();
+    await gate;
+  }, { timeout: 10_000 });
+  await locked;
+  const pending = request();
+  let blocked = false;
+  try {
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const [row] = await prisma.$queryRaw<Array<{ count: number }>>`SELECT count(*)::int AS count FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock' AND query LIKE 'UPDATE %Statement%'`;
+      if (row.count > 0) { blocked = true; break; }
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+  } finally {
+    release();
+  }
+  await transaction;
+  const response = await pending;
+  expect(blocked, "route UPDATE reached the held row before the status change committed").toBe(true);
+  return response;
+}
 
 beforeAll(async () => {
   // Refuse accidental production usage independently of the test runner config.
@@ -68,6 +105,7 @@ afterAll(async () => {
   await prisma.project.deleteMany({ where: { serviceId } });
   await prisma.issue.deleteMany({ where: { serviceId } });
   await prisma.rock.deleteMany({ where: { serviceId } });
+  await prisma.payment.deleteMany({ where: { serviceId } });
   await prisma.statement.deleteMany({ where: { serviceId } });
   await prisma.booking.deleteMany({ where: { serviceId } });
   await prisma.child.deleteMany({ where: { serviceId } });
@@ -82,7 +120,7 @@ afterAll(async () => {
 describe("concurrent statement creation", () => {
   const generateRequest = (start = "2026-10-01", end = "2026-10-31") => generate(createRequest("POST", "/api/billing/statements/generate", { body: { contactId, serviceId, periodStart: start, periodEnd: end } }));
   const manualRequest = (start = "2026-10-01", end = "2026-10-31") => manual(createRequest("POST", "/api/billing/statements", { body: { contactId, serviceId, periodStart: start, periodEnd: end, lineItems: [{ childId, date: "2026-10-05", sessionType: "asc", description: "Test care", grossFee: 30, ccsHours: 0, ccsRate: 0, ccsAmount: 10, gapAmount: 20 }] } }));
-  beforeEach(async () => { sessionAs(owner); await prisma.statement.deleteMany({ where: { serviceId } }); });
+  beforeEach(async () => { sessionAs(owner); await prisma.payment.deleteMany({ where: { serviceId } }); await prisma.statement.deleteMany({ where: { serviceId } }); });
   it("creates one invoice when two overlapping generate requests race", async () => {
     const responses = await Promise.all([generateRequest(), generateRequest("2026-10-05", "2026-10-12")]);
     expect(responses.map(r => r.status)).toEqual([200, 200]);
@@ -139,6 +177,50 @@ describe("concurrent statement creation", () => {
     expect((await generateRequest()).status).toBe(200);
     expect(await prisma.statement.count({ where: { serviceId, status: { not: "void" } } })).toBe(1);
   });
+  const paymentRequest = (id: string, amount = 20) => recordPayment(createRequest("POST", "/api/billing/payments", { body: { statementId: id, contactId, serviceId, amount, method: "cash" } }));
+  it("does not resurrect an invoice when a stale issue races voiding and re-billing", async () => {
+    const draft = await (await manualRequest()).json();
+    const response = await acrossStatusChange(draft.id, "void", () => issueStatement(createRequest("POST", `/api/billing/statements/${draft.id}/issue`), ctx(draft.id)));
+    expect(response.status).toBe(409);
+    expect((await generateRequest()).status).toBe(200);
+    expect((await prisma.statement.findUniqueOrThrow({ where: { id: draft.id } })).status).toBe("void");
+    expect(await prisma.statement.count({ where: { serviceId, status: { not: "void" } } })).toBe(1);
+  });
+  it("rejects payment against a void invoice after it has been re-billed", async () => {
+    const draft = await (await manualRequest()).json();
+    expect((await voidStatement(createRequest("POST", `/api/billing/statements/${draft.id}/void`), ctx(draft.id))).status).toBe(200);
+    expect((await generateRequest()).status).toBe(200);
+    expect((await paymentRequest(draft.id)).status).toBe(409);
+    expect(await prisma.payment.count({ where: { statementId: draft.id } })).toBe(0);
+    expect((await prisma.statement.findUniqueOrThrow({ where: { id: draft.id } })).status).toBe("void");
+  });
+  it("rolls back a payment when its statement is voided after validation", async () => {
+    const draft = await (await manualRequest()).json();
+    const response = await acrossStatusChange(draft.id, "void", () => paymentRequest(draft.id));
+    expect(response.status).toBe(409);
+    expect(await prisma.payment.count({ where: { statementId: draft.id } })).toBe(0);
+    expect((await prisma.statement.findUniqueOrThrow({ where: { id: draft.id } })).status).toBe("void");
+  });
+  it("does not let a stale overdue scan revive a void invoice", async () => {
+    const draft = await (await manualRequest()).json();
+    await prisma.statement.update({ where: { id: draft.id }, data: { status: "issued", dueDate: new Date("2000-01-01") } });
+    const response = await acrossStatusChange(draft.id, "void", () => markOverdue(createRequest("GET", "/api/cron/overdue-statements")));
+    expect(response.status).toBe(200);
+    expect((await response.json()).updated).toBe(0);
+    expect((await prisma.statement.findUniqueOrThrow({ where: { id: draft.id } })).status).toBe("void");
+  });
+  it("does not let a stale void request overwrite a completed payment", async () => {
+    const draft = await (await manualRequest()).json();
+    const response = await acrossStatusChange(draft.id, "paid", () => voidStatement(createRequest("POST", `/api/billing/statements/${draft.id}/void`), ctx(draft.id)));
+    expect(response.status).toBe(409);
+    expect((await prisma.statement.findUniqueOrThrow({ where: { id: draft.id } })).status).toBe("paid");
+  });
+  it("serialises concurrent payments without losing the invoice balance", async () => {
+    const draft = await (await manualRequest()).json();
+    const responses = await Promise.all([paymentRequest(draft.id, 10), paymentRequest(draft.id, 10)]);
+    expect(responses.map(r => r.status)).toEqual([201, 201]);
+    expect(await prisma.statement.findUniqueOrThrow({ where: { id: draft.id } })).toMatchObject({ status: "paid", amountPaid: 20, balance: 0 });
+  });
 });
 
 describe("private ToDos with real nested Prisma reads and writes", () => {
@@ -184,7 +266,10 @@ describe("private ToDos with real nested Prisma reads and writes", () => {
 });
 
 describe("live parent session revocation", () => {
-  const token = () => signParentJwt({ email, name: "Test Parent", accountId, enrolmentIds: [enrolmentId] });
+  const token = async () => {
+    const account = await prisma.parentAccount.findUniqueOrThrow({ where: { id: accountId } });
+    return signParentJwt({ email, name: "Test Parent", accountId, sessionVersion: account.sessionVersion, enrolmentIds: [enrolmentId] });
+  };
   beforeEach(() => sessionAs(owner));
   it("rejects disabled sessions immediately and keeps them revoked after reactivation", async () => {
     const old = await token(); expect((await parentRequest(old)).status).toBe(200);
@@ -210,5 +295,23 @@ describe("live parent session revocation", () => {
     const response = await parentRequest(old);
     expect(response.status).toBe(200);
     expect((await response.json()).ids).toEqual([]);
+  });
+  it("rejects refreshing an authenticated parent context after password reset", async () => {
+    const old = await token();
+    const session = await getParentSession(createRequest("GET", "/api/parent/state", { headers: { cookie: `parent-session=${old}` } }));
+    expect(session).not.toBeNull();
+    await setParentPasswordDirect({ accountId, password: "FreshTestPassword-9123!" });
+    await expect(signParentJwt({ ...session!, sessionVersion: session!.sessionVersion ?? 0 })).rejects.toMatchObject({ status: 401 });
+  });
+  it("binds password authentication to the version read alongside its password hash", async () => {
+    const password = "OriginalTestPassword-4732!";
+    await setParentPasswordDirect({ accountId, password });
+    const authenticated = await authenticateParent(email, password);
+    expect(authenticated && "accountId" in authenticated).toBe(true);
+    if (!authenticated || !("accountId" in authenticated)) throw new Error("Expected an authenticated account");
+    const observed = await prisma.parentAccount.findUniqueOrThrow({ where: { id: accountId } });
+    expect(authenticated.sessionVersion).toBe(observed.sessionVersion);
+    await setParentPasswordDirect({ accountId, password: "ReplacementTestPassword-7924!" });
+    await expect(signParentJwt({ ...authenticated, name: "Parent", enrolmentIds: [] })).rejects.toMatchObject({ status: 401 });
   });
 });

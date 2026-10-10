@@ -36,12 +36,14 @@ export const GET = withApiHandler(async (req) => {
 
     let updated = 0;
     for (const stmt of overdueStatements) {
-      await prisma.statement.update({
-        where: { id: stmt.id },
+      const result = await prisma.statement.updateMany({
+        where: { id: stmt.id, status: "issued", dueDate: { lt: today }, balance: { gt: 0 } },
         data: { status: "overdue" },
       });
-      void sendOverdueStatementNotification(stmt.id);
-      updated++;
+      if (result.count > 0) {
+        void sendOverdueStatementNotification(stmt.id);
+        updated++;
+      }
     }
 
     logger.info("Overdue statements cron completed", {

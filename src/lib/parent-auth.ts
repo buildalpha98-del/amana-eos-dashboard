@@ -51,16 +51,18 @@ function getSecret(): Uint8Array {
 // ---------------------------------------------------------------------------
 
 /**
- * Sign a JWT for a parent session. Expires in 30 days.
+ * Sign a JWT for a parent session. Expires in 30 days. Callers must carry
+ * the version observed during authentication; refreshing cannot adopt a
+ * newer version after password reset or deactivation. Legacy input is zero.
  */
-export async function signParentJwt(payload: ParentJwtPayload): Promise<string> {
+export async function signParentJwt(payload: ParentJwtPayload & { sessionVersion: number }): Promise<string> {
   const account = await prisma.parentAccount.findUnique({
     where: payload.accountId ? { id: payload.accountId } : { email: payload.email.toLowerCase().trim() },
     select: { id: true, email: true, deactivatedAt: true, sessionVersion: true },
   });
   if ((payload.accountId && !account) || account?.deactivatedAt ||
       (account && (account.email.toLowerCase().trim() !== payload.email.toLowerCase().trim() ||
-       (payload.sessionVersion !== undefined && payload.sessionVersion !== account.sessionVersion)))) {
+       (payload.sessionVersion ?? 0) !== account.sessionVersion))) {
     throw ApiError.unauthorized("Invalid parent account");
   }
   return new SignJWT({ ...payload, ...(account ? { accountId: account.id, sessionVersion: account.sessionVersion } : {}) })

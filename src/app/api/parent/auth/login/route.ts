@@ -50,6 +50,7 @@ export const POST = withApiHandler(async (req) => {
     name: account.name ?? parentName ?? "Parent",
     enrolmentIds,
     accountId: account.accountId,
+    sessionVersion: account.sessionVersion,
   });
 
   const res = NextResponse.json({ success: true });

@@ -29,8 +29,10 @@ backup code before issuing the full session.
 
 Parent JWTs use `ParentAccount.sessionVersion` and a live deactivation check.
 Deactivation and both password-reset paths increment the version; reactivation
-never restores old sessions. Existing tokens without the claim mean version
-zero. Accountless magic-link sessions remain supported, but account lookup and
+never restores old sessions. Signing and refreshing carry the version observed
+when the password, account or existing session was authenticated, so an in-flight
+request cannot adopt a post-reset version. Existing tokens without the claim mean
+version zero. Accountless magic-link sessions remain supported, but account lookup and
 enrolment ownership checks still apply. The migration
 `20261010000000_parent_session_revocation` must be applied before parent routes
 run the new code. Production builds already apply tracked migrations first;
@@ -49,9 +51,11 @@ Xero OAuth callbacks require the current owner and the short-lived HttpOnly
 state cookie created by that owner's connect request.
 
 Bulk roster copying and publication run the existing certificate and induction
-gates before writes. Statement creators and draft editors serialize billed-session
+gates before writes. Statement creators, draft editors and payment writers serialize billed-session
 checks and writes with a transaction-scoped PostgreSQL advisory lock per centre;
-void invoices remain re-billable. Invoice PDF/email processing uses Next.js
+void invoices remain re-billable. Status updates repeat their permitted source
+state at the write: issue, overdue and payment processing cannot revive a void
+invoice, and a concurrent void rolls back payment creation. Invoice PDF/email processing uses Next.js
 `after` through `runAfter`. This extends the request lifetime; it is not a durable
 job queue, and provider failures still require operational follow-up.
 
