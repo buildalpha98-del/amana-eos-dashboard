@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { ENROLMENTS_EMAIL } from "@/lib/enrol-draft";
 import { isTodayOrFutureInServiceTz } from "@/lib/timezone";
 import { isTrustedBlobUrl } from "@/lib/trusted-urls";
-import { getParentChildIds } from "../route";
+import { getParentChildIds } from "../handlers";
 import { parseJsonField } from "@/lib/schemas/json-fields";
 import {
   casualBookingSettingsSchema,

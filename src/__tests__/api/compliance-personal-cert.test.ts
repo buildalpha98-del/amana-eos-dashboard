@@ -260,6 +260,7 @@ describe("POST /api/compliance — admin notification on staff upload", () => {
   it("skips the notification on metadata-only uploads (no fileUrl)", async () => {
     mockSession({
       id: "khawla",
+      name: "Khawla",
       role: "staff",
       serviceId: "svc-1",
     });

@@ -4,7 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { cancelScheduledCampaign, cancelScheduledMessage } from "@/lib/brevo";
-import { REPORT_ROLES } from "../../../reports/[deliveryLogId]/route";
+import { REPORT_ROLES } from "../../../reports/[deliveryLogId]/handlers";
 
 /**
  * POST /api/email/scheduled/:deliveryLogId/cancel — cancel a scheduled send.

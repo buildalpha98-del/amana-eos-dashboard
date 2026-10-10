@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
-import { candidateInclude } from "../route";
+import { candidateInclude } from "../handlers";
 
 import { parseJsonBody } from "@/lib/api-error";
 import {

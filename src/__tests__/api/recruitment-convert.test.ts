@@ -45,7 +45,7 @@ vi.mock("@/lib/notification-defaults", () => ({
 vi.mock("@/lib/onboarding-seed", () => ({
   seedOnboardingPackage: vi.fn(),
 }));
-const createStaffRamp = vi.fn(() => Promise.resolve({ created: true, rampId: "ramp-1" }));
+const createStaffRamp = vi.fn<(...args: unknown[]) => Promise<{ created: boolean; rampId: string }>>(() => Promise.resolve({ created: true, rampId: "ramp-1" }));
 vi.mock("@/lib/ramp/create", () => ({
   createStaffRamp: (...args: unknown[]) => createStaffRamp(...args),
 }));

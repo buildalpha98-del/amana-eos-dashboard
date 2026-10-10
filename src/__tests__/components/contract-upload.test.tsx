@@ -27,7 +27,7 @@ describe("ContractFormFields upload", () => {
         value={{
           userId: "", contractType: "ct_permanent", awardLevel: "", awardLevelCustom: "",
           payRate: "", hoursPerWeek: "", startDate: "", endDate: "", notes: "",
-          documentUrl: null, documentId: null,
+          alreadySigned: false, signedDate: "", documentUrl: null, documentId: null,
         }}
         onChange={handleChange}
         disableUserSelect={false}
@@ -52,7 +52,7 @@ describe("ContractFormFields upload", () => {
     render(
       <ContractFormFields
         users={[]}
-        value={{ userId: "", contractType: "ct_permanent", awardLevel: "", awardLevelCustom: "", payRate: "", hoursPerWeek: "", startDate: "", endDate: "", notes: "", documentUrl: null, documentId: null }}
+        value={{ userId: "", contractType: "ct_permanent", awardLevel: "", awardLevelCustom: "", payRate: "", hoursPerWeek: "", startDate: "", endDate: "", notes: "", alreadySigned: false, signedDate: "", documentUrl: null, documentId: null }}
         onChange={handleChange}
         disableUserSelect={false}
       />
@@ -73,7 +73,7 @@ describe("ContractFormFields upload", () => {
     render(
       <ContractFormFields
         users={[]}
-        value={{ userId: "", contractType: "ct_permanent", awardLevel: "", awardLevelCustom: "", payRate: "", hoursPerWeek: "", startDate: "", endDate: "", notes: "", documentUrl: null, documentId: null }}
+        value={{ userId: "", contractType: "ct_permanent", awardLevel: "", awardLevelCustom: "", payRate: "", hoursPerWeek: "", startDate: "", endDate: "", notes: "", alreadySigned: false, signedDate: "", documentUrl: null, documentId: null }}
         onChange={handleChange}
         disableUserSelect={false}
       />

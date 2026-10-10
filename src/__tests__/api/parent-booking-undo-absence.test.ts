@@ -56,7 +56,7 @@ vi.mock("@/lib/parent-auth", () => ({
 }));
 
 // Returns a SET — the route calls .has() on it.
-vi.mock("@/app/api/parent/bookings/route", () => ({
+vi.mock("@/app/api/parent/bookings/handlers", () => ({
   getParentChildIds: vi.fn(async () => new Set(["child-1"])),
 }));
 

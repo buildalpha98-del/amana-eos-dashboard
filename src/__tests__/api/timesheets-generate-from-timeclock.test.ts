@@ -66,7 +66,7 @@ function resetCommon() {
   prismaMock.activityLog.create.mockResolvedValue({});
 }
 
-function makeRequest(body: unknown = { serviceId: "svc-1", weekEnding: WEEK_ENDING }) {
+function makeRequest(body: Record<string, unknown> = { serviceId: "svc-1", weekEnding: WEEK_ENDING }) {
   return createRequest("POST", "/api/timesheets/generate-from-timeclock", {
     body,
   });

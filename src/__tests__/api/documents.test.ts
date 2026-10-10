@@ -163,10 +163,10 @@ describe("GET /api/documents", () => {
     expect(visibilityClause(callArgs)?.assignedToId).toBeNull();
   });
 
-  it.each(["owner", "admin", "head_office"])(
+  it.each(["owner", "admin", "head_office"] as const)(
     "keeps personal documents out of %s's library view — they live in Staff files",
     async (role) => {
-      mockSession({ id: `${role}-1`, name: "Admin", role: role as never });
+      mockSession({ id: `${role}-1`, name: "Admin", role });
       prismaMock.document.findMany.mockResolvedValue([]);
       prismaMock.document.count.mockResolvedValue(0);
 
@@ -178,10 +178,10 @@ describe("GET /api/documents", () => {
     },
   );
 
-  it.each(["owner", "admin", "head_office"])(
+  it.each(["owner", "admin", "head_office"] as const)(
     "%s can still FIND personal documents by searching",
     async (role) => {
-      mockSession({ id: `${role}-1`, name: "Admin", role: role as never });
+      mockSession({ id: `${role}-1`, name: "Admin", role });
       prismaMock.document.findMany.mockResolvedValue([]);
       prismaMock.document.count.mockResolvedValue(0);
 

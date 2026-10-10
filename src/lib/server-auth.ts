@@ -1,3 +1,4 @@
+import type { WrappedRouteHandler } from "@/lib/route-handler";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
@@ -132,7 +133,7 @@ type AuthenticatedHandler = (
 export function withApiAuth(
   handler: AuthenticatedHandler,
   options?: ApiAuthOptions,
-) {
+): WrappedRouteHandler {
   return async (
     req: NextRequest,
     context?: { params?: Promise<Record<string, string>> },

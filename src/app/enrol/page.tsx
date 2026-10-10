@@ -1,3 +1,4 @@
+import { websiteEnrolContext } from "@/lib/website-enrol-context";
 import { redirect } from "next/navigation";
 
 /**
@@ -20,6 +21,15 @@ import { redirect } from "next/navigation";
  *                             created; this path can be removed once the
  *                             sent ones have aged out.
  */
-export default function EnrolPage() {
-  redirect("/parent/signup");
+export default async function EnrolPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = await searchParams;
+  const raw = new URLSearchParams();
+  for (const key of ["centre", "program"])
+    if (typeof query[key] === "string") raw.set(key, query[key]);
+  const clean = websiteEnrolContext(raw);
+  redirect(`/parent/signup${clean.size ? `?${clean}` : ""}`);
 }

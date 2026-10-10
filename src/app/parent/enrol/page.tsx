@@ -13,6 +13,8 @@
  * button and the server can't disagree about what "finished" means.
  */
 
+import { WEBSITE_CONTEXT_KEY } from "@/lib/website-enrol-context";
+import { WebsiteEnrolContext } from "@/components/enrol/WebsiteEnrolContext";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -208,6 +210,7 @@ export default function ParentEnrolPage() {
         "/api/parent/enrolment-draft/submit",
         { method: "POST", body: { payment } },
       );
+      try { sessionStorage.removeItem(WEBSITE_CONTEXT_KEY); } catch { /* Optional presentation context. */ }
       // The gate in ParentShell reads this; without invalidating, they'd be
       // bounced straight back into the form they just submitted.
       await queryClient.invalidateQueries({ queryKey: ["parent", "state"] });
@@ -257,6 +260,7 @@ export default function ParentEnrolPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-3 sm:px-4 py-6">
+      <WebsiteEnrolContext />
       {/* Progress */}
       <div className="mb-8 overflow-hidden">
         <div className="flex items-center justify-between">

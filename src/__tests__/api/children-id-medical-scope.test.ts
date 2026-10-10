@@ -94,7 +94,7 @@ describe("child medical — centre scope", () => {
     mockSession({ id: "u1", name: "Coord", role: "member", serviceId: "svc-2" });
     prismaMock.child.findUnique.mockResolvedValue({ id: "child-1", serviceId: "svc-1" });
     const res = await PUT(
-      createRequest("PUT", "/api/children/child-1/medical", { anaphylaxisActionPlan: false }),
+      createRequest("PUT", "/api/children/child-1/medical", { body: { anaphylaxisActionPlan: false } }),
       ctx({ id: "child-1" }),
     );
     expect(res.status).toBe(403);

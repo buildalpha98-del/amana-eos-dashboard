@@ -18,7 +18,7 @@ import { assertServiceAccess } from "@/lib/authz-scope";
 import type { SessionType } from "@prisma/client";
 import { resolveRoomId } from "@/lib/room-resolver";
 
-export const HEADCOUNT_KINDS = [
+const HEADCOUNT_KINDS = [
   "head_count",
   "evacuation_drill",
   "excursion_head_count",

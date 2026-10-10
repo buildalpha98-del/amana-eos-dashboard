@@ -37,8 +37,8 @@ const COMPLETE_ME = {
   culturalBackground: "Australian",
   preferredLanguage: "Arabic",
   isLegalCarer: true,
-  ccsApproved: true,
-  ccsApplied: true,
+  ccsApproved: "yes" as const,
+  ccsApplied: "yes" as const,
 };
 
 const COMPLETE_CHILD = {

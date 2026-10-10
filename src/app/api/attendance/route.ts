@@ -4,7 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { z } from "zod";
 import type { SessionType } from "@prisma/client";
-import { propagateEnrolledCounts } from "./propagate/route";
+import { propagateEnrolledCounts } from "./propagate/handlers";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import {
   requireFromMap,

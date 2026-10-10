@@ -92,7 +92,7 @@ describe("POST /api/upload/image", () => {
     mockNoSession();
     const fd = new FormData();
     fd.append("file", new File([jpegBytes()], "a.jpg", { type: "image/jpeg" }));
-    const res = await POST(createFormDataRequest(fd), {});
+    const res = await POST(createFormDataRequest(fd), { params: Promise.resolve({}) });
     expect(res.status).toBe(401);
   });
 
@@ -103,7 +103,7 @@ describe("POST /api/upload/image", () => {
       "file",
       new File([jpegBytes(5 * 1024 * 1024 + 1)], "big.jpg", { type: "image/jpeg" }),
     );
-    const res = await POST(createFormDataRequest(fd), {});
+    const res = await POST(createFormDataRequest(fd), { params: Promise.resolve({}) });
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toMatch(/5MB/i);
@@ -113,7 +113,7 @@ describe("POST /api/upload/image", () => {
     mockSession({ id: "user-1", name: "Test", role: "admin" });
     const fd = new FormData();
     fd.append("file", new File(["hello"], "note.txt", { type: "text/plain" }));
-    const res = await POST(createFormDataRequest(fd), {});
+    const res = await POST(createFormDataRequest(fd), { params: Promise.resolve({}) });
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toMatch(/not allowed/i);
@@ -123,7 +123,7 @@ describe("POST /api/upload/image", () => {
     mockSession({ id: "user-1", name: "Test", role: "admin" });
     const fd = new FormData();
     fd.append("file", new File([jpegBytes()], "x.heif", { type: "image/heif" }));
-    const res = await POST(createFormDataRequest(fd), {});
+    const res = await POST(createFormDataRequest(fd), { params: Promise.resolve({}) });
     expect(res.status).toBe(400);
   });
 
@@ -138,7 +138,7 @@ describe("POST /api/upload/image", () => {
         { type: "image/jpeg" },
       ),
     );
-    const res = await POST(createFormDataRequest(fd), {});
+    const res = await POST(createFormDataRequest(fd), { params: Promise.resolve({}) });
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toMatch(/does not match/i);
@@ -148,7 +148,7 @@ describe("POST /api/upload/image", () => {
     mockSession({ id: "user-1", name: "Test", role: "admin" });
     const fd = new FormData();
     fd.append("file", new File([jpegBytes()], "photo.jpg", { type: "image/jpeg" }));
-    const res = await POST(createFormDataRequest(fd), {});
+    const res = await POST(createFormDataRequest(fd), { params: Promise.resolve({}) });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.url).toMatch(/^https:\/\//);

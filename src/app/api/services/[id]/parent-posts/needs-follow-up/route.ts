@@ -24,7 +24,7 @@ import { assertServiceAccess } from "@/lib/authz-scope";
  * is roughly a programming cycle — long enough that "we haven't got to
  * it yet" isn't the explanation, short enough to still be actionable.
  */
-export const FOLLOW_UP_AFTER_DAYS = 14;
+const FOLLOW_UP_AFTER_DAYS = 14;
 /** And how far back to look: older than this and the moment has passed. */
 const LOOK_BACK_DAYS = 90;
 

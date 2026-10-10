@@ -1,3 +1,4 @@
+import type { WrappedRouteHandler } from "@/lib/route-handler";
 /**
  * Parent Portal authentication utilities.
  *
@@ -128,7 +129,7 @@ const DEFAULT_TIMEOUT_MS = 55_000;
 export function withParentAuth(
   handler: ParentApiHandler,
   options?: { timeoutMs?: number },
-) {
+): WrappedRouteHandler {
   const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   return async (req: NextRequest, routeContext?: RouteContext): Promise<NextResponse> => {
