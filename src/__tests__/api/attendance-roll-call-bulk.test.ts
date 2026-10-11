@@ -49,6 +49,7 @@ describe("POST /api/attendance/roll-call/bulk", () => {
     _clearUserActiveCache();
     vi.clearAllMocks();
     prismaMock.user.findUnique.mockResolvedValue({ active: true });
+    prismaMock.child.findMany.mockResolvedValue([{ id: "c1" }, { id: "c2" }, { id: "c3" }]);
     mockSession({ id: "u1", name: "Admin", role: "owner", serviceId: "svc1" });
     // Shared prisma-mock handles $transaction callback form by passing the proxy
     // itself as `tx`, so `tx.model.method` routes to the same mock as `prisma.model.method`.
