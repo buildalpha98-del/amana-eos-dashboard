@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { usePerformance } from "@/hooks/usePerformance";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV, formatCurrencyCSV } from "@/lib/csv-export";
@@ -44,6 +44,17 @@ import { Download } from "lucide-react";
 
 type ViewMode = "centres" | "leaderboard" | "compare" | "reports" | "forecast";
 
+// Like useOrigin, give hydration the same snapshot as the server before
+// resolving the browser URL. A manual selection then takes precedence.
+const noSubscribe = () => () => {};
+const getServerView = (): ViewMode => "centres";
+function getLinkedView(): ViewMode {
+  const view = new URLSearchParams(window.location.search).get("view");
+  return view === "reports" || view === "leaderboard" || view === "compare" || view === "forecast"
+    ? view
+    : "centres";
+}
+
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-AU", {
     style: "currency",
@@ -85,17 +96,11 @@ export default function PerformancePage() {
   const { data: centres, isLoading, error, refetch } = usePerformance();
   const [sortBy, setSortBy] = useState<string>("overall");
   const [selectedCentreId, setSelectedCentreId] = useState<string | null>(null);
-  // Deep-linkable: /performance?view=reports is the redirect target for
-  // the retired /reports nav entry (2026-07-05 nav consolidation).
-  // window.location (not useSearchParams) so the client page needs no
-  // Suspense boundary for prerender.
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    if (typeof window === "undefined") return "centres";
-    const v = new URLSearchParams(window.location.search).get("view");
-    return v === "reports" || v === "leaderboard" || v === "compare" || v === "forecast"
-      ? (v as ViewMode)
-      : "centres";
-  });
+  // /reports redirects to this deep link. Read it after the initial
+  // hydration snapshot so server and client render identical first trees.
+  const linkedView = useSyncExternalStore(noSubscribe, getLinkedView, getServerView);
+  const [selectedView, setViewMode] = useState<ViewMode | null>(null);
+  const viewMode = selectedView ?? linkedView;
   const [aiDigest, setAiDigest] = useState<string | null>(null);
   const [stateFilter, setStateFilter] = useState<string | null>(null);
 
