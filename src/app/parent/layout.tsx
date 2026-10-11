@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { ParentShell } from "./ParentShell";
 
 export const metadata: Metadata = {
+  title: "Amana OSHC | Your family",
+  description: "Your Amana family hub: enrolment, school information and support from our team.",
   manifest: "/parent-manifest.webmanifest",
   appleWebApp: {
     capable: true,

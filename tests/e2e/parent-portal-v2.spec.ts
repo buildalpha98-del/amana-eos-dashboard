@@ -10,16 +10,9 @@ import {
 } from "./helpers/seed-parent-portal";
 
 /**
- * End-to-end coverage for the parent portal.
- *
- * 2026-09-25: the v1/v2 split is gone. NEXT_PUBLIC_PARENT_PORTAL_V2 was never
- * set in production, so the V2 components had never rendered for a family;
- * they and the `useV2Flag` hook (including its `?v2=1` URL override) have been
- * deleted. The `?v2=1` query params below are now inert — harmless, and left
- * in place only where removing them would churn an otherwise passing test.
- * The specs that asserted V2-ONLY UI (the bookings segmented control + FAB,
- * the getting-started checklist page, and the v1/v2 switcher itself) are gone
- * with the code they covered.
+ * Current parent journey: Amana home, centre information, account and support.
+ * Daily care and child-profile management remain in OWNA while the portal is
+ * locked. Retain coverage of that boundary rather than asserting retired UI.
  */
 
 const STORAGE_STATE_PATH = path.join(
@@ -45,33 +38,39 @@ test.afterAll(async () => {
   await fs.unlink(STORAGE_STATE_PATH).catch(() => {});
 });
 
-test.describe("Parent Portal v2 — authenticated", () => {
+test.describe("Parent portal — authenticated", () => {
   test.use({ storageState: STORAGE_STATE_PATH });
 
-  test("home v2 renders greeting + upcoming sessions", async ({ page }) => {
-    await page.goto("/parent?v2=1");
-    // "Welcome back, <name>" hero
+  test("home renders the Amana welcome and OWNA handoff", async ({ page }) => {
+    await page.goto("/parent");
+    // The branded welcome and enrolment section must load for this family.
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
       timeout: 10_000,
     });
-    // The quick-actions block was replaced by the Upcoming Sessions region
+    // Amana provides school information while daily care remains with OWNA.
     await expect(
-      page.getByRole("heading", { name: /upcoming sessions/i }),
+      page.getByRole("heading", { name: "Your enrolment", exact: true }),
     ).toBeVisible();
+    await expect(page.getByText("One place for information. OWNA for daily care.")).toBeVisible();
+    const school = page.locator(`a[href="/parent/my-centre?centre=${seeded.serviceId}"]`);
+    await expect(school).toBeVisible();
+    await school.click();
+    await expect(page).toHaveURL(new RegExp(`/parent/my-centre\\?centre=${seeded.serviceId}`));
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   });
 
-  test("child detail v2 shows the profile sections", async ({ page }) => {
-    await page.goto(`/parent/children/${seeded.childId}?v2=1`);
+  test("child detail explains the OWNA boundary", async ({ page }) => {
+    await page.goto(`/parent/children/${seeded.childId}`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
       timeout: 10_000,
     });
-    // The hero + 14-day strip became a profile layout (About / Care needs)
-    await expect(page.getByText(/care needs/i).first()).toBeVisible();
-    await expect(page.getByText(/medical conditions/i).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Bookings and fees with OWNA" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Get help with OWNA access" })).toHaveAttribute("href", "/parent/messages");
+    await expect(page.getByText(/medical conditions/i)).toHaveCount(0);
   });
 
-  test("messages v2 list renders", async ({ page }) => {
-    await page.goto("/parent/messages?v2=1");
+  test("messages list renders", async ({ page }) => {
+    await page.goto("/parent/messages");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     // Either conversation rows OR empty state
     const hasEmpty = await page
@@ -87,22 +86,22 @@ test.describe("Parent Portal v2 — authenticated", () => {
   });
 
   test("account page shows the editable profile fields", async ({ page }) => {
-    await page.goto("/parent/account?v2=1");
+    await page.goto("/parent/account");
     await expect(page.getByText(/first name/i)).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(/date of birth/i)).toBeVisible();
     await expect(page.getByText(/crn/i)).toBeVisible();
     await expect(page.getByText(/relationship/i)).toBeVisible();
   });
 
-  test("children list v2 renders KidPill cards", async ({ page }) => {
-    await page.goto("/parent/children?v2=1");
-    await expect(page.getByText(/your children/i)).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText("E2EChild", { exact: false })).toBeVisible();
+  test("children list directs families to OWNA", async ({ page }) => {
+    await page.goto("/parent/children");
+    await expect(page.getByRole("heading", { name: "Bookings and fees with OWNA" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Back to your Amana home" })).toHaveAttribute("href", "/parent");
   });
 
 });
 
-test.describe("Parent Portal v2 — engagement API (authenticated)", () => {
+test.describe("Parent portal — engagement API (authenticated)", () => {
   test.use({ storageState: STORAGE_STATE_PATH });
 
   test("timeline GET includes like/comment counts + likedByMe", async ({ request }) => {
@@ -118,7 +117,7 @@ test.describe("Parent Portal v2 — engagement API (authenticated)", () => {
   });
 });
 
-test.describe("Parent Portal v2 — enrolment-driven account creation", () => {
+test.describe("Parent portal — enrolment-driven account creation", () => {
   test("resend-invite endpoint rejects unauthenticated calls", async ({ request }) => {
     // No session — should 401
     const res = await request.post(

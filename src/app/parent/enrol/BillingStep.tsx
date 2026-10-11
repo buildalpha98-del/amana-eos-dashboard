@@ -17,6 +17,7 @@
  * OWNA port, matching src/app/api/enrol/route.ts.
  */
 
+import Image from "next/image";
 import { ShieldCheck } from "lucide-react";
 import {
   DIRECT_DEBIT_FEE,
@@ -32,6 +33,12 @@ import {
   WEEKDAYS,
   type DraftBilling,
 } from "@/lib/enrol-draft";
+
+const PROGRAM_LOGOS: Record<string, string> = {
+  riseAndShine: "/amana-assets/club-rise-shine.svg",
+  amanaAfternoons: "/amana-assets/club-afternoons.svg",
+  holidayQuest: "/amana-assets/club-holiday-quest.svg",
+};
 
 export interface PaymentEntry {
   method: "credit_card" | "bank_account" | "";
@@ -163,11 +170,12 @@ export function BillingStep({
                 className="grid grid-cols-1 sm:grid-cols-[minmax(0,11rem)_1fr] gap-2 sm:gap-4 items-start py-3 border-b border-border last:border-b-0"
               >
                 <div className="sm:text-right sm:pt-1.5">
+                  <Image src={PROGRAM_LOGOS[row.key]} alt="" width={88} height={64} className="h-14 w-20 object-contain mb-2 sm:ml-auto" />
                   <span className="block text-sm font-semibold text-foreground">
                     {row.label}
                   </span>
                   <span className="block text-xs text-muted mt-0.5">
-                    {row.time}
+                    Hours vary by school
                   </span>
                 </div>
 
@@ -215,10 +223,13 @@ export function BillingStep({
 
         {!anySessionSelected(data) && (
           <p className="mt-2 text-xs text-muted">
-            Pick at least one — you can change these any time once
-            you&apos;re enrolled.
+            Pick at least one program.
           </p>
         )}
+        <p className="mt-2 text-xs text-muted">
+          Our team will confirm availability and session times. After enrolment,
+          request booking changes through OWNA or your service team.
+        </p>
       </div>
 
       <div className="pt-4 border-t border-border space-y-4">

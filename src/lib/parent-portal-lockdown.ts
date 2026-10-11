@@ -16,13 +16,14 @@ export const PARENT_PORTAL_LOCKED = true;
 
 /** What parents are told whenever they reach something that's switched off. */
 export const OWNA_BOOKING_MESSAGE =
-  "Bookings are made in OWNA, not in this app. We'll email you new OWNA login details — if you need a hand, send us a message.";
+  "Bookings and fees are managed in OWNA. If you need your invitation or help signing in, message the Amana team.";
 
 /** Parent pages that stay usable while the portal is locked. */
 export function isAllowedWhileLocked(pathname: string | null | undefined): boolean {
   if (!pathname) return false;
   const under = (base: string) => pathname === base || pathname.startsWith(`${base}/`);
   return (
+    pathname === "/parent" ||
     under("/parent/enrol") || // the form AND its thank-you page
     pathname === "/parent/children/new" || // enrol a sibling (re-opens the form)
     under("/parent/messages") || // support stays open

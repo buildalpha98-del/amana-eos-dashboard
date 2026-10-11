@@ -143,16 +143,20 @@ test.beforeAll(async ({ browser }) => {
 });
 
 test.afterAll(async () => {
-  // Clean up in reverse-dependency order
-  await prisma.activityLog
-    .deleteMany({ where: { entityType: "EmploymentContract", entityId: issuedContractId } })
-    .catch(() => {});
-  if (issuedContractId) {
-    await prisma.employmentContract.deleteMany({ where: { id: issuedContractId } }).catch(() => {});
+  // Never pass undefined IDs: Prisma omits those filters. Collect only
+  // contracts owned by this test's staff member, even after an early failure.
+  const contracts = seededStaffId ? await prisma.employmentContract.findMany({
+    where: { userId: seededStaffId }, select: { id: true },
+  }) : [];
+  const contractIds = contracts.map((contract) => contract.id);
+  if (contractIds.length) {
+    await prisma.activityLog.deleteMany({ where: { entityType: "EmploymentContract", entityId: { in: contractIds } } });
+    await prisma.employmentContract.deleteMany({ where: { id: { in: contractIds } } });
   }
-  await prisma.contractTemplate.deleteMany({ where: { id: seededTemplateId } }).catch(() => {});
-  await prisma.user.deleteMany({ where: { id: { in: [seededAdminId, seededStaffId] } } }).catch(() => {});
-  await prisma.service.deleteMany({ where: { id: seededServiceId } }).catch(() => {});
+  if (seededTemplateId) await prisma.contractTemplate.deleteMany({ where: { id: seededTemplateId } });
+  const userIds = [seededAdminId, seededStaffId].filter((id): id is string => Boolean(id));
+  if (userIds.length) await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+  if (seededServiceId) await prisma.service.deleteMany({ where: { id: seededServiceId } });
   await fs.unlink(ADMIN_SESSION).catch(() => {});
   await fs.unlink(STAFF_SESSION).catch(() => {});
   await prisma.$disconnect();
@@ -178,7 +182,8 @@ test.describe("Contract-templates — admin issues, staff acknowledges", () => {
 
   // ── Step B: Issue a contract from the template (3-step modal — details, then review & sign) ──
 
-  test("admin issues a contract from template via the issue modal", async ({ browser }) => {
+  test("admin issues a contract and staff signs it with persisted acknowledgement", async ({ browser }) => {
+    test.setTimeout(120_000);
     const ctx = await browser.newContext({ storageState: ADMIN_SESSION });
     const page = await ctx.newPage();
 
@@ -265,11 +270,7 @@ test.describe("Contract-templates — admin issues, staff acknowledges", () => {
     ).toBeVisible({ timeout: 15_000 });
 
     await ctx.close();
-  });
-
-  // ── Step C: DB assertions ──────────────────────────────────────────────────
-
-  test("issued contract has templateId, templateValues, and documentUrl set", async () => {
+    // Verify issuance and signing in one independently retryable journey.
     // Find the contract we just issued
     const contract = await prisma.employmentContract.findFirst({
       where: {
@@ -287,13 +288,7 @@ test.describe("Contract-templates — admin issues, staff acknowledges", () => {
 
     // Capture the ID for the acknowledgement tests and cleanup
     issuedContractId = contract!.id;
-  });
-
-  // ── Step D: Staff logs in and acknowledges the contract ───────────────────
-
-  test("staff logs in, sees the contract on My Portal, and acknowledges it", async ({ browser }) => {
-    // Ensure the contract was found in the previous test
-    expect(issuedContractId).toBeTruthy();
+    // Staff signs the contract issued in this same test.
 
     // Authenticate as staff
     const staffCtx = await browser.newContext();
@@ -338,19 +333,31 @@ test.describe("Contract-templates — admin issues, staff acknowledges", () => {
 
     const confirmBtn = staffPage.getByRole("button", { name: /confirm signature/i });
     await expect(confirmBtn).toBeEnabled({ timeout: 10_000 });
+    const acknowledgement = staffPage.waitForResponse((response) =>
+      response.url().endsWith(`/api/contracts/${issuedContractId}/acknowledge`) &&
+      response.request().method() === "POST",
+    );
     await confirmBtn.click();
-
-    // Signing UI resolves to the acknowledged state.
-    await expect(confirmBtn).not.toBeVisible({ timeout: 15_000 });
+    expect((await acknowledgement).status()).toBe(200);
+    // The button changes its label to Signing… while pending. Only this
+    // positive success state proves the request has finished.
+    await expect(viewer.getByText("Signed just now", { exact: true })).toBeVisible();
 
     // DB assertion: acknowledgedByStaff is now true
     const updated = await prisma.employmentContract.findUnique({
       where: { id: issuedContractId },
-      select: { acknowledgedByStaff: true, acknowledgedAt: true },
+      select: { acknowledgedByStaff: true, acknowledgedAt: true, staffSignatureDataUrl: true },
     });
     expect(updated?.acknowledgedByStaff).toBe(true);
     expect(updated?.acknowledgedAt).not.toBeNull();
+    expect(updated?.staffSignatureDataUrl).toMatch(/^data:image\/png;base64,/);
 
+    await staffPage.keyboard.press("Escape");
+    await expect(viewer).not.toBeVisible();
+    await expect(staffPage.getByRole("button", { name: /read & sign your contract/i })).toHaveCount(0);
+    await expect(staffPage.getByText("Signed", { exact: true })).toBeVisible();
+    await staffPage.reload();
+    await expect(staffPage.getByText("Signed", { exact: true })).toBeVisible();
     await staffCtx.close();
   });
 });

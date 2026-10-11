@@ -134,6 +134,7 @@ export function ContractViewerModal({ contract, onClose }: Props) {
     onSuccess: () => {
       toast({ description: "Contract signed." });
       qc.invalidateQueries({ queryKey: ["my-portal"] });
+      qc.invalidateQueries({ queryKey: ["my-contracts"] });
       setSigning(false);
     },
     onError: (err: Error) => {

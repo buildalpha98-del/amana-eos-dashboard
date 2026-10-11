@@ -15,6 +15,7 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 // Mock billing notification and PDF modules
+vi.mock("@/lib/billing/statement-delivery", () => ({ processStatementDelivery: vi.fn(async () => {}) }));
 vi.mock("@/lib/notifications/billing", () => ({
   sendStatementIssuedNotification: vi.fn(),
   sendPaymentReceivedNotification: vi.fn(),

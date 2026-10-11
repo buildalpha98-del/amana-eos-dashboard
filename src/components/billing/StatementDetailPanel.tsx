@@ -3,8 +3,11 @@
 import { X, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useBillingStatementDetail } from "@/hooks/useBilling";
+import { useBillingStatementDetail, useRetryStatementDelivery } from "@/hooks/useBilling";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
+import { useSession } from "next-auth/react";
+import { isAdminRole } from "@/lib/role-permissions";
+import { Button } from "@/components/ui/Button";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -54,6 +57,9 @@ export function StatementDetailPanel({
 }) {
   useEscapeClose(onClose);
   const { data, isLoading } = useBillingStatementDetail(statementId);
+  const retryDelivery = useRetryStatementDelivery();
+  const { data: session } = useSession();
+  const isAdmin = isAdminRole(session?.user?.role);
 
   if (!statementId) return null;
 
@@ -254,6 +260,23 @@ export function StatementDetailPanel({
                 </div>
               )}
             </section>
+
+            {data.status !== "draft" && (
+              <section aria-label="Statement delivery" className="rounded-lg border border-border bg-surface p-3 space-y-2">
+                <h3 className="text-sm font-semibold text-foreground">Statement delivery</h3>
+                <p role="status" className="text-sm text-muted">
+                  {{ pending: "Delivery queued", processing: "Preparing PDF or sending email", failed: "Delivery attempt failed", sent: "Email accepted by provider", blocked: "Delivery blocked — check the recipient and email configuration", needs_review: "Delivery needs review — check provider records before sending again", cancelled: "Delivery cancelled" }[data.delivery?.status ?? ""] ?? "Delivery history is unavailable for this statement"}
+                </p>
+                {data.delivery?.status === "sent" && <p className="text-xs text-muted">Provider acceptance does not confirm inbox delivery.</p>}
+                {data.delivery?.nextAttemptAt && data.delivery.status === "failed" && <p className="text-xs text-muted">An automatic retry is scheduled.</p>}
+                {isAdmin && data.delivery?.canRetry && (
+                  <Button variant="outline" disabled={retryDelivery.isPending} aria-busy={retryDelivery.isPending} onClick={() => retryDelivery.mutate(data.id)}>
+                    {retryDelivery.isPending ? "Queuing retry…" : "Retry delivery"}
+                  </Button>
+                )}
+                {retryDelivery.isError && <p role="alert" className="text-sm text-danger">{retryDelivery.error.message || "Could not queue delivery retry"}</p>}
+              </section>
+            )}
 
             {/* PDF Download */}
             {data.pdfUrl && (

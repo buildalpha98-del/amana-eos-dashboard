@@ -19,7 +19,7 @@ export const FROM_EMAIL =
 
 // ── Suppression-aware send wrapper ─────────────────────────
 
-interface SendEmailParams {
+export interface SendEmailParams {
   from?: string;
   to: string | string[];
   subject: string;
@@ -46,7 +46,7 @@ export interface SendEmailResult {
    * place it mattered most was the password reset, where the user is
    * told "a link has been sent" and nothing arrives.
    */
-  failed?: { message: string; name?: string };
+  failed?: { message: string; name?: string; statusCode?: number | null };
 }
 
 /**
@@ -54,7 +54,7 @@ export interface SendEmailResult {
  *
  * Returns which addresses were sent vs suppressed.
  */
-export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
+export async function sendEmail(params: SendEmailParams, options?: { idempotencyKey: string; signal?: AbortSignal }): Promise<SendEmailResult> {
   const resend = getResend();
   if (!resend) {
     throw new Error("Email is not configured. Set RESEND_API_KEY environment variable.");
@@ -69,7 +69,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
   for (const email of recipients) {
     if (suppressedSet.has(email.toLowerCase())) {
       suppressed.push(email);
-      if (process.env.NODE_ENV !== "production") logger.info("Email suppressed (bounce/complaint)", { email });
+      if (!options && process.env.NODE_ENV !== "production") logger.info("Email suppressed (bounce/complaint)", { email });
     } else {
       eligible.push(email);
     }
@@ -79,13 +79,18 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     return { suppressed, sent: [] };
   }
 
-  const { data, error } = await resend.emails.send({
+  const payload = {
     from: params.from ?? FROM_EMAIL,
     to: eligible,
     subject: params.subject,
     html: params.html,
     replyTo: params.replyTo,
-  });
+  };
+  // The locked SDK forwards request options through to fetch. The abort signal
+  // bounds recoverable invoice sends; existing callers retain their SDK path.
+  const { data, error } = options
+    ? await resend.emails.send(payload, options)
+    : await resend.emails.send(payload);
 
   /**
    * Deliberately not thrown.
@@ -98,7 +103,11 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
    * to act on it can read `failed`.
    */
   if (error) {
-    logger.error("Email rejected by provider", {
+    // Recoverable sends keep recipients, subjects and raw provider bodies out
+    // of operational logs; the caller persists a bounded error code instead.
+    logger.error("Email rejected by provider", options ? {
+      statusCode: error.statusCode,
+    } : {
       to: eligible,
       subject: params.subject,
       error: error.message,
@@ -107,9 +116,11 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     return {
       suppressed,
       sent: [],
-      failed: { message: error.message, name: error.name },
+      failed: { message: error.message, name: error.name, statusCode: error.statusCode },
     };
   }
+
+  if (!data?.id) return { suppressed, sent: [], failed: { message: "Provider acceptance was not confirmed", name: "application_error" } };
 
   return {
     messageId: data?.id,

@@ -93,8 +93,9 @@ export async function sendParentWelcomeInvite(
          <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
            ${childName}&apos;s enrolment at <strong>${centreName}</strong> has been approved.
            Your parent portal account is ready — tap the button below to log in and
-           take a look. You can see today&apos;s sessions, book casuals, message us, and
-           keep all your details up to date.
+           find your school information, arrival and pickup guidance, and message our team.
+           Bookings, invoices and daily updates are managed separately in OWNA.
+           Please confirm your OWNA access and booked sessions with our team before your first day.
          </p>
          <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
            This link is valid for 30 days. After that, you can always request a fresh

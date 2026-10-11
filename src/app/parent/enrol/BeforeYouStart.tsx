@@ -15,7 +15,9 @@
 
 import {
   Baby,
-  Building2,
+  ArrowRight,
+  Clock3,
+  Save,
   ClipboardList,
   CreditCard,
   FileText,
@@ -84,30 +86,39 @@ export function BeforeYouStart({
   resuming?: boolean;
 }) {
   return (
-    <div className="max-w-2xl mx-auto px-3 sm:px-4 py-6 space-y-5">
-      <div className="text-center space-y-2">
-        <div className="w-14 h-14 rounded-full bg-accent/25 flex items-center justify-center mx-auto">
-          <Building2 className="w-7 h-7 text-brand" />
-        </div>
-        <h1 className="text-2xl font-heading font-bold text-foreground">
+    <div className="max-w-4xl mx-auto px-5 sm:px-8 py-8 sm:py-12 space-y-7">
+      <div className="text-center space-y-4">
+        <p className="text-xs font-semibold tracking-[0.18em] uppercase text-brand">
+          A little preparation. A bright beginning.
+        </p>
+        <h1 className="text-4xl sm:text-5xl text-brand">
           {resuming ? "What you'll need" : "Before you start"}
         </h1>
-        <p className="text-sm text-muted max-w-md mx-auto">
+        <p className="text-base leading-relaxed text-brand/80 max-w-xl mx-auto">
           Enrolling takes about <strong>15 minutes</strong> if you have these
           handy. Your answers save as you go, so you can stop and come back any
           time.
         </p>
       </div>
 
-      <div className="bg-card rounded-xl border border-border divide-y divide-border">
+      <div className="flex flex-wrap justify-center gap-3 text-sm text-brand">
+        <span className="inline-flex items-center gap-2 rounded-full bg-card px-4 py-2">
+          <Clock3 aria-hidden="true" className="h-4 w-4" /> About 15 minutes
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-full bg-card px-4 py-2">
+          <Save aria-hidden="true" className="h-4 w-4" /> Save and come back
+        </span>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
         {GROUPS.map((g) => (
-          <div key={g.title} className="flex gap-3 p-4">
-            <span className="w-9 h-9 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-              <g.icon className="w-4 h-4 text-brand" />
+          <div key={g.title} className="flex gap-3 rounded-2xl border border-brand/10 bg-card p-5 sm:p-6">
+            <span className="w-10 h-10 rounded-full bg-accent/30 flex items-center justify-center shrink-0">
+              <g.icon aria-hidden="true" className="w-5 h-5 text-brand" />
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">{g.title}</p>
-              <ul className="mt-1 space-y-1 text-sm text-muted list-disc pl-4">
+              <h2 className="text-lg leading-snug text-brand">{g.title}</h2>
+              <ul className="mt-2 space-y-2 text-sm leading-relaxed text-brand/80 list-disc pl-4">
                 {g.items.map((i) => (
                   <li key={i}>{i}</li>
                 ))}
@@ -117,12 +128,16 @@ export function BeforeYouStart({
         ))}
       </div>
 
-      <p className="text-xs text-muted text-center">
+      <p className="text-sm leading-relaxed text-brand/80 text-center max-w-xl mx-auto">
         Missing something? Start anyway — you can come back to finish. A photo
         taken on your phone is fine for every document.
       </p>
 
-      <Button className="w-full min-h-12" onClick={onStart}>
+      <Button
+        className="w-full min-h-12 rounded-full bg-accent text-brand-dark hover:bg-accent/85 sm:max-w-sm sm:mx-auto sm:flex"
+        iconRight={<ArrowRight aria-hidden="true" className="h-4 w-4" />}
+        onClick={onStart}
+      >
         {resuming ? "Back to the form" : "I'm ready — let's start"}
       </Button>
     </div>

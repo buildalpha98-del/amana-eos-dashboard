@@ -754,8 +754,9 @@ export function nurtureSessionReminderEmail(
         <td style="padding:16px 20px;background-color:#FFFAE6;border-bottom:1px solid #FFF2BF;">
           <p style="margin:0 0 4px;color:#B78F00;font-size:13px;font-weight:700;">KNOW THE TIMES</p>
           <p style="margin:0;color:#374151;font-size:14px;line-height:1.8;">
-            <strong>Before School Care:</strong> drop off from 6:30 AM &nbsp;&#8226;&nbsp;
-            <strong>Afternoons:</strong> pick up whenever suits you, latest 6:30 PM
+            <strong>Before School Care:</strong> check your centre’s opening time and your confirmed session details.<br/>
+            <strong>Afternoons:</strong> collect your child at any time during the session, before your centre closes.
+            Contact your team if you are unsure of the times or meeting point.
           </p>
         </td>
       </tr>
@@ -1012,18 +1013,19 @@ export async function nurtureAppSetupEmail(firstName: string, centreName: string
       <tr>
         <td style="padding:24px;">
           <p style="margin:0 0 12px;color:#FECE00;font-size:15px;font-weight:700;">
-            Set up in 60 seconds:
+            Getting connected:
           </p>
           <p style="margin:0;color:#ffffff;font-size:14px;line-height:2;">
             1. Download <strong>OWNA</strong> from the App Store or Google Play<br/>
-            2. Sign up with the same email you enrolled with<br/>
-            3. Follow the prompts to link your child's profile
+            2. Follow the instructions in the OWNA invitation arranged by our team<br/>
+            3. Sign in and check that your child and booked sessions appear correctly.
+            Already using OWNA? Keep using your existing access.
           </p>
         </td>
       </tr>
     </table>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Having trouble? Pop into the centre and our team will get you set up on the spot.
+      Missing your invitation or having trouble signing in? Contact our team for help. Your Amana family hub password does not sign you into OWNA.
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Stay connected,<br/>

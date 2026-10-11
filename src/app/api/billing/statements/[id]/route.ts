@@ -9,6 +9,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { assertUnbilledLines } from "@/lib/billing/unbilled-lines";
 import { withStatementLock } from "@/lib/billing/statement-lock";
 import { requireFromMap, resolveRoomIds } from "@/lib/room-resolver";
+import { deliverySummary } from "@/lib/billing/statement-delivery";
 
 /* ------------------------------------------------------------------ */
 /*  GET /api/billing/statements/[id] — statement detail               */
@@ -20,6 +21,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
   const statement = await prisma.statement.findUnique({
     where: { id },
     include: {
+      delivery: { select: { status: true, attemptCount: true, nextAttemptAt: true, sentAt: true, lastErrorCode: true, firstSendStartedAt: true } },
       contact: { select: { id: true, firstName: true, lastName: true, email: true } },
       service: { select: { id: true, name: true } },
       lineItems: {
@@ -47,7 +49,8 @@ export const GET = withApiAuth(async (_req, session, context) => {
   // Centre scope (2026-10-08): the list was scoped, the detail wasn't.
   assertServiceAccess(session, statement.serviceId);
 
-  return NextResponse.json(statement);
+  const { delivery, ...details } = statement;
+  return NextResponse.json({ ...details, delivery: deliverySummary(delivery, statement.status) });
 });
 
 /* ------------------------------------------------------------------ */

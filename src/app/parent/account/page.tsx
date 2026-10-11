@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { PARENT_PORTAL_LOCKED } from "@/lib/parent-portal-lockdown";
 import { Save, LogOut, Plus, Trash2 } from "lucide-react";
 import {
   useParentProfile,
@@ -128,6 +130,14 @@ function AccountForm({ profile }: { profile: ParentProfile }) {
         </p>
       </div>
 
+      {PARENT_PORTAL_LOCKED && (
+        <aside className="rounded-2xl border border-accent/40 bg-accent/20 p-4 text-sm leading-relaxed">
+          <h2 className="font-semibold text-foreground">Keep your OWNA details up to date too</h2>
+          <p className="mt-2 text-muted">Saving here updates your Amana record only. It does not update OWNA, which your service currently uses for day-to-day care. Please update your details in OWNA as well.</p>
+          <p className="mt-2 text-muted">For urgent changes to emergency contacts or pickup arrangements, contact your service before your child attends.</p>
+          <Link href="/parent/my-centre" className="mt-2 inline-flex min-h-11 items-center font-semibold text-brand underline underline-offset-4">Find your service’s contact details</Link>
+        </aside>
+      )}
       <EnableNotificationsCard />
 
       {/* Profile (editable) */}

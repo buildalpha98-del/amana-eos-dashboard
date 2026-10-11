@@ -407,6 +407,7 @@ function EnrolmentRow({
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${badge.color}`}>
           {badge.label}
         </span>
+        {s.ownaHandoffSummary && <span className="text-2xs font-medium rounded-full bg-surface px-2 py-1 text-foreground">{s.ownaHandoffSummary}</span>}
         {/*
           An enrolment with no service has children on no roll and no
           invoices. It looks perfectly healthy in this list otherwise, so

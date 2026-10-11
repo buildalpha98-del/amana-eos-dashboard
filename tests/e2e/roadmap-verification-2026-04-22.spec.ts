@@ -378,7 +378,7 @@ test.describe("Middleware + canAccessPage agree for key paths (owner view)", () 
   for (const [path, settlesOn] of [
     ["/admin/feedback", /\/feedback\?tab=internal/],
     ["/contracts", /\/contracts/],
-    ["/recruitment", /\/recruitment/],
+    ["/recruitment", /\/hiring/],
   ] as const) {
     test(`owner can open ${path}`, async ({ page }) => {
       await page.goto(path);
@@ -419,7 +419,7 @@ test.describe("4a smoke: services detail lands on Today tab by default", () => {
     await expect(page.getByText("Something went wrong")).not.toBeVisible();
   });
 
-  test("Overview tab shows the Approvals & Session Times card", async ({ page }) => {
+  test("Configure opens service information and session times", async ({ page }) => {
     const href = await firstServiceHref(page);
     if (!href) {
       test.skip(true, "No services in DB");
@@ -427,9 +427,10 @@ test.describe("4a smoke: services detail lands on Today tab by default", () => {
     }
     await page.goto(`${href}?tab=overview`);
     await page.waitForLoadState("networkidle");
-    await expect(page.getByText(/service approvals\s*&\s*session times/i)).toBeVisible({
-      timeout: 15_000,
-    });
+    const infoNav = page.getByRole("navigation", { name: "Service information" });
+    await expect(infoNav.getByRole("button", { name: "Centre details" })).toHaveAttribute("aria-current", "page");
+    await infoNav.getByRole("button", { name: "Session times" }).click();
+    await expect(page.getByRole("heading", { name: "Session times", exact: true })).toBeVisible();
   });
 
   test("Monthly view → click a day → URL switches to daily with preserved date", async ({

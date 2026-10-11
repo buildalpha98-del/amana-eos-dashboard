@@ -1,12 +1,13 @@
 /**
  * Billing email notifications — statement issued, payment received, overdue.
- * All functions are fire-and-forget safe: errors are logged, never thrown.
+ * Send helpers log failures; preparation throws so durable workers can recover.
  */
 
 import { prisma } from "@/lib/prisma";
 import { sendNotificationEmail } from "@/lib/notifications/sendEmail";
-import { parentEmailLayout, buttonHtml } from "@/lib/email-templates/base";
+import { parentEmailLayout, buttonHtml, escapeHtml } from "@/lib/email-templates/base";
 import { logger } from "@/lib/logger";
+import { FROM_EMAIL, type SendEmailParams } from "@/lib/email";
 
 const PARENT_PORTAL_URL =
   process.env.NEXT_PUBLIC_APP_URL || "https://amanaoshc.company";
@@ -41,90 +42,66 @@ function formatCurrency(amount: number): string {
 
 // ─── Statement Issued ───────────────────────────────────────
 
-export async function sendStatementIssuedNotification(
-  statementId: string,
-): Promise<void> {
-  try {
-    const statement = await prisma.statement.findUnique({
-      where: { id: statementId },
-      include: {
-        contact: { select: { firstName: true, lastName: true, email: true } },
-        service: { select: { name: true } },
-      },
-    });
+export async function prepareStatementIssuedEmail(statementId: string): Promise<SendEmailParams> {
+  const statement = await prisma.statement.findUniqueOrThrow({
+    where: { id: statementId },
+    include: { contact: { select: { firstName: true, lastName: true, email: true } }, service: { select: { name: true } } },
+  });
+  const { contact, service } = statement;
+  if (!contact.email) throw new Error("MISSING_RECIPIENT");
+  const name = escapeHtml(contact.firstName || "Parent");
+  const weekLabel = formatWeekOf(statement.periodStart);
 
-    if (!statement) {
-      logger.warn("Billing notification: statement not found", { statementId });
-      return;
+  const pdfButton = statement.pdfUrl
+    ? buttonHtml("Download Statement PDF", escapeHtml(statement.pdfUrl))
+    : "";
+
+  const html = parentEmailLayout(`
+  <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    Assalamu Alaikum ${name}
+  </h2>
+  <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+    Your statement for <strong>${escapeHtml(service.name)}</strong> is ready.
+  </p>
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+    <tr>
+      <td style="padding:12px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Week of</td>
+      <td style="padding:12px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;color:#111827;font-size:14px;font-weight:600;text-align:right;">${weekLabel}</td>
+    </tr>
+    <tr>
+      <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Service</td>
+      <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#111827;font-size:14px;text-align:right;">${escapeHtml(service.name)}</td>
+    </tr>
+    <tr>
+      <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Gap fee</td>
+      <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#111827;font-size:14px;font-weight:600;text-align:right;">${formatCurrency(statement.gapFee)}</td>
+    </tr>
+    ${
+      statement.dueDate
+        ? `<tr>
+      <td style="padding:12px 16px;color:#6b7280;font-size:13px;">Due date</td>
+      <td style="padding:12px 16px;color:#111827;font-size:14px;text-align:right;">${formatDate(statement.dueDate)}</td>
+    </tr>`
+        : ""
     }
-
-    const { contact, service } = statement;
-    if (!contact.email) {
-      logger.warn("Billing notification: contact has no email", {
-        statementId,
-        contactId: statement.contactId,
-      });
-      return;
-    }
-
-    const name = contact.firstName || "Parent";
-    const weekLabel = formatWeekOf(statement.periodStart);
-
-    const pdfButton = statement.pdfUrl
-      ? buttonHtml("Download Statement PDF", statement.pdfUrl)
-      : "";
-
-    const html = parentEmailLayout(`
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
-      Assalamu Alaikum ${name}
-    </h2>
-    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Your statement for <strong>${service.name}</strong> is ready.
-    </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
-      <tr>
-        <td style="padding:12px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Week of</td>
-        <td style="padding:12px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;color:#111827;font-size:14px;font-weight:600;text-align:right;">${weekLabel}</td>
-      </tr>
-      <tr>
-        <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Service</td>
-        <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#111827;font-size:14px;text-align:right;">${service.name}</td>
-      </tr>
-      <tr>
-        <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Gap fee</td>
-        <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#111827;font-size:14px;font-weight:600;text-align:right;">${formatCurrency(statement.gapFee)}</td>
-      </tr>
-      ${
-        statement.dueDate
-          ? `<tr>
-        <td style="padding:12px 16px;color:#6b7280;font-size:13px;">Due date</td>
-        <td style="padding:12px 16px;color:#111827;font-size:14px;text-align:right;">${formatDate(statement.dueDate)}</td>
-      </tr>`
-          : ""
-      }
-    </table>
-    ${pdfButton}
-    ${buttonHtml("View in Parent Portal", `${PARENT_PORTAL_URL}/parent/billing`)}
-    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
-      Jazak Allahu Khairan,<br/>
-      <strong>The Amana OSHC Team</strong>
-    </p>
+  </table>
+  ${pdfButton}
+  ${buttonHtml("View in Parent Portal", escapeHtml(`${PARENT_PORTAL_URL}/parent/billing`))}
+  <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+    Jazak Allahu Khairan,<br/>
+    <strong>The Amana OSHC Team</strong>
+  </p>
   `);
 
-    await sendNotificationEmail({
-      to: contact.email,
-      toName: name,
-      subject: `Your Amana OSHC statement is ready — week of ${weekLabel}`,
-      html,
-      type: "statement_issued",
-      relatedId: statementId,
-      relatedType: "Statement",
-    });
+  return { from: FROM_EMAIL, to: [contact.email], subject: `Your Amana OSHC statement is ready — week of ${weekLabel}`, html };
+}
+
+export async function sendStatementIssuedNotification(statementId: string): Promise<void> {
+  try {
+    const payload = await prepareStatementIssuedEmail(statementId);
+    await sendNotificationEmail({ ...payload, to: (payload.to as string[])[0], type: "statement_issued", relatedId: statementId, relatedType: "Statement" });
   } catch (error) {
-    logger.error("Billing notification: failed to send statement issued email", {
-      statementId,
-      error,
-    });
+    logger.error("Billing notification: failed to send statement issued email", { statementId, error });
   }
 }
 
