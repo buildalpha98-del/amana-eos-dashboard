@@ -3,6 +3,11 @@ import AxeBuilder from "@axe-core/playwright";
 import { PrismaClient } from "@prisma/client";
 import { seedParent, cleanupParent, disconnect, type SeededParent } from "./helpers/seed-parent-portal";
 
+// These replay/concurrency checks use the full ten-attempt allowance. Keep
+// their local proxy IP separate from other parent fixtures without weakening
+// the application rate limit or delaying the rest of the browser suite.
+test.use({ extraHTTPHeaders: { "X-Forwarded-For": "192.0.2.41" } });
+
 const prisma = new PrismaClient();
 let seeded: SeededParent;
 test.beforeEach(async () => { seeded = await seedParent({}); });

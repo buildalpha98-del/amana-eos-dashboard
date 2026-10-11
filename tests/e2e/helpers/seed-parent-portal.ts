@@ -152,9 +152,8 @@ export async function saveParentSession(
       .post("/api/parent/auth/verify", {
         data: { token: seeded.rawToken },
         headers: { Origin: new URL(baseURL).origin },
-      })
-      .catch(() => null);
-    if (!res?.ok()) throw new Error("Could not create the seeded parent session");
+      });
+    if (!res.ok()) throw new Error(`Could not create the seeded parent session (HTTP ${res.status()})`);
     await res.json();
     await ctx.storageState({ path: storagePath });
   } finally {

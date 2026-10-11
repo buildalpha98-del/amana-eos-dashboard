@@ -34,9 +34,14 @@ Independent reviewer: `/root/login_confirmation_review`, read-only design/code r
 - Integration: 78/78 passed on an isolated local database, migrations replayed.
 - New login browser checks: 6/6 passed on the local development server, including desktop/mobile Axe, keyboard, replay/concurrency and real database lock rollback.
 - Full repository lint: no errors; existing warnings remain. Final changed-file lint: clean.
-- Production build and existing parent portal browser regressions: in progress.
+- Production webpack build: passed, including TypeScript and all 770 pages.
+- Combined production-mode browser run: 22/22 passed (new login checks plus existing parent portal and v2 screens).
+- Confirmation response headers verified: no-store and no-referrer.
+- GitHub CI and Vercel preview builds passed for implementation commit 4799853a; final test-isolation/documentation update is awaiting CI. PR #329 remains draft.
 
 The initial local integration attempt was rejected by test-database naming guards. A correctly named isolated database was created without weakening the guards. Refreshing the generated Prisma client resolved the separate missing StatementDelivery model in local checks. No schema or migration changes are part of this branch.
+
+The first portal regression attempts shared the new stress tests' ten-attempt local login bucket and failed during fixture session creation. After the window cleared, all 16 portal checks passed. The stress spec now uses a separate reserved proxy IP for isolation; all 22 checks subsequently passed together without weakening rate limits. The fixture helper now exposes HTTP status and preserves network exceptions for useful diagnostics.
 
 ## Remaining parent journey
 
