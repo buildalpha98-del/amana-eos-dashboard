@@ -204,4 +204,61 @@ describe("offlineQueue", () => {
     await expect(offlineQueue.enqueue({ ...original, body: { changed: true } })).rejects.toThrow("different details");
   });
 
+  it("persists network attempts and blocks later actions until the failed first save is reviewed", async () => {
+    await offlineQueue.enqueue({ ownerId: "u1", id: "arrival", url: "/api/x", method: "POST", body: { action: "sign_in" } });
+    await offlineQueue.enqueue({ ownerId: "u1", id: "collection", url: "/api/x", method: "POST", body: { action: "sign_out" } });
+    const fetcher = vi.fn(async () => { throw new Error("offline"); });
+    mockFetch(fetcher);
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      await offlineQueue.drain();
+      expect((await offlineQueue.all()).find(r => r.id === "arrival")?.attempts).toBe(attempt);
+      expect(fetcher).toHaveBeenCalledTimes(attempt);
+    }
+    expect((await offlineQueue.all()).find(r => r.id === "arrival")?.status).toBe("failed");
+    await offlineQueue.drain();
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    await offlineQueue.review("arrival", "u1", "retry");
+    const success = vi.fn(async () => new Response('{}', { status: 200 }));
+    mockFetch(success);
+    expect(await offlineQueue.drain()).toEqual({ drained: 2, failed: 0 });
+    expect(success.mock.calls.map(call => JSON.parse((call as unknown as [string, RequestInit])[1].body as string).action)).toEqual(["sign_in", "sign_out"]);
+  });
+
+  it("a server rejection blocks later saves across subsequent drains", async () => {
+    for (const id of ["first", "second"]) await offlineQueue.enqueue({ ownerId: "u1", id, url: "/api/x", method: "POST", body: {} });
+    const fetcher = vi.fn(async () => new Response('{"error":"Check arrival"}', { status: 409 }));
+    mockFetch(fetcher);
+    await offlineQueue.drain();
+    await offlineQueue.drain();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect((await offlineQueue.all()).find(r => r.id === "first")).toMatchObject({ attempts: 1, status: "failed" });
+    await offlineQueue.review("first", "u1", "discard");
+    expect((await offlineQueue.all()).map(r => r.id)).toEqual(["second"]);
+  });
+
+  it("retains server failure attempts between drains", async () => {
+    await offlineQueue.enqueue({ ownerId: "u1", id: "m1", url: "/api/x", method: "POST", body: {} });
+    mockFetch(vi.fn(async () => new Response('{}', { status: 503 })));
+    for (let i = 0; i < 3; i++) await offlineQueue.drain();
+    expect((await offlineQueue.all())[0]).toMatchObject({ attempts: 3, status: "failed", lastError: "HTTP 503" });
+  });
+
+  it("preserves insertion order even when two taps have the same clock timestamp", async () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1000);
+    try {
+      await offlineQueue.enqueue({ ownerId: "u1", id: "z-first", url: "/api/x", method: "POST", body: {} });
+      await offlineQueue.enqueue({ ownerId: "u1", id: "a-second", url: "/api/x", method: "POST", body: {} });
+      const rows = (await offlineQueue.all()).sort((a,b) => a.enqueuedAt-b.enqueuedAt);
+      expect(rows.map(r => r.id)).toEqual(["z-first", "a-second"]);
+    } finally { now.mockRestore(); }
+  });
+
+  it("refuses recovery actions from a different account", async () => {
+    await offlineQueue.enqueue({ ownerId: "u2", id: "other", url: "/api/x", method: "POST", body: {} });
+    await offlineQueue.markFailed("other", "Needs review");
+    await expect(offlineQueue.review("other", "u1", "discard")).rejects.toThrow("unavailable");
+    await expect(offlineQueue.review("other", "u2", "retry")).rejects.toThrow("Sign back");
+    expect(await offlineQueue.all()).toHaveLength(1);
+  });
+
 });
