@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
+import { ReportErrorState } from "./ReportErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Download, Printer, Search, AlertTriangle, Pill } from "lucide-react";
 
@@ -34,10 +35,11 @@ export function MedicalAlertsReport({ serviceId }: { serviceId: string }) {
 
   const params = serviceId ? `serviceId=${serviceId}` : "";
 
-  const { data, isLoading } = useQuery<MedicalChild[]>({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery<MedicalChild[]>({
     queryKey: ["report-medical-alerts", serviceId],
     queryFn: () => fetchApi(`/api/reports/medical-alerts?${params}`),
     retry: 2,
+    meta: { suppressGlobalErrorToast: true },
     staleTime: 60_000,
   });
 
@@ -62,8 +64,13 @@ export function MedicalAlertsReport({ serviceId }: { serviceId: string }) {
     );
   }
 
+  if (!data) {
+    return <ReportErrorState name="medical alerts" isFetching={isFetching} onRetry={() => { void refetch(); }} />;
+  }
+
   return (
     <div className="space-y-4 print-only-table">
+      {isError && <ReportErrorState name="medical alerts" cached isFetching={isFetching} onRetry={() => { void refetch(); }} />}
       {/* Header note */}
       <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
@@ -86,17 +93,20 @@ export function MedicalAlertsReport({ serviceId }: { serviceId: string }) {
           />
         </div>
 
-        <a
-          href={`/api/reports/medical-alerts/export?${params}`}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-[#003d50] transition-colors"
-        >
-          <Download className="w-4 h-4" />
-          Export CSV
-        </a>
+        {!isError && (
+          <a
+            href={`/api/reports/medical-alerts/export?${params}`}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-[#003d50] transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </a>
+        )}
 
         <button
-          onClick={() => window.print()}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-surface transition-colors"
+          onClick={() => { if (!isError) window.print(); }}
+          disabled={isError}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Printer className="w-4 h-4" />
           Print
