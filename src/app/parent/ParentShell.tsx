@@ -149,7 +149,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
     retry: false,
   });
   const mustEnrol = parentState?.state === "needs_enrolment";
-  const { data: conversations } = useParentConversations();
+  const { data: conversations } = useParentConversations(isAuthenticated && !isPublicParentRoute(pathname));
   const [actionsOpen, setActionsOpen] = useState(false);
   const unreadCount = (conversations ?? []).reduce(
     (sum, c) => sum + (c.unreadCount ?? 0),
@@ -167,7 +167,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   // bounce them out of it.
   useEffect(() => {
     if (!isAuthenticated || !mustEnrol) return;
-    if (pathname === ENROL_PATH) return;
+    if (pathname === ENROL_PATH || isPublicParentRoute(pathname)) return;
     router.replace(ENROL_PATH);
   }, [isAuthenticated, mustEnrol, pathname, router]);
 

@@ -110,7 +110,7 @@ export const POST = withApiHandler(async (req) => {
 
   // Send email
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  const loginUrl = `${baseUrl}/api/parent/auth/verify?token=${token}`;
+  const loginUrl = `${baseUrl}/parent/login/confirm#token=${token}`;
   const { subject, html } = await parentMagicLinkEmail(displayName, loginUrl);
 
   /**
@@ -134,7 +134,7 @@ export const POST = withApiHandler(async (req) => {
         email: emailLower,
       });
     } else {
-      console.log(`[DEV] Parent magic link for ${emailLower}: ${loginUrl}`);
+      logger.warn("Parent magic link not sent: email is not configured");
     }
     return successResponse;
   }

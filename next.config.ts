@@ -92,6 +92,14 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: securityHeaders(),
       },
+      // Login tokens must never leak through referrers or cached pages.
+      {
+        source: "/parent/login/confirm",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "no-store" },
+        ],
+      },
       // Meta Pixel routes: same headers with the facebook hosts appended.
       // Next applies matching entries in order and the LAST value for a
       // header key wins, so these override the catch-all's CSP for exactly

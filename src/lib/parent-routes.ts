@@ -12,6 +12,7 @@
  */
 export const PUBLIC_PARENT_ROUTES = [
   "/parent/login",
+  "/parent/login/confirm",
   "/parent/signup",
   "/parent/confirm",
   // The emailed reset link is opened by someone who by definition can't

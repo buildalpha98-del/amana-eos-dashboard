@@ -41,7 +41,8 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
-  if (!url.protocol.startsWith("http") || url.pathname.startsWith("/auth/")) {
+  if (!url.protocol.startsWith("http") || url.pathname.startsWith("/auth/") ||
+      url.pathname === "/parent/login/confirm") {
     return;
   }
 

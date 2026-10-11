@@ -22,7 +22,7 @@ const MAGIC_LINK_DEFAULT_BODY = `
       Welcome back, {{name}}
     </h2>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Click the button below to log in to the Amana OSHC Parent Portal.
+      Open your secure sign-in page, then choose <strong>Continue to my account</strong> to log in to the Amana OSHC Parent Portal.
     </p>
     {{loginButton}}
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
@@ -48,7 +48,7 @@ export async function parentMagicLinkEmail(name: string, loginUrl: string) {
       loginUrl,
       loginButton: buttonHtml("Log in to Parent Portal", loginUrl),
     },
-    wrap: parentEmailLayout,
+    wrap: (body) => parentEmailLayout(body, { transactional: true }),
   });
 }
 
@@ -101,6 +101,6 @@ export async function parentPasswordResetEmail(
         : "You asked to reset your password for the Amana OSHC Parent Portal. Choose a new one using the button below.",
       resetButton: buttonHtml("Choose a new password", resetUrl),
     },
-    wrap: parentEmailLayout,
+    wrap: (body) => parentEmailLayout(body, { transactional: true }),
   });
 }

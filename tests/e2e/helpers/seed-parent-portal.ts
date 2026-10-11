@@ -149,13 +149,13 @@ export async function saveParentSession(
   });
   try {
     const res = await ctx
-      .get(`/api/parent/auth/verify?token=${seeded.rawToken}`, {
-        maxRedirects: 0,
+      .post("/api/parent/auth/verify", {
+        data: { token: seeded.rawToken },
+        headers: { Origin: new URL(baseURL).origin },
       })
       .catch(() => null);
-    if (res) {
-      await res.text().catch(() => "");
-    }
+    if (!res?.ok()) throw new Error("Could not create the seeded parent session");
+    await res.json();
     await ctx.storageState({ path: storagePath });
   } finally {
     await ctx.dispose();

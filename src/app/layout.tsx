@@ -4,7 +4,7 @@ import { SessionProvider } from "@/components/providers/SessionProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import { PerformanceInsights } from "@/components/PerformanceInsights";
 import "./globals.css";
 import "@/styles/print.css";
 
@@ -71,7 +71,7 @@ export default function RootLayout({
             {children}
             <Toaster />
             <ServiceWorkerRegistrar />
-            <SpeedInsights />
+            <PerformanceInsights />
           </QueryProvider>
         </SessionProvider>
       </body>
