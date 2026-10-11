@@ -40,3 +40,25 @@ Independent reviews: `/root/welcome_email_review` inspected the welcome incremen
 Full unit rerun passed all 733 files: 7,726 tests passed, 3 skipped. Lint passed with 0 errors and 1,115 existing warnings. Focused checks after the final auth-test typing correction passed 25 tests. TypeScript rerun passed (`tsc --noEmit`). `git diff --check` passed. Mobile email previews and parent screens were visually inspected; corrected welcome-link browser check exited successfully.
 
 The initial full unit command incorrectly inherited the browser fixture's `MOCK_PDF=1` and used unrestricted workers during concurrent checks. That run failed 23 tests (including storage mocks bypassed by the flag and test timeouts). Reran with the normal unit environment and four workers; no assertions or timeouts were weakened. TypeScript then found an existing inferred-header-union error in the auth origin test; explicitly typed the test cases as `Record<string, string>` without changing behaviour. No production build or remote CI rerun was performed for this small follow-up branch. No merge, push or production deployment performed.
+
+## Live content audit continuation
+
+Read-only staff review of MFIS Greenacre's **What families see** configuration found no hero/tagline, location within school, meeting/pickup points, welcome message, key contacts, routine, food/dietary information, onboarding walkthrough, or centre-specific thank-you copy. No policies are selected; the only available entry shown was a ZIP archive. These are missing content/configuration, not proof of an application rendering defect.
+
+The service information confirms **405 Waterloo Rd, Greenacre NSW 2190** and the main phone **1300 200 262**. School entrance, meeting location, named service contact and applicable individual policies require operational confirmation before publication. Asked the owner for those missing facts. No production fields were edited.
+
+One confirmed Greenacre family's active Amana account and child linkage were inspected. Its email verification was pending; this is not evidence of inbox delivery or a failed OWNA invitation. OWNA's current-carer exact email search returned no match, and a first-name match belonged to different children and a different email, so it was not treated as the same family. Opening child records then required a fresh OWNA login. Invitation history, child transfer and booked sessions remain unverified; no live checklist items were checked and no invitation was sent.
+
+### First-day guide draft — not published
+
+**Welcome to Amana at Greenacre**
+
+Your child's first day should feel familiar. Our team will confirm your child's start date and booked sessions before they attend.
+
+**Find us:** Malek Fahd Greenacre, 405 Waterloo Rd, Greenacre NSW 2190. Call **1300 200 262** before your first visit to confirm the school entrance and where to meet the Amana team. Replace this interim direction with the verified gate and meeting point before publishing the finished guide.
+
+**Before the first day:** confirm your booked sessions and OWNA access with our team, and let us know about any changes to medical needs or authorised pickup arrangements. Your Amana family hub contains school information and lets you message us; OWNA is used separately for bookings, fees and day-to-day updates. Your Amana password does not sign you into OWNA.
+
+**Afternoon pickup:** you can collect your child at any time during the afternoon session, before the centre closes. Confirm session hours and pickup instructions with the team.
+
+Publishing checklist: verified entrance and meeting point; correct service contact; confirmed session hours; what-to-bring guidance; selected readable parent policies. Do not publish placeholders or present proposed operational details as established facts.
