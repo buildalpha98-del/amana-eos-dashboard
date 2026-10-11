@@ -30,7 +30,6 @@ import {
 import { cn, toLocalIsoDate } from "@/lib/utils";
 import Link from "next/link";
 import { useRoleLabels } from "@/contexts/RoleLabelsContext";
-import { HomeViewToggle, useHomeView } from "@/components/layout/HomeViewToggle";
 import { EducatorShiftActions } from "@/components/my-portal/EducatorShiftActions";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
@@ -880,9 +879,7 @@ function PulseSurveySection() {
 
 export default function MyPortalPage() {
   const { data: session } = useSession();
-  const { view, setView } = useHomeView("personal", session?.user?.id);
   const isEducator = session?.user?.role === "staff" && !session?.user?.isCentreAccount;
-  const focused = isEducator && view === "focused";
   // Show the role's NAME ("OSHC Coordinator"), never the raw enum.
   const roleLabels = useRoleLabels();
   const queryClient = useQueryClient();
@@ -1171,7 +1168,7 @@ export default function MyPortalPage() {
   );
 
   return (
-    <div className={cn("max-w-5xl mx-auto space-y-6", focused && "rounded-xl bg-home-background p-3 sm:p-5")}>
+    <div className={cn("max-w-5xl mx-auto space-y-6", isEducator && "rounded-xl bg-home-background p-3 sm:p-5")}>
       {/* ============================================================ */}
       {/* 1. WELCOME HEADER                                            */}
       {/* ============================================================ */}
@@ -1199,8 +1196,7 @@ export default function MyPortalPage() {
         </div>
       </PageHeader>
 
-      {isEducator && <HomeViewToggle view={view} onChange={setView} />}
-      {focused && (
+      {isEducator && (
         <>
           {session?.user?.id && <NextShiftHero userId={session.user.id} />}
           {profile.service && <EducatorShiftActions service={profile.service} />}
@@ -1212,12 +1208,12 @@ export default function MyPortalPage() {
       {/* 1b. AI MORNING BRIEF (2026-07-05) — hidden until the daily    */}
       {/* cron has composed today's brief for this user.                */}
       {/* ============================================================ */}
-      {!focused && <MorningBriefCard />}
+      {!isEducator && <MorningBriefCard />}
 
       {/* Push opt-in (Staff Portal v2 3.3c) — self-gating: staff-tier
           roles, push supported, permission "default", not subscribed,
           not dismissed. Renders null otherwise. */}
-      {!focused && <PushOptInCard />}
+      {!isEducator && <PushOptInCard />}
 
       {/* 2026-10-07: the ONE onboarding list — replaces the onboarding,
           training, compliance, policy and contract cards that used to
@@ -1234,18 +1230,18 @@ export default function MyPortalPage() {
       {/* Payslips / EH leave / expenses moved to /my-pay, /my-leave,  */}
       {/* /my-expenses — the tiles below link there.                   */}
       {/* ============================================================ */}
-      {!focused && session?.user?.id && <NextShiftHero userId={session.user.id} />}
+      {!isEducator && session?.user?.id && <NextShiftHero userId={session.user.id} />}
 
       <GlanceTiles certStats={certStats} requiredCertStats={requiredCertStats} />
 
-      {!focused && <AttentionCard items={attentionItems} />}
-      {focused && <MorningBriefCard />}
-      {focused && <PushOptInCard />}
+      {!isEducator && <AttentionCard items={attentionItems} />}
+      {isEducator && <MorningBriefCard />}
+      {isEducator && <PushOptInCard />}
 
       {/* ============================================================ */}
       {/* 3. PROFILE SUMMARY CARD                                      */}
       {/* ============================================================ */}
-      {focused ? (
+      {isEducator ? (
         <details className="rounded-xl border border-border bg-card">
           <summary className="min-h-11 cursor-pointer p-4 text-sm font-semibold text-foreground">My profile and employment details</summary>
           {profileSummary}

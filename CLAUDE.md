@@ -143,7 +143,7 @@
 
 ## Staff Portal v2 (2026-09-05)
 
-- **Staff home views (2026-10-12)**: coordinator Today and educator Home default to Shift view; `HomeViewToggle` preserves Classic, with preferences scoped to user + surface. Today puts room coverage and shift tasks before routine summaries; educator Home leads with the existing clock and centre actions. Reuse the existing query keys and role gates when moving cards; do not mount both layouts' widgets at once.
+- **Staff home views (2026-10-12)**: coordinator Today and educator Home use the new shift-priority layout only. Daniel explicitly removed the Shift view / Classic switch; do not restore it or read the retired home-view preference. Today puts room coverage and shift tasks before routine summaries; educator Home leads with the existing clock and centre actions. Reuse the existing query keys and role gates when moving cards; do not mount both layouts' widgets at once.
 - **Dashboard shell breakpoint**: sidebar/desktop header at `lg` (1024px); touch header, drawer and bottom tabs below it. Fixed feedback/chat/recording overlays follow the same breakpoint. Always expand drawer labels even if the desktop rail preference is collapsed.
 - **Today freshness**: initial dashboard failures must show retry, and failed background refreshes must label retained figures as stale with the server's `asOf` in Sydney time. Medication summary counts administrations recorded, not doses due. `brand-action` is the solid Button background token; it stays dark under white labels while dark-mode `brand` text brightens.
 

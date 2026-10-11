@@ -194,22 +194,20 @@ describe("Today — recovery and home view", () => {
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
   });
 
-  it("prioritises shift tasks and lets the user persist Classic without duplicating widgets", async () => {
+  it("keeps shift tasks first despite a saved Classic preference without duplicating widgets", async () => {
+    localStorage.setItem("amana.home-view.v1.u-centre.centre", "classic");
     const result = renderToday();
     await screen.findByRole("link", { name: /Attendances today/ });
     const tasks = screen.getByTestId("checklists-widget");
     const staff = screen.getByRole("region", { name: /Staff signed in/ });
     expect(tasks.compareDocumentPosition(staff) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Classic" }));
-    expect(staff.compareDocumentPosition(screen.getByTestId("checklists-widget")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "Home view" })).toBeNull();
     expect(screen.getAllByTestId("handover-widget")).toHaveLength(1);
     result.unmount();
-    const restored = renderToday();
-    expect(await screen.findByRole("button", { name: "Classic" })).toHaveAttribute("aria-pressed", "true");
-    restored.unmount();
     session = { user: { id: "another-educator", role: "staff", serviceId: "svc-1" } };
     renderToday();
-    expect(await screen.findByRole("button", { name: "Shift view" })).toHaveAttribute("aria-pressed", "true");
+    await screen.findByRole("link", { name: /Attendances today/ });
+    expect(screen.queryByRole("group", { name: "Home view" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Build roster" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Staff sign in/out" })).toBeNull();
   });
