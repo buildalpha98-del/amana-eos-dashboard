@@ -39,7 +39,7 @@ Independent reviews: `/root/welcome_email_review` inspected the welcome incremen
 
 Full unit rerun passed all 733 files: 7,726 tests passed, 3 skipped. Lint passed with 0 errors and 1,115 existing warnings. Focused checks after the final auth-test typing correction passed 25 tests. TypeScript rerun passed (`tsc --noEmit`). `git diff --check` passed. Mobile email previews and parent screens were visually inspected; corrected welcome-link browser check exited successfully.
 
-The initial full unit command incorrectly inherited the browser fixture's `MOCK_PDF=1` and used unrestricted workers during concurrent checks. That run failed 23 tests (including storage mocks bypassed by the flag and test timeouts). Reran with the normal unit environment and four workers; no assertions or timeouts were weakened. TypeScript then found an existing inferred-header-union error in the auth origin test; explicitly typed the test cases as `Record<string, string>` without changing behaviour. No production build or remote CI rerun was performed for this small follow-up branch. No merge, push or production deployment performed.
+The initial full unit command incorrectly inherited the browser fixture's `MOCK_PDF=1` and used unrestricted workers during concurrent checks. That run failed 23 tests (including storage mocks bypassed by the flag and test timeouts). Reran with the normal unit environment and four workers; no assertions or timeouts were weakened. TypeScript then found an existing inferred-header-union error in the auth origin test; explicitly typed the test cases as `Record<string, string>` without changing behaviour. At the initial local-check checkpoint, a fresh production build and remote CI had not yet run. The branch was subsequently pushed as draft PR #332; see the continuation below. Nothing has been merged or deployed to production.
 
 ## Live content audit continuation
 
@@ -55,10 +55,21 @@ One confirmed Greenacre family's active Amana account and child linkage were ins
 
 Your child's first day should feel familiar. Our team will confirm your child's start date and booked sessions before they attend.
 
-**Find us:** Malek Fahd Greenacre, 405 Waterloo Rd, Greenacre NSW 2190. Call **1300 200 262** before your first visit to confirm the school entrance and where to meet the Amana team. Replace this interim direction with the verified gate and meeting point before publishing the finished guide.
+**Find us:** the School Hall at Malek Fahd Islamic School Greenacre, 405 Waterloo Rd, Greenacre NSW 2190. The website includes a centre map. Contact the service on **0494 379 929** during service hours or **mfisgreenacre@amanaoshc.com.au** for arrival questions. The published Service Director is **Sarah Awad**. The precise entry gate is not specified in the published page; do not invent it.
 
 **Before the first day:** confirm your booked sessions and OWNA access with our team, and let us know about any changes to medical needs or authorised pickup arrangements. Your Amana family hub contains school information and lets you message us; OWNA is used separately for bookings, fees and day-to-day updates. Your Amana password does not sign you into OWNA.
 
-**Afternoon pickup:** you can collect your child at any time during the afternoon session, before the centre closes. Confirm session hours and pickup instructions with the team.
+**Session hours:** before school care is 6:45–8:45 am Monday–Friday. After school care is 3:10–6:30 pm Monday, Tuesday, Thursday and Friday; Wednesday starts at 2:10 pm.
 
-Publishing checklist: verified entrance and meeting point; correct service contact; confirmed session hours; what-to-bring guidance; selected readable parent policies. Do not publish placeholders or present proposed operational details as established facts.
+**Afternoon pickup:** you can collect your child at any time during the afternoon session, before 6:30 pm. Breakfast and afternoon tea are provided. The website says educators collect younger children from their classroom in the first week; families should confirm their child’s collection arrangement with the service.
+
+Publishing checklist: carry the published School Hall location, centre map, service contact and session hours into the portal; confirm any gate-specific instructions and what-to-bring guidance; select readable parent policies. Do not publish placeholders or present proposed operational details as established facts.
+
+
+## Follow-up after owner supplied the website source and restored OWNA
+
+The owner identified the school pages on the Amana website as the source of existing centre information. Checked https://amanaoshc.com.au/centres/mfis-greenacre and the website repository’s `src/lib/centres.ts`: School Hall, service phone/email, Sarah Awad, morning/afternoon hours and Wednesday early finish are published there. Updated the unpublished guide above. The gap is duplicated content not reaching the portal; these facts are not wholly unavailable. The exact entry gate is not specified. No live configuration was edited.
+
+Restored OWNA HQ access and selected Amana OSHC Greenacre. The child’s exact surname was not found in the current/upcoming or previous child lists checked. The parent’s exact email was not found in the all-current, inactive or previous carer lists checked. A first-name match previously found belongs to another family and must not be used as evidence. This does not prove no historical invitation exists: the matching provider record and its invitation/booking history remain unverified. Do not create duplicate records, resend invitations, or mark the handoff complete without reconciling the correct family. No personal identifiers are stored in this review document.
+
+Draft PR: https://github.com/buildalpha98-del/amana-eos-dashboard/pull/332 . At revision `11b3a1b74774334c274f958d8c242c2d8781b6fc`, PR lint, unit, integration, migration replay and both Vercel preview builds passed. Explicit full browser workflow https://github.com/buildalpha98-del/amana-eos-dashboard/actions/runs/38126567056 completed successfully (E2E, unit, lint and migration; integration intentionally skipped in the dispatch run and passed in the PR run). This follow-up is documentation only. No merge or production deployment.
