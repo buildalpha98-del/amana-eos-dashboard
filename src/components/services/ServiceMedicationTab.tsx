@@ -8,6 +8,7 @@
  * here feed `MedicationAdministration`, which is the auditable record.
  */
 
+import { serviceTodayISO } from "@/lib/timezone";
 import { useMemo, useState } from "react";
 import { Pill, Plus, Stethoscope } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,11 +30,6 @@ interface ChildWithMedication {
   medicalConditions?: string[];
 }
 
-function todayIso() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 export function ServiceMedicationTab({ serviceId }: { serviceId: string }) {
   const [logFor, setLogFor] = useState<ChildWithMedication | null>(null);
 
@@ -51,7 +47,7 @@ export function ServiceMedicationTab({ serviceId }: { serviceId: string }) {
     staleTime: 60_000,
   });
 
-  const { data: doses } = useMedications(serviceId, { date: todayIso() });
+  const { data: doses } = useMedications(serviceId, { date: serviceTodayISO() });
 
   const childrenWithMeds = useMemo(
     () => (children ?? []).filter((c) => c.medicationDetails?.trim()),

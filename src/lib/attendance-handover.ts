@@ -7,7 +7,8 @@
  * iPad's Parent mode (POST /api/door/sign). Two ways to sign a child in
  * is how a register stops being trustworthy.
  */
-import type { SessionType } from "@prisma/client";
+import type { Prisma, SessionType } from "@prisma/client";
+import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { requireRoomId } from "@/lib/room-resolver";
@@ -72,24 +73,22 @@ export async function recordHandover(input: HandoverInput) {
     return record;
   }
 
-  const record = await prisma.attendanceRecord.upsert({
-    where,
-    update: {
-      signOutTime: at,
-      signedOutById: recordedById,
-      ...(signedByName ? { signedOutByName: signedByName } : {}),
-      ...(signMethod ? { signedOutMethod: signMethod } : {}),
-      ...(signature ? { signedOutSignature: signature } : {}),
-    },
-    create: {
-      childId,
-      serviceId,
-      date,
-      roomId,
-      sessionType,
-      status: "present",
-      signInTime: at, // auto sign-in if missing
-      signedInById: recordedById,
+  const result = await recordDeparture(prisma, input);
+  if (result.changed) {
+    sendSignOutNotification(childId, serviceId, at).catch((err) =>
+      logger.error("Failed to send sign-out notification", { err, childId, serviceId }),
+    );
+  }
+  return result.record;
+}
+
+/** Shared by individual and bulk collection. Never create an arrival as a side effect. */
+export async function recordDeparture(db: Prisma.TransactionClient, input: HandoverInput) {
+  const { childId, serviceId, date, sessionType, at, recordedById, signedByName, signMethod, signature } = input;
+  const key = { childId, serviceId, date, sessionType };
+  const changed = await db.attendanceRecord.updateMany({
+    where: { ...key, signInTime: { not: null, lte: at }, signOutTime: null },
+    data: {
       signOutTime: at,
       signedOutById: recordedById,
       ...(signedByName ? { signedOutByName: signedByName } : {}),
@@ -97,10 +96,13 @@ export async function recordHandover(input: HandoverInput) {
       ...(signature ? { signedOutSignature: signature } : {}),
     },
   });
-  sendSignOutNotification(childId, serviceId, at).catch((err) =>
-    logger.error("Failed to send sign-out notification", { err, childId, serviceId }),
-  );
-  return record;
+  const record = await db.attendanceRecord.findUnique({
+    where: { childId_serviceId_date_sessionType: key },
+  });
+  if (!record?.signInTime || !record.signOutTime) {
+    throw ApiError.conflict("An arrival record is missing or later than this collection. Ask your Coordinator to check the attendance record before signing out.");
+  }
+  return { record, changed: changed.count > 0 };
 }
 
 /** Recount a session's records into its DailyAttendance row. */

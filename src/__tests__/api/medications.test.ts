@@ -195,7 +195,9 @@ describe("medications API", () => {
       prismaMock.medicationAdministration.findUnique.mockResolvedValue({
         id: "d-existing",
         clientMutationId: VALID_CMID,
-        medicationName: "Paracetamol",
+        serviceId: "s1", childId: VALID_CHILD_ID, administeredById: "u1",
+        medicationName: "Paracetamol", dose: "5ml", route: "oral",
+        administeredAt: new Date(NOW), witnessedById: null, parentConsentUrl: null, notes: null,
       });
       const res = await POST(
         createRequest("POST", "/api/services/s1/medications", {
