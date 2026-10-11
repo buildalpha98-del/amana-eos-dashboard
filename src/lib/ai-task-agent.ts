@@ -150,6 +150,7 @@ export async function saveDraft(
   ctx: TaskContext,
   content: string,
   tokensUsed: number,
+  usageUserId: string | null,
 ): Promise<string> {
   const taskType = classifyTask(ctx.title, ctx.description);
 
@@ -191,16 +192,25 @@ export async function saveDraft(
   });
 
   // Log AI usage (non-critical — don't let failures break the draft)
+  // Background accounting uses a real active admin/owner, like other AI crons.
+  if (!usageUserId) return draft.id;
   await prisma.aiUsage
     .create({
       data: {
-        userId: "system",
+        userId: usageUserId,
         templateSlug: `agent/${ctx.sourceType}`,
         inputTokens: Math.round(tokensUsed * 0.7), // approximate split
         outputTokens: Math.round(tokensUsed * 0.3),
         durationMs: 0,
         model: "claude-haiku-4-5-20251001",
         section: "agent",
+        metadata: {
+          automated: true,
+          cron: "ai-task-agent",
+          draftId: draft.id,
+          sourceType: ctx.sourceType,
+          sourceId: ctx.sourceId,
+        },
       },
     })
     .catch((err) => logger.error("Failed to log AI usage for task agent draft", { err, draftId: draft.id, sourceId: ctx.sourceId }));
