@@ -12,13 +12,18 @@ import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { requireRoomId } from "@/lib/room-resolver";
-import { sendSignInNotification, sendSignOutNotification } from "@/lib/notifications/attendance";
+import {
+  sendSignInNotification,
+  sendSignOutNotification,
+} from "@/lib/notifications/attendance";
 
 export type SignMethod = "staff" | "parent_kiosk" | "parent_app";
 
 export interface HandoverInput {
   childId: string;
   serviceId: string;
+  /** Resolve before opening a transaction to avoid a second pool connection. */
+  roomId?: string;
   /** UTC midnight of the centre's date (the `@db.Date` value). */
   date: Date;
   sessionType: SessionType;
@@ -34,24 +39,25 @@ export interface HandoverInput {
 }
 
 export async function recordHandover(input: HandoverInput) {
-  const { childId, serviceId, at, action } = input;
-  if (action === "sign_in") {
-    const result = await recordArrival(prisma, input);
-    if (result.changed) {
-      sendSignInNotification(childId, serviceId, at).catch((err) =>
-        logger.error("Failed to send sign-in notification", { err, childId, serviceId }),
-      );
-    }
-    return result.record;
-  }
-
-  const result = await recordDeparture(prisma, input);
-  if (result.changed) {
-    sendSignOutNotification(childId, serviceId, at).catch((err) =>
-      logger.error("Failed to send sign-out notification", { err, childId, serviceId }),
-    );
-  }
+  const result = await (
+    input.action === "sign_in" ? recordArrival : recordDeparture
+  )(prisma, input);
+  if (result.changed) notifyHandover(input);
   return result.record;
+}
+
+/** Call only after the attendance transaction has committed. */
+export function notifyHandover(input: HandoverInput) {
+  const { childId, serviceId, at, action } = input;
+  const send =
+    action === "sign_in" ? sendSignInNotification : sendSignOutNotification;
+  send(childId, serviceId, at).catch((err) =>
+    logger.error("Failed to send attendance notification", {
+      err,
+      childId,
+      serviceId,
+    }),
+  );
 }
 
 /**
@@ -59,8 +65,22 @@ export async function recordHandover(input: HandoverInput) {
  * ON CONFLICT DO NOTHING avoids a unique-key error aborting a bulk transaction.
  * Existing arrivals (including collected children) are never reopened here.
  */
-export async function recordArrival(db: Prisma.TransactionClient, input: HandoverInput) {
-  const { childId, serviceId, date, sessionType, at, recordedById, signedByName, signMethod, signature, notes } = input;
+export async function recordArrival(
+  db: Prisma.TransactionClient,
+  input: HandoverInput,
+) {
+  const {
+    childId,
+    serviceId,
+    date,
+    sessionType,
+    at,
+    recordedById,
+    signedByName,
+    signMethod,
+    signature,
+    notes,
+  } = input;
   const key = { childId, serviceId, date, sessionType };
   const data = {
     status: "present" as const,
@@ -73,27 +93,49 @@ export async function recordArrival(db: Prisma.TransactionClient, input: Handove
     notes,
   };
   const created = await db.attendanceRecord.createMany({
-    data: [{ ...key, roomId: await requireRoomId(serviceId, sessionType), ...data }],
+    data: [
+      {
+        ...key,
+        roomId: input.roomId ?? (await requireRoomId(serviceId, sessionType)),
+        ...data,
+      },
+    ],
     skipDuplicates: true,
   });
-  const updated = created.count === 0
-    ? await db.attendanceRecord.updateMany({
-        where: { ...key, signInTime: null, signOutTime: null },
-        data,
-      })
-    : { count: 0 };
+  const updated =
+    created.count === 0
+      ? await db.attendanceRecord.updateMany({
+          where: { ...key, signInTime: null, signOutTime: null },
+          data,
+        })
+      : { count: 0 };
   const record = await db.attendanceRecord.findUnique({
     where: { childId_serviceId_date_sessionType: key },
   });
   if (!record?.signInTime) {
-    throw ApiError.conflict("This attendance record needs checking. Ask your Coordinator to review it before signing in.");
+    throw ApiError.conflict(
+      "This attendance record needs checking. Ask your Coordinator to review it before signing in.",
+    );
   }
   return { record, changed: created.count > 0 || updated.count > 0 };
 }
 
 /** Shared by individual and bulk collection. Never create an arrival as a side effect. */
-export async function recordDeparture(db: Prisma.TransactionClient, input: HandoverInput) {
-  const { childId, serviceId, date, sessionType, at, recordedById, signedByName, signMethod, signature } = input;
+export async function recordDeparture(
+  db: Prisma.TransactionClient,
+  input: HandoverInput,
+) {
+  const {
+    childId,
+    serviceId,
+    date,
+    sessionType,
+    at,
+    recordedById,
+    signedByName,
+    signMethod,
+    signature,
+  } = input;
   const key = { childId, serviceId, date, sessionType };
   const changed = await db.attendanceRecord.updateMany({
     where: { ...key, signInTime: { not: null, lte: at }, signOutTime: null },
@@ -109,7 +151,9 @@ export async function recordDeparture(db: Prisma.TransactionClient, input: Hando
     where: { childId_serviceId_date_sessionType: key },
   });
   if (!record?.signInTime || !record.signOutTime) {
-    throw ApiError.conflict("An arrival record is missing or later than this collection. Ask your Coordinator to check the attendance record before signing out.");
+    throw ApiError.conflict(
+      "An arrival record is missing or later than this collection. Ask your Coordinator to check the attendance record before signing out.",
+    );
   }
   return { record, changed: changed.count > 0 };
 }
@@ -120,8 +164,10 @@ export async function syncDailyAttendance(
   date: Date,
   sessionType: SessionType,
   recordedById: string | null,
+  db: Prisma.TransactionClient = prisma,
+  resolvedRoomId?: string,
 ) {
-  const counts = await prisma.attendanceRecord.groupBy({
+  const counts = await db.attendanceRecord.groupBy({
     by: ["status"],
     where: { serviceId, date, sessionType },
     _count: { id: true },
@@ -129,10 +175,20 @@ export async function syncDailyAttendance(
   const attended = counts.find((c) => c.status === "present")?._count.id ?? 0;
   const absent = counts.find((c) => c.status === "absent")?._count.id ?? 0;
   const enrolled = counts.reduce((sum, c) => sum + c._count.id, 0);
-  const roomId = await requireRoomId(serviceId, sessionType);
-  await prisma.dailyAttendance.upsert({
+  const roomId =
+    resolvedRoomId ?? (await requireRoomId(serviceId, sessionType));
+  await db.dailyAttendance.upsert({
     where: { serviceId_date_sessionType: { serviceId, date, sessionType } },
     update: { attended, absent, enrolled, recordedById },
-    create: { serviceId, date, roomId, sessionType, attended, absent, enrolled, recordedById },
+    create: {
+      serviceId,
+      date,
+      roomId,
+      sessionType,
+      attended,
+      absent,
+      enrolled,
+      recordedById,
+    },
   });
 }

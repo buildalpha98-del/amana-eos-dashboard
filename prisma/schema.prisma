@@ -3015,6 +3015,7 @@ model Service {
   lmsCourses            LMSCourse[]                    @relation("ServiceCourses")
   certificates          ComplianceCertificate[]        @relation("ServiceCertificates")
   attendance            DailyAttendance[]              @relation("ServiceAttendance")
+  attendanceMutations   AttendanceMutation[]
   individualAttendance  AttendanceRecord[]             @relation("ServiceIndividualAttendance")
   budgetItems           BudgetItem[]                   @relation("ServiceBudgetItems")
   programActivities     ProgramActivity[]              @relation("ServicePrograms")
@@ -4577,6 +4578,28 @@ model DailyAttendance {
   @@index([serviceId])
   @@index([date])
   @@index([serviceId, date])
+}
+
+/// Durable receipts for single staff roll-call requests. Never expire receipts
+/// independently of their child/service: delayed retries must remain no-ops.
+model AttendanceMutation {
+  id          String      @id // clientMutationId UUID
+  serviceId   String
+  service     Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  childId     String
+  child       Child       @relation(fields: [childId], references: [id], onDelete: Cascade)
+  /// Immutable account identity; retained even if that User is removed.
+  actorId     String
+  date        DateTime    @db.Date
+  sessionType SessionType
+  action      String
+  fingerprint String
+  /// Null only inside the uncommitted claim transaction.
+  response    Json?
+  createdAt   DateTime    @default(now())
+
+  @@index([serviceId, date, sessionType])
+  @@index([childId])
 }
 
 model AttendanceRecord {
@@ -7691,6 +7714,7 @@ model Child {
   formSignatures     ParentFormSignature[] @relation("ChildFormSignatures")
   illnessRecords     IllnessRecord[]       @relation("ChildIllnessRecords")
   discounts          FamilyDiscount[]      @relation("ChildDiscounts")
+  attendanceMutations AttendanceMutation[]
   attendanceRecords  AttendanceRecord[]    @relation("ChildAttendance")
   statementLineItems StatementLineItem[]   @relation("ChildStatementLines")
   feeAssignments     ChildFeeAssignment[]  @relation("ChildFeeAssignments")
