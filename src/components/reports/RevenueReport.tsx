@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
+import { ReportErrorState } from "./ReportErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Download } from "lucide-react";
 import {
@@ -33,10 +34,11 @@ function StatCard({ label, value, variant }: { label: string; value: string; var
 }
 
 export function RevenueReport({ params }: { params: string }) {
-  const { data, isLoading } = useQuery<RevenueData>({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery<RevenueData>({
     queryKey: ["report-revenue", params],
     queryFn: () => fetchApi(`/api/reports/revenue?${params}`),
     retry: 2,
+    meta: { suppressGlobalErrorToast: true },
     staleTime: 30_000,
   });
 
@@ -53,10 +55,13 @@ export function RevenueReport({ params }: { params: string }) {
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    return <ReportErrorState name="revenue" isFetching={isFetching} onRetry={() => { void refetch(); }} />;
+  }
 
   return (
     <div className="space-y-6">
+      {isError && <ReportErrorState name="revenue" cached isFetching={isFetching} onRetry={() => { void refetch(); }} />}
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <StatCard label="Gross Fees" value={fmt$(data.totalGrossFees)} />
@@ -119,13 +124,15 @@ export function RevenueReport({ params }: { params: string }) {
         CCS figures are estimates only. Actual CCS is determined by Services Australia via your CCMS provider.
       </p>
 
-      <a
-        href={`/api/reports/revenue/export?${params}`}
-        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-[#003d50] transition-colors"
-      >
-        <Download className="w-4 h-4" />
-        Export CSV
-      </a>
+      {!isError && (
+        <a
+          href={`/api/reports/revenue/export?${params}`}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-[#003d50] transition-colors"
+        >
+          <Download className="w-4 h-4" />
+          Export CSV
+        </a>
+      )}
     </div>
   );
 }

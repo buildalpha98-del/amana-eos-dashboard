@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
+import { ReportErrorState } from "./ReportErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -26,10 +27,11 @@ function StatCard({ label, value }: { label: string; value: number | string }) {
 }
 
 export function EnrolmentsReport({ params }: { params: string }) {
-  const { data, isLoading } = useQuery<EnrolmentsData>({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery<EnrolmentsData>({
     queryKey: ["report-enrolments", params],
     queryFn: () => fetchApi(`/api/reports/enrolments?${params}`),
     retry: 2,
+    meta: { suppressGlobalErrorToast: true },
     staleTime: 30_000,
   });
 
@@ -46,10 +48,13 @@ export function EnrolmentsReport({ params }: { params: string }) {
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    return <ReportErrorState name="enrolments" isFetching={isFetching} onRetry={() => { void refetch(); }} />;
+  }
 
   return (
     <div className="space-y-6">
+      {isError && <ReportErrorState name="enrolments" cached isFetching={isFetching} onRetry={() => { void refetch(); }} />}
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <StatCard label="Total Applications" value={data.totalApplications} />

@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
+import { ReportErrorState } from "./ReportErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Download } from "lucide-react";
 import {
@@ -29,10 +30,11 @@ function StatCard({ label, value }: { label: string; value: number | string }) {
 }
 
 export function AttendanceReport({ params }: { params: string }) {
-  const { data, isLoading } = useQuery<AttendanceData>({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery<AttendanceData>({
     queryKey: ["report-attendance", params],
     queryFn: () => fetchApi(`/api/reports/attendance?${params}`),
     retry: 2,
+    meta: { suppressGlobalErrorToast: true },
     staleTime: 30_000,
   });
 
@@ -49,10 +51,13 @@ export function AttendanceReport({ params }: { params: string }) {
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    return <ReportErrorState name="attendance" isFetching={isFetching} onRetry={() => { void refetch(); }} />;
+  }
 
   return (
     <div className="space-y-6">
+      {isError && <ReportErrorState name="attendance" cached isFetching={isFetching} onRetry={() => { void refetch(); }} />}
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <StatCard label="Expected" value={data.totalExpected} />
@@ -98,13 +103,15 @@ export function AttendanceReport({ params }: { params: string }) {
       )}
 
       {/* Export */}
-      <a
-        href={`/api/reports/attendance/export?${params}`}
-        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-[#003d50] transition-colors"
-      >
-        <Download className="w-4 h-4" />
-        Export CSV
-      </a>
+      {!isError && (
+        <a
+          href={`/api/reports/attendance/export?${params}`}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-[#003d50] transition-colors"
+        >
+          <Download className="w-4 h-4" />
+          Export CSV
+        </a>
+      )}
     </div>
   );
 }

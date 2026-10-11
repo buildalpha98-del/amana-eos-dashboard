@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
+import { ReportErrorState } from "./ReportErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
@@ -27,10 +28,11 @@ function StatCard({ label, value }: { label: string; value: number | string }) {
 }
 
 export function BookingsReport({ params }: { params: string }) {
-  const { data, isLoading } = useQuery<BookingsData>({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery<BookingsData>({
     queryKey: ["report-bookings", params],
     queryFn: () => fetchApi(`/api/reports/bookings?${params}`),
     retry: 2,
+    meta: { suppressGlobalErrorToast: true },
     staleTime: 30_000,
   });
 
@@ -47,7 +49,9 @@ export function BookingsReport({ params }: { params: string }) {
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    return <ReportErrorState name="bookings" isFetching={isFetching} onRetry={() => { void refetch(); }} />;
+  }
 
   const statusData = Object.entries(data.byStatus)
     .filter(([, v]) => v > 0)
@@ -55,6 +59,7 @@ export function BookingsReport({ params }: { params: string }) {
 
   return (
     <div className="space-y-6">
+      {isError && <ReportErrorState name="bookings" cached isFetching={isFetching} onRetry={() => { void refetch(); }} />}
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard label="Total Bookings" value={data.totalBookings} />
