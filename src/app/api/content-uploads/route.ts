@@ -3,9 +3,8 @@
  * Handbook editable-content layer.
  *
  * Accepts a single `file` field in multipart/form-data, validates the MIME
- * + magic bytes, writes the file to
- *   public/uploads/content/<sha256-prefix>-<uuid>.<ext>
- * and returns `{ url: "/uploads/content/..." }`. Caller stores that URL
+ * + magic bytes, stores the file in persistent public Blob storage
+ * under uploads/content/ and returns its URL. Caller stores that URL
  * string as a content-override value via the panel's content API.
  *
  * Owner/admin only. Generic across panels — the upload route has no
@@ -16,12 +15,11 @@
  */
 
 import { NextResponse } from "next/server";
-import path from "path";
-import { writeFile, mkdir } from "fs/promises";
 import { createHash, randomUUID } from "crypto";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { validateFileContent } from "@/lib/file-validation";
+import { uploadFile } from "@/lib/storage";
 
 const ALLOWED_MIME = new Set([
   "image/png",
@@ -86,11 +84,15 @@ export const POST = withApiAuth(
     const ext = EXT_BY_MIME[file.type] ?? "";
     const filename = `${hash}-${randomUUID().slice(0, 8)}${ext}`;
 
-    const dir = path.join(process.cwd(), "public", "uploads", "content");
-    await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, filename), buffer);
+    // Deployment filesystems are read-only and do not persist uploads.
+    // These images/maps are already intended for parent-facing public URLs.
+    const { url } = await uploadFile(buffer, filename, {
+      folder: "uploads/content",
+      contentType: file.type,
+      access: "public",
+    });
 
-    return NextResponse.json({ url: `/uploads/content/${filename}` });
+    return NextResponse.json({ url });
   },
   {
     roles: ["owner", "admin"],
