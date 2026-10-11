@@ -139,7 +139,7 @@ describe("explicit login confirmation", () => {
     expect((await POST(request())).status).toBe(401);
     expect(prismaMock.parentMagicLink.updateMany).not.toHaveBeenCalled();
   });
-  it.each([{}, { origin: "https://attacker.example" }, { origin: "http://localhost:3000", "sec-fetch-site": "cross-site" }])("refuses missing/foreign origins and cross-site requests", async headers => {
+  it.each<Record<string, string>>([{}, { origin: "https://attacker.example" }, { origin: "http://localhost:3000", "sec-fetch-site": "cross-site" }])("refuses missing/foreign origins and cross-site requests", async headers => {
     const res = await POST(createRequest("POST", "/api/parent/auth/verify", { body: { token }, headers }));
     expect(res.status).toBe(403);
     expect(prismaMock.parentMagicLink.findUnique).not.toHaveBeenCalled();
