@@ -291,7 +291,7 @@ describe("GET /api/services/[id]/dashboard", () => {
       attendance: kids,
       shifts: [
         // One educator clocked in for ASC; one rostered but not in yet.
-        { id: "s1", userId: "u1", staffName: "Sarah", role: null, sessionType: "asc", ...ALL_DAY, actualStart: new Date(), actualEnd: null, user: { id: "u1", name: "Sarah", avatar: null } },
+        { id: "s1", status: "published", userId: "u1", staffName: "Sarah", role: null, sessionType: "asc", ...ALL_DAY, actualStart: new Date(), actualEnd: null, user: { id: "u1", name: "Sarah", avatar: null, active: true, isCentreAccount: false, excludeFromRatio: false } },
         { id: "s2", userId: "u2", staffName: "Omar", role: null, sessionType: "asc", ...ALL_DAY, actualStart: null, actualEnd: null, user: { id: "u2", name: "Omar", avatar: null } },
       ],
     });

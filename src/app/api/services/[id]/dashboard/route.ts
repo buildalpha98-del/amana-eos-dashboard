@@ -11,6 +11,7 @@
  * floor staff) — the same gate the roll call uses, because this page
  * shows the same children.
  */
+import { clockedInEducatorIds } from "@/lib/clocked-in-educators";
 import { getOrgSettings } from "@/lib/org-settings";
 import { resolveMinRatio, type SessionTypeKey } from "@/lib/ratio-compute";
 import { NextRequest, NextResponse } from "next/server";
@@ -107,9 +108,10 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
         sessionType: true,
         shiftStart: true,
         shiftEnd: true,
+        status: true,
         actualStart: true,
         actualEnd: true,
-        user: { select: { id: true, name: true, avatar: true } },
+        user: { select: { id: true, name: true, avatar: true, active: true, isCentreAccount: true, excludeFromRatio: true } },
       },
       orderBy: { shiftStart: "asc" },
     }),
@@ -204,13 +206,11 @@ export const GET = withApiAuth(async (req: NextRequest, session, context) => {
     // Staff actually clocked in for this programme — the ratio that counts
     // (2026-10-09) — against what the room's minimum ratio needs for the
     // children signed in right now.
-    const clockedIn = shifts.filter(
-      (s) => (s.sessionType as string) === k && s.actualStart && !s.actualEnd,
-    ).length;
+    const clockedIn = clockedInEducatorIds(shifts, k, now).length;
     const minRatio = resolveMinRatio(service.ratioSettings, key as SessionTypeKey, federalDefault);
     const [perStaff, perChildren] = minRatio.split(":").map(Number);
     const required =
-      inCare.length > 0 ? Math.ceil(inCare.length / (perChildren || 15)) * (perStaff || 1) : 0;
+      inCare.length > 0 ? Math.ceil(inCare.length * (perStaff || 1) / (perChildren || 15)) : 0;
 
     return {
       key: k,

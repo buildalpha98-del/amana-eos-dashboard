@@ -128,6 +128,13 @@
 - **Pause clock**: `pausedAt`/`pausedMs` on `CreativeRequest` — the turnaround clock stops while `in_review` (waiting on the requester). ALL status writes go through `applyStatusChange()` in `src/lib/creative-request/status-change.ts` (stamps stage timestamps + banks pause time, Int32-clamped); never set `status` on a request inline. UI shows `effectiveDueDate()` = dueDate + banked/live pause.
 - **Checklists**: `CreativeRequest.checklist` Json (`[{label, done}]`), seeded from `DEFAULT_CHECKLISTS[type]` at create, fulfiller-only to edit.
 
+## OSHC record safety (2026-10-12)
+- **Checklist reads and writes** both assert centre access. Item toggles and completion are one serializable transaction with bounded conflict retries. Unticking required work reopens the checklist and clears its current sign-off; manual completion cannot bypass required items. Resolve omitted `checked` against the row read inside the transaction.
+- **Medication retries** must validate the original record's service, child, actor and complete dose payload before returning it, including after a concurrent unique-key conflict. Never return a globally looked-up mutation ID without checking its scope.
+- **Medication days** use two actual Sydney midnights (not host-local midnight or a fixed 24-hour window). `serviceMidnight` resolves the offset at midnight itself; DST change days are 23/25 hours. The medication UI uses `serviceTodayISO` too.
+- **Today staffing** counts distinct eligible people with published, currently clocked-in shifts via `clockedInEducatorIds`, excluding inactive users, shared centre accounts and `excludeFromRatio`. This is actual recorded presence, not proof of adequate supervision or break/area coverage. The older ratio-log forecast remains a separate, labelled approximation.
+- **Collection** uses `recordDeparture` for single and bulk writes. Only an existing arrival can be signed out; missing arrival returns an actionable conflict, never a fabricated sign-in. Conditional updates preserve the first collection time on retry. A future corrections workflow must preserve attributable history rather than inventing times.
+
 ## Staff Portal v2 (2026-09-05)
 
 - **Staff home views (2026-10-12)**: coordinator Today and educator Home default to Shift view; `HomeViewToggle` preserves Classic, with preferences scoped to user + surface. Today puts room coverage and shift tasks before routine summaries; educator Home leads with the existing clock and centre actions. Reuse the existing query keys and role gates when moving cards; do not mount both layouts' widgets at once.

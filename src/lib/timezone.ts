@@ -182,8 +182,16 @@ export function serviceMonthStart(now: Date = new Date(), addMonths = 0): Date {
 
 /** The real instant of Sydney midnight at the start of a centre date. */
 export function serviceMidnight(dateOnly: Date, tz: string = SERVICE_TZ): Date {
-  // Sydney's offset that day, read at UTC noon (clear of the 2–3am switch).
-  const noon = new Date(dateOnly.getTime() + 12 * 60 * 60 * 1000);
-  const { hour } = getLocalDateParts(noon, tz);
-  return new Date(dateOnly.getTime() - (hour - 12) * 60 * 60 * 1000);
+  // Solve for the wall-clock midnight itself. Noon can have a different
+  // offset on a DST transition day, shifting midnight by an hour.
+  const target = Date.UTC(dateOnly.getUTCFullYear(), dateOnly.getUTCMonth(), dateOnly.getUTCDate());
+  let instant = target;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const parts = getLocalDateParts(new Date(instant), tz);
+    const wall = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute);
+    const adjustment = target - wall;
+    if (adjustment === 0) return new Date(instant);
+    instant += adjustment;
+  }
+  throw new Error("Could not resolve service midnight");
 }

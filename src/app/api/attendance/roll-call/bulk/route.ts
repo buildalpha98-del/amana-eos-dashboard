@@ -1,3 +1,4 @@
+import { recordDeparture } from "@/lib/attendance-handover";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
@@ -130,28 +131,11 @@ export const POST = withApiAuth(
               }
               case "sign_out": {
                 const signOutTime = new Date();
-                record = await tx.attendanceRecord.upsert({
-                  where: uniqueKey,
-                  update: {
-                    signOutTime,
-                    signedOutById: session.user.id,
-                    ...(item.signedByName
-                      ? { signedOutByName: item.signedByName, signedOutMethod: "staff" }
-                      : {}),
-                  },
-                  create: {
-                    childId: item.childId,
-                    serviceId,
-                    date: dateObj,
-                    roomId,
-                    sessionType: item.sessionType,
-                    status: "present",
-                    signInTime: signOutTime, // auto sign-in if missing
-                    signedInById: session.user.id,
-                    signOutTime,
-                    signedOutById: session.user.id,
-                  },
-                });
+                record = (await recordDeparture(tx, {
+                  childId: item.childId, serviceId, date: dateObj,
+                  sessionType: item.sessionType, action: "sign_out", at: signOutTime,
+                  recordedById: session.user.id, signedByName: item.signedByName, signMethod: "staff",
+                })).record;
                 break;
               }
               case "mark_absent": {

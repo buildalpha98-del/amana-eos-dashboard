@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { assertServiceAccess } from "@/lib/authz-scope";
@@ -9,152 +10,118 @@ const patchSchema = z.object({
   itemId: z.string().min(1).optional(),
   checked: z.boolean().optional(),
   notes: z.string().optional(),
-  status: z.string().optional(),
+  status: z.enum(["pending", "in_progress", "completed"]).optional(),
 });
 
-/**
- * PATCH /api/services/[id]/checklists/[checklistId]
- * Toggle checklist items, update status, add notes.
- * Used by the dashboard Checklists tab to mark items checked/unchecked.
- */
+/** Keep item changes and completion consistent, including concurrent edits. */
 export const PATCH = withApiAuth(async (req, session, context) => {
-  const userId = session!.user.id;
   const { id, checklistId } = await context!.params!;
   assertServiceAccess(session, id);
-
-  // Verify the checklist exists and belongs to this service
-  const checklist = await prisma.dailyChecklist.findFirst({
-    where: { id: checklistId, serviceId: id },
-    include: { items: true },
-  });
-
-  if (!checklist) {
-    return NextResponse.json(
-      { error: "Checklist not found" },
-      { status: 404 }
+  const parsed = patchSchema.safeParse(await parseJsonBody(req));
+  if (!parsed.success)
+    throw ApiError.badRequest(
+      "Validation failed",
+      parsed.error.flatten().fieldErrors,
     );
-  }
-
-  const body = await parseJsonBody(req);
-  const parsed = patchSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
-      { status: 400 },
-    );
-  }
   const { itemId, checked, notes, status } = parsed.data;
 
-  // Wrap toggle + auto-complete in a transaction to prevent race conditions
-  const updated = await prisma.$transaction(async (tx) => {
-    // Toggle a specific item
-    if (itemId) {
-      const item = checklist.items.find((i) => i.id === itemId);
-      if (!item) {
-        throw ApiError.notFound("Checklist item not found");
-      }
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const updated = await prisma.$transaction(
+        async (tx) => {
+          const checklist = await tx.dailyChecklist.findFirst({
+            where: { id: checklistId, serviceId: id },
+            include: { items: true },
+          });
+          if (!checklist) throw ApiError.notFound("Checklist not found");
 
-      await tx.dailyChecklistItem.update({
-        where: { id: itemId },
-        data: {
-          checked: checked ?? !item.checked,
-          checkedAt: checked !== false ? new Date() : null,
-          checkedById: checked !== false ? userId : null,
-          notes: notes !== undefined ? notes : undefined,
-        },
-      });
-    }
+          if (itemId) {
+            const item = checklist.items.find((i) => i.id === itemId);
+            if (!item) throw ApiError.notFound("Checklist item not found");
+            const nextChecked = checked ?? !item.checked;
+            await tx.dailyChecklistItem.update({
+              where: { id: itemId },
+              data: {
+                checked: nextChecked,
+                checkedAt: nextChecked ? new Date() : null,
+                checkedById: nextChecked ? session.user.id : null,
+                ...(notes !== undefined ? { notes } : {}),
+              },
+            });
+          }
 
-    // Update checklist-level fields
-    if (notes !== undefined && !itemId) {
-      await tx.dailyChecklist.update({
-        where: { id: checklistId },
-        data: { notes },
-      });
-    }
-
-    if (status) {
-      const updateData: Record<string, unknown> = { status };
-      if (status === "completed") {
-        updateData.completedAt = new Date();
-        updateData.completedById = userId;
-      }
-      await tx.dailyChecklist.update({
-        where: { id: checklistId },
-        data: updateData,
-      });
-    }
-
-    // Auto-complete checklist if all required items are checked
-    if (itemId) {
-      const updatedChecklist = await tx.dailyChecklist.findUnique({
-        where: { id: checklistId },
-        include: { items: true },
-      });
-
-      if (updatedChecklist) {
-        const requiredItems = updatedChecklist.items.filter((i) => i.isRequired);
-        const allChecked = requiredItems.every((i) => i.checked);
-
-        if (allChecked && updatedChecklist.status === "pending") {
+          const current = await tx.dailyChecklist.findUnique({
+            where: { id: checklistId },
+            include: { items: true },
+          });
+          if (!current) throw ApiError.notFound("Checklist not found");
+          const required = current.items.filter((i) => i.isRequired);
+          const completionItems = required.length ? required : current.items;
+          const allChecked =
+            completionItems.length > 0 &&
+            completionItems.every((i) => i.checked);
+          if (status === "completed" && !allChecked) {
+            throw ApiError.badRequest(
+              "Complete the required checklist items before signing off.",
+            );
+          }
+          let nextStatus = status ?? current.status;
+          if (itemId && !status && allChecked) nextStatus = "completed";
+          if (!allChecked && nextStatus === "completed") nextStatus = "pending";
+          const newlyCompleted =
+            nextStatus === "completed" && current.status !== "completed";
           await tx.dailyChecklist.update({
             where: { id: checklistId },
             data: {
-              status: "completed",
-              completedAt: new Date(),
-              completedById: userId,
+              status: nextStatus,
+              ...(notes !== undefined && !itemId ? { notes } : {}),
+              ...(nextStatus !== "completed"
+                ? { completedAt: null, completedById: null }
+                : newlyCompleted
+                  ? { completedAt: new Date(), completedById: session.user.id }
+                  : {}),
             },
           });
-        }
+          return tx.dailyChecklist.findUnique({
+            where: { id: checklistId },
+            include: {
+              items: { orderBy: { sortOrder: "asc" } },
+              completedBy: { select: { id: true, name: true } },
+            },
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+      return NextResponse.json({ checklist: updated });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2034"
+      ) {
+        if (attempt < 2) continue;
+        throw ApiError.conflict(
+          "This checklist changed while you were saving. Reload and try again.",
+        );
       }
+      throw error;
     }
-
-    // Return updated checklist
-    return tx.dailyChecklist.findUnique({
-      where: { id: checklistId },
-      include: {
-        items: { orderBy: { sortOrder: "asc" } },
-        completedBy: { select: { id: true, name: true } },
-      },
-    });
-  });
-
-  if (!updated) {
-    return NextResponse.json(
-      { error: "Checklist item not found" },
-      { status: 404 }
-    );
   }
-
-  return NextResponse.json({ checklist: updated });
+  throw ApiError.conflict("Reload the checklist and try again.");
 });
 
-/**
- * GET /api/services/[id]/checklists/[checklistId]
- * Get a single checklist with its items.
- */
-export const GET = withApiAuth(async (req, session, context) => {
+export const GET = withApiAuth(async (_req, session, context) => {
   const { id, checklistId } = await context!.params!;
-
+  assertServiceAccess(session, id);
   const checklist = await prisma.dailyChecklist.findFirst({
     where: { id: checklistId, serviceId: id },
     include: {
       items: {
         orderBy: { sortOrder: "asc" },
-        include: {
-          checkedBy: { select: { id: true, name: true } },
-        },
+        include: { checkedBy: { select: { id: true, name: true } } },
       },
       completedBy: { select: { id: true, name: true } },
     },
   });
-
-  if (!checklist) {
-    return NextResponse.json(
-      { error: "Checklist not found" },
-      { status: 404 }
-    );
-  }
-
+  if (!checklist) throw ApiError.notFound("Checklist not found");
   return NextResponse.json({ checklist });
 });

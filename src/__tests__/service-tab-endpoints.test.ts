@@ -335,14 +335,13 @@ describe("PATCH /api/services/[id]/checklists/[checklistId]", () => {
     const { PATCH } = await import(
       "@/app/api/services/[id]/checklists/[checklistId]/route"
     );
-    const res = await PATCH(
+    // This file stubs withApiAuth, so its error-to-response conversion is absent.
+    await expect(PATCH(
       makeReq("http://localhost/api/services/svc-1/checklists/cl-999", "PATCH", {
-        itemId: "item-1",
-        checked: true,
+        itemId: "item-1", checked: true,
       }),
-      { params: Promise.resolve({ id: "svc-1", checklistId: "cl-999" }) }
-    );
-    expect(res.status).toBe(404);
+      { params: Promise.resolve({ id: "svc-1", checklistId: "cl-999" }) },
+    )).rejects.toMatchObject({ status: 404 });
   });
 
   it("toggles a checklist item", async () => {
