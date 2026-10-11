@@ -1,5 +1,8 @@
 "use client";
 
+import { useSession } from "next-auth/react";
+import { offlineActorHeaders } from "@/lib/offline-identity";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
@@ -67,12 +70,15 @@ export interface LogDoseArgs {
 }
 
 export function useLogDose(serviceId: string) {
+  const { data: session } = useSession();
   const qc = useQueryClient();
   return useMutation<MedicationDose | { queued: true }, Error, LogDoseArgs>({
     mutationFn: async (body) => {
+      const ownerId = session?.user?.id;
+      const headers = offlineActorHeaders(ownerId);
       const url = `/api/services/${serviceId}/medications`;
       try {
-        return await mutateApi<MedicationDose>(url, { method: "POST", body });
+        return await mutateApi<MedicationDose>(url, { method: "POST", body, headers });
       } catch (err) {
         // Network error or 5xx — enqueue for later drain.
         // 4xx bubbles up untouched (user input is wrong, no point queuing).
@@ -83,6 +89,7 @@ export function useLogDose(serviceId: string) {
           msg.startsWith("HTTP 5");
         if (!isTransient) throw err;
         await offlineQueue.enqueue({
+          ownerId: ownerId!,
           id: body.clientMutationId,
           url,
           method: "POST",

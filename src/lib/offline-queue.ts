@@ -1,16 +1,19 @@
 "use client";
 
+import { getSession } from "next-auth/react";
+import { OFFLINE_ACTOR_HEADER } from "@/lib/offline-identity";
+
 /**
  * IndexedDB-backed mutation queue for offline-resilient staff actions.
  *
- * Append-only semantics — each enqueued mutation carries a clientMutationId,
- * which the server uses as a unique index to de-dupe replays. Four endpoints
- * honour this pattern today:
+ * Each queued mutation retains its originating account and clientMutationId.
+ * Server replay guarantees depend on the endpoint; an ID alone does not make
+ * a write idempotent. Current callers include:
  *
  *   - POST /api/services/[id]/medications          (clientMutationId required)
  *   - POST /api/services/[id]/observations         (clientMutationId optional)
  *   - POST /api/services/[id]/reflections          (clientMutationId optional)
- *   - POST /api/attendance/roll-call/*             (coming — commit 42 wires)
+ *   - POST /api/attendance/roll-call             (first-handover guards)
  *
  * Drain strategy: FIFO by enqueuedAt. Up to 3 retries per row (network errors
  * only — 4xx responses mark the row as "failed" with the server error for
@@ -22,6 +25,8 @@ const DB_VERSION = 1;
 const STORE = "mutations";
 
 export interface QueuedMutation {
+  /** Missing only on legacy rows, which must never replay automatically. */
+  ownerId?: string;
   id: string; // idbKey — same as clientMutationId
   url: string;
   method: "POST" | "PATCH" | "PUT";
@@ -36,7 +41,7 @@ type DrainListener = (count: { pending: number; failed: number }) => void;
 
 class OfflineQueue {
   private dbPromise: Promise<IDBDatabase> | null = null;
-  private listeners = new Set<DrainListener>();
+  private listeners = new Map<DrainListener, string | null | undefined>();
   private draining = false;
 
   private async open(): Promise<IDBDatabase> {
@@ -61,7 +66,8 @@ class OfflineQueue {
     return this.dbPromise;
   }
 
-  async enqueue(m: Omit<QueuedMutation, "enqueuedAt" | "attempts" | "status">): Promise<void> {
+  async enqueue(m: Omit<QueuedMutation, "enqueuedAt" | "attempts" | "status"> & { ownerId: string }): Promise<void> {
+    if (!m.ownerId) throw new Error("Sign in before saving work offline.");
     const db = await this.open();
     const tx = db.transaction(STORE, "readwrite");
     const store = tx.objectStore(STORE);
@@ -71,10 +77,23 @@ class OfflineQueue {
       attempts: 0,
       status: "pending",
     };
-    store.put(row);
     await new Promise<void>((resolve, reject) => {
+      const existing = store.get(row.id);
+      existing.onsuccess = () => {
+        const saved = existing.result as QueuedMutation | undefined;
+        if (saved) {
+          if (saved.ownerId !== row.ownerId || saved.url !== row.url || saved.method !== row.method || JSON.stringify(saved.body) !== JSON.stringify(row.body)) {
+            reject(new Error("This offline action ID is already saved with different details. Review the original action before trying again."));
+            tx.abort();
+          }
+          // An identical retry keeps its original owner, order and attempts.
+          return;
+        }
+        store.put(row);
+      };
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error ?? new Error("Offline save was cancelled."));
     });
     this.notify();
   }
@@ -90,8 +109,8 @@ class OfflineQueue {
     });
   }
 
-  async counts(): Promise<{ pending: number; failed: number }> {
-    const rows = await this.all();
+  async counts(ownerId?: string | null): Promise<{ pending: number; failed: number }> {
+    const rows = (await this.all()).filter((row) => ownerId === undefined || (ownerId !== null && (!row.ownerId || row.ownerId === ownerId)));
     return {
       pending: rows.filter((r) => r.status === "pending").length,
       failed: rows.filter((r) => r.status === "failed").length,
@@ -135,16 +154,25 @@ class OfflineQueue {
     if (this.draining) return { drained: 0, failed: 0 };
     this.draining = true;
     try {
+      const session = await getSession();
+      const ownerId = session?.user?.id;
+      if (!ownerId) return { drained: 0, failed: 0 };
       const rows = (await this.all())
         .filter((r) => r.status === "pending")
         .sort((a, b) => a.enqueuedAt - b.enqueuedAt);
       let drained = 0;
       let failed = 0;
       for (const row of rows) {
+        if (!row.ownerId) {
+          await this.markFailed(row.id, "This older offline action has no saved account. Review the original record before entering it again.");
+          failed += 1;
+          continue;
+        }
+        if (row.ownerId !== ownerId) continue;
         try {
           const res = await fetch(row.url, {
             method: row.method,
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", [OFFLINE_ACTOR_HEADER]: row.ownerId },
             body: JSON.stringify(row.body),
           });
           if (res.ok || res.status === 200 || res.status === 201) {
@@ -176,10 +204,12 @@ class OfflineQueue {
     }
   }
 
-  subscribe(listener: DrainListener): () => void {
-    this.listeners.add(listener);
+  subscribe(listener: DrainListener, ownerId?: string | null): () => void {
+    this.listeners.set(listener, ownerId);
     // Fire immediately
-    this.counts().then((c) => listener(c)).catch(() => {});
+    this.counts(ownerId).then((c) => {
+      if (this.listeners.has(listener) && this.listeners.get(listener) === ownerId) listener(c);
+    }).catch(() => {});
     return () => {
       this.listeners.delete(listener);
     };
@@ -187,11 +217,11 @@ class OfflineQueue {
 
   private notify() {
     if (this.listeners.size === 0) return;
-    this.counts()
-      .then((c) => {
-        for (const l of this.listeners) l(c);
-      })
-      .catch(() => {});
+    for (const [listener, ownerId] of this.listeners) {
+      this.counts(ownerId).then((c) => {
+        if (this.listeners.has(listener) && this.listeners.get(listener) === ownerId) listener(c);
+      }).catch(() => {});
+    }
   }
 }
 

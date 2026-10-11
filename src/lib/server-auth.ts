@@ -1,3 +1,4 @@
+import { OFFLINE_ACTOR_HEADER } from "@/lib/offline-identity";
 import type { WrappedRouteHandler } from "@/lib/route-handler";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
@@ -146,6 +147,16 @@ export function withApiAuth(
     if (!session?.user?.id) {
       logger.warn("Auth: no session", { endpoint, method: req.method });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // A shared device may have switched accounts since this action began.
+    // This header can only restrict the authenticated session, never grant access.
+    const actionUserId = req.headers.get(OFFLINE_ACTOR_HEADER);
+    if (actionUserId !== null && actionUserId !== session.user.id) {
+      return NextResponse.json(
+        { error: "This action was saved by another account. Sign back into that account to review it." },
+        { status: 409 },
+      );
     }
 
     // --- Verify user is still active (cached 60s) ---

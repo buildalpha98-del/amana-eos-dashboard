@@ -5,12 +5,14 @@
  * from the IndexedDB queue. Invisible when zero of both.
  */
 
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { offlineQueue } from "@/lib/offline-queue";
 import { CloudOff, AlertCircle, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function OfflineSyncBadge() {
+  const { data: session } = useSession();
   const [counts, setCounts] = useState<{ pending: number; failed: number }>({
     pending: 0,
     failed: 0,
@@ -18,15 +20,19 @@ export function OfflineSyncBadge() {
   const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
-    return offlineQueue.subscribe(setCounts);
-  }, []);
+    setCounts({ pending: 0, failed: 0 });
+    return offlineQueue.subscribe(setCounts, session?.user?.id ?? null);
+  }, [session?.user?.id]);
 
   if (counts.pending === 0 && counts.failed === 0) return null;
 
   async function retry() {
     setRetrying(true);
-    await offlineQueue.drain();
-    setRetrying(false);
+    try {
+      await offlineQueue.drain();
+    } finally {
+      setRetrying(false);
+    }
   }
 
   return (

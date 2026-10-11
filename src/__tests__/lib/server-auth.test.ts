@@ -450,3 +450,26 @@ describe("withApiAuth", () => {
     });
   });
 });
+
+describe('shared-device action identity', () => {
+  it('rejects an action captured under a different account before invoking the handler', async () => {
+    const handler = vi.fn(() => NextResponse.json({ ok: true }));
+    const req = new NextRequest('http://localhost/api/test', { method: 'POST', headers: { 'x-amana-action-user': 'previous-user' } });
+    const res = await withApiAuth(handler)(req);
+    expect(res.status).toBe(409);
+    expect(handler).not.toHaveBeenCalled();
+  });
+  it('allows a matching account through the ordinary authorisation checks', async () => {
+    const handler = vi.fn(() => NextResponse.json({ ok: true }));
+    const req = new NextRequest('http://localhost/api/test', { method: 'POST', headers: { 'x-amana-action-user': 'user-1' } });
+    expect((await withApiAuth(handler)(req)).status).toBe(200);
+    expect(handler).toHaveBeenCalledOnce();
+  });
+  it('does not treat a matching header as permission to access a restricted endpoint', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'user-1', role: 'staff' }, expires: '2099-01-01' } as never);
+    const handler = vi.fn(() => NextResponse.json({ ok: true }));
+    const req = new NextRequest('http://localhost/api/test', { method: 'POST', headers: { 'x-amana-action-user': 'user-1' } });
+    expect((await withApiAuth(handler, { roles: ['owner'] })(req)).status).toBe(403);
+    expect(handler).not.toHaveBeenCalled();
+  });
+});

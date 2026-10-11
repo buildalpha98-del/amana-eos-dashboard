@@ -1,5 +1,8 @@
 "use client";
 
+import { useSession } from "next-auth/react";
+import { offlineActorHeaders } from "@/lib/offline-identity";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
@@ -134,6 +137,7 @@ export function useRollCall(serviceId: string, date: string, sessionType: string
 }
 
 export function useUpdateRollCall() {
+  const { data: session } = useSession();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -147,9 +151,11 @@ export function useUpdateRollCall() {
         occurredAt: new Date().toISOString(),
         clientMutationId: genUuid(),
       };
+      const ownerId = session?.user?.id;
+      const headers = offlineActorHeaders(ownerId);
       const url = "/api/attendance/roll-call";
       try {
-        return await mutateApi(url, { method: "POST", body: enriched });
+        return await mutateApi(url, { method: "POST", body: enriched, headers });
       } catch (err) {
         // Queue on transient failures only. Validation 4xx (e.g. unknown
         // child) bubbles up so the educator sees an immediate red toast.
@@ -160,6 +166,7 @@ export function useUpdateRollCall() {
           msg.startsWith("HTTP 5");
         if (!isTransient) throw err;
         await offlineQueue.enqueue({
+          ownerId: ownerId!,
           id: enriched.clientMutationId,
           url,
           method: "POST",

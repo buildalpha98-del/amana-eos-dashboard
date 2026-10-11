@@ -1,5 +1,8 @@
 "use client";
 
+import { useSession } from "next-auth/react";
+import { offlineActorHeaders } from "@/lib/offline-identity";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
@@ -121,12 +124,15 @@ export function useDeleteReflection(serviceId: string) {
 }
 
 export function useCreateReflection(serviceId: string) {
+  const { data: session } = useSession();
   const qc = useQueryClient();
   return useMutation<ReflectionItem | { queued: true }, Error, CreateReflectionArgs>({
     mutationFn: async (body) => {
+      const ownerId = session?.user?.id;
+      const headers = offlineActorHeaders(ownerId);
       const url = `/api/services/${serviceId}/reflections`;
       try {
-        return await mutateApi<ReflectionItem>(url, { method: "POST", body });
+        return await mutateApi<ReflectionItem>(url, { method: "POST", body, headers });
       } catch (err) {
         const msg = err instanceof Error ? err.message : "";
         const isTransient =
@@ -135,6 +141,7 @@ export function useCreateReflection(serviceId: string) {
           msg.startsWith("HTTP 5");
         if (!isTransient || !body.clientMutationId) throw err;
         await offlineQueue.enqueue({
+          ownerId: ownerId!,
           id: body.clientMutationId,
           url,
           method: "POST",
