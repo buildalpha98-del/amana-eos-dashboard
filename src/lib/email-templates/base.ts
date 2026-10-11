@@ -110,8 +110,9 @@ export const UNSUBSCRIBE_URL_TOKEN = "{{UNSUBSCRIBE_URL}}";
  *
  * `opts.preheader` sets the hidden inbox preview line — the text mail
  * clients show after the subject in the message list.
+ * `opts.transactional` uses account-access wording and omits marketing preferences.
  */
-export function parentEmailLayout(content: string, opts?: { preheader?: string }) {
+export function parentEmailLayout(content: string, opts?: { preheader?: string; transactional?: boolean }) {
   const preheaderHtml = opts?.preheader
     ? `<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${opts.preheader}${"&nbsp;&zwnj;".repeat(30)}</div>`
     : "";
@@ -169,13 +170,15 @@ export function parentEmailLayout(content: string, opts?: { preheader?: string }
                 <a href="https://amanaoshc.com.au" style="color:${COSMIC_LATTE};text-decoration:underline;">amanaoshc.com.au</a>
                 &nbsp;&nbsp;&#8226;&nbsp;&nbsp;
                 <a href="mailto:contact@amanaoshc.com.au" style="color:${COSMIC_LATTE};text-decoration:underline;">Contact Us</a>
-                &nbsp;&nbsp;&#8226;&nbsp;&nbsp;
-                <a href="${UNSUBSCRIBE_URL_TOKEN}" style="color:${COSMIC_LATTE};text-decoration:underline;">Unsubscribe</a>
+                ${opts?.transactional ? "" : `&nbsp;&nbsp;&#8226;&nbsp;&nbsp;
+                <a href="${UNSUBSCRIBE_URL_TOKEN}" style="color:${COSMIC_LATTE};text-decoration:underline;">Unsubscribe</a>`}
               </p>
               <p style="margin:0;color:rgba(255,250,230,0.65);font-size:11px;line-height:1.7;">
                 Amana OSHC &#8226; Out of School Hours Care<br/>
                 ${POSTAL_ADDRESS}<br/>
-                You're receiving this email because you enquired about Amana OSHC.
+                ${opts?.transactional
+                  ? "You're receiving this email to help you access your Amana OSHC parent account."
+                  : "You're receiving this email because you enquired about Amana OSHC."}
               </p>
             </td>
           </tr>

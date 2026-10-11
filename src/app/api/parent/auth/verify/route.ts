@@ -1,135 +1,138 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { z } from "zod";
 import { withApiHandler } from "@/lib/api-handler";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
-import {
-  findEnrolmentIdsForEmail,
-  findParentAccountForLogin,
-} from "@/lib/parent-account";
+import { findEnrolmentIdsForEmail, findParentAccountForLogin } from "@/lib/parent-account";
 import { signParentJwt } from "@/lib/parent-auth";
 import { logger } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-export const GET = withApiHandler(async (req: NextRequest) => {
-  const token = req.nextUrl.searchParams.get("token");
-  // Redirect back to whatever host the parent actually called us from — more
-  // robust than relying on NEXTAUTH_URL (which may point at prod while dev is
-  // localhost). Falls back to NEXTAUTH_URL if the request origin is missing.
-  const baseUrl =
-    req.nextUrl.origin || process.env.NEXTAUTH_URL || "http://localhost:3000";
-  const loginErrorUrl = `${baseUrl}/parent/login?error=expired`;
+const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/i);
 
-  if (!token) {
-    return NextResponse.redirect(loginErrorUrl);
-  }
-
-  // Throttle per IP so stolen/guessed tokens can't be tried in bulk. Tokens are
-  // 256-bit so brute force is infeasible anyway — this is defence-in-depth.
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  const rl = await checkRateLimit(`parent-verify:${ip}`, 10, 60 * 1000);
-  if (rl.limited) {
-    logger.warn("Parent verify: rate limited", { ip });
-    return NextResponse.redirect(loginErrorUrl);
-  }
-
-  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-
-  // Find valid, unused, non-expired link
-  const magicLink = await prisma.parentMagicLink.findUnique({
-    where: { tokenHash },
-  });
-
-  if (!magicLink || magicLink.usedAt || magicLink.expiresAt < new Date()) {
-    logger.warn("Parent verify: invalid or expired token", {
-      tokenExists: !!magicLink,
-      used: !!magicLink?.usedAt,
-      expired: magicLink ? magicLink.expiresAt < new Date() : null,
-    });
-    return NextResponse.redirect(loginErrorUrl);
-  }
-
-  // Mark as used
-  await prisma.parentMagicLink.update({
-    where: { id: magicLink.id },
-    data: { usedAt: new Date() },
-  });
-
-  const emailLower = magicLink.email.toLowerCase().trim();
-
-  /**
-   * One shared lookup, not a second copy of it.
-   *
-   * This route and `send-link` each carried their own ~40-line scan with
-   * a hard `take(100)`, unordered. A parent whose enrolment fell outside
-   * that slice got a valid magic link that signed them in with ZERO
-   * enrolments — the session worked, and their own children weren't in
-   * it. `findEnrolmentIdsForEmail` pages the whole table instead.
-   */
-  const { enrolmentIds: matchingEnrolmentIds, parentName: foundName } =
-    await findEnrolmentIdsForEmail(emailLower);
-
-  let parentName = foundName ?? "Parent";
-  if (!foundName) {
-    const enquiry = await prisma.parentEnquiry.findFirst({
-      where: {
-        parentEmail: { equals: emailLower, mode: "insensitive" },
-        deleted: false,
-      },
-      select: { parentName: true },
-    });
-    if (enquiry?.parentName) parentName = enquiry.parentName;
-  }
-
-  // Sign JWT
-  /**
-   * `accountId` too — the password login has always set it, and this
-   * didn't.
-   *
-   * Without it `requireAccountId` refuses the enrolment draft with
-   * "Please sign in with your Amana OSHC account to continue your
-   * enrolment" — told to a parent who just used the only recovery path
-   * they have, about the password they've forgotten. It also made
-   * fixing the send side hollow: a link that arrives and then can't
-   * reach their half-finished enrolment is barely better than no link.
-   */
-  const account = await findParentAccountForLogin(emailLower);
-
-  const jwt = await signParentJwt({
-    email: emailLower,
-    name: parentName,
-    enrolmentIds: matchingEnrolmentIds,
-    ...(account ? { accountId: account.accountId } : {}),
-    sessionVersion: account?.sessionVersion ?? 0,
-  });
-
-  logger.info("Parent session created", {
-    email: emailLower,
-    enrolmentCount: matchingEnrolmentIds.length,
-  });
-
-  // Set cookies and redirect. Use ?v2=1 for new parents during the v2 rollout
-  // window so the welcome experience is always the redesigned one.
-  const response = NextResponse.redirect(`${baseUrl}/parent?v2=1`);
-  const cookieMaxAge = 30 * 24 * 60 * 60; // 30 days — matches the parent JWT expiration
-
-  // httpOnly session cookie (not readable by JS — secure)
-  response.cookies.set("parent-session", jwt, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: cookieMaxAge,
-  });
-
-  // Non-httpOnly flag cookie for client-side auth check
-  // (the actual JWT is still protected; this just signals "logged in")
-  response.cookies.set("parent-active", "1", {
-    httpOnly: false,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: cookieMaxAge,
-  });
-
+function privateResponse(response: NextResponse) {
+  response.headers.set("Cache-Control", "no-store");
+  response.headers.set("Referrer-Policy", "no-referrer");
   return response;
-});
+}
+
+// Email security software may open a link repeatedly, including with HEAD.
+// Neither inspection nor browser prefetching may redeem a login token.
+// The fragment keeps the token out of confirmation-page server requests.
+export function GET(req: NextRequest) {
+  const token = tokenSchema.safeParse(req.nextUrl.searchParams.get("token"));
+  const target = new URL(token.success ? "/parent/login/confirm" : "/parent/login?error=expired", req.url);
+  if (token.success) target.hash = `token=${token.data}`;
+  return privateResponse(NextResponse.redirect(target));
+}
+
+export function HEAD(req: NextRequest) {
+  return GET(req);
+}
+
+const PREPARATION_TIMEOUT_MS = 20_000;
+const redeem = withApiHandler(async (req: NextRequest) => {
+  // Explicit same-origin JSON POST prevents cross-site forms from signing a
+  // visitor into somebody else's account (login CSRF).
+  if (req.headers.get("origin") !== req.nextUrl.origin ||
+      req.headers.get("sec-fetch-site") === "cross-site") {
+    throw ApiError.forbidden("Please open your login email in this browser and try again.");
+  }
+  if (req.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") {
+    throw new ApiError(415, "Please use the Continue to my account button.");
+  }
+  const parsed = z.object({ token: tokenSchema }).safeParse(await parseJsonBody(req));
+  if (!parsed.success) throw ApiError.badRequest("This login link is not valid. Request a new link.");
+
+  // Only read/prepare in this promise. If the timeout wins, even late
+  // completion cannot redeem the link in the background.
+  const preparation = (async () => {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const rl = await checkRateLimit(`parent-verify:${ip}`, 10, 60 * 1000);
+    if (rl.limited) throw new ApiError(429, "Too many attempts. Please wait a minute and try again.");
+
+    const tokenHash = crypto.createHash("sha256").update(parsed.data.token).digest("hex");
+    const magicLink = await prisma.parentMagicLink.findUnique({ where: { tokenHash } });
+    if (!magicLink || magicLink.usedAt || magicLink.expiresAt <= new Date()) {
+      throw ApiError.badRequest("This login link has expired or has already been used. Request a new link.");
+    }
+
+    // Prepare everything that may fail BEFORE claiming the link. A transient
+    // lookup/signing failure must leave the parent able to retry.
+    const emailLower = magicLink.email.toLowerCase().trim();
+
+    const { enrolmentIds: matchingEnrolmentIds, parentName: foundName } =
+      await findEnrolmentIdsForEmail(emailLower);
+
+    let parentName = foundName ?? "Parent";
+    if (!foundName) {
+      const enquiry = await prisma.parentEnquiry.findFirst({
+        where: {
+          parentEmail: { equals: emailLower, mode: "insensitive" },
+          deleted: false,
+        },
+        select: { parentName: true },
+      });
+      if (enquiry?.parentName) parentName = enquiry.parentName;
+    }
+
+    const account = await findParentAccountForLogin(emailLower);
+
+    if (account?.name) parentName = account.name;
+
+    const jwt = await signParentJwt({
+      email: emailLower,
+      name: parentName,
+      enrolmentIds: matchingEnrolmentIds,
+      ...(account ? { accountId: account.accountId } : {}),
+      sessionVersion: account?.sessionVersion ?? 0,
+    });
+
+    return { jwt, magicLink, enrolmentCount: matchingEnrolmentIds.length };
+  })();
+  let preparationTimer: ReturnType<typeof setTimeout> | undefined;
+  let prepared: Awaited<typeof preparation>;
+  try {
+    prepared = await Promise.race([
+      preparation,
+      new Promise<never>((_, reject) => {
+        preparationTimer = setTimeout(() => reject(new ApiError(504, "Signing in took too long. Please try again.")), PREPARATION_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (preparationTimer) clearTimeout(preparationTimer);
+  }
+  const { jwt, magicLink, enrolmentCount } = prepared;
+
+  // One request wins, even if two tabs press Continue at the same time.
+  const claimedAt = new Date();
+  // Bound lock waits/commit work at the database, where a timed-out
+  // transaction rolls back. Do not race a response timer against a write.
+  const claimed = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SET LOCAL statement_timeout = '3s'`;
+    return tx.parentMagicLink.updateMany({
+      where: { id: magicLink.id, usedAt: null, expiresAt: { gt: claimedAt } },
+      data: { usedAt: claimedAt },
+    });
+  }, { maxWait: 1_000, timeout: 5_000 });
+  if (claimed.count !== 1) {
+    throw ApiError.badRequest("This login link has expired or has already been used. Request a new link.");
+  }
+
+  const response = NextResponse.json({ success: true, next: "/parent?v2=1" });
+  const cookieOptions = {
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: 30 * 24 * 60 * 60,
+  };
+  response.cookies.set("parent-session", jwt, { ...cookieOptions, httpOnly: true });
+  response.cookies.set("parent-active", "1", { ...cookieOptions, httpOnly: false });
+  logger.info("Parent session created", { enrolmentCount });
+  return response;
+}, { timeoutMs: 0 });
+
+export async function POST(req: NextRequest) {
+  return privateResponse(await redeem(req));
+}

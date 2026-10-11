@@ -81,6 +81,11 @@ describe("POST /api/parent/auth/send-link", () => {
     expect(prismaMock.enrolmentSubmission.findMany).not.toHaveBeenCalled();
     expect(prismaMock.$queryRaw).toHaveBeenCalled();
     expect(resendSend).toHaveBeenCalledTimes(1);
+    const { parentMagicLinkEmail } = await import("@/lib/email-templates");
+    const destination = new URL(vi.mocked(parentMagicLinkEmail).mock.calls[0][1]);
+    expect(destination.pathname).toBe("/parent/login/confirm");
+    expect(destination.search).toBe("");
+    expect(destination.hash).toMatch(/^#token=[a-f0-9]{64}$/);
   });
 
   it("finds a parent regardless of how many enrolments exist", async () => {

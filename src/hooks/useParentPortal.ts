@@ -439,9 +439,10 @@ export interface CreateConversationPayload {
 
 // ── Messaging Hooks ─────────────────────────────────────
 
-export function useParentConversations() {
+export function useParentConversations(enabled = true) {
   return useQuery<ConversationSummary[]>({
     queryKey: ["parent", "messages"],
+    enabled,
     queryFn: () => fetchApi<ConversationSummary[]>("/api/parent/messages"),
     retry: 2,
     staleTime: 30_000,
