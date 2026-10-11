@@ -10,7 +10,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
-import { buttonHtml, parentEmailLayout } from "@/lib/email-templates/base";
+import { buttonHtml, escapeHtml, parentEmailLayout } from "@/lib/email-templates/base";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
 
@@ -68,31 +68,34 @@ export async function sendParentWelcomeInvite(
 
   try {
     const token = await issueWelcomeMagicLink(contact.email);
-    const link = `${PORTAL_URL}/api/parent/auth/verify?token=${encodeURIComponent(token)}`;
+    const link = `${PORTAL_URL}/parent/login/confirm#token=${encodeURIComponent(token)}`;
     const parentName = contact.firstName || "there";
-    const childName = opts.childFirstName || "your child";
+    const safeParentName = escapeHtml(parentName);
+    const childName = escapeHtml(opts.childFirstName || "your child");
     const centreName = contact.service?.name ?? "Amana OSHC";
+    const safeCentreName = escapeHtml(centreName);
 
     const greetingHtml = opts.resend
       ? `<h2 style="margin:0 0 12px;color:#111827;font-size:18px;font-weight:600;">
            Here&apos;s a fresh link to log in
          </h2>
          <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-           Assalamu Alaikum ${parentName},
+           Assalamu Alaikum ${safeParentName},
          </p>
          <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-           Tap the button below to log straight into your Amana OSHC parent portal.
+           Open your secure sign-in page, then choose <strong>Continue to my account</strong>.
            This link is valid for 30 days.
          </p>`
       : `<h2 style="margin:0 0 12px;color:#111827;font-size:18px;font-weight:600;">
-           Welcome to ${centreName}
+           Welcome to ${safeCentreName}
          </h2>
          <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-           Assalamu Alaikum ${parentName},
+           Assalamu Alaikum ${safeParentName},
          </p>
          <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-           ${childName}&apos;s enrolment at <strong>${centreName}</strong> has been approved.
-           Your parent portal account is ready — tap the button below to log in and
+           ${childName}&apos;s enrolment at <strong>${safeCentreName}</strong> has been approved.
+           Your parent portal account is ready — open the secure sign-in page below,
+           then choose <strong>Continue to my account</strong> to
            find your school information, arrival and pickup guidance, and message our team.
            Bookings, invoices and daily updates are managed separately in OWNA.
            Please confirm your OWNA access and booked sessions with our team before your first day.
@@ -108,14 +111,17 @@ export async function sendParentWelcomeInvite(
 
     const html = parentEmailLayout(`
       ${greetingHtml}
-      ${buttonHtml("Log in to your portal", link)}
+      ${buttonHtml("Open my secure sign-in page", link)}
       <p style="margin:16px 0 0;color:#9ca3af;font-size:13px;line-height:1.5;">
         Jazak Allahu Khairan,<br/>
         The Amana OSHC Team
       </p>
-    `);
+    `, { transactional: true });
 
-    await sendEmail({ to: contact.email, subject, html });
+    const delivery = await sendEmail({ to: contact.email, subject, html });
+    if (!delivery.sent.some((email) => email.toLowerCase() === contact.email.toLowerCase())) {
+      return { sent: false, email: contact.email };
+    }
 
     await prisma.notificationLog.create({
       data: {

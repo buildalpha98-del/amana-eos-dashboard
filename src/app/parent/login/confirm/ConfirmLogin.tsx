@@ -68,7 +68,7 @@ export function ConfirmLogin() {
                 : <>Continue to my account <ArrowRight className="h-4 w-4" aria-hidden="true" /></>}
             </button>
           )}
-          <p className="mt-4 text-sm leading-relaxed text-brand/80">Login links last one hour and can be used once.</p>
+          <p className="mt-4 text-sm leading-relaxed text-brand/80">Login links can be used once. Check your email for the expiry time.</p>
         </div>
         <p className="mt-6 text-center text-sm">Need a hand? <a href="tel:1300200262" className="font-semibold underline underline-offset-4">Call 1300 200 262</a></p>
       </div>
