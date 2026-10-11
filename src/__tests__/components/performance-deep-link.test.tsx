@@ -76,9 +76,9 @@ describe("performance deep links", () => {
   it("defaults unknown links to centres and preserves manual view switching", async () => {
     const { page, recoverableErrors } = await hydrateView("unknown");
     expect(page.getByText("Selected view: centres")).toBeVisible();
-    fireEvent.click(page.getByRole("button", { name: "Reports", exact: true }));
+    fireEvent.click(page.getByRole("button", { name: "Reports" }));
     expect(page.getByText("Operational reports")).toBeVisible();
-    fireEvent.click(page.getByRole("button", { name: "Centres", exact: true }));
+    fireEvent.click(page.getByRole("button", { name: "Centres" }));
     expect(page.getByText("Selected view: centres")).toBeVisible();
     expect(recoverableErrors).toEqual([]);
   });
