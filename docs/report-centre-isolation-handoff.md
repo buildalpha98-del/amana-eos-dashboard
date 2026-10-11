@@ -1,3 +1,5 @@
+> Integration update, 11 October 2026: current main `39261889fec73f48b122cef48a187a37a481f5a1` is integrated in `6f68e32baeb035cbe7bc2601190707df60705306`. Both conflicted date fixtures were retained byte-for-byte from main; the final diff contains only six report handlers, their regressions and this handoff. Fresh independent review by `report_release_review` found no material defects and independently passed 78 focused tests. Current integrated verification includes 83 real PostgreSQL integration tests, clean standalone TypeScript, lint with zero errors, and UTC/Sydney focused tests. Final full-suite/build/browser/CI evidence and current readiness are recorded in PR #325's description and the dated external handoff; the original numbers below are historical and must not be treated as current-head verification. No production release is authorized by this update.
+
 # Report centre isolation
 
 Branch: codex/report-centre-isolation. Base: production merge4f524e4d1edae3a18298c8b602efc0af8d795f01. Primary checkout and its unrelated decision-review log are preserved.
