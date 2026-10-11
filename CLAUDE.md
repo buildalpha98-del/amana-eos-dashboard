@@ -129,6 +129,8 @@
 - **Checklists**: `CreativeRequest.checklist` Json (`[{label, done}]`), seeded from `DEFAULT_CHECKLISTS[type]` at create, fulfiller-only to edit.
 
 ## OSHC record safety (2026-10-12)
+- **Roll-call child scope**: single actions look up the child within the requested service; bulk validates every child before attendance writes. Office access to both centres does not allow mixing a child with the wrong centre.
+- **Arrival retries**: `recordArrival` is shared by single and bulk handovers; insert with duplicate skipping, then update only when both arrival and departure are empty. Preserve the first arrival, actor, signature and notes, including after collection. Notify only when a handover changed, after commit for bulk. This is not a durable mutation ledger: undo/correction replay ordering and shared-device offline identity still need separate protection.
 - **Checklist reads and writes** both assert centre access. Item toggles and completion are one serializable transaction with bounded conflict retries. Unticking required work reopens the checklist and clears its current sign-off; manual completion cannot bypass required items. Resolve omitted `checked` against the row read inside the transaction.
 - **Medication retries** must validate the original record's service, child, actor and complete dose payload before returning it, including after a concurrent unique-key conflict. Never return a globally looked-up mutation ID without checking its scope.
 - **Medication days** use two actual Sydney midnights (not host-local midnight or a fixed 24-hour window). `serviceMidnight` resolves the offset at midnight itself; DST change days are 23/25 hours. The medication UI uses `serviceTodayISO` too.

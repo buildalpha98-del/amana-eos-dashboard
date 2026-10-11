@@ -1,3 +1,4 @@
+import { mockArrivalRecords } from "../helpers/attendance-arrival-mock";
 /**
  * Settings → Sign in & out / Staff (2026-10-08): the switches must change
  * what the server does, not just what the page draws.
@@ -56,7 +57,8 @@ describe("roll-call sign in/out", () => {
     _clearUserActiveCache();
     vi.clearAllMocks();
     prismaMock.user.findUnique.mockResolvedValue({ active: true });
-    prismaMock.attendanceRecord.findUnique.mockResolvedValue(null);
+    mockArrivalRecords();
+    prismaMock.child.findFirst.mockResolvedValue({ id: "c1" });
     prismaMock.attendanceRecord.upsert.mockResolvedValue({ id: "a1" });
     prismaMock.attendanceRecord.groupBy.mockResolvedValue([]);
     prismaMock.dailyAttendance.upsert.mockResolvedValue({});

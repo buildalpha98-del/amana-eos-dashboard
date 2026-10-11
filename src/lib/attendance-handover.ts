@@ -34,43 +34,15 @@ export interface HandoverInput {
 }
 
 export async function recordHandover(input: HandoverInput) {
-  const { childId, serviceId, date, sessionType, action, at, recordedById, signedByName, signMethod, signature, notes } = input;
-  const roomId = await requireRoomId(serviceId, sessionType);
-  const where = {
-    childId_serviceId_date_sessionType: { childId, serviceId, date, sessionType },
-  };
-
+  const { childId, serviceId, at, action } = input;
   if (action === "sign_in") {
-    const record = await prisma.attendanceRecord.upsert({
-      where,
-      update: {
-        status: "present",
-        signInTime: at,
-        signedInById: recordedById,
-        ...(signedByName ? { signedInByName: signedByName } : {}),
-        ...(signMethod ? { signedInMethod: signMethod } : {}),
-        ...(signature ? { signedInSignature: signature } : {}),
-        notes,
-      },
-      create: {
-        childId,
-        serviceId,
-        date,
-        roomId,
-        sessionType,
-        status: "present",
-        signInTime: at,
-        signedInById: recordedById,
-        ...(signedByName ? { signedInByName: signedByName } : {}),
-        ...(signMethod ? { signedInMethod: signMethod } : {}),
-        ...(signature ? { signedInSignature: signature } : {}),
-        notes,
-      },
-    });
-    sendSignInNotification(childId, serviceId, at).catch((err) =>
-      logger.error("Failed to send sign-in notification", { err, childId, serviceId }),
-    );
-    return record;
+    const result = await recordArrival(prisma, input);
+    if (result.changed) {
+      sendSignInNotification(childId, serviceId, at).catch((err) =>
+        logger.error("Failed to send sign-in notification", { err, childId, serviceId }),
+      );
+    }
+    return result.record;
   }
 
   const result = await recordDeparture(prisma, input);
@@ -80,6 +52,43 @@ export async function recordHandover(input: HandoverInput) {
     );
   }
   return result.record;
+}
+
+/**
+ * First arrival wins, including simultaneous single/bulk taps. Creating with
+ * ON CONFLICT DO NOTHING avoids a unique-key error aborting a bulk transaction.
+ * Existing arrivals (including collected children) are never reopened here.
+ */
+export async function recordArrival(db: Prisma.TransactionClient, input: HandoverInput) {
+  const { childId, serviceId, date, sessionType, at, recordedById, signedByName, signMethod, signature, notes } = input;
+  const key = { childId, serviceId, date, sessionType };
+  const data = {
+    status: "present" as const,
+    signInTime: at,
+    signedInById: recordedById,
+    absenceReason: null,
+    ...(signedByName ? { signedInByName: signedByName } : {}),
+    ...(signMethod ? { signedInMethod: signMethod } : {}),
+    ...(signature ? { signedInSignature: signature } : {}),
+    notes,
+  };
+  const created = await db.attendanceRecord.createMany({
+    data: [{ ...key, roomId: await requireRoomId(serviceId, sessionType), ...data }],
+    skipDuplicates: true,
+  });
+  const updated = created.count === 0
+    ? await db.attendanceRecord.updateMany({
+        where: { ...key, signInTime: null, signOutTime: null },
+        data,
+      })
+    : { count: 0 };
+  const record = await db.attendanceRecord.findUnique({
+    where: { childId_serviceId_date_sessionType: key },
+  });
+  if (!record?.signInTime) {
+    throw ApiError.conflict("This attendance record needs checking. Ask your Coordinator to review it before signing in.");
+  }
+  return { record, changed: created.count > 0 || updated.count > 0 };
 }
 
 /** Shared by individual and bulk collection. Never create an arrival as a side effect. */

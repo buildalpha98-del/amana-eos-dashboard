@@ -1,4 +1,4 @@
-import { recordDeparture } from "@/lib/attendance-handover";
+import { recordArrival, recordDeparture } from "@/lib/attendance-handover";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
@@ -56,11 +56,9 @@ const bulkSchema = z.object({
 // surfaced in the error response as `details.failedIndex` so the client can
 // highlight the offender.
 //
-// Per-item action semantics are inlined from the single-item POST at
-// /api/attendance/roll-call — intentionally duplicated rather than factored
-// so these two routes can evolve independently. Notification fire-and-forget
-// calls from the single-item route are NOT invoked here: bulk is typically
-// used for admin/backfill work, not real-time sign-in events.
+// Arrival and departure share the single-item conditional writes. Notifications
+// are sent only after commit, for handovers that actually changed a record.
+// Backfill callers leave notifications off.
 
 export const POST = withApiAuth(
   async (req, session) => {
@@ -80,6 +78,17 @@ export const POST = withApiAuth(
     try {
       const result = await prisma.$transaction(async (tx) => {
         const createdIds: string[] = [];
+        const notifications: { childId: string; action: "sign_in" | "sign_out"; at: Date }[] = [];
+        const childIds = [...new Set(items.map((item) => item.childId))];
+        const children = await tx.child.findMany({
+          where: { id: { in: childIds }, serviceId },
+          select: { id: true },
+        });
+        const allowed = new Set(children.map((child) => child.id));
+        const failedIndex = items.findIndex((item) => !allowed.has(item.childId));
+        if (failedIndex !== -1) {
+          throw ApiError.notFound("Child not found at this centre.");
+        }
 
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
@@ -99,43 +108,17 @@ export const POST = withApiAuth(
           try {
             let record: { id: string };
             switch (item.action) {
-              case "sign_in": {
-                const signInTime = new Date();
-                record = await tx.attendanceRecord.upsert({
-                  where: uniqueKey,
-                  update: {
-                    status: "present",
-                    signInTime,
-                    signedInById: session.user.id,
-                    ...(item.signedByName
-                      ? { signedInByName: item.signedByName, signedInMethod: "staff" }
-                      : {}),
-                    notes: item.notes,
-                  },
-                  create: {
-                    childId: item.childId,
-                    serviceId,
-                    date: dateObj,
-                    roomId,
-                    sessionType: item.sessionType,
-                    status: "present",
-                    signInTime,
-                    signedInById: session.user.id,
-                    ...(item.signedByName
-                      ? { signedInByName: item.signedByName, signedInMethod: "staff" }
-                      : {}),
-                    notes: item.notes,
-                  },
-                });
-                break;
-              }
+              case "sign_in":
               case "sign_out": {
-                const signOutTime = new Date();
-                record = (await recordDeparture(tx, {
+                const at = new Date();
+                const handover = await (item.action === "sign_in" ? recordArrival : recordDeparture)(tx, {
                   childId: item.childId, serviceId, date: dateObj,
-                  sessionType: item.sessionType, action: "sign_out", at: signOutTime,
-                  recordedById: session.user.id, signedByName: item.signedByName, signMethod: "staff",
-                })).record;
+                  sessionType: item.sessionType, action: item.action, at,
+                  recordedById: session.user.id, signedByName: item.signedByName,
+                  signMethod: "staff", notes: item.notes,
+                });
+                record = handover.record;
+                if (handover.changed) notifications.push({ childId: item.childId, action: item.action, at });
                 break;
               }
               case "mark_absent": {
@@ -259,19 +242,18 @@ export const POST = withApiAuth(
           });
         }
 
-        return createdIds;
+        return { createdIds, notifications };
       });
 
       if (notify) {
         // After commit, fire-and-forget — same as the single-tap route.
-        const now = new Date();
-        for (const item of items) {
+        for (const item of result.notifications) {
           if (item.action === "sign_in") {
-            sendSignInNotification(item.childId, serviceId, now).catch((err) =>
+            sendSignInNotification(item.childId, serviceId, item.at).catch((err) =>
               logger.error("Bulk sign-in notification failed", { err, childId: item.childId }),
             );
           } else if (item.action === "sign_out") {
-            sendSignOutNotification(item.childId, serviceId, now).catch((err) =>
+            sendSignOutNotification(item.childId, serviceId, item.at).catch((err) =>
               logger.error("Bulk sign-out notification failed", { err, childId: item.childId }),
             );
           }
@@ -279,7 +261,7 @@ export const POST = withApiAuth(
       }
 
       return NextResponse.json(
-        { created: result.length, failed: 0 },
+        { created: result.createdIds.length, failed: 0 },
         { status: 200 },
       );
     } catch (err) {

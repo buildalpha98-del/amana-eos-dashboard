@@ -1,3 +1,4 @@
+import { mockArrivalRecords } from "../helpers/attendance-arrival-mock";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession } from "../helpers/auth-mock";
@@ -42,6 +43,8 @@ describe("POST /api/attendance/roll-call — DST boundary parsing", () => {
     _clearUserActiveCache();
     vi.clearAllMocks();
     prismaMock.user.findUnique.mockResolvedValue({ active: true });
+    mockArrivalRecords();
+    prismaMock.child.findFirst.mockResolvedValue({ id: "c1" });
     prismaMock.attendanceRecord.groupBy.mockResolvedValue([]);
     prismaMock.dailyAttendance.upsert.mockResolvedValue({});
   });
@@ -71,19 +74,19 @@ describe("POST /api/attendance/roll-call — DST boundary parsing", () => {
     );
 
     expect(res.status).toBe(200);
-    expect(prismaMock.attendanceRecord.upsert).toHaveBeenCalledOnce();
+    expect(prismaMock.attendanceRecord.createMany).toHaveBeenCalledOnce();
 
-    const upsertArgs = prismaMock.attendanceRecord.upsert.mock.calls[0][0];
+    const upsertArgs = prismaMock.attendanceRecord.createMany.mock.calls[0][0];
 
     // The `where` key contains the composite unique key with date
-    const whereDate = upsertArgs.where
+    const whereDate = prismaMock.attendanceRecord.findUnique.mock.calls[0][0].where
       .childId_serviceId_date_sessionType.date as Date;
     expect(whereDate).toBeInstanceOf(Date);
     expect(whereDate.toISOString().startsWith("2026-04-06")).toBe(true);
     expect(whereDate.toISOString()).toBe("2026-04-06T00:00:00.000Z");
 
     // The `create` payload should also hit the right UTC day
-    const createDate = upsertArgs.create.date as Date;
+    const createDate = upsertArgs.data[0].date as Date;
     expect(createDate.toISOString().startsWith("2026-04-06")).toBe(true);
     expect(createDate.toISOString()).toBe("2026-04-06T00:00:00.000Z");
   });

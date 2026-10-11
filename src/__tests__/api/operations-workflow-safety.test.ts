@@ -301,6 +301,7 @@ describe("OSHC workflow safety", () => {
     ).toBe(400);
   });
   it("rejects missing arrival in a bulk collection and does not update totals", async () => {
+    prismaMock.child.findMany.mockResolvedValue([{ id: "child" }]);
     prismaMock.attendanceRecord.updateMany.mockResolvedValue({ count: 0 });
     prismaMock.attendanceRecord.findUnique.mockResolvedValue(null);
     const res = await bulkAttendance(

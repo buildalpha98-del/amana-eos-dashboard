@@ -1,3 +1,4 @@
+import { mockArrivalRecords } from "../helpers/attendance-arrival-mock";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession } from "../helpers/auth-mock";
@@ -41,6 +42,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   _clearUserActiveCache();
   prismaMock.user.findUnique.mockResolvedValue({ active: true });
+    mockArrivalRecords();
+    prismaMock.child.findFirst.mockResolvedValue({ id: "c1" });
   // Required by the route's post-upsert aggregation step
   prismaMock.attendanceRecord.groupBy.mockResolvedValue([]);
   prismaMock.dailyAttendance.upsert.mockResolvedValue({});
@@ -71,10 +74,10 @@ describe("Roll call POST — offline-queue replay support", () => {
     );
     expect(res.status).toBe(200);
 
-    const callArgs = prismaMock.attendanceRecord.upsert.mock.calls[0][0];
+    const callArgs = prismaMock.attendanceRecord.createMany.mock.calls[0][0];
     // The signInTime in the upsert payload should match the caller-supplied
     // time, not "now".
-    const writtenTime = (callArgs.update.signInTime as Date).toISOString();
+    const writtenTime = (callArgs.data[0].signInTime as Date).toISOString();
     expect(writtenTime).toBe(occurredAt);
   });
 
@@ -118,8 +121,8 @@ describe("Roll call POST — offline-queue replay support", () => {
     );
     const after = Date.now();
     expect(res.status).toBe(200);
-    const callArgs = prismaMock.attendanceRecord.upsert.mock.calls[0][0];
-    const writtenTime = (callArgs.update.signInTime as Date).getTime();
+    const callArgs = prismaMock.attendanceRecord.createMany.mock.calls[0][0];
+    const writtenTime = (callArgs.data[0].signInTime as Date).getTime();
     // Must be roughly "now", not the future-stamped time
     expect(writtenTime).toBeGreaterThanOrEqual(before);
     expect(writtenTime).toBeLessThanOrEqual(after + 100);
@@ -142,13 +145,13 @@ describe("Roll call POST — offline-queue replay support", () => {
     );
     const after = Date.now();
     expect(res.status).toBe(200);
-    const callArgs = prismaMock.attendanceRecord.upsert.mock.calls[0][0];
-    const writtenTime = (callArgs.update.signInTime as Date).getTime();
+    const callArgs = prismaMock.attendanceRecord.createMany.mock.calls[0][0];
+    const writtenTime = (callArgs.data[0].signInTime as Date).getTime();
     expect(writtenTime).toBeGreaterThanOrEqual(before);
     expect(writtenTime).toBeLessThanOrEqual(after + 100);
   });
 
-  it("accepts a clientMutationId for activity-log correlation", async () => {
+  it("accepts the existing offline clientMutationId field", async () => {
     mockSession({ id: "u1", name: "S", role: "staff", serviceId: "s1" });
     prismaMock.attendanceRecord.upsert.mockResolvedValue({ id: "ar1" });
     const res = await rollCallPost(

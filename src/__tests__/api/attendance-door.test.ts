@@ -1,3 +1,4 @@
+import { mockArrivalRecords } from "../helpers/attendance-arrival-mock";
 /**
  * Roll-call writes behind the door screen (staff-UX Round 3, 2026-10-09):
  *  - "note" saves a note and nothing else (it used to re-send sign_in,
@@ -39,6 +40,9 @@ beforeEach(() => {
   _clearUserActiveCache();
   vi.clearAllMocks();
   prismaMock.user.findUnique.mockResolvedValue({ active: true });
+    mockArrivalRecords();
+    prismaMock.child.findFirst.mockResolvedValue({ id: "c1" });
+  prismaMock.child.findMany.mockResolvedValue([{ id: "c1" }, { id: "c2" }]);
   mockSession({ id: "u1", name: "Educator", role: "owner", serviceId: "svc1" });
   prismaMock.attendanceRecord.groupBy.mockResolvedValue([]);
   prismaMock.dailyAttendance.upsert.mockResolvedValue({});
@@ -100,7 +104,7 @@ describe("bulk from the door", () => {
       createRequest("POST", "/api/attendance/roll-call/bulk", { body: { serviceId: "svc1", notify: true, items } }),
     );
     expect(res.status).toBe(200);
-    const { update } = prismaMock.attendanceRecord.upsert.mock.calls[0][0];
+    const update = prismaMock.attendanceRecord.createMany.mock.calls[0][0].data[0];
     expect(update).toMatchObject({ signedInByName: "Collected from class by educators", signedInMethod: "staff" });
     expect(notify.sendSignInNotification).toHaveBeenCalledTimes(2);
   });
