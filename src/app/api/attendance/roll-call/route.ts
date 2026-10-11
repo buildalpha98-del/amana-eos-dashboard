@@ -14,6 +14,7 @@ import {
   syncDailyAttendance,
   type HandoverInput,
 } from "@/lib/attendance-handover";
+import { attendanceRevision, assertAttendanceRevision } from "@/lib/attendance-revision";
 import { runAttendanceMutation } from "@/lib/attendance-mutation";
 
 // YYYY-MM-DD regex used by both handlers for DST-safe parsing.
@@ -172,6 +173,7 @@ export const GET = withApiAuth(async (req, session) => {
     return {
       childId: b.childId,
       attendanceId: record?.id ?? null,
+      recordRevision: record ? attendanceRevision(record) : null,
       child: b.child,
       bookingType: b.type,
       status: record?.status ?? "booked",
@@ -222,6 +224,7 @@ export const GET = withApiAuth(async (req, session) => {
         rollCall.push({
           childId: record.childId,
           attendanceId: record.id,
+          recordRevision: attendanceRevision(record),
           child,
           bookingType: "casual",
           status: record.status,
@@ -313,6 +316,8 @@ const actionSchema = z.object({
    * Legacy callers without an ID retain conditional handover protection.
    */
   clientMutationId: z.string().uuid().optional(),
+  expectedRevision: z.string().regex(/^[a-f0-9]{64}$/).nullable().optional(),
+  dependsOnMutationId: z.string().uuid().optional(),
   /**
    * Who physically dropped off or collected the child.
    *
@@ -407,6 +412,13 @@ export const POST = withApiAuth(async (req, session) => {
       payload: parsed.data,
     },
     async (tx) => {
+      await assertAttendanceRevision(tx, {
+        childId, serviceId, date: dateObj, sessionType, roomId, action,
+        actorId: session.user.id,
+        clientMutationId: parsed.data.clientMutationId,
+        expectedRevision: parsed.data.expectedRevision,
+        dependsOnMutationId: parsed.data.dependsOnMutationId,
+      });
       // Settings → Sign in & out: a named handover (someone dropping off or
       // collecting) must carry a drawn signature when the centre asks for one.
       // Educators' roll-call taps name nobody and are never asked.
@@ -532,7 +544,7 @@ export const POST = withApiAuth(async (req, session) => {
         roomId,
       );
       return {
-        response: JSON.parse(JSON.stringify(record)) as Prisma.InputJsonValue,
+        response: JSON.parse(JSON.stringify({ ...record, recordRevision: attendanceRevision(record) })) as Prisma.InputJsonValue,
         notification,
       };
     },

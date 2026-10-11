@@ -16,7 +16,12 @@ async function main() {
   const { runAttendanceMutation } = await import(
     "../src/lib/attendance-mutation"
   );
-  const { recordArrival } = await import("../src/lib/attendance-handover");
+  const { recordArrival, recordDeparture } = await import(
+    "../src/lib/attendance-handover"
+  );
+  const { assertAttendanceRevision, attendanceRevision } = await import(
+    "../src/lib/attendance-revision"
+  );
   const actor = await prisma.user.findUnique({
     where: { email: "test-staff@amana-test.local" },
   });
@@ -50,6 +55,11 @@ async function main() {
     let writes = 0;
     const write = async (tx: Prisma.TransactionClient) => {
       writes++;
+      await assertAttendanceRevision(tx, {
+        ...input,
+        roomId,
+        expectedRevision: null,
+      });
       const result = await recordArrival(tx, {
         ...input,
         roomId,
@@ -60,7 +70,10 @@ async function main() {
       });
       return {
         response: JSON.parse(
-          JSON.stringify(result.record),
+          JSON.stringify({
+            ...result.record,
+            recordRevision: attendanceRevision(result.record),
+          }),
         ) as Prisma.InputJsonValue,
       };
     };
@@ -143,8 +156,136 @@ async function main() {
       async () => ({ response: { recovered: true } }),
     );
     assert.deepEqual(recovered.response, { recovered: true });
+    const baseline = attendanceRevision(
+      await prisma.attendanceRecord.findFirstOrThrow({
+        where: { childId: child.id },
+      }),
+    );
+    const ids = [randomUUID(), randomUUID()];
+    const races = await Promise.allSettled(
+      ids.map((id, index) =>
+        runAttendanceMutation(
+          {
+            ...input,
+            clientMutationId: id,
+            action: "note",
+            payload: {
+              notes: `Concurrent ${index}`,
+              expectedRevision: baseline,
+            },
+          },
+          async (tx) => {
+            await assertAttendanceRevision(tx, {
+              ...input,
+              clientMutationId: id,
+              action: "note",
+              roomId,
+              expectedRevision: baseline,
+            });
+            const record = await tx.attendanceRecord.update({
+              where: {
+                childId_serviceId_date_sessionType: {
+                  childId: child.id,
+                  serviceId: input.serviceId,
+                  date: input.date,
+                  sessionType: input.sessionType,
+                },
+              },
+              data: { notes: `Concurrent ${index}` },
+            });
+            return {
+              response: JSON.parse(
+                JSON.stringify({
+                  ...record,
+                  recordRevision: attendanceRevision(record),
+                }),
+              ) as Prisma.InputJsonValue,
+            };
+          },
+        ),
+      ),
+    );
+    assert.equal(races.filter((r) => r.status === "fulfilled").length, 1);
+    assert.equal(races.filter((r) => r.status === "rejected").length, 1);
+    for (let i = 0; i < races.length; i++) {
+      if (races[i].status === "rejected")
+        assert.equal(
+          await prisma.attendanceMutation.findUnique({ where: { id: ids[i] } }),
+          null,
+        );
+    }
+
+    const current = await prisma.attendanceRecord.findFirstOrThrow({
+      where: { childId: child.id },
+    });
+    const arrivalId = randomUUID();
+    const apply = async (
+      id: string,
+      action: "sign_in" | "sign_out",
+      expectedRevision: string | null,
+      dependsOnMutationId?: string,
+    ) => {
+      const payload = { action, expectedRevision, dependsOnMutationId };
+      return runAttendanceMutation(
+        { ...input, clientMutationId: id, action, payload },
+        async (tx) => {
+          await assertAttendanceRevision(tx, {
+            ...input,
+            clientMutationId: id,
+            action,
+            roomId,
+            expectedRevision,
+            dependsOnMutationId,
+          });
+          const handover = await (
+            action === "sign_in" ? recordArrival : recordDeparture
+          )(tx, {
+            ...input,
+            roomId,
+            action,
+            at: new Date(
+              action === "sign_in"
+                ? "2026-10-12T04:00:00Z"
+                : "2026-10-12T05:00:00Z",
+            ),
+            recordedById: actor.id,
+          });
+          return {
+            response: JSON.parse(
+              JSON.stringify({
+                ...handover.record,
+                recordRevision: attendanceRevision(handover.record),
+              }),
+            ) as Prisma.InputJsonValue,
+          };
+        },
+      );
+    };
+    await apply(arrivalId, "sign_in", attendanceRevision(current));
+    await apply(randomUUID(), "sign_out", null, arrivalId);
+    const collected = await prisma.attendanceRecord.findFirstOrThrow({
+      where: { childId: child.id },
+    });
+    assert(collected.signInTime && collected.signOutTime);
+    // A predecessor cannot bypass a change that followed it, including legacy writes.
+    await assert.rejects(
+      apply(randomUUID(), "sign_out", null, arrivalId),
+      /Attendance has changed/,
+    );
+    await prisma.attendanceRecord.update({
+      where: { id: collected.id },
+      data: { notes: "Legacy writer changed this" },
+    });
+    await assert.rejects(
+      apply(randomUUID(), "sign_out", attendanceRevision(collected)),
+      /Attendance has changed/,
+    );
+    await assert.rejects(
+      apply(randomUUID(), "sign_in", null),
+      /Attendance has changed/,
+    );
     console.log(
-      "PASS: concurrent receipts, delayed replay, conflicting payload/account and atomic rollback/retry.",
+      "PASS: receipt concurrency/rollback, stale-state conflicts, competing updates, queued arrival-to-collection and legacy-writer detection.",
     );
   } finally {
     // Only this run's synthetic child and its cascading receipts/attendance.
