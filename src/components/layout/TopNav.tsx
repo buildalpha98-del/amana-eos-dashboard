@@ -118,7 +118,7 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
         <button
           onClick={onMobileMenu}
           aria-label="Open navigation menu"
-          className="md:hidden p-2 -ml-1 rounded-lg text-white/80 hover:bg-white/10 transition-colors"
+          className="lg:hidden p-2 -ml-1 rounded-lg text-white/80 hover:bg-white/10 transition-colors"
         >
           <Menu className="w-5 h-5" />
         </button>
@@ -149,7 +149,7 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
             (~6) it fits a single row at all desktop widths anyway. */}
         <nav
           aria-label="Main navigation"
-          className="hidden md:flex flex-wrap items-center gap-1 flex-1 min-w-0"
+          className="hidden lg:flex flex-wrap items-center gap-1 flex-1 min-w-0"
         >
           {grouped.map((section) => {
             const isOpen = openSection === section.key;
@@ -190,7 +190,7 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
 
         {/* Right-side utility actions */}
         <div className="flex items-center gap-1 ml-auto pl-2 shrink-0">
-          <NavLayoutToggle className="hidden md:inline-flex" />
+          <NavLayoutToggle className="hidden lg:inline-flex" />
           <HelpMenu compact onDark />
           <ThemeToggle />
           <Link

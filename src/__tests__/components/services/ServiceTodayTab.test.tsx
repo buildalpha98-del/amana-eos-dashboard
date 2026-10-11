@@ -5,7 +5,8 @@
  */
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { fetchApi } from "@/lib/fetch-api";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 let session: { user: Record<string, unknown> } | null = null;
@@ -45,8 +46,8 @@ vi.mock("@/lib/fetch-api", () => ({ fetchApi: vi.fn(async () => response) }));
 vi.mock("@/components/my-portal/MyClockCard", () => ({
   MyClockCard: () => <div data-testid="clock-card" />,
 }));
-vi.mock("@/components/services/ShiftHandoverWidget", () => ({ ShiftHandoverWidget: () => <div /> }));
-vi.mock("@/components/services/ChecklistsTodayWidget", () => ({ ChecklistsTodayWidget: () => <div /> }));
+vi.mock("@/components/services/ShiftHandoverWidget", () => ({ ShiftHandoverWidget: () => <div data-testid="handover-widget" /> }));
+vi.mock("@/components/services/ChecklistsTodayWidget", () => ({ ChecklistsTodayWidget: () => <div data-testid="checklists-widget" /> }));
 vi.mock("@/components/services/DoorIpadCard", () => ({
   DoorIpadCard: () => <div data-testid="door-ipad-card" />,
 }));
@@ -56,8 +57,7 @@ vi.mock("@/components/services/ServiceTodayPanel", () => ({
 
 import { ServiceTodayTab } from "@/components/services/ServiceTodayTab";
 
-function renderToday() {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+function renderToday(qc = new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 } } })) {
   return render(
     <QueryClientProvider client={qc}>
       <ServiceTodayTab serviceId="svc-1" />
@@ -67,6 +67,14 @@ function renderToday() {
 
 beforeEach(() => {
   response = day;
+  const storage = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) => storage.get(key) ?? null,
+    setItem: (key: string, value: string) => storage.set(key, value),
+    removeItem: (key: string) => storage.delete(key),
+    clear: () => storage.clear(),
+  });
+  vi.mocked(fetchApi).mockImplementation(async () => response);
 });
 
 describe("Today — educator", () => {
@@ -134,7 +142,7 @@ describe("Today — Coordinator", () => {
       attention: { ...day.attention, postsAwaitingApproval: 0, openIncidents: 0, pendingBookingRequests: 0 },
     };
     renderToday();
-    expect(await screen.findByText(/All clear/)).toBeDefined();
+    expect(await screen.findByText(/No approvals or follow-ups/)).toBeDefined();
   });
 
   it("links a missing Responsible Person to the roster", async () => {
@@ -152,5 +160,57 @@ describe("Today — centre login (shared mailbox)", () => {
     expect(screen.queryByTestId("clock-card")).toBeNull();
     expect(screen.getByText("Needs you")).toBeDefined();
     expect(screen.getByTestId("door-ipad-card")).toBeDefined();
+  });
+});
+
+
+describe("Today — recovery and home view", () => {
+  beforeEach(() => {
+    session = { user: { id: "u-centre", role: "member", serviceId: "svc-1", isCentreAccount: true } };
+  });
+
+  it("retries an initial failure without leaving the centre stuck on skeletons", async () => {
+    vi.mocked(fetchApi).mockRejectedValue(new Error("offline"));
+    renderToday();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Today could not be loaded");
+    expect(screen.queryByText(/27 \/ 44/)).toBeNull();
+    vi.mocked(fetchApi).mockImplementation(async () => day);
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByRole("link", { name: /Attendances today/ })).toBeDefined();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("keeps previous figures labelled stale after a failed background refresh", async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
+    renderToday(qc);
+    await screen.findByRole("link", { name: /Attendances today/ });
+    vi.mocked(fetchApi).mockRejectedValue(new Error("offline"));
+    await act(async () => { await qc.invalidateQueries({ queryKey: ["centre-day", "svc-1"] }); });
+    expect(await screen.findByRole("alert")).toHaveTextContent("may be out of date");
+    expect(screen.getByRole("link", { name: /Attendances today/ })).toHaveTextContent("27 / 44");
+    expect(screen.getByText(/9 Oct/)).toHaveTextContent(/4:00/);
+    vi.mocked(fetchApi).mockImplementation(async () => day);
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  });
+
+  it("prioritises shift tasks and lets the user persist Classic without duplicating widgets", async () => {
+    const result = renderToday();
+    await screen.findByRole("link", { name: /Attendances today/ });
+    const tasks = screen.getByTestId("checklists-widget");
+    const staff = screen.getByRole("region", { name: /Staff signed in/ });
+    expect(tasks.compareDocumentPosition(staff) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Classic" }));
+    expect(staff.compareDocumentPosition(screen.getByTestId("checklists-widget")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getAllByTestId("handover-widget")).toHaveLength(1);
+    result.unmount();
+    const restored = renderToday();
+    expect(await screen.findByRole("button", { name: "Classic" })).toHaveAttribute("aria-pressed", "true");
+    restored.unmount();
+    session = { user: { id: "another-educator", role: "staff", serviceId: "svc-1" } };
+    renderToday();
+    expect(await screen.findByRole("button", { name: "Shift view" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("link", { name: "Build roster" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Staff sign in/out" })).toBeNull();
   });
 });

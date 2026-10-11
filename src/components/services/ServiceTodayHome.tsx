@@ -4,12 +4,8 @@
  * The centre's Today screen — modelled on OWNA's centre home (Daniel's
  * screenshot and approved mock-up, 2026-10-09; first built as Round 2).
  *
- * Top to bottom, the order you scan a centre in: am I clocked in → the
- * Responsible Person / medication / attendances strip → quick buttons with
- * counts → (Coordinators) what's waiting on you → one card per room with
- * in / booked, staff signed in vs required and a green or red ratio badge →
- * staff signed in since when → visitors on site. The live ratio lives here
- * now; its history is Compliance → Ratio log.
+ * Shift view prioritises room coverage, checklists and handover. Classic
+ * preserves the previous order. Both reuse the same role-gated content.
  *
  * Every number comes from ONE source, /api/services/[id]/dashboard (same
  * query key as the Coordinator dashboard), so the screens can't disagree.
@@ -22,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
   CalendarPlus,
+  CalendarDays,
   ClipboardCheck,
   FileWarning,
   LogIn,
@@ -37,6 +34,9 @@ import {
 import { fetchApi } from "@/lib/fetch-api";
 import { cn } from "@/lib/utils";
 import { isAdminRole } from "@/lib/role-permissions";
+import { Button } from "@/components/ui/Button";
+import { HomeViewToggle, useHomeView } from "@/components/layout/HomeViewToggle";
+import { SERVICE_TZ } from "@/lib/timezone";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { MyClockCard } from "@/components/my-portal/MyClockCard";
 import { ChecklistsTodayWidget } from "./ChecklistsTodayWidget";
@@ -70,10 +70,10 @@ function Quick({ href, icon: Icon, label, count }: { href: string; icon: LucideI
       href={href}
       className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface active:bg-surface"
     >
-      <Icon className="h-4 w-4 text-brand" aria-hidden />
+      <Icon className="h-4 w-4 shrink-0 text-brand" aria-hidden />
       {label}
       {count ? (
-        <span className="rounded-full bg-red-50 px-1.5 text-2xs font-bold text-red-700 tabular-nums dark:bg-red-950/40 dark:text-red-300">
+        <span className="rounded-full bg-red-50 px-1.5 text-xs font-bold text-red-700 tabular-nums dark:bg-red-950/40 dark:text-red-300">
           {count}
         </span>
       ) : null}
@@ -101,7 +101,7 @@ function Person({ name, avatar, stamp, late }: { name: string; avatar?: string |
       <span className="w-full truncate text-xs font-medium text-foreground">{name}</span>
       <span
         className={cn(
-          "rounded px-1.5 text-2xs font-bold",
+          "rounded px-1.5 text-xs font-bold",
           late ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300" : "bg-green-700 text-white",
         )}
       >
@@ -121,19 +121,31 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
   const canManage =
     isAdminRole(role) || (role === "member" && session?.user?.serviceId === serviceId);
 
-  const { data, isLoading } = useCentreDay(serviceId);
+  const { view, setView } = useHomeView("centre", session?.user?.id);
+  const focused = view === "focused";
+  const { data, isLoading, isError, isFetching, refetch } = useCentreDay(serviceId);
   const svc = `/services/${serviceId}`;
+
+  if (isError && !data) {
+    return (
+      <section role="alert" className="rounded-xl border border-border bg-card p-5 space-y-3">
+        <h2 className="font-heading font-semibold text-foreground">Today could not be loaded</h2>
+        <p className="text-sm text-muted">Attendance and room coverage are unavailable. Please try again.</p>
+        <Button variant="secondary" loading={isFetching} onClick={() => void refetch()}>Try again</Button>
+      </section>
+    );
+  }
 
   if (isLoading || !data) {
     return (
       <div className="space-y-3">
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-20 rounded-xl" />
           ))}
         </div>
         <Skeleton className="h-11 w-full rounded-lg" />
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
@@ -162,16 +174,82 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
     { n: attention.hazardsOpen ?? 0, label: "Hazards to fix", href: `${svc}?tab=compliance&sub=hazards`, icon: Wrench },
   ].filter((r) => r.n > 0);
 
+  const shiftActions = (
+      <nav aria-label="Shift actions" className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+        <Quick href={`${svc}?tab=daily&sub=roll-call`} icon={LogIn} label="Children’s attendance" />
+        {canManage && <Quick href={`${svc}?tab=staff&sub=sign-in-out`} icon={UserCheck} label="Staff sign in/out" />}
+        {canManage && <Quick href={`${svc}?tab=staff&sub=roster`} icon={CalendarDays} label="Build roster" />}
+        <Quick href={`${svc}?tab=daily&sub=posts`} icon={Megaphone} label="Post" />
+        <Quick href={`${svc}?tab=compliance&sub=incidents`} icon={AlertTriangle} label="Incidents" count={attention.openIncidents} />
+        <Quick href={`${svc}?tab=daily&sub=checklists`} icon={ClipboardCheck} label="Checklists" count={attention.checklistsOutstanding} />
+        <Quick href={`${svc}?tab=compliance&sub=hazards`} icon={Wrench} label="Hazards" count={attention.hazardsOpen} />
+        <Quick href={`${svc}?tab=compliance&sub=registers`} icon={UserCheck} label="Visitors" />
+        <Quick href={`${svc}?tab=compliance&sub=headcounts`} icon={Users} label="Headcount" />
+      </nav>
+  );
+
+  const needsPanel = canManage ? (
+    <section aria-labelledby="needs-you" className="rounded-xl border border-border bg-card">
+      <h2
+        id="needs-you"
+        className="flex items-center justify-between px-4 pt-3 pb-2 text-sm font-heading font-semibold text-foreground"
+      >
+        Needs you
+        {needs.length > 0 && (
+          <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-brand-dark tabular-nums">
+            {needs.reduce((n, r) => n + r.n, 0)}
+          </span>
+        )}
+      </h2>
+      {needs.length === 0 ? (
+        <p className="px-4 pb-3 text-sm text-muted">No approvals or follow-ups waiting here.</p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {needs.map((r) => (
+            <li key={r.label}>
+              <Link href={r.href} className="flex min-h-11 items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-surface">
+                <r.icon className="h-4 w-4 text-brand" aria-hidden />
+                <span className="flex-1">{r.label}</span>
+                <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-brand-dark tabular-nums">{r.n}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  ) : null;
+  const shiftTasks = (
+    <div className="space-y-4" aria-label="Shift tasks">
+      <ChecklistsTodayWidget serviceId={serviceId} />
+      <ShiftHandoverWidget serviceId={serviceId} />
+    </div>
+  );
+
   return (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", focused && "rounded-xl bg-home-background p-3 sm:p-5")}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-heading text-lg font-semibold text-brand">{canManage ? "Your centre today" : "Your shift at the centre"}</h2>
+          <p className="text-sm text-muted">{focused ? "Room coverage, daily tasks and handover." : "Your familiar centre overview."}</p>
+        </div>
+        <HomeViewToggle view={view} onChange={setView} />
+      </div>
+      <div role={isError ? "alert" : undefined} className={cn("flex flex-wrap items-center justify-between gap-2 rounded-lg p-3 text-sm", isError ? "bg-status-alert-bg text-status-alert-fg" : "bg-home-highlight text-foreground")}>
+        <p>
+          {isError ? "Updates interrupted — these figures may be out of date. " : "Last updated "}
+          <time dateTime={data.asOf}>{new Date(data.asOf).toLocaleString("en-AU", { timeZone: SERVICE_TZ, day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</time>
+          {" (Sydney time)"}
+        </p>
+        <Button variant="secondary" size="sm" loading={isFetching} onClick={() => void refetch()}>{isError ? "Try again" : "Refresh"}</Button>
+      </div>
       {/* The door iPad — Coordinators / centre login, on an iPad. */}
-      {canManage && <DoorIpadCard serviceId={serviceId} />}
+      {!focused && canManage && <DoorIpadCard serviceId={serviceId} />}
 
       {/* Am I clocked in? (A shared centre login isn't a person.) */}
       {!isCentreAccount && session?.user?.id && <MyClockCard userId={session.user.id} />}
 
       {/* ── The strip: Responsible Person · Medication · Attendances ── */}
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <section className="rounded-xl border border-border bg-card p-4" aria-labelledby="rp-h">
           <h2 id="rp-h" className="flex items-center gap-1.5 text-sm font-heading font-semibold text-foreground">
             <UserCheck className="h-4 w-4 text-brand" aria-hidden />
@@ -198,7 +276,7 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
             ))}
           </ul>
           {rpMissing && isEducator && (
-            <p className="mt-1 text-2xs text-muted">Tell your Coordinator: every session needs one named.</p>
+            <p className="mt-1 text-xs text-muted">Tell your Coordinator: every session needs one named.</p>
           )}
         </section>
 
@@ -211,8 +289,9 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
             Medication today
           </h2>
           <p className="mt-1.5 text-sm text-muted">
-            {attention.medicationsGivenToday > 0 ? `${attention.medicationsGivenToday} given so far` : "None given yet"}
+            {attention.medicationsGivenToday > 0 ? `${attention.medicationsGivenToday} administrations recorded` : "No administrations recorded"}
           </p>
+          <p className="mt-1 text-xs text-muted">Open medication records to check what is due.</p>
         </Link>
 
         <Link
@@ -241,56 +320,18 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
               totals.absent > 0 && `${totals.absent} absent`,
             ]
               .filter(Boolean)
-              .join(" · ") || "Sign in & out"}
+              .join(" · ") || "Children’s attendance"}
           </p>
         </Link>
       </div>
 
       {/* ── Quick buttons, with counts ── */}
-      <nav aria-label="Shift actions" className="flex flex-wrap gap-2">
-        <Quick href={`${svc}?tab=daily&sub=roll-call`} icon={LogIn} label="Sign in & out" />
-        <Quick href={`${svc}?tab=daily&sub=posts`} icon={Megaphone} label="Post" />
-        <Quick href={`${svc}?tab=compliance&sub=incidents`} icon={AlertTriangle} label="Incidents" count={attention.openIncidents} />
-        <Quick href={`${svc}?tab=daily&sub=checklists`} icon={ClipboardCheck} label="Checklists" count={attention.checklistsOutstanding} />
-        <Quick href={`${svc}?tab=compliance&sub=hazards`} icon={Wrench} label="Hazards" count={attention.hazardsOpen} />
-        <Quick href={`${svc}?tab=compliance&sub=registers`} icon={UserCheck} label="Visitors" />
-        <Quick href={`${svc}?tab=compliance&sub=headcounts`} icon={Users} label="Headcount" />
-      </nav>
+      {!focused && shiftActions}
 
-      {/* ── Needs you — Coordinators and office only ── */}
-      {canManage && (
-        <section aria-labelledby="needs-you" className="rounded-xl border border-border bg-card">
-          <h2
-            id="needs-you"
-            className="flex items-center justify-between px-4 pt-3 pb-2 text-sm font-heading font-semibold text-foreground"
-          >
-            Needs you
-            {needs.length > 0 && (
-              <span className="rounded-full bg-accent px-2 py-0.5 text-2xs font-bold text-brand tabular-nums">
-                {needs.reduce((n, r) => n + r.n, 0)}
-              </span>
-            )}
-          </h2>
-          {needs.length === 0 ? (
-            <p className="px-4 pb-3 text-sm text-muted">All clear — nothing waiting on you.</p>
-          ) : (
-            <ul className="divide-y divide-border">
-              {needs.map((r) => (
-                <li key={r.label}>
-                  <Link href={r.href} className="flex min-h-11 items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-surface">
-                    <r.icon className="h-4 w-4 text-brand" aria-hidden />
-                    <span className="flex-1">{r.label}</span>
-                    <span className="rounded-full bg-accent px-2 py-0.5 text-2xs font-bold text-brand tabular-nums">{r.n}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+      {!focused && needsPanel}
 
       {/* ── One card per room: in / booked, staff vs required, ratio ── */}
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {rooms.map((p) => {
           const empty = p.inCare === 0;
           const noBookings = p.booked === 0 && p.inCare === 0;
@@ -314,7 +355,7 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
                 </span>
                 <span
                   className={cn(
-                    "rounded-full px-2 py-0.5 text-2xs font-bold",
+                    "rounded-full px-2 py-0.5 text-xs font-bold",
                     empty
                       ? "bg-surface text-muted"
                       : p.inRatio
@@ -343,6 +384,10 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
           );
         })}
       </div>
+
+      {focused && shiftActions}
+      {focused && shiftTasks}
+      {focused && needsPanel}
 
       {/* ── Staff signed in, since when ── */}
       <section className="rounded-xl border border-border bg-card p-4" aria-labelledby="staff-in-h">
@@ -387,8 +432,8 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
         )}
       </section>
 
-      <ChecklistsTodayWidget serviceId={serviceId} />
-      <ShiftHandoverWidget serviceId={serviceId} />
+      {!focused && shiftTasks}
+      {focused && canManage && <DoorIpadCard serviceId={serviceId} />}
 
       {/* Centre to-dos and tickets — management work, not the floor's. */}
       {canManage && <ServiceTodayPanel serviceId={serviceId} hideLiveCards />}

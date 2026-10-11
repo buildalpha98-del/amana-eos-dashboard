@@ -58,10 +58,10 @@ export function FeedbackWidget() {
             // Phones: hidden — "Send feedback" lives in the Help (?) menu, and
             // two floating bubbles covered the right edge of content
             // (2026-10-08). The popover still opens there via the event.
-            "fixed z-50 hidden md:flex h-11 w-11 items-center justify-center",
+            "fixed z-50 hidden lg:flex h-11 w-11 items-center justify-center",
             "rounded-full border border-border bg-card text-brand shadow-lg transition-all",
             "hover:bg-surface hover:scale-105 active:scale-95",
-            "right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] md:right-6 md:bottom-6",
+            "right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:right-6 lg:bottom-6",
           )}
           aria-label="Send feedback"
         >
@@ -75,7 +75,7 @@ export function FeedbackWidget() {
           className={cn(
             "fixed z-50 w-[calc(100vw-2rem)] max-w-96",
             "rounded-xl border border-border bg-card shadow-2xl",
-            "right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] md:right-6 md:bottom-6",
+            "right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:right-6 lg:bottom-6",
           )}
         >
           {/* Header */}

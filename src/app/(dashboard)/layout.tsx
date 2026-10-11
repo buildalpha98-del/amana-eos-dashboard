@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Menu } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -55,6 +55,15 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const useTopBar = layout === "topbar";
   const { status: recorderStatus } = useMeetingRecorder();
 
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeDrawerOnDesktop = () => {
+      if (desktop.matches) setMobileNavOpen(false);
+    };
+    desktop.addEventListener("change", closeDrawerOnDesktop);
+    return () => desktop.removeEventListener("change", closeDrawerOnDesktop);
+  }, []);
+
   return (
     <div data-v2="staff" className="min-h-screen">
       <NavigationProgress />
@@ -87,7 +96,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         // status bar, so the header must pad itself down by the safe-area
         // inset — without it the logo and buttons sat under the clock and
         // read as blurred (2026-10-07).
-        <div className="md:hidden fixed top-0 inset-x-0 h-[calc(3rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] bg-background border-b border-border z-30 flex items-center justify-between px-3">
+        <div className="lg:hidden fixed top-0 inset-x-0 h-[calc(3rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] bg-background border-b border-border z-30 flex items-center justify-between px-3">
           <button
             onClick={() => setMobileNavOpen(true)}
             aria-label="Open navigation menu"
@@ -120,7 +129,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           // Top-bar layout: full width, no left offset.
           useTopBar
             ? "pt-0"
-            : ["pt-[calc(3rem+env(safe-area-inset-top))] md:pt-0", collapsed ? "md:pl-16" : "md:pl-64"],
+            : ["pt-[calc(3rem+env(safe-area-inset-top))] lg:pt-0", collapsed ? "lg:pl-16" : "lg:pl-64"],
         )}
       >
         {/* TopBar (breadcrumb / utility row) only on sidebar layout —
@@ -134,8 +143,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         <main
           id="main-content"
           className={cn(
-            "p-4 md:p-8 animate-slide-up",
-            recorderStatus !== "idle" ? "pb-48 md:pb-24" : "pb-24",
+            "p-4 lg:p-8 animate-slide-up",
+            recorderStatus !== "idle" ? "pb-48 lg:pb-24" : "pb-24",
           )}
         >
           <SystemBannerBar />

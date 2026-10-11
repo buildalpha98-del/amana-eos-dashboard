@@ -30,7 +30,7 @@ export function RecordingIndicator() {
         {status === "recording" ? "Recording in progress" : status === "uploading" ? "Uploading recording" : ""}
       </span>
       {status !== "idle" && (
-        <div className="fixed z-50 right-6 bottom-36 md:bottom-20 flex items-center gap-2 rounded-full border border-border bg-card shadow-lg pl-3 pr-2 py-1.5">
+        <div className="fixed z-50 right-6 bottom-36 lg:bottom-20 flex items-center gap-2 rounded-full border border-border bg-card shadow-lg pl-3 pr-2 py-1.5">
           {status === "recording" ? (
             <>
               <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
