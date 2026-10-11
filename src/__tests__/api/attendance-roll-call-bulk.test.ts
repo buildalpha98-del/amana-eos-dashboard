@@ -2,6 +2,9 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession, mockNoSession } from "../helpers/auth-mock";
 import { createRequest } from "../helpers/request";
+import { mockArrivalRecords } from "../helpers/attendance-arrival-mock";
+import type { AttendanceRecord } from "@prisma/client";
+import { attendanceRevision } from "@/lib/attendance-revision";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 
 // Mock rate-limit so 429s do not interfere.
@@ -59,6 +62,7 @@ describe("POST /api/attendance/roll-call/bulk", () => {
     );
     prismaMock.attendanceRecord.groupBy.mockResolvedValue([]);
     prismaMock.dailyAttendance.upsert.mockResolvedValue({});
+    mockArrivalRecords();
   });
 
   it("401 without session", async () => {
@@ -105,9 +109,9 @@ describe("POST /api/attendance/roll-call/bulk", () => {
       post({
         serviceId: "svc1",
         items: [
-          { childId: "c1", date: "2026-04-24", sessionType: "bsc", action: "undo" },
-          { childId: "c2", date: "2026-04-24", sessionType: "bsc", action: "undo" },
-          { childId: "c3", date: "2026-04-24", sessionType: "bsc", action: "undo" },
+          { childId: "c1", date: "2026-04-24", sessionType: "bsc", action: "undo", expectedRevision: null },
+          { childId: "c2", date: "2026-04-24", sessionType: "bsc", action: "undo", expectedRevision: null },
+          { childId: "c3", date: "2026-04-24", sessionType: "bsc", action: "undo", expectedRevision: null },
         ],
       }),
     );
@@ -133,9 +137,9 @@ describe("POST /api/attendance/roll-call/bulk", () => {
       post({
         serviceId: "svc1",
         items: [
-          { childId: "c1", date: "2026-04-24", sessionType: "bsc", action: "undo" },
-          { childId: "c2", date: "2026-04-24", sessionType: "bsc", action: "undo" },
-          { childId: "c3", date: "2026-04-24", sessionType: "bsc", action: "undo" }, // must NOT run
+          { childId: "c1", date: "2026-04-24", sessionType: "bsc", action: "undo", expectedRevision: null },
+          { childId: "c2", date: "2026-04-24", sessionType: "bsc", action: "undo", expectedRevision: null },
+          { childId: "c3", date: "2026-04-24", sessionType: "bsc", action: "undo", expectedRevision: null }, // must NOT run
         ],
       }),
     );
@@ -153,10 +157,83 @@ describe("POST /api/attendance/roll-call/bulk", () => {
       post({
         serviceId: "svc1",
         items: [
-          { childId: "c1", date: "2026-04-24", sessionType: "bsc", action: "undo" },
+          { childId: "c1", date: "2026-04-24", sessionType: "bsc", action: "undo", expectedRevision: null },
         ],
       }),
     );
     expect(prismaMock.$transaction).toHaveBeenCalled();
+  });
+  describe("overwrites need the version the screen saw", () => {
+    const signedIn = {
+      id: "rec-c1",
+      childId: "c1",
+      serviceId: "svc1",
+      date: new Date(Date.UTC(2026, 3, 24)),
+      sessionType: "bsc" as const,
+      status: "present" as const,
+      signInTime: new Date("2026-04-23T21:05:00Z"),
+    };
+
+    it("book adds a booking but never touches a child already signed in", async () => {
+      const rows = mockArrivalRecords([signedIn]);
+      const res = await POST(
+        post({
+          serviceId: "svc1",
+          items: [
+            { childId: "c1", date: "2026-04-24", sessionType: "bsc", action: "book" },
+            { childId: "c2", date: "2026-04-24", sessionType: "bsc", action: "book" },
+          ],
+        }),
+      );
+      expect(res.status).toBe(200);
+      expect(prismaMock.attendanceRecord.upsert).not.toHaveBeenCalled();
+      const kept = [...rows.values()].find((r) => r.childId === "c1");
+      expect(kept).toMatchObject({ status: "present", signInTime: signedIn.signInTime });
+      const added = [...rows.values()].find((r) => r.childId === "c2");
+      expect(added).toMatchObject({ status: "booked" });
+    });
+
+    for (const action of ["undo", "mark_absent"] as const) {
+      it(`${action} without a version is refused for the whole batch`, async () => {
+        mockArrivalRecords([signedIn]);
+        const res = await POST(
+          post({
+            serviceId: "svc1",
+            items: [{ childId: "c1", date: "2026-04-24", sessionType: "bsc", action }],
+          }),
+        );
+        expect(res.status).toBe(409);
+        expect((await res.json()).details?.failedIndex).toBe(0);
+        expect(prismaMock.attendanceRecord.upsert).not.toHaveBeenCalled();
+        expect(prismaMock.dailyAttendance.upsert).not.toHaveBeenCalled();
+      });
+
+      it(`${action} from a stale screen can't erase a sign-in made since`, async () => {
+        mockArrivalRecords([signedIn]);
+        const res = await POST(
+          post({
+            serviceId: "svc1",
+            items: [{ childId: "c1", date: "2026-04-24", sessionType: "bsc", action, expectedRevision: null }],
+          }),
+        );
+        expect(res.status).toBe(409);
+        expect(prismaMock.attendanceRecord.upsert).not.toHaveBeenCalled();
+      });
+
+      it(`${action} applies when the version matches`, async () => {
+        mockArrivalRecords([signedIn]);
+        const res = await POST(
+          post({
+            serviceId: "svc1",
+            items: [{
+              childId: "c1", date: "2026-04-24", sessionType: "bsc", action,
+              expectedRevision: attendanceRevision(signedIn as AttendanceRecord),
+            }],
+          }),
+        );
+        expect(res.status).toBe(200);
+        expect(prismaMock.attendanceRecord.upsert).toHaveBeenCalledTimes(1);
+      });
+    }
   });
 });

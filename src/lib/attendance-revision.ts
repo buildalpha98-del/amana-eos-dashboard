@@ -40,6 +40,17 @@ interface RevisionInput {
   dependsOnMutationId?: string;
 }
 
+/**
+ * Actions that replace what is already on the record — marking absent clears
+ * an arrival, undo clears a whole hand-over. Sent blind, a stale screen could
+ * erase a child's sign-in made moments ago at the door, so every caller must
+ * say which version it saw. Arrival and collection are conditional writes and
+ * never overwrite (attendance-handover.ts).
+ */
+export function requiresBaseline(action: string) {
+  return action === "mark_absent" || action === "undo";
+}
+
 const conflict = () =>
   ApiError.conflict(
     "Attendance has changed or this saved action needs review. Refresh the roll and check the child’s record before trying again.",
@@ -50,9 +61,16 @@ export async function assertAttendanceRevision(
   tx: Prisma.TransactionClient,
   input: RevisionInput,
 ) {
-  // Older direct/bulk callers are migrated separately. New queued requests
-  // without a baseline must fail closed, unless already acknowledged by a receipt.
-  if (!input.clientMutationId) return;
+  // Queued (ID-bearing) requests always need a baseline. Direct callers without
+  // an ID are checked when they send one, and must send one for the actions
+  // that overwrite a record (see requiresBaseline).
+  if (!input.clientMutationId) {
+    if (input.dependsOnMutationId) throw conflict();
+    if (input.expectedRevision === undefined) {
+      if (requiresBaseline(input.action)) throw conflict();
+      return;
+    }
+  }
   let expected = input.expectedRevision;
   if (input.dependsOnMutationId) {
     const prior = await tx.attendanceMutation.findUnique({

@@ -9,6 +9,7 @@ import { requireRoomId } from "@/lib/room-resolver";
 import { assertServiceAccess } from "@/lib/authz-scope";
 import { $Enums } from "@prisma/client";
 import { sendSignInNotification, sendSignOutNotification } from "@/lib/notifications/attendance";
+import { assertAttendanceRevision } from "@/lib/attendance-revision";
 
 // ── Schema ─────────────────────────────────────────────────
 
@@ -22,7 +23,17 @@ const itemSchema = z.object({
    * run is still refused.
    */
   sessionType: z.nativeEnum($Enums.SessionType),
-  action: z.enum(["sign_in", "sign_out", "mark_absent", "undo"]),
+  /**
+   * `book` adds a booked slot only where the child has no record yet — it
+   * never touches an existing one. "Add child" used `undo` for this, which
+   * wiped any sign-in already recorded for that slot.
+   */
+  action: z.enum(["sign_in", "sign_out", "mark_absent", "undo", "book"]),
+  /**
+   * The record version the screen showed (`recordRevision`), or null when it
+   * showed no record. Required for mark_absent / undo, which overwrite.
+   */
+  expectedRevision: z.string().regex(/^[a-f0-9]{64}$/).nullable().optional(),
   absenceReason: z.string().max(500).optional(),
   notes: z.string().max(1000).optional(),
   /**
@@ -75,6 +86,13 @@ export const POST = withApiAuth(
     // possible until 2026-10-08.
     assertServiceAccess(session, serviceId);
 
+    // Resolve rooms before the transaction: a lookup on the global client
+    // while the transaction holds a pool connection can starve the pool.
+    const roomIds = new Map<string, string>();
+    for (const st of new Set(items.map((item) => item.sessionType))) {
+      roomIds.set(st, await requireRoomId(serviceId, st));
+    }
+
     try {
       const result = await prisma.$transaction(async (tx) => {
         const createdIds: string[] = [];
@@ -95,7 +113,7 @@ export const POST = withApiAuth(
           const [y, m, d] = item.date.split("-").map(Number);
           const dateObj = new Date(Date.UTC(y, m - 1, d));
           // Stage 1 dual key. Required now — see room-resolver.ts.
-          const roomId = await requireRoomId(serviceId, item.sessionType);
+          const roomId = roomIds.get(item.sessionType)!;
           const uniqueKey = {
             childId_serviceId_date_sessionType: {
               childId: item.childId,
@@ -106,13 +124,28 @@ export const POST = withApiAuth(
           };
 
           try {
+            // Locks the row and compares the version this screen saw. Throws
+            // a conflict for an overwrite sent without one.
+            await assertAttendanceRevision(tx, {
+              childId: item.childId, serviceId, date: dateObj,
+              sessionType: item.sessionType, roomId, action: item.action,
+              actorId: session.user.id, expectedRevision: item.expectedRevision,
+            });
             let record: { id: string };
             switch (item.action) {
+              case "book": {
+                await tx.attendanceRecord.createMany({
+                  data: [{ ...uniqueKey.childId_serviceId_date_sessionType, roomId, status: "booked" }],
+                  skipDuplicates: true,
+                });
+                record = (await tx.attendanceRecord.findUnique({ where: uniqueKey }))!;
+                break;
+              }
               case "sign_in":
               case "sign_out": {
                 const at = new Date();
                 const handover = await (item.action === "sign_in" ? recordArrival : recordDeparture)(tx, {
-                  childId: item.childId, serviceId, date: dateObj,
+                  childId: item.childId, serviceId, roomId, date: dateObj,
                   sessionType: item.sessionType, action: item.action, at,
                   recordedById: session.user.id, signedByName: item.signedByName,
                   signMethod: "staff", notes: item.notes,
@@ -189,6 +222,10 @@ export const POST = withApiAuth(
             // out and surface it in the ApiError.details payload.
             logger.warn("Bulk roll-call item failed", { err, index: i, item });
             const msg = err instanceof Error ? err.message : String(err);
+            if (err instanceof ApiError) {
+              // Keep the status (a conflict stays a 409) and say which item.
+              throw new ApiError(err.status, `Item ${i + 1}: ${msg}`, { failedIndex: i });
+            }
             throw new Error(
               `Item ${i + 1} (child ${item.childId}, ${item.date} ${item.sessionType}): ${msg}|index=${i}`,
             );
@@ -232,7 +269,7 @@ export const POST = withApiAuth(
               serviceId,
               date: dateObj,
               // Stage 1 dual key — the aggregate row for this slot.
-              roomId: await requireRoomId(serviceId, sessionType),
+              roomId: roomIds.get(sessionType)!,
               sessionType,
               attended,
               absent,

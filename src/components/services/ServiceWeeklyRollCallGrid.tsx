@@ -1,6 +1,6 @@
 "use client";
 
-import { serviceDateISO } from "@/lib/timezone";
+import { addDaysUTC, serviceDateISO, serviceWeekStart } from "@/lib/timezone";
 import { useCallback, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -40,20 +40,19 @@ interface RollCallMutationBody {
   action: RollCallAction;
   absenceReason?: string;
   notes?: string;
+  /** The record version this cell showed — null when it showed no record. */
+  expectedRevision: string | null;
 }
 
 // ── Date helpers (UTC-safe) ──────────────────────────────
 
-/** Monday-of-current-week + weekOffset, UTC-safe YYYY-MM-DD. */
+/**
+ * Monday of the centre's current week + weekOffset, as YYYY-MM-DD. The week
+ * is Sydney's: reading it from the UTC date opened last week every Monday
+ * until 10–11am, because it's still Sunday in UTC.
+ */
 function mondayIsoFromOffset(weekOffset: number): string {
-  const now = new Date();
-  const d = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
-  const day = d.getUTCDay(); // 0=Sun..6=Sat
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setUTCDate(d.getUTCDate() + diff + weekOffset * 7);
-  return serviceDateISO(d);
+  return serviceDateISO(addDaysUTC(serviceWeekStart(), weekOffset * 7));
 }
 
 function fridayFromMonday(mondayIso: string): string {
@@ -149,6 +148,7 @@ export function ServiceWeeklyRollCallGrid({
         status: deriveStatus(rec),
         signInTime: rec.signInTime,
         signOutTime: rec.signOutTime,
+        recordRevision: rec.recordRevision,
       });
     }
     // Add booking-only (no attendance record yet) as "booked"
@@ -166,6 +166,7 @@ export function ServiceWeeklyRollCallGrid({
         roomName: roomNameByKey.get(b.sessionType),
         status: "booked",
         fee: b.fee,
+        recordRevision: null,
       });
     }
     return m;
@@ -189,6 +190,9 @@ export function ServiceWeeklyRollCallGrid({
         variant: "destructive",
         description: err.message || "Something went wrong",
       });
+      // A conflict means this week is out of date — reload it so the next
+      // tap starts from what's really recorded.
+      qc.invalidateQueries({ queryKey: ["weekly-roll-call", serviceId, weekStart] });
     },
   });
 
@@ -335,6 +339,7 @@ export function ServiceWeeklyRollCallGrid({
               date: activeCell.date,
               sessionType: activeCell.shift.sessionType,
               action,
+              expectedRevision: activeCell.shift.recordRevision ?? null,
               ...(extra?.absenceReason
                 ? { absenceReason: extra.absenceReason }
                 : {}),
@@ -358,6 +363,8 @@ export function ServiceWeeklyRollCallGrid({
                 date: emptyCellSession.date,
                 sessionType,
                 action: "undo", // creates status: "booked" via upsert
+                // Empty cell: refused if a record appeared since loading.
+                expectedRevision: null,
               });
               toast({ description: "Booking added." });
             } catch {

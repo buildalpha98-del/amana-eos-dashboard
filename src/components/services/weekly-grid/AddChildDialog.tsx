@@ -46,9 +46,10 @@ const WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri"];
  * rooms the centre has.
  *
  * On submit:
- *   POST /api/attendance/roll-call/bulk { items: [{ action: "undo" }, …] }
+ *   POST /api/attendance/roll-call/bulk { items: [{ action: "book" }, …] }
  *   → atomic: all selections create status: "booked" records in a single
- *   DB transaction, or none do. On server failure the whole batch rolls
+ *   DB transaction, or none do. A slot that already has a record is left
+ *   exactly as it is. On server failure the whole batch rolls
  *   back and the error message (including the failing item index) is
  *   surfaced in a destructive toast.
  */
@@ -106,7 +107,8 @@ export function AddChildDialog({
         childId: s.childId,
         date: s.date,
         sessionType: s.sessionType,
-        action: "undo" as const, // creates status: "booked" record via upsert
+        // Creates a booked record only where none exists — never clears one.
+        action: "book" as const,
       }));
 
       const result = await mutateApi<{ created: number; failed: number }>(

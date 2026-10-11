@@ -3,6 +3,7 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { serviceDateISO, serviceWeekStart } from "@/lib/timezone";
 
 // ─── Session mock ────────────────────────────────────────────────
 const sessionRef: { role: string; serviceId: string | null } = {
@@ -64,6 +65,7 @@ type WeeklyData = {
     signedOutById: string | null;
     absenceReason: string | null;
     notes: string | null;
+    recordRevision?: string;
   }>;
   bookings: Array<{
     id: string;
@@ -80,12 +82,12 @@ const enrollableRef: {
   data: { children: WeeklyData["children"] } | undefined;
 } = { data: undefined };
 
+const weeklyCalls: unknown[][] = [];
 vi.mock("@/hooks/useWeeklyRollCall", () => ({
-  useWeeklyRollCall: () => ({
-    data: weeklyRef.data,
-    isLoading: false,
-    error: null,
-  }),
+  useWeeklyRollCall: (...args: unknown[]) => {
+    weeklyCalls.push(args);
+    return { data: weeklyRef.data, isLoading: false, error: null };
+  },
   useEnrollableChildren: () => ({
     data: enrollableRef.data,
     isLoading: false,
@@ -143,15 +145,9 @@ function makeClient(
 }
 
 // Build a monday-of-this-week YYYY-MM-DD to mimic the grid's internal calc.
+/** The centre's (Sydney) Monday — what the grid opens on. */
 function mondayIso(): string {
-  const now = new Date();
-  const d = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
-  const day = d.getUTCDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setUTCDate(d.getUTCDate() + diff);
-  return d.toISOString().split("T")[0];
+  return serviceDateISO(serviceWeekStart());
 }
 
 function makeData(
@@ -345,6 +341,45 @@ describe("ServiceWeeklyRollCallGrid", () => {
       childId: "child-1",
       sessionType: "asc",
       action: "sign_in",
+      // A booking-only cell showed no attendance record.
+      expectedRevision: null,
+    });
+  });
+
+  it("Undo sends back the version of the record the cell showed", async () => {
+    mutateApiSpy.mockResolvedValue({ id: "rec-1" });
+    const ws = mondayIso();
+    weeklyRef.data = makeData({
+      bookings: [],
+      attendanceRecords: [
+        {
+          id: "rec-1",
+          childId: "child-1",
+          date: `${ws}T00:00:00.000Z`,
+          sessionType: "asc",
+          status: "present",
+          signInTime: "2026-01-05T06:00:00.000Z",
+          signOutTime: null,
+          signedInById: "user-self",
+          signedOutById: null,
+          absenceReason: null,
+          notes: null,
+          recordRevision: "a".repeat(64),
+        },
+      ],
+    });
+    render(<ServiceWeeklyRollCallGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(makeClient()),
+    });
+    fireEvent.click(screen.getByTestId(`weekly-cell-shift-child-1-${ws}-asc`));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /^undo$/i })).toBeDefined();
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^undo$/i }));
+    await waitFor(() => expect(mutateApiSpy).toHaveBeenCalled());
+    expect(mutateApiSpy.mock.calls[0][1].body).toMatchObject({
+      action: "undo",
+      expectedRevision: "a".repeat(64),
     });
   });
 
@@ -375,7 +410,7 @@ describe("ServiceWeeklyRollCallGrid", () => {
   });
 
 
-  it("AddChildDialog submit calls the bulk endpoint with action='undo' items", async () => {
+  it("AddChildDialog submit calls the bulk endpoint with action='book' items (never clears an existing record)", async () => {
     mutateApiSpy.mockResolvedValue({ created: 1, failed: 0 });
     weeklyRef.data = makeData();
     enrollableRef.data = {
@@ -426,7 +461,7 @@ describe("ServiceWeeklyRollCallGrid", () => {
           childId: "child-2",
           date: monday,
           sessionType: "asc",
-          action: "undo",
+          action: "book",
         },
       ],
     });
@@ -490,5 +525,20 @@ describe("ServiceWeeklyRollCallGrid — rooms as records", () => {
       await screen.findByRole("button", { name: /book amana afternoons/i }),
     ).toBeDefined();
     expect(screen.queryByRole("button", { name: /^book asc$/i })).toBeNull();
+  });
+  it("opens on this Sydney week on a Monday morning, while it's still Sunday in UTC", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    // 10:50am Monday 12 Oct in Sydney = 11:50pm Sunday 11 Oct UTC.
+    vi.setSystemTime(new Date("2026-10-11T23:50:00Z"));
+    try {
+      weeklyRef.data = makeData();
+      weeklyCalls.length = 0;
+      render(<ServiceWeeklyRollCallGrid serviceId="svc-1" />, {
+        wrapper: makeWrapper(makeClient()),
+      });
+      expect(weeklyCalls.at(-1)?.[1]).toBe("2026-10-12");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

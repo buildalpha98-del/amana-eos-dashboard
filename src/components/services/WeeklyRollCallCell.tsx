@@ -22,6 +22,8 @@ export interface CellShift {
   signInTime?: string | null;
   signOutTime?: string | null;
   fee?: number | null;
+  /** Version of the attendance record shown; null when there is none yet. */
+  recordRevision?: string | null;
 }
 
 export interface WeeklyRollCallCellProps {

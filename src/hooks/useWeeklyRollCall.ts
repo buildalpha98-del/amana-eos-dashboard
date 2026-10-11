@@ -34,6 +34,8 @@ export interface WeeklyRollCallAttendanceRecord {
   signedOutById: string | null;
   absenceReason: string | null;
   notes: string | null;
+  /** Opaque version token; absent/undo send it back so a stale cell can't overwrite. */
+  recordRevision: string;
 }
 
 export interface WeeklyRollCallBooking {
