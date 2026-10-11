@@ -40,7 +40,9 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   // Coordinator's read "Member" — neither is a name anyone uses, and it made
   // "what role is this account actually on?" impossible to answer by looking.
   const roleLabel = useRoleLabel(session?.user?.role);
-  const { collapsed, toggleCollapsed, collapsedSections, toggleSection, favourites, toggleFavourite, expandedSections, toggleExpandedSection } = useSidebar();
+  const { collapsed: desktopCollapsed, toggleCollapsed, collapsedSections, toggleSection, favourites, toggleFavourite, expandedSections, toggleExpandedSection } = useSidebar();
+  // A saved desktop rail preference must never hide labels in the touch drawer.
+  const collapsed = desktopCollapsed && !mobileOpen;
   const { data: bookingRequestCount } = useBookingRequestCount();
   const { data: unreadMessageCount } = useUnreadMessageCount();
   const { data: pendingPoliciesCount } = useMyPendingPoliciesCount();
@@ -180,7 +182,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       {/* Mobile backdrop */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-black/30 z-40 md:hidden"
+          className="fixed inset-0 bg-black/30 z-40 lg:hidden"
           onClick={onMobileClose}
         />
       )}
@@ -192,9 +194,9 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           // Rich gradient background
           "bg-gradient-to-b from-brand-dark to-[#001824]",
           // Mobile: off-canvas drawer via translate
-          "w-64 -translate-x-full md:translate-x-0",
+          "w-64 -translate-x-full lg:translate-x-0",
           // Desktop: collapse toggle
-          collapsed ? "md:w-16" : "md:w-64",
+          collapsed ? "lg:w-16" : "lg:w-64",
           // Mobile open: slide in
           mobileOpen && "translate-x-0"
         )}
@@ -514,7 +516,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           {/* Sidebar-vs-top-bar is a desktop choice — on a phone the drawer
               is the only layout, and the switch ate the space that hid the
               last menu item below the fold (2026-10-08). */}
-          {!collapsed && <NavLayoutToggle className="hidden md:flex w-full justify-center" />}
+          {!collapsed && <NavLayoutToggle className="hidden lg:flex w-full justify-center" />}
         </div>
 
         {/* User Section. h-dvh on the drawer + the safe-area pad keep this
@@ -542,13 +544,13 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
               )}
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
-                className="flex min-h-11 items-center gap-1.5 rounded-md px-2 text-white/60 hover:text-white hover:bg-white/10 transition-colors duration-200 md:min-h-0 md:p-1.5 md:text-white/40"
+                className="flex min-h-11 items-center gap-1.5 rounded-md px-2 text-white/60 hover:text-white hover:bg-white/10 transition-colors duration-200 lg:min-h-0 lg:p-1.5 lg:text-white/40"
                 title="Sign out"
                 aria-label="Sign out"
               >
                 <LogOut className="w-4 h-4" />
                 {/* Labelled on phones — a bare icon was easy to miss. */}
-                <span className="text-xs font-medium md:hidden">Sign out</span>
+                <span className="text-xs font-medium lg:hidden">Sign out</span>
               </button>
             </div>
           )}
@@ -558,7 +560,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         <button
           onClick={toggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="absolute -right-3.5 top-20 w-7 h-5 rounded-full bg-brand-dark/90 backdrop-blur-sm border border-white/15 hidden md:flex items-center justify-center text-white/50 hover:text-white hover:bg-brand-dark transition-all duration-200"
+          className="absolute -right-3.5 top-20 w-7 h-5 rounded-full bg-brand-dark/90 backdrop-blur-sm border border-white/15 hidden lg:flex items-center justify-center text-white/50 hover:text-white hover:bg-brand-dark transition-all duration-200"
         >
           {collapsed ? (
             <ChevronRight className="w-3 h-3" />

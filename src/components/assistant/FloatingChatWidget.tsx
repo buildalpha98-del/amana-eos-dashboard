@@ -72,7 +72,7 @@ export function FloatingChatWidget() {
           aria-label="Open AI assistant"
           className={cn(
             "fixed z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-brand text-white shadow-lg hover:bg-brand/90 transition-colors",
-            // Phones (tab bar visible below md): bottom-RIGHT, clear of the
+            // Phones (tab bar visible below lg): bottom-RIGHT, clear of the
             // tab bar AND the iOS home-indicator inset. The old bottom-20
             // (80px) ignored the inset, so on an iPhone the pill sat on top
             // of the Home tab (2026-10-07). It's the only floating button on
@@ -82,7 +82,7 @@ export function FloatingChatWidget() {
             // to sit bottom-left beside the sidebar, where it covered the
             // bottom of the service page's own menu — Daniel couldn't see
             // the Documents section under it (2026-10-08).
-            "md:right-6 md:bottom-20",
+            "lg:right-6 lg:bottom-20",
           )}
         >
           <Bot className="w-5 h-5" />
@@ -100,9 +100,9 @@ export function FloatingChatWidget() {
             // Mobile: full-screen sheet
             "inset-0 sm:inset-auto",
             // Desktop: bottom-left anchored panel, offset past sidebar;
-            // above the bottom tab bar while it's visible (sm–md)
-            "sm:bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 sm:w-[420px] sm:h-[600px] sm:max-h-[80vh] sm:rounded-xl",
-            "sm:right-4 md:right-6",
+            // above the bottom tab bar while it's visible (sm–lg)
+            "sm:bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-6 sm:w-[420px] sm:h-[600px] sm:max-h-[80vh] sm:rounded-xl",
+            "sm:right-4 lg:right-6",
           )}
           role="dialog"
           aria-label="AI assistant"

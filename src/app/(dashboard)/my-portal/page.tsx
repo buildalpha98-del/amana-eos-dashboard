@@ -30,6 +30,8 @@ import {
 import { cn, toLocalIsoDate } from "@/lib/utils";
 import Link from "next/link";
 import { useRoleLabels } from "@/contexts/RoleLabelsContext";
+import { HomeViewToggle, useHomeView } from "@/components/layout/HomeViewToggle";
+import { EducatorShiftActions } from "@/components/my-portal/EducatorShiftActions";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
@@ -878,6 +880,9 @@ function PulseSurveySection() {
 
 export default function MyPortalPage() {
   const { data: session } = useSession();
+  const { view, setView } = useHomeView("personal", session?.user?.id);
+  const isEducator = session?.user?.role === "staff" && !session?.user?.isCentreAccount;
+  const focused = isEducator && view === "focused";
   // Show the role's NAME ("OSHC Coordinator"), never the raw enum.
   const roleLabels = useRoleLabels();
   const queryClient = useQueryClient();
@@ -1090,70 +1095,7 @@ export default function MyPortalPage() {
       }),
   ];
 
-  return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* ============================================================ */}
-      {/* 1. WELCOME HEADER                                            */}
-      {/* ============================================================ */}
-      <PageHeader title={`Welcome back, ${firstName}`}>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-brand/10 text-brand capitalize">
-            <UserCircle className="w-3.5 h-3.5" />
-            {roleLabels[profile.role as keyof typeof roleLabels] ?? profile.role}
-          </span>
-          {profile.service && (
-            <Link
-              href={`/services/${profile.service.id}`}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-surface text-muted hover:text-brand"
-            >
-              <Building2 className="w-3.5 h-3.5" />
-              {profile.service.name}
-            </Link>
-          )}
-          {profile.startDate && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-surface text-muted">
-              <Calendar className="w-3.5 h-3.5" />
-              Started {formatDate(profile.startDate)}
-            </span>
-          )}
-        </div>
-      </PageHeader>
-
-      {/* ============================================================ */}
-      {/* 1b. AI MORNING BRIEF (2026-07-05) — hidden until the daily    */}
-      {/* cron has composed today's brief for this user.                */}
-      {/* ============================================================ */}
-      <MorningBriefCard />
-
-      {/* Push opt-in (Staff Portal v2 3.3c) — self-gating: staff-tier
-          roles, push supported, permission "default", not subscribed,
-          not dismissed. Renders null otherwise. */}
-      <PushOptInCard />
-
-      {/* 2026-10-07: the ONE onboarding list — replaces the onboarding,
-          training, compliance, policy and contract cards that used to
-          stack below. Educators and Service Coordinators only; hides
-          itself once everything is done. */}
-      {(profile.role === "staff" || profile.role === "member") &&
-        !session?.user?.isCentreAccount && (
-          <GetReadyChecklist />
-        )}
-
-      {/* ============================================================ */}
-      {/* 2. HOME HUB — next-shift hero, glance tiles, quick actions,  */}
-      {/* consolidated "Needs your attention" (Staff Portal v2 1.6).   */}
-      {/* Payslips / EH leave / expenses moved to /my-pay, /my-leave,  */}
-      {/* /my-expenses — the tiles below link there.                   */}
-      {/* ============================================================ */}
-      {session?.user?.id && <NextShiftHero userId={session.user.id} />}
-
-      <GlanceTiles certStats={certStats} requiredCertStats={requiredCertStats} />
-
-      <AttentionCard items={attentionItems} />
-
-      {/* ============================================================ */}
-      {/* 3. PROFILE SUMMARY CARD                                      */}
-      {/* ============================================================ */}
+  const profileSummary = (
       <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex flex-col sm:flex-row gap-5">
           {/* Left: Avatar + core info */}
@@ -1226,6 +1168,89 @@ export default function MyPortalPage() {
           </div>
         </div>
       </div>
+  );
+
+  return (
+    <div className={cn("max-w-5xl mx-auto space-y-6", focused && "rounded-xl bg-home-background p-3 sm:p-5")}>
+      {/* ============================================================ */}
+      {/* 1. WELCOME HEADER                                            */}
+      {/* ============================================================ */}
+      <PageHeader title={`Welcome back, ${firstName}`}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-brand/10 text-brand capitalize">
+            <UserCircle className="w-3.5 h-3.5" />
+            {roleLabels[profile.role as keyof typeof roleLabels] ?? profile.role}
+          </span>
+          {profile.service && (
+            <Link
+              href={`/services/${profile.service.id}`}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-surface text-muted hover:text-brand"
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              {profile.service.name}
+            </Link>
+          )}
+          {profile.startDate && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-surface text-muted">
+              <Calendar className="w-3.5 h-3.5" />
+              Started {formatDate(profile.startDate)}
+            </span>
+          )}
+        </div>
+      </PageHeader>
+
+      {isEducator && <HomeViewToggle view={view} onChange={setView} />}
+      {focused && (
+        <>
+          {session?.user?.id && <NextShiftHero userId={session.user.id} />}
+          {profile.service && <EducatorShiftActions service={profile.service} />}
+          <AttentionCard items={attentionItems} />
+        </>
+      )}
+
+      {/* ============================================================ */}
+      {/* 1b. AI MORNING BRIEF (2026-07-05) — hidden until the daily    */}
+      {/* cron has composed today's brief for this user.                */}
+      {/* ============================================================ */}
+      {!focused && <MorningBriefCard />}
+
+      {/* Push opt-in (Staff Portal v2 3.3c) — self-gating: staff-tier
+          roles, push supported, permission "default", not subscribed,
+          not dismissed. Renders null otherwise. */}
+      {!focused && <PushOptInCard />}
+
+      {/* 2026-10-07: the ONE onboarding list — replaces the onboarding,
+          training, compliance, policy and contract cards that used to
+          stack below. Educators and Service Coordinators only; hides
+          itself once everything is done. */}
+      {(profile.role === "staff" || profile.role === "member") &&
+        !session?.user?.isCentreAccount && (
+          <GetReadyChecklist />
+        )}
+
+      {/* ============================================================ */}
+      {/* 2. HOME HUB — next-shift hero, glance tiles, quick actions,  */}
+      {/* consolidated "Needs your attention" (Staff Portal v2 1.6).   */}
+      {/* Payslips / EH leave / expenses moved to /my-pay, /my-leave,  */}
+      {/* /my-expenses — the tiles below link there.                   */}
+      {/* ============================================================ */}
+      {!focused && session?.user?.id && <NextShiftHero userId={session.user.id} />}
+
+      <GlanceTiles certStats={certStats} requiredCertStats={requiredCertStats} />
+
+      {!focused && <AttentionCard items={attentionItems} />}
+      {focused && <MorningBriefCard />}
+      {focused && <PushOptInCard />}
+
+      {/* ============================================================ */}
+      {/* 3. PROFILE SUMMARY CARD                                      */}
+      {/* ============================================================ */}
+      {focused ? (
+        <details className="rounded-xl border border-border bg-card">
+          <summary className="min-h-11 cursor-pointer p-4 text-sm font-semibold text-foreground">My profile and employment details</summary>
+          {profileSummary}
+        </details>
+      ) : profileSummary}
 
       {/* Performance reviews self-render only when one is waiting on the */}
       {/* staff member (self-assessment or acknowledgement).             */}

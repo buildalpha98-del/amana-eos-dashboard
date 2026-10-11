@@ -202,7 +202,7 @@ export function TopBar() {
   return (
     <>
       {/* Desktop header */}
-      <header className="h-16 bg-background border-b border-border hidden md:flex items-center justify-between px-6 sticky top-0 z-30">
+      <header className="h-16 bg-background border-b border-border hidden lg:flex items-center justify-between px-6 sticky top-0 z-30">
         <div className="flex items-center gap-4">
           {breadcrumbItems ? (
             <Breadcrumb items={breadcrumbItems} />
@@ -228,8 +228,8 @@ export function TopBar() {
             title="Search (Cmd+K)"
           >
             <Search className="w-4 h-4" />
-            <span className="hidden md:inline">Search...</span>
-            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-2xs font-medium text-muted bg-card rounded border-border border">
+            <span className="hidden lg:inline">Search...</span>
+            <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 text-2xs font-medium text-muted bg-card rounded border-border border">
               ⌘K
             </kbd>
           </button>

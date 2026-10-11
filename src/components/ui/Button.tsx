@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 
 const variantStyles = {
   primary:
-    "bg-brand text-white hover:bg-brand-hover focus-visible:ring-brand/50 shadow-[var(--shadow-warm-sm)] hover:shadow-[var(--shadow-warm)] active:scale-[0.98] transition-all duration-200",
+    "bg-brand-action text-white hover:bg-brand-action-hover focus-visible:ring-brand/50 shadow-[var(--shadow-warm-sm)] hover:shadow-[var(--shadow-warm)] active:scale-[0.98] transition-all duration-200",
   secondary:
     "border border-border text-foreground bg-card hover:bg-surface focus-visible:ring-border",
   outline:

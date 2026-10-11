@@ -28,7 +28,7 @@ const NOTIFICATION_POLL_INTERVAL_MS = 60_000;
 // self-service app (Home hub, My Day, Pay, Leave — Expenses and profile
 // are one tap away via Home tiles and More); everyone else keeps the
 // ops-centric set. Four tabs + the More button is the ceiling — six
-// slots at min-w-[64px] overflow a 375px viewport.
+// slots crowd a 375px viewport. Equal-width slots allow labels to wrap.
 const STAFF_TIER_ROLES = new Set(["staff", "member", "marketing"]);
 
 const staffTabs = [
@@ -97,7 +97,7 @@ export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
   return (
     <nav
       aria-label="Mobile navigation"
-      className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-background border-t border-border pb-[env(safe-area-inset-bottom)]"
+      className="fixed bottom-0 inset-x-0 z-40 lg:hidden bg-background border-t border-border pb-[env(safe-area-inset-bottom)]"
     >
       <div className="flex items-center justify-around h-16">
         {tabs.map((tab) => {
@@ -109,8 +109,9 @@ export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
             <Link
               key={tab.href}
               href={tab.href}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[64px]",
+                "flex flex-col items-center justify-center gap-0.5 min-h-11 min-w-0 flex-1 px-1 py-1.5 rounded-lg transition-colors",
                 isActive
                   ? "text-brand"
                   : "text-muted hover:text-foreground"
@@ -124,7 +125,7 @@ export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
               />
               <span
                 className={cn(
-                  "text-2xs leading-tight",
+                  "text-xs leading-tight",
                   isActive ? "font-semibold" : "font-medium"
                 )}
               >
@@ -139,7 +140,7 @@ export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
         <button
           type="button"
           onClick={onMorePress}
-          className="relative flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[64px] text-muted hover:text-foreground"
+          className="relative flex flex-col items-center justify-center gap-0.5 min-h-11 min-w-0 flex-1 px-1 py-1.5 rounded-lg transition-colors text-muted hover:text-foreground"
           aria-label={
             unreadCount > 0
               ? `Open full navigation menu (${unreadCount} unread notifications)`
@@ -158,7 +159,7 @@ export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
               </span>
             )}
           </span>
-          <span className="text-2xs leading-tight font-medium">More</span>
+          <span className="text-xs leading-tight font-medium">More</span>
         </button>
       </div>
     </nav>

@@ -131,7 +131,7 @@ export function CentreSidebarNav({
                       href={hrefFor(g, s.key)}
                       onClick={onNavigate}
                       className={cn(
-                        "block rounded-lg py-1.5 pl-11 pr-3 text-sm transition-colors",
+                        "flex min-h-11 items-center rounded-lg py-2 pl-11 pr-3 text-sm transition-colors",
                         subActive
                           ? "text-white font-medium bg-white/[0.06]"
                           : "text-white/60 hover:text-white/90 hover:bg-white/[0.04]",

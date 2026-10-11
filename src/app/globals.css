@@ -19,6 +19,10 @@
    utilities emit var(--color-*) and re-theme correctly. */
 @theme {
   --color-brand: #004E64;
+  --color-brand-action: #004E64;
+  --color-brand-action-hover: #003D52;
+  --color-home-background: #FFFAE6;
+  --color-home-highlight: #FFF2BF;
   --color-brand-dark: #002E3D;
   --color-brand-light: #0A7E9E;
   --color-brand-hover: #003D52;
@@ -401,6 +405,8 @@ td, th {
 
 .dark {
   --color-background: #121218;
+  --color-home-background: #121218;
+  --color-home-highlight: #242430;
   --color-card: #1c1c26;
   --color-foreground: #eee8e0;
   --color-muted: #8e8a82;
@@ -409,14 +415,10 @@ td, th {
   --color-surface: #22222e;
   color-scheme: dark;
 
-  /* Brand family — one token serves both text-brand (needs light-on-dark
-     contrast) and bg-brand/text-white buttons (needs dark-under-white), so
-     the dark value is a deliberate midpoint: #1E9BC0 gives text-brand
-     5.8:1 on the page bg and 5.2:1 on cards (WCAG AA), while white button
-     labels sit at 3.2:1 (large-text/UI threshold). Don't lighten it further
-     without restyling every solid bg-brand button. */
+  /* Text-brand brightens on dark surfaces. Solid Button backgrounds use
+     brand-action separately so normal-size white labels keep 9.24:1 contrast. */
   --color-brand: #1E9BC0;
-  --color-brand-hover: #1B8AAD; /* darker hover keeps white button text ≥3.9:1 */
+  --color-brand-hover: #1B8AAD;
   --color-brand-light: #64BFDB; /* brighten-on-hover text, 8.9:1 on bg */
   /* --color-brand-dark deliberately NOT overridden: it's the sidebar's
      permanent dark surface (from-brand-dark gradient, white text in both
