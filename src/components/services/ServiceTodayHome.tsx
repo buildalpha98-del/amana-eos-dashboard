@@ -4,8 +4,7 @@
  * The centre's Today screen — modelled on OWNA's centre home (Daniel's
  * screenshot and approved mock-up, 2026-10-09; first built as Round 2).
  *
- * Shift view prioritises room coverage, checklists and handover. Classic
- * preserves the previous order. Both reuse the same role-gated content.
+ * Prioritises room coverage, checklists and handover using role-gated content.
  *
  * Every number comes from ONE source, /api/services/[id]/dashboard (same
  * query key as the Coordinator dashboard), so the screens can't disagree.
@@ -35,7 +34,6 @@ import { fetchApi } from "@/lib/fetch-api";
 import { cn } from "@/lib/utils";
 import { isAdminRole } from "@/lib/role-permissions";
 import { Button } from "@/components/ui/Button";
-import { HomeViewToggle, useHomeView } from "@/components/layout/HomeViewToggle";
 import { SERVICE_TZ } from "@/lib/timezone";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { MyClockCard } from "@/components/my-portal/MyClockCard";
@@ -121,8 +119,6 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
   const canManage =
     isAdminRole(role) || (role === "member" && session?.user?.serviceId === serviceId);
 
-  const { view, setView } = useHomeView("centre", session?.user?.id);
-  const focused = view === "focused";
   const { data, isLoading, isError, isFetching, refetch } = useCentreDay(serviceId);
   const svc = `/services/${serviceId}`;
 
@@ -226,13 +222,12 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
   );
 
   return (
-    <div className={cn("space-y-4", focused && "rounded-xl bg-home-background p-3 sm:p-5")}>
+    <div className="space-y-4 rounded-xl bg-home-background p-3 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-heading text-lg font-semibold text-brand">{canManage ? "Your centre today" : "Your shift at the centre"}</h2>
-          <p className="text-sm text-muted">{focused ? "Room coverage, daily tasks and handover." : "Your familiar centre overview."}</p>
+          <p className="text-sm text-muted">Room coverage, daily tasks and handover.</p>
         </div>
-        <HomeViewToggle view={view} onChange={setView} />
       </div>
       <div role={isError ? "alert" : undefined} className={cn("flex flex-wrap items-center justify-between gap-2 rounded-lg p-3 text-sm", isError ? "bg-status-alert-bg text-status-alert-fg" : "bg-home-highlight text-foreground")}>
         <p>
@@ -242,8 +237,6 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
         </p>
         <Button variant="secondary" size="sm" loading={isFetching} onClick={() => void refetch()}>{isError ? "Try again" : "Refresh"}</Button>
       </div>
-      {/* The door iPad — Coordinators / centre login, on an iPad. */}
-      {!focused && canManage && <DoorIpadCard serviceId={serviceId} />}
 
       {/* Am I clocked in? (A shared centre login isn't a person.) */}
       {!isCentreAccount && session?.user?.id && <MyClockCard userId={session.user.id} />}
@@ -325,11 +318,6 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
         </Link>
       </div>
 
-      {/* ── Quick buttons, with counts ── */}
-      {!focused && shiftActions}
-
-      {!focused && needsPanel}
-
       {/* ── One card per room: in / booked, staff vs required, ratio ── */}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {rooms.map((p) => {
@@ -385,9 +373,9 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
         })}
       </div>
 
-      {focused && shiftActions}
-      {focused && shiftTasks}
-      {focused && needsPanel}
+      {shiftActions}
+      {shiftTasks}
+      {needsPanel}
 
       {/* ── Staff signed in, since when ── */}
       <section className="rounded-xl border border-border bg-card p-4" aria-labelledby="staff-in-h">
@@ -432,8 +420,7 @@ export function ServiceTodayHome({ serviceId }: { serviceId: string }) {
         )}
       </section>
 
-      {!focused && shiftTasks}
-      {focused && canManage && <DoorIpadCard serviceId={serviceId} />}
+      {canManage && <DoorIpadCard serviceId={serviceId} />}
 
       {/* Centre to-dos and tickets — management work, not the floor's. */}
       {canManage && <ServiceTodayPanel serviceId={serviceId} hideLiveCards />}
