@@ -9,10 +9,12 @@
  *     success so the UI can show optimistic state. Drains on `online` event.
  *   - 4xx: surfaces the error immediately — user input needs correction.
  *
- * Every mutation MUST carry a `clientMutationId` UUID. The server's unique
- * index guarantees exactly-once insertion even if the client replays.
+ * Every mutation carries a `clientMutationId` UUID and the originating
+ * account. Each endpoint must implement its own replay protection.
  */
 
+import { useSession } from "next-auth/react";
+import { offlineActorHeaders } from "@/lib/offline-identity";
 import { useCallback, useState } from "react";
 import { offlineQueue } from "@/lib/offline-queue";
 import { toast } from "@/hooks/useToast";
@@ -32,6 +34,7 @@ export interface OfflineMutationOptions<T = unknown> {
 export function useOfflineMutation<T = unknown>(
   opts: OfflineMutationOptions<T>,
 ) {
+  const { data: session } = useSession();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,12 +44,22 @@ export function useOfflineMutation<T = unknown>(
       queued: boolean;
       data?: T;
     }> => {
+      const ownerId = session?.user?.id;
+      let actorHeaders: Record<string, string>;
+      try {
+        actorHeaders = offlineActorHeaders(ownerId);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Please sign in before saving.";
+        setError(message);
+        toast({ variant: "destructive", description: message });
+        return { ok: false, queued: false };
+      }
       setIsPending(true);
       setError(null);
       try {
         const res = await fetch(opts.url, {
           method: opts.method ?? "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...actorHeaders },
           body: JSON.stringify(body),
         });
 
@@ -72,6 +85,7 @@ export function useOfflineMutation<T = unknown>(
       } catch (err) {
         // Network error or 5xx — enqueue
         await offlineQueue.enqueue({
+          ownerId: ownerId!,
           id: body.clientMutationId,
           url: opts.url,
           method: opts.method ?? "POST",
@@ -86,7 +100,7 @@ export function useOfflineMutation<T = unknown>(
         setIsPending(false);
       }
     },
-    [opts],
+    [opts, session?.user?.id],
   );
 
   return { fire, isPending, error };
