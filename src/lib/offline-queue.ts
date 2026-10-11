@@ -66,7 +66,11 @@ class OfflineQueue {
     return this.dbPromise;
   }
 
-  async enqueue(m: Omit<QueuedMutation, "enqueuedAt" | "attempts" | "status"> & { ownerId: string }): Promise<void> {
+  async enqueue(
+    m: Omit<QueuedMutation, "enqueuedAt" | "attempts" | "status"> & {
+      ownerId: string;
+    },
+  ): Promise<void> {
     if (!m.ownerId) throw new Error("Sign in before saving work offline.");
     const db = await this.open();
     const tx = db.transaction(STORE, "readwrite");
@@ -82,18 +86,36 @@ class OfflineQueue {
       existing.onsuccess = () => {
         const saved = existing.result as QueuedMutation | undefined;
         if (saved) {
-          if (saved.ownerId !== row.ownerId || saved.url !== row.url || saved.method !== row.method || JSON.stringify(saved.body) !== JSON.stringify(row.body)) {
-            reject(new Error("This offline action ID is already saved with different details. Review the original action before trying again."));
+          if (
+            saved.ownerId !== row.ownerId ||
+            saved.url !== row.url ||
+            saved.method !== row.method ||
+            JSON.stringify(saved.body) !== JSON.stringify(row.body)
+          ) {
+            reject(
+              new Error(
+                "This offline action ID is already saved with different details. Review the original action before trying again.",
+              ),
+            );
             tx.abort();
           }
           // An identical retry keeps its original owner, order and attempts.
           return;
         }
-        store.put(row);
+        const latest = store.index("enqueuedAt").openCursor(null, "prev");
+        latest.onsuccess = () => {
+          const previous = latest.result?.value as QueuedMutation | undefined;
+          row.enqueuedAt = Math.max(
+            row.enqueuedAt,
+            (previous?.enqueuedAt ?? 0) + 1,
+          );
+          store.put(row);
+        };
       };
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error ?? new Error("Offline save was cancelled."));
+      tx.onabort = () =>
+        reject(tx.error ?? new Error("Offline save was cancelled."));
     });
     this.notify();
   }
@@ -109,8 +131,14 @@ class OfflineQueue {
     });
   }
 
-  async counts(ownerId?: string | null): Promise<{ pending: number; failed: number }> {
-    const rows = (await this.all()).filter((row) => ownerId === undefined || (ownerId !== null && (!row.ownerId || row.ownerId === ownerId)));
+  async counts(
+    ownerId?: string | null,
+  ): Promise<{ pending: number; failed: number }> {
+    const rows = (await this.all()).filter(
+      (row) =>
+        ownerId === undefined ||
+        (ownerId !== null && (!row.ownerId || row.ownerId === ownerId)),
+    );
     return {
       pending: rows.filter((r) => r.status === "pending").length,
       failed: rows.filter((r) => r.status === "failed").length,
@@ -129,23 +157,73 @@ class OfflineQueue {
   }
 
   async markFailed(id: string, error: string): Promise<void> {
+    await this.recordFailure(id, error, true);
+  }
+
+  private async recordFailure(
+    id: string,
+    error: string,
+    permanent: boolean,
+  ): Promise<void> {
     const db = await this.open();
     const tx = db.transaction(STORE, "readwrite");
     const store = tx.objectStore(STORE);
-    const row = await new Promise<QueuedMutation | undefined>((resolve, reject) => {
-      const req = store.get(id);
-      req.onsuccess = () => resolve(req.result as QueuedMutation | undefined);
-      req.onerror = () => reject(req.error);
-    });
-    if (row) {
-      row.status = "failed";
-      row.attempts += 1;
-      row.lastError = error;
-      store.put(row);
-    }
     await new Promise<void>((resolve, reject) => {
+      const request = store.get(id);
+      request.onsuccess = () => {
+        const row = request.result as QueuedMutation | undefined;
+        if (row) {
+          row.attempts += 1;
+          row.status = permanent || row.attempts >= 3 ? "failed" : "pending";
+          row.lastError = error;
+          store.put(row);
+        }
+      };
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
+      tx.onabort = () =>
+        reject(tx.error ?? new Error("Offline update was cancelled."));
+    });
+    this.notify();
+  }
+
+  async review(
+    id: string,
+    ownerId: string,
+    action: "retry" | "discard",
+  ): Promise<void> {
+    if (this.draining) throw new Error("Please wait for syncing to finish.");
+    const session = await getSession();
+    if (!ownerId || session?.user?.id !== ownerId)
+      throw new Error("Sign back into the account that saved this action.");
+    if (this.draining) throw new Error("Please wait for syncing to finish.");
+    const db = await this.open();
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    await new Promise<void>((resolve, reject) => {
+      const request = store.get(id);
+      request.onsuccess = () => {
+        const row = request.result as QueuedMutation | undefined;
+        if (!row || row.ownerId !== ownerId || row.status !== "failed") {
+          reject(
+            new Error("This action is unavailable for review in this account."),
+          );
+          tx.abort();
+          return;
+        }
+        if (action === "discard") store.delete(id);
+        else
+          store.put({
+            ...row,
+            status: "pending",
+            attempts: 0,
+            lastError: undefined,
+          });
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () =>
+        reject(tx.error ?? new Error("Offline review was cancelled."));
     });
     this.notify();
   }
@@ -157,45 +235,58 @@ class OfflineQueue {
       const session = await getSession();
       const ownerId = session?.user?.id;
       if (!ownerId) return { drained: 0, failed: 0 };
-      const rows = (await this.all())
-        .filter((r) => r.status === "pending")
-        .sort((a, b) => a.enqueuedAt - b.enqueuedAt);
+      const rows = (await this.all()).sort(
+        (a, b) => a.enqueuedAt - b.enqueuedAt,
+      );
       let drained = 0;
       let failed = 0;
       for (const row of rows) {
         if (!row.ownerId) {
-          await this.markFailed(row.id, "This older offline action has no saved account. Review the original record before entering it again.");
+          if (row.status === "failed") continue;
+          await this.markFailed(
+            row.id,
+            "This older offline action has no saved account. Review the original record before entering it again.",
+          );
           failed += 1;
           continue;
         }
         if (row.ownerId !== ownerId) continue;
+        // A rejected earlier action is a barrier until its owner reviews it.
+        if (row.status === "failed") break;
+        let res: Response;
         try {
-          const res = await fetch(row.url, {
+          res = await fetch(row.url, {
             method: row.method,
-            headers: { "Content-Type": "application/json", [OFFLINE_ACTOR_HEADER]: row.ownerId },
+            headers: {
+              "Content-Type": "application/json",
+              [OFFLINE_ACTOR_HEADER]: row.ownerId,
+            },
             body: JSON.stringify(row.body),
           });
-          if (res.ok || res.status === 200 || res.status === 201) {
-            await this.remove(row.id);
-            drained += 1;
-            continue;
-          }
-          if (res.status >= 400 && res.status < 500) {
-            const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-            await this.markFailed(row.id, body.error ?? `HTTP ${res.status}`);
-            failed += 1;
-            continue;
-          }
-          // 5xx / network — leave in queue for next drain
-          row.attempts += 1;
-          if (row.attempts >= 3) {
-            await this.markFailed(row.id, `HTTP ${res.status} after 3 attempts`);
-            failed += 1;
-          }
         } catch (err) {
-          // Network error — leave in queue
-          void err;
+          await this.recordFailure(
+            row.id,
+            err instanceof Error ? err.message : "Connection interrupted",
+            false,
+          );
+          if (row.attempts + 1 >= 3) failed += 1;
+          break;
         }
+        if (res.ok) {
+          await this.remove(row.id);
+          drained += 1;
+          continue;
+        }
+        const permanent = res.status >= 400 && res.status < 500;
+        const body = await res
+          .json()
+          .catch(() => ({ error: `HTTP ${res.status}` }));
+        const message =
+          typeof body?.error === "string" ? body.error : `HTTP ${res.status}`;
+        await this.recordFailure(row.id, message, permanent);
+        if (permanent || row.attempts + 1 >= 3) failed += 1;
+        // Never send a later action while an earlier one remains unresolved.
+        break;
       }
       this.notify();
       return { drained, failed };
@@ -207,9 +298,15 @@ class OfflineQueue {
   subscribe(listener: DrainListener, ownerId?: string | null): () => void {
     this.listeners.set(listener, ownerId);
     // Fire immediately
-    this.counts(ownerId).then((c) => {
-      if (this.listeners.has(listener) && this.listeners.get(listener) === ownerId) listener(c);
-    }).catch(() => {});
+    this.counts(ownerId)
+      .then((c) => {
+        if (
+          this.listeners.has(listener) &&
+          this.listeners.get(listener) === ownerId
+        )
+          listener(c);
+      })
+      .catch(() => {});
     return () => {
       this.listeners.delete(listener);
     };
@@ -218,9 +315,15 @@ class OfflineQueue {
   private notify() {
     if (this.listeners.size === 0) return;
     for (const [listener, ownerId] of this.listeners) {
-      this.counts(ownerId).then((c) => {
-        if (this.listeners.has(listener) && this.listeners.get(listener) === ownerId) listener(c);
-      }).catch(() => {});
+      this.counts(ownerId)
+        .then((c) => {
+          if (
+            this.listeners.has(listener) &&
+            this.listeners.get(listener) === ownerId
+          )
+            listener(c);
+        })
+        .catch(() => {});
     }
   }
 }
