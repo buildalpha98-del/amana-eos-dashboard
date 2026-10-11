@@ -194,10 +194,29 @@ export const GET = withApiHandler(async (req) => {
     let generated = 0;
     let failed = 0;
 
+    // Match existing AI crons: attribute background accounting to a real
+    // active owner/admin. Resolve once per batch, never create a login user.
+    let usageUserId: string | null = null;
+    if (toProcess.length > 0) {
+      try {
+        const usageUser = await prisma.user.findFirst({
+          where: { role: { in: ["owner", "admin"] }, active: true },
+          select: { id: true },
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        });
+        usageUserId = usageUser?.id ?? null;
+        if (!usageUserId) {
+          logger.warn("AI task agent usage logging skipped: no active owner/admin");
+        }
+      } catch (err) {
+        logger.error("AI task agent usage account lookup failed", { err });
+      }
+    }
+
     for (const ctx of toProcess) {
       const result = await generateDraft(ctx);
       if (result) {
-        await saveDraft(ctx, result.content, result.tokensUsed);
+        await saveDraft(ctx, result.content, result.tokensUsed, usageUserId);
         generated++;
       } else {
         failed++;
