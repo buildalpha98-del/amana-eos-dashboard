@@ -2,7 +2,7 @@
  * Parent account emails. Uses the shared branded layout so these match the
  * rest of our transactional mail rather than being one-off HTML.
  */
-import { baseLayout, buttonHtml } from "@/lib/email-templates";
+import { baseLayout, buttonHtml, parentEmailLayout } from "@/lib/email-templates";
 
 export async function parentVerifyEmail(params: {
   name: string;
@@ -62,7 +62,7 @@ export async function enrolmentReceivedEmail(params: {
 
   return {
     subject: "We've received your enrolment — Amana OSHC",
-    html: await baseLayout(
+    html: parentEmailLayout(
       `
       <p>Hi ${params.name},</p>
       <p>Thank you — we've received ${child}'s enrolment.</p>
@@ -87,7 +87,7 @@ export async function enrolmentReceivedEmail(params: {
       meantime, contact us at
       enrolments@amanaoshc.com.au.</p>
     `,
-      "family",
+      { transactional: true },
     ),
   };
 }
@@ -185,7 +185,7 @@ export async function enrolmentApprovedEmail(params: {
 
   return {
     subject: `${child}'s enrolment is confirmed — Amana OSHC`,
-    html: await baseLayout(
+    html: parentEmailLayout(
       `
       <p>Assalamu alaikum ${params.name},</p>
       <p>Good news — ${child}'s enrolment with Amana OSHC has been
@@ -204,7 +204,7 @@ export async function enrolmentApprovedEmail(params: {
       junk folder or contact our team.</p>
       <p style="font-size:13px;color:#6b7280;">Any questions? Contact us at enrolments@amanaoshc.com.au.</p>
     `,
-      "family",
+      { transactional: true },
     ),
   };
 }
