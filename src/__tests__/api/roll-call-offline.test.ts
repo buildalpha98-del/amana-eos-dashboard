@@ -1,4 +1,5 @@
-import type { Prisma } from "@prisma/client";
+import { attendanceRevision } from "@/lib/attendance-revision";
+import type { AttendanceRecord, Prisma } from "@prisma/client";
 import { sendSignInNotification } from "@/lib/notifications/attendance";
 import { mockArrivalRecords } from "../helpers/attendance-arrival-mock";
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -96,12 +97,15 @@ describe("Roll call POST — offline-queue replay support", () => {
           action: "sign_in",
           occurredAt,
           clientMutationId: VALID_CMID,
+          expectedRevision: null,
         },
       }),
     );
     expect(res.status).toBe(200);
 
-    const callArgs = prismaMock.attendanceRecord.createMany.mock.calls[0][0];
+    const callArgs = prismaMock.attendanceRecord.createMany.mock.calls.find(
+      (call: [{ data: { signInTime?: Date }[] }]) => call[0].data[0].signInTime,
+    )?.[0];
     // The signInTime in the upsert payload should match the caller-supplied
     // time, not "now".
     const writtenTime = (callArgs.data[0].signInTime as Date).toISOString();
@@ -121,6 +125,7 @@ describe("Roll call POST — offline-queue replay support", () => {
           action: "sign_in",
           occurredAt,
           clientMutationId: VALID_CMID,
+          expectedRevision: null,
         },
       }),
     );
@@ -148,7 +153,9 @@ describe("Roll call POST — offline-queue replay support", () => {
     );
     const after = Date.now();
     expect(res.status).toBe(200);
-    const callArgs = prismaMock.attendanceRecord.createMany.mock.calls[0][0];
+    const callArgs = prismaMock.attendanceRecord.createMany.mock.calls.find(
+      (call: [{ data: { signInTime?: Date }[] }]) => call[0].data[0].signInTime,
+    )?.[0];
     const writtenTime = (callArgs.data[0].signInTime as Date).getTime();
     // Must be roughly "now", not the future-stamped time
     expect(writtenTime).toBeGreaterThanOrEqual(before);
@@ -172,7 +179,9 @@ describe("Roll call POST — offline-queue replay support", () => {
     );
     const after = Date.now();
     expect(res.status).toBe(200);
-    const callArgs = prismaMock.attendanceRecord.createMany.mock.calls[0][0];
+    const callArgs = prismaMock.attendanceRecord.createMany.mock.calls.find(
+      (call: [{ data: { signInTime?: Date }[] }]) => call[0].data[0].signInTime,
+    )?.[0];
     const writtenTime = (callArgs.data[0].signInTime as Date).getTime();
     expect(writtenTime).toBeGreaterThanOrEqual(before);
     expect(writtenTime).toBeLessThanOrEqual(after + 100);
@@ -190,6 +199,7 @@ describe("Roll call POST — offline-queue replay support", () => {
           sessionType: "asc",
           action: "sign_in",
           clientMutationId: VALID_CMID,
+          expectedRevision: null,
         },
       }),
     );
@@ -209,6 +219,7 @@ describe("Durable roll-call receipts", () => {
       sessionType: "asc",
       action: "sign_in",
       clientMutationId: VALID_CMID,
+      expectedRevision: null,
       ...overrides,
     };
   }
@@ -238,7 +249,7 @@ describe("Durable roll-call receipts", () => {
     const retry = await send(body);
     expect(retry.status).toBe(200);
     expect(await retry.json()).toEqual(original);
-    expect(prismaMock.attendanceRecord.createMany).toHaveBeenCalledTimes(1);
+    expect(prismaMock.attendanceRecord.createMany).toHaveBeenCalledTimes(2);
     expect(prismaMock.dailyAttendance.upsert).toHaveBeenCalledTimes(1);
     expect(sendSignInNotification).toHaveBeenCalledTimes(1);
     expect([...rows.values()][0]).toMatchObject({
@@ -263,7 +274,7 @@ describe("Durable roll-call receipts", () => {
     expect((await send(payload())).status).toBe(200);
     const retry = await send(payload(change));
     expect(retry.status).toBe(409);
-    expect(prismaMock.attendanceRecord.createMany).toHaveBeenCalledTimes(1);
+    expect(prismaMock.attendanceRecord.createMany).toHaveBeenCalledTimes(2);
     expect(prismaMock.attendanceRecord.upsert).not.toHaveBeenCalled();
     expect(sendSignInNotification).toHaveBeenCalledTimes(1);
   });
@@ -272,7 +283,7 @@ describe("Durable roll-call receipts", () => {
     expect((await send(payload())).status).toBe(200);
     mockSession({ id: "u2", name: "Other", role: "staff", serviceId: "s1" });
     expect((await send(payload())).status).toBe(409);
-    expect(prismaMock.attendanceRecord.createMany).toHaveBeenCalledTimes(1);
+    expect(prismaMock.attendanceRecord.createMany).toHaveBeenCalledTimes(2);
   });
 
   it("checks current child scope before returning an existing receipt", async () => {
@@ -293,32 +304,163 @@ describe("Durable roll-call receipts", () => {
       const retry = await send(body);
       expect(retry.status).toBe(200);
       expect(await retry.json()).toEqual(await first.json());
-      expect(prismaMock.attendanceRecord.createMany).toHaveBeenCalledTimes(1);
+      expect(prismaMock.attendanceRecord.createMany).toHaveBeenCalledTimes(2);
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it.each(["undo", "mark_absent", "note"])("replays %s without applying it again", async (action) => {
-    prismaMock.attendanceRecord.findUnique.mockResolvedValue({ id: "ar1" });
-    prismaMock.attendanceRecord.upsert.mockResolvedValue({ id: "ar1", status: "booked" });
-    prismaMock.attendanceRecord.update.mockResolvedValue({ id: "ar1", notes: "Original note" });
-    const body = payload({ action, notes: "Original note" });
-    const first = await send(body);
-    const second = await send(body);
-    expect(first.status).toBe(200);
-    expect(second.status).toBe(200);
-    expect(await second.json()).toEqual(await first.json());
-    expect(prismaMock.dailyAttendance.upsert).toHaveBeenCalledTimes(1);
-    expect(action === "note" ? prismaMock.attendanceRecord.update : prismaMock.attendanceRecord.upsert).toHaveBeenCalledTimes(1);
-    expect(sendSignInNotification).not.toHaveBeenCalled();
-  });
+  it.each(["undo", "mark_absent", "note"])(
+    "replays %s without applying it again",
+    async (action) => {
+      prismaMock.attendanceRecord.findUnique.mockResolvedValue({ id: "ar1" });
+      prismaMock.attendanceRecord.upsert.mockResolvedValue({
+        id: "ar1",
+        status: "booked",
+      });
+      prismaMock.attendanceRecord.update.mockResolvedValue({
+        id: "ar1",
+        notes: "Original note",
+      });
+      const body = payload({
+        action,
+        notes: "Original note",
+        ...(action === "note"
+          ? {
+              expectedRevision: attendanceRevision({
+                id: "ar1",
+              } as AttendanceRecord),
+            }
+          : {}),
+      });
+      const first = await send(body);
+      const second = await send(body);
+      expect(first.status).toBe(200);
+      expect(second.status).toBe(200);
+      expect(await second.json()).toEqual(await first.json());
+      expect(prismaMock.dailyAttendance.upsert).toHaveBeenCalledTimes(1);
+      expect(
+        action === "note"
+          ? prismaMock.attendanceRecord.update
+          : prismaMock.attendanceRecord.upsert,
+      ).toHaveBeenCalledTimes(1);
+      expect(sendSignInNotification).not.toHaveBeenCalled();
+    },
+  );
 
   it("does not send a notification or complete the receipt when aggregation fails", async () => {
-    prismaMock.dailyAttendance.upsert.mockRejectedValueOnce(new Error("Aggregation failed"));
+    prismaMock.dailyAttendance.upsert.mockRejectedValueOnce(
+      new Error("Aggregation failed"),
+    );
     expect((await send(payload())).status).toBe(500);
     expect(sendSignInNotification).not.toHaveBeenCalled();
     expect(prismaMock.attendanceMutation.update).not.toHaveBeenCalled();
+  });
+
+  it("does not create attendance as a side effect of adding a note", async () => {
+    expect(
+      (await send(payload({ action: "note", notes: "No record yet" }))).status,
+    ).toBe(400);
+    expect(prismaMock.attendanceRecord.createMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects a previously unseen queued action without a baseline", async () => {
+    expect((await send(payload({ expectedRevision: undefined }))).status).toBe(
+      409,
+    );
+    expect(prismaMock.attendanceRecord.createMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects an old empty baseline after another action creates the attendance", async () => {
+    expect((await send(payload())).status).toBe(200);
+    const result = await send(
+      payload({
+        clientMutationId: "550e8400-e29b-41d4-a716-446655440001",
+        action: "undo",
+      }),
+    );
+    expect(result.status).toBe(409);
+    expect(prismaMock.attendanceRecord.upsert).not.toHaveBeenCalled();
+  });
+
+  it("rejects changed state even when updatedAt has not advanced", async () => {
+    const rows = mockArrivalRecords();
+    const first = await send(payload());
+    const saved = await first.json();
+    for (const row of rows.values())
+      row.notes = "New information from another device";
+    const result = await send(
+      payload({
+        clientMutationId: "550e8400-e29b-41d4-a716-446655440001",
+        action: "undo",
+        expectedRevision: saved.recordRevision,
+      }),
+    );
+    expect(result.status).toBe(409);
+    expect(prismaMock.attendanceRecord.upsert).not.toHaveBeenCalled();
+  });
+
+  it("uses a matching predecessor receipt for the next queued action", async () => {
+    const rows = mockArrivalRecords();
+    expect((await send(payload())).status).toBe(200);
+    prismaMock.attendanceRecord.update.mockImplementation(
+      async ({ data }: { data: { notes: string } }) => ({
+        ...[...rows.values()][0],
+        ...data,
+      }),
+    );
+    const result = await send(
+      payload({
+        clientMutationId: "550e8400-e29b-41d4-a716-446655440001",
+        action: "note",
+        notes: "Follow-up",
+        dependsOnMutationId: VALID_CMID,
+      }),
+    );
+    expect(result.status).toBe(200);
+    expect((await result.json()).notes).toBe("Follow-up");
+  });
+
+  it("does not treat a predecessor as permission to overwrite later changes", async () => {
+    const rows = mockArrivalRecords();
+    expect((await send(payload())).status).toBe(200);
+    for (const row of rows.values()) row.notes = "Later correction";
+    const result = await send(
+      payload({
+        clientMutationId: "550e8400-e29b-41d4-a716-446655440001",
+        action: "undo",
+        dependsOnMutationId: VALID_CMID,
+      }),
+    );
+    expect(result.status).toBe(409);
+    expect(prismaMock.attendanceRecord.upsert).not.toHaveBeenCalled();
+  });
+
+  it("rejects missing or another account's predecessor", async () => {
+    expect(
+      (
+        await send(
+          payload({
+            dependsOnMutationId: "550e8400-e29b-41d4-a716-446655440001",
+          }),
+        )
+      ).status,
+    ).toBe(409);
+    // Fresh mock state: the real transaction rolls a failed receipt back.
+    prismaMock.attendanceMutation.createMany.mockResolvedValue({ count: 1 });
+    prismaMock.attendanceMutation.findUnique.mockResolvedValue({
+      actorId: "other",
+    });
+    expect(
+      (
+        await send(
+          payload({
+            dependsOnMutationId: "550e8400-e29b-41d4-a716-446655440001",
+          }),
+        )
+      ).status,
+    ).toBe(409);
+    expect(prismaMock.attendanceRecord.createMany).not.toHaveBeenCalled();
   });
 
   it("keeps legacy requests without an ID compatible without inventing receipts", async () => {

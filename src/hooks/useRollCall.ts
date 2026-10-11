@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useSession } from "next-auth/react";
 import { offlineActorHeaders } from "@/lib/offline-identity";
 
@@ -55,6 +56,8 @@ export interface RollCallEntry {
   /// in (the record gets created on first action). Required for routes
   /// that act on the record (e.g. first-day-photo SMS).
   attendanceId: string | null;
+  /** Opaque server snapshot; null means no attendance row existed. */
+  recordRevision?: string | null;
   child: RollCallChild;
   bookingType: string;
   status: "booked" | "present" | "absent";
@@ -139,21 +142,41 @@ export function useRollCall(serviceId: string, date: string, sessionType: string
 export function useUpdateRollCall() {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
+  const baselines = useRef(new WeakMap<RollCallActionPayload, { revision: string | null | undefined; occurredAt: string }>());
 
   return useMutation({
     mutationFn: async (payload: RollCallActionPayload) => {
-      // Stamp the action with the educator's local time + a UUID so:
-      //   1. Offline replays preserve the original sign-in time (server clamps
-      //      anything older than 24h)
-      //   2. Activity logs can correlate replays back to the original tap
-      const enriched = {
-        ...payload,
-        occurredAt: new Date().toISOString(),
-        clientMutationId: genUuid(),
-      };
       const ownerId = session?.user?.id;
       const headers = offlineActorHeaders(ownerId);
       const url = "/api/attendance/roll-call";
+      const baseline = baselines.current.get(payload);
+      baselines.current.delete(payload);
+      const saved = await offlineQueue.all();
+      const predecessor = saved
+        .filter((row) => row.ownerId === ownerId && row.url === url &&
+          row.body.childId === payload.childId && row.body.serviceId === payload.serviceId &&
+          row.body.date === payload.date && row.body.sessionType === payload.sessionType)
+        .sort((a, b) => b.enqueuedAt - a.enqueuedAt)[0];
+      const expectedRevision = baseline?.revision;
+      if (!predecessor && expectedRevision === undefined) {
+        throw new Error("Refresh the roll before recording attendance so we can check for newer changes.");
+      }
+      const enriched = {
+        ...payload,
+        occurredAt: baseline?.occurredAt ?? new Date().toISOString(),
+        clientMutationId: genUuid(),
+        expectedRevision,
+        ...(predecessor ? { dependsOnMutationId: predecessor.id } : {}),
+      };
+      const saveOffline = async () => {
+        await offlineQueue.enqueue({
+          ownerId: ownerId!, id: enriched.clientMutationId, url, method: "POST", body: enriched,
+        });
+        toast({ description: "Saved on this device — waiting to sync in order." });
+        return { queued: true as const };
+      };
+      // Never bypass an earlier queued action just because connectivity returned.
+      if (predecessor) return saveOffline();
       try {
         return await mutateApi(url, { method: "POST", body: enriched, headers });
       } catch (err) {
@@ -165,25 +188,21 @@ export function useUpdateRollCall() {
           msg.toLowerCase().includes("failed to fetch") ||
           msg.startsWith("HTTP 5");
         if (!isTransient) throw err;
-        await offlineQueue.enqueue({
-          ownerId: ownerId!,
-          id: enriched.clientMutationId,
-          url,
-          method: "POST",
-          body: enriched,
-        });
-        toast({
-          description:
-            "Saved offline — will sync when you're back online.",
-        });
-        return { queued: true as const };
+        return saveOffline();
       }
     },
     // Optimistic update
     onMutate: async (variables) => {
       const key = ["roll-call", variables.serviceId, variables.date, variables.sessionType];
-      await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData<RollCallResponse>(key);
+      const entry = previous?.records.find((row) => row.childId === variables.childId);
+      // Capture before any async work/refetch can replace the view being acted on.
+      // A walk-in absent from the complete roll has a checked empty baseline.
+      baselines.current.set(variables, {
+        revision: entry ? entry.recordRevision : previous ? null : undefined,
+        occurredAt: new Date().toISOString(),
+      });
+      await queryClient.cancelQueries({ queryKey: key });
 
       if (previous) {
         const now = new Date().toISOString();
