@@ -284,8 +284,11 @@ export const orgSettingsConfigSchema = z.object({
   notifications: z
     .object({
       serviceAlertsPaused: z.boolean().default(true),
+      // 2026-10-12 (Daniel): staff emails pushed in by Cowork wait for an
+      // admin to approve them unless this is on.
+      coworkStaffEmailsAutoApprove: z.boolean().default(false),
     })
-    .default({ serviceAlertsPaused: true }),
+    .default({ serviceAlertsPaused: true, coworkStaffEmailsAutoApprove: false }),
   ratios: z.object({
     federalDefaultMinRatio: ratioStringSchema,
   }),
@@ -411,6 +414,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
   },
   notifications: {
     serviceAlertsPaused: true,
+    coworkStaffEmailsAutoApprove: false,
   },
   ratios: {
     federalDefaultMinRatio: "1:15",
@@ -601,6 +605,10 @@ export function mergeOrgSettings(
         typeof notif.serviceAlertsPaused === "boolean"
           ? (notif.serviceAlertsPaused as boolean)
           : defaults.notifications.serviceAlertsPaused,
+      coworkStaffEmailsAutoApprove:
+        typeof notif.coworkStaffEmailsAutoApprove === "boolean"
+          ? (notif.coworkStaffEmailsAutoApprove as boolean)
+          : defaults.notifications.coworkStaffEmailsAutoApprove,
     },
     ratios: {
       federalDefaultMinRatio:

@@ -5,7 +5,7 @@
  * notification deep-links depend on — is unit-testable.
  */
 
-export const COMMUNICATION_TABS = ["announcements", "cascade", "pulse"] as const;
+export const COMMUNICATION_TABS = ["announcements", "cascade", "pulse", "staff-emails"] as const;
 export type CommunicationTab = (typeof COMMUNICATION_TABS)[number];
 
 export function resolveCommunicationTab(

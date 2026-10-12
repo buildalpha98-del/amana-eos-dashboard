@@ -4,7 +4,10 @@ import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { resolveCommunicationTab } from "@/lib/communication-tabs";
-import { Bell, MessageCircle, HeartPulse } from "lucide-react";
+import { Bell, MessageCircle, HeartPulse, Mail } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { isAdminRole } from "@/lib/role-permissions";
+import { StaffEmailsTab } from "@/components/communication/StaffEmailsTab";
 import { AnnouncementsTab } from "@/components/communication/AnnouncementsTab";
 import { CascadeBoardTab } from "@/components/communication/CascadeBoardTab";
 import { WeeklyPulseTab } from "@/components/communication/WeeklyPulseTab";
@@ -14,6 +17,8 @@ const tabs = [
   { key: "announcements", label: "Announcements", icon: Bell },
   { key: "cascade", label: "Cascade Board", icon: MessageCircle },
   { key: "pulse", label: "Weekly Pulse", icon: HeartPulse },
+  // Office only — writing and approving emails to every staff inbox.
+  { key: "staff-emails", label: "Staff emails", icon: Mail },
 ] as const;
 
 type TabKey = (typeof tabs)[number]["key"];
@@ -25,7 +30,11 @@ type TabKey = (typeof tabs)[number]["key"];
 function CommunicationPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const activeTab: TabKey = resolveCommunicationTab(searchParams.get("tab"));
+  const { data: session } = useSession();
+  const isOffice = isAdminRole(session?.user?.role ?? "");
+  const visibleTabs = tabs.filter((t) => t.key !== "staff-emails" || isOffice);
+  const requested: TabKey = resolveCommunicationTab(searchParams.get("tab"));
+  const activeTab: TabKey = requested === "staff-emails" && !isOffice ? "announcements" : requested;
   const setActiveTab = useCallback(
     (key: TabKey) => {
       router.replace(`/communication?tab=${key}`, { scroll: false });
@@ -43,7 +52,7 @@ function CommunicationPageInner() {
       {/* Tab Bar */}
       <div className="border-b border-border">
         <nav className="flex gap-0 -mb-px">
-          {tabs.map((tab) => {
+          {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
             return (
@@ -70,6 +79,7 @@ function CommunicationPageInner() {
         {activeTab === "announcements" && <AnnouncementsTab />}
         {activeTab === "cascade" && <CascadeBoardTab />}
         {activeTab === "pulse" && <WeeklyPulseTab />}
+        {activeTab === "staff-emails" && <StaffEmailsTab />}
       </div>
     </div>
   );
