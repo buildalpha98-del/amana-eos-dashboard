@@ -27,6 +27,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
+import { MTOP_OUTCOMES } from "@/lib/mtop-numbered";
 import { ProgramPlanBanner } from "@/components/services/program/ProgramPlanBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { AiButton } from "@/components/ui/AiButton";
@@ -49,13 +50,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 // ── MTOP Outcome Config ──────────────────────────────────────
-const MTOP_OUTCOMES = [
-  { id: 1, label: "Identity", short: "O1", color: "bg-blue-500" },
-  { id: 2, label: "Connected", short: "O2", color: "bg-green-500" },
-  { id: 3, label: "Wellbeing", short: "O3", color: "bg-orange-500" },
-  { id: 4, label: "Confident Learner", short: "O4", color: "bg-purple-500" },
-  { id: 5, label: "Communicator", short: "O5", color: "bg-teal-500" },
-] as const;
 
 const MTOP_DOT_COLORS: Record<number, string> = {
   1: "bg-blue-500",
@@ -725,7 +719,9 @@ function ActivityModal({
   const [description, setDescription] = useState(activity?.description || prefillTemplate?.description || "");
   const [staffName, setStaffName] = useState(activity?.staffName || "");
   const [location, setLocation] = useState(activity?.location || "");
-  const [selectedOutcomes, setSelectedOutcomes] = useState<number[]>(activity?.mtopOutcomes || []);
+  const [selectedOutcomes, setSelectedOutcomes] = useState<number[]>(
+    activity?.mtopOutcomes || prefillTemplate?.mtopOutcomes || [],
+  );
 
   const toggleOutcome = (o: number) => {
     setSelectedOutcomes((prev) =>

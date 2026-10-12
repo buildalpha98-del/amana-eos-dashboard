@@ -4738,6 +4738,9 @@ model ProgramPlanSync {
   error     String?  @db.Text
   weeks     Json? // [{ weekStart, title, question }]
   syncedAt  DateTime @default(now())
+  /// When this plan's activities were added to the Activity Library (null =
+  /// not yet; the next sync does it, even if the file hasn't changed).
+  libraryAt DateTime?
 
   @@unique([serviceId, itemId])
   @@index([serviceId, syncedAt])
@@ -4791,6 +4794,14 @@ model ActivityTemplate {
   category        ActivityCategory @default(other)
   ageGroup        String?
   durationMinutes Int?
+  /// MTOP learning outcomes (1–5) the activity covers.
+  mtopOutcomes    Int[]            @default([])
+  /// "sharepoint" when added from a centre's monthly Program Plan. Staff
+  /// edits are never overwritten — the sync only ever ADDS new activities.
+  source          String?
+  /// Normalised title for program-plan activities, so the same activity run
+  /// at eleven centres (or in two months) is one library entry.
+  sourceKey       String?          @unique
   deleted         Boolean          @default(false)
   createdById     String?
   createdBy       User?            @relation("ActivityTemplateCreator", fields: [createdById], references: [id], onDelete: SetNull)

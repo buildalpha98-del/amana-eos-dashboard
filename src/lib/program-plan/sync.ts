@@ -23,7 +23,9 @@ import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { graphGet, downloadAsPdf, isGraphConfigured, type DriveItem } from "@/lib/ms-graph";
 import { mergeServiceContent } from "@/lib/service-content-shared";
+import { addPlanToLibrary, type PlanActivity } from "./library";
 import {
+  extractLibraryDetails,
   extractMenu,
   extractProgramPlan,
   type MenuPlan,
@@ -49,16 +51,17 @@ const TERM_FOLDER = /^term\s*([1-4])\s*(\d{4})\s*program/i;
 const LEGACY_PLANS_PATH = ["QA1 - Educational Program & Practice", "Program Plans"];
 const PLAN_FILE = /program.?plan.*\.pdf$/i;
 const MENU_FILE = /menu.*\.pdf$/i;
+const INSERT_FILE = /insert.*\.pdf$/i;
 const SKIP_FOLDER = /archive|old|superseded|previous/i;
 /** The newest files of each kind — older months are history, not something to re-read. */
 const FILES_PER_KIND = 2;
 
 /**
- * Pilot (Daniel, 2026-10-12: "test that out with AIA Coburg first"): the
- * nightly run only syncs centres whose name matches. "Sync now" works for
- * any centre. Set to null to sync every centre nightly.
+ * Optional pilot: when set, the nightly run only syncs centres whose name
+ * matches ("Sync now" always works). AIA piloted first on 2026-10-12; Daniel
+ * then asked for every centre, so it's off.
  */
-export const NIGHTLY_PILOT: RegExp | null = /\baia\b/i;
+export const NIGHTLY_PILOT: RegExp | null = null;
 
 export const IMPORTED = "sharepoint";
 
@@ -279,6 +282,8 @@ export interface CentreSyncResult {
   files?: string[];
   /** Where the files were found, e.g. "Amana OSHC - AIA KKCC/Term 4 2026 Program". */
   folder?: string;
+  /** Ran out of time with files still to read; the next run (or press) finishes. */
+  more?: boolean;
 }
 
 /** Graph's id for any SharePoint link: "u!" + unpadded base64url of the URL. */
@@ -291,6 +296,8 @@ interface Located {
   folder: string;
   plans: DriveItem[];
   menus: DriveItem[];
+  /** Newest Centre Insert — its materials list feeds the Activity Library. */
+  insert: DriveItem | null;
 }
 
 const newestFirst = (a: DriveItem, b: DriveItem) => b.lastModifiedDateTime.localeCompare(a.lastModifiedDateTime);
@@ -301,7 +308,8 @@ function sortFiles(driveId: string, folder: string, files: DriveItem[]): Located
   if (plans.length === 0 && menus.length === 0) {
     return { error: `No program plan or menu PDF in ${folder} yet.` };
   }
-  return { driveId, folder, plans, menus };
+  const insert = files.filter((f) => INSERT_FILE.test(f.name)).sort(newestFirst)[0] ?? null;
+  return { driveId, folder, plans, menus, insert };
 }
 
 /** Where this centre's program plan and menu are (see the header). */
@@ -346,12 +354,13 @@ async function locatePlans(
 interface Readers {
   readPlan?: typeof extractProgramPlan;
   readMenu?: typeof extractMenu;
+  readLibrary?: typeof extractLibraryDetails;
 }
 
 async function syncCentre(
   service: { id: string; name: string; content: Prisma.JsonValue },
   folders: CentreFolder[],
-  opts: { force?: boolean } & Readers,
+  opts: { force?: boolean; deadline?: number } & Readers,
 ): Promise<CentreSyncResult> {
   const base = { serviceId: service.id, serviceName: service.name };
   const found = await locatePlans(service, folders);
@@ -359,6 +368,21 @@ async function syncCentre(
   const { driveId, folder } = found;
   // When the folder has a menu file, it is the menu; the plan's food lines aren't used.
   const hasMenuFile = found.menus.length > 0;
+
+  /** Plan activities → Activity Library. Secondary: never fails the sync. */
+  let insertPdf: { pdf: Buffer; fileName: string } | null | undefined;
+  const toLibrary = async (activities: PlanActivity[], planFile: { pdf: Buffer; fileName: string }) => {
+    try {
+      if (insertPdf === undefined) {
+        insertPdf = found.insert ? { pdf: await downloadAsPdf(driveId, found.insert), fileName: found.insert.name } : null;
+      }
+      await addPlanToLibrary(activities, planFile, insertPdf, opts.readLibrary);
+      return new Date();
+    } catch (err) {
+      logger.warn("Adding program plan activities to the library failed", { serviceId: service.id, file: planFile.fileName, err });
+      return null;
+    }
+  };
 
   const files = [
     ...found.plans.map((file) => ({ file, kind: "plan" as const })),
@@ -368,19 +392,44 @@ async function syncCentre(
     where: { serviceId: service.id, itemId: { in: files.map((f) => f.file.id) } },
   });
   const done: string[] = [];
+  let more = false;
   for (const { file, kind } of files) {
+    // Each file is a Claude read of a minute or two: don't start one the run
+    // can't finish. What's left is picked up by the next run.
+    if (opts.deadline && Date.now() > opts.deadline) {
+      more = true;
+      break;
+    }
     const prior = seen.find((s) => s.itemId === file.id);
-    if (!opts.force && prior?.status === "ok" && prior.eTag === etagOf(file)) continue;
+    if (!opts.force && prior?.status === "ok" && prior.eTag === etagOf(file)) {
+      // Unchanged, but synced before the Activity Library step existed (or it
+      // failed): add its activities from the saved program, no re-read needed.
+      if (kind === "plan" && !prior.libraryAt) {
+        const weekStarts = ((prior.weeks as { weekStart: string }[] | null) ?? []).map((w) => dateOnly(w.weekStart));
+        const saved = await prisma.programActivity.findMany({
+          where: { serviceId: service.id, weekStart: { in: weekStarts } },
+          select: { title: true, description: true, programmeBrand: true, mtopOutcomes: true },
+        });
+        const at = await toLibrary(saved, { pdf: await downloadAsPdf(driveId, file), fileName: file.name });
+        if (at) await prisma.programPlanSync.update({ where: { id: prior.id }, data: { libraryAt: at } });
+      }
+      continue;
+    }
     const record = { fileName: file.name, webUrl: file.webUrl, eTag: etagOf(file), syncedAt: new Date() };
     try {
       const pdf = await downloadAsPdf(driveId, file);
       let weeks: Prisma.InputJsonValue | undefined;
+      let libraryAt: Date | null = null;
       if (kind === "plan") {
         const plan: ProgramPlan = await (opts.readPlan ?? extractProgramPlan)(pdf, file.name);
         await prisma.$transaction(async (tx) => {
           for (const w of plan.weeks) await writePlanWeek(tx, service.id, w, { meals: !hasMenuFile });
         });
         weeks = plan.weeks.map((w) => ({ weekStart: w.weekStart, title: w.title, question: w.question ?? null }));
+        libraryAt = await toLibrary(
+          plan.weeks.flatMap((w) => w.activities),
+          { pdf, fileName: file.name },
+        );
       } else {
         const menu: MenuPlan = await (opts.readMenu ?? extractMenu)(pdf, file.name);
         await prisma.$transaction(async (tx) => {
@@ -389,8 +438,15 @@ async function syncCentre(
       }
       await prisma.programPlanSync.upsert({
         where: { serviceId_itemId: { serviceId: service.id, itemId: file.id } },
-        update: { ...record, status: "ok", error: null, ...(weeks ? { weeks } : {}) },
-        create: { serviceId: service.id, itemId: file.id, ...record, status: "ok", ...(weeks ? { weeks } : {}) },
+        update: { ...record, status: "ok", error: null, ...(weeks ? { weeks } : {}), ...(libraryAt ? { libraryAt } : {}) },
+        create: {
+          serviceId: service.id,
+          itemId: file.id,
+          ...record,
+          status: "ok",
+          ...(weeks ? { weeks } : {}),
+          ...(libraryAt ? { libraryAt } : {}),
+        },
       });
       done.push(file.name);
     } catch (err) {
@@ -405,8 +461,8 @@ async function syncCentre(
     }
   }
   return done.length
-    ? { ...base, status: "synced", folder, files: done }
-    : { ...base, status: "unchanged", folder };
+    ? { ...base, status: "synced", folder, files: done, ...(more ? { more } : {}) }
+    : { ...base, status: "unchanged", folder, ...(more ? { more } : {}) };
 }
 
 export function isProgramPlanSyncConfigured() {

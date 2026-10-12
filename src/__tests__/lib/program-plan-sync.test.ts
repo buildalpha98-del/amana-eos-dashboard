@@ -6,6 +6,7 @@
 import { describe, it, expect } from "vitest";
 import { centreKeys, matchCentreFolder, newestTermFolder, shareId, NIGHTLY_PILOT } from "@/lib/program-plan/sync";
 import { menuPlanSchema, programPlanSchema } from "@/lib/program-plan/extract";
+import { libraryCandidates, libraryKey } from "@/lib/program-plan/library";
 
 const NSW = "https://amanaoshcptyltd.sharepoint.com/NSW%20Schools";
 const VIC = "https://amanaoshcptyltd.sharepoint.com/Melbourne%20Schools";
@@ -109,9 +110,8 @@ describe("the term folder", () => {
     expect(newestTermFolder([{ name: "Programs" }])).toBeNull();
   });
 
-  it("pilots the nightly sync on AIA only", () => {
-    expect(NIGHTLY_PILOT?.test("Amana OSHC AIA Coburg")).toBe(true);
-    expect(NIGHTLY_PILOT?.test("Amana OSHC MFIS Greenacre")).toBe(false);
+  it("syncs every centre nightly (the AIA pilot is over)", () => {
+    expect(NIGHTLY_PILOT).toBeNull();
   });
 });
 
@@ -125,5 +125,28 @@ describe("the menu file", () => {
     expect(
       menuPlanSchema.safeParse({ weeks: [{ ...week, meals: [{ ...week.meals[0], allergens: ["M"] }] }] }).success,
     ).toBe(false);
+  });
+});
+
+describe("program-plan activities for the Activity Library", () => {
+  it("keeps real activities once each, merging their MTOP outcomes", () => {
+    const c = libraryCandidates([
+      { title: "Imagination Station: Grow a Chickpea in a Jar", description: "Plant and predict", mtopOutcomes: [4] },
+      { title: "Imagination Station: Grow a Chickpea in a Jar!", mtopOutcomes: [2] },
+      { title: "Homework Heroes", programmeBrand: "homework_heroes" },
+      { title: "Free play and pack-up", programmeBrand: "free_play" },
+      { title: "Afternoon tea" },
+      { title: "Little Champions Club: Champions Circuit", mtopOutcomes: [3] },
+    ]);
+    expect(c.map((x) => x.title)).toEqual([
+      "Imagination Station: Grow a Chickpea in a Jar!",
+      "Little Champions Club: Champions Circuit",
+    ]);
+    expect(c[0].mtopOutcomes).toEqual([2, 4]);
+    expect(c[0].description).toBe("Plant and predict");
+  });
+
+  it("treats punctuation and case as the same activity", () => {
+    expect(libraryKey("Fuel Up — Friendship Fruit Kebabs!")).toBe(libraryKey("fuel up friendship fruit kebabs"));
   });
 });

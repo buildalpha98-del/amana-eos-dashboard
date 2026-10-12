@@ -7,7 +7,8 @@ import { parseJsonBody } from "@/lib/api-error";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 const CATEGORIES = [
   "physical_play", "creative_arts", "music_movement", "literacy", "numeracy",
-  "nature_outdoors", "cooking_nutrition", "social_emotional", "quiet_time", "free_play", "other",
+  "nature_outdoors", "cooking_nutrition", "social_emotional", "quiet_time", "free_play",
+  "quran_iqra", "homework_help", "stem_science", "other",
 ] as const;
 
 const createSchema = z.object({
@@ -18,6 +19,7 @@ const createSchema = z.object({
   category: z.enum(CATEGORIES).optional(),
   ageGroup: z.string().max(50).optional().nullable(),
   durationMinutes: z.number().int().min(1).max(480).optional().nullable(),
+  mtopOutcomes: z.array(z.number().int().min(1).max(5)).max(5).optional(),
 });
 
 // GET /api/activity-templates?category=X&search=X&page=1&limit=20

@@ -114,7 +114,40 @@ async function main() {
     assert.equal(m.find((i) => i.day === "tuesday" && i.slot === "afternoon_tea")!.description, "Wraps — swapped to pita", "edit still kept");
     assert(!m.some((i) => i.description === "Za'atar and cheese manoush for World Food Day, with cucumber and tomato"), "plan food lines replaced by the menu file");
 
-    console.log("PASS: plan imported; closed day skipped; edits and own rows kept; re-sync idempotent; menu file wins with allergens");
+    // Activity Library: added once, never overwritten, never re-created after deletion.
+    const { addPlanToLibrary, libraryKey } = await import("../src/lib/program-plan/library");
+    const tag = randomUUID().slice(0, 8);
+    const libActs = [
+      { title: `Check Chickpea Jar ${tag}`, description: "Plant and predict", mtopOutcomes: [4] },
+      { title: `Check Kebabs ${tag}`, mtopOutcomes: [3] },
+      { title: "Homework Heroes", programmeBrand: "homework_heroes" },
+    ];
+    const keys = libActs.slice(0, 2).map((x) => libraryKey(x.title));
+    let reads = 0;
+    const fakeRead = async (_p: unknown, _i: unknown, list: { title: string }[]) => {
+      reads++;
+      return list.map((x) => ({ title: x.title, resourcesNeeded: "- Cups", howTo: "1. Do it", category: "stem_science" as const }));
+    };
+    const planFile = { pdf: Buffer.from(""), fileName: "plan.pdf" };
+    try {
+      assert.equal(await addPlanToLibrary(libActs, planFile, null, fakeRead), 2, "routine left out");
+      const lib = await prisma.activityTemplate.findMany({ where: { sourceKey: { in: keys } } });
+      assert.equal(lib.length, 2);
+      assert.deepEqual(lib.find((t) => t.title.startsWith("Check Chickpea"))!.mtopOutcomes, [4]);
+      assert.match(lib[0].howTo ?? "", /Drafted from the centre's monthly program plan/);
+      await prisma.activityTemplate.update({ where: { id: lib[0].id }, data: { title: "Edited by staff" } });
+      await prisma.activityTemplate.update({ where: { id: lib[1].id }, data: { deleted: true } });
+      assert.equal(await addPlanToLibrary(libActs, planFile, null, fakeRead), 0);
+      assert.equal(reads, 1, "nothing missing, so no second Claude call");
+      const after = await prisma.activityTemplate.findMany({ where: { sourceKey: { in: keys } } });
+      assert.equal(after.length, 2);
+      assert(after.some((t) => t.title === "Edited by staff"), "staff edit kept");
+      assert(after.some((t) => t.deleted), "deleted stays deleted");
+    } finally {
+      await prisma.activityTemplate.deleteMany({ where: { sourceKey: { in: keys } } });
+    }
+
+    console.log("PASS: plan imported; closed day skipped; edits and own rows kept; re-sync idempotent; menu file wins with allergens; library add-only");
   } finally {
     await prisma.service.delete({ where: { id: service.id } });
     await prisma.$disconnect();

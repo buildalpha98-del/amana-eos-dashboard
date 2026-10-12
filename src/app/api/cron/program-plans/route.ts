@@ -4,10 +4,11 @@
  * Bearer CRON_SECRET; skipped quietly until Microsoft Graph and Anthropic
  * are configured.
  *
- * Runs hourly 15:00–19:00 UTC (01:00–05:00 Sydney). Unchanged plans are a
- * quick etag check; reading a new plan takes Claude a minute or so, so a
- * month change across every centre is spread over the night — each run stops
- * starting centres after four minutes and the next run carries on.
+ * Runs hourly 12:00–20:00 UTC (overnight in Sydney). Unchanged files are a
+ * quick etag check; reading a new plan or menu takes Claude a minute or two,
+ * so a month change across every centre is spread over the night — each run
+ * stops STARTING files after 90 seconds (so the last one finishes inside
+ * the 300s limit) and the next run carries on.
  */
 import { NextResponse } from "next/server";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
@@ -27,7 +28,7 @@ export const GET = withApiHandler(async (req) => {
   if (!guard.acquired) return NextResponse.json({ message: guard.reason, skipped: true });
 
   try {
-    const results = await runProgramPlanSync({ deadline: Date.now() + 240_000 });
+    const results = await runProgramPlanSync({ deadline: Date.now() + 90_000 });
     const summary = {
       centres: results.length,
       synced: results.filter((r) => r.status === "synced").length,
