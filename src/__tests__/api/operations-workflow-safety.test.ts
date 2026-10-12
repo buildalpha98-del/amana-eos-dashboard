@@ -319,7 +319,9 @@ describe("OSHC workflow safety", () => {
         },
       }),
     );
-    expect(res.status).toBe(400);
+    // Same 409 as a single tap, naming the item, so the door can say which child.
+    expect(res.status).toBe(409);
+    expect((await res.json()).details?.failedIndex).toBe(0);
     expect(prismaMock.attendanceRecord.upsert).not.toHaveBeenCalled();
     expect(prismaMock.dailyAttendance.upsert).not.toHaveBeenCalled();
   });

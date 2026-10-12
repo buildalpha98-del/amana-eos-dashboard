@@ -185,6 +185,9 @@ describe("GET /api/services/[id]/roll-call/weekly", () => {
     // Verify `date` (not `attendanceDate`) is on AttendanceRecord
     expect(body.attendanceRecords[0].date).toBeTruthy();
     expect(body.attendanceRecords[0].status).toBe("present");
+    // The version token absent/undo send back; signatures etc. stay server-side.
+    expect(body.attendanceRecords[0].recordRevision).toMatch(/^[a-f0-9]{64}$/);
+    expect(body.attendanceRecords[0]).not.toHaveProperty("signedInSignature");
     // Verify Booking has fee
     expect(body.bookings[0].fee).toBe(50);
   });

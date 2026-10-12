@@ -103,13 +103,13 @@ describe("AddChildDialog — bulk wire-up (4b)", () => {
           childId: "c1",
           date: "2026-04-20",
           sessionType: "bsc",
-          action: "undo",
+          action: "book",
         }),
         expect.objectContaining({
           childId: "c1",
           date: "2026-04-21",
           sessionType: "asc",
-          action: "undo",
+          action: "book",
         }),
       ]),
     });

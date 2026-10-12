@@ -31,6 +31,8 @@ const notify = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/notifications/attendance", () => notify);
 
+import type { AttendanceRecord } from "@prisma/client";
+import { attendanceRevision } from "@/lib/attendance-revision";
 import { POST } from "@/app/api/attendance/roll-call/route";
 import { POST as BULK } from "@/app/api/attendance/roll-call/bulk/route";
 
@@ -76,9 +78,27 @@ describe("note", () => {
 });
 
 describe("undo and absent clear the hand-over", () => {
+  const signedIn = {
+    id: "rec-c1",
+    childId: "c1",
+    serviceId: "svc1",
+    date: new Date(Date.UTC(2026, 9, 9)),
+    sessionType: "asc" as const,
+    status: "present" as const,
+    signInTime: new Date("2026-10-09T05:05:00Z"),
+    signedInByName: "Mum",
+  };
+  const seen = () => attendanceRevision(signedIn as AttendanceRecord);
+
   for (const action of ["undo", "mark_absent"] as const) {
     it(`${action} clears who signed in / out`, async () => {
-      await POST(createRequest("POST", "/api/attendance/roll-call", { body: { ...base, action } }));
+      mockArrivalRecords([signedIn]);
+      const res = await POST(
+        createRequest("POST", "/api/attendance/roll-call", {
+          body: { ...base, action, expectedRevision: seen() },
+        }),
+      );
+      expect(res.status).toBe(200);
       const { update } = prismaMock.attendanceRecord.upsert.mock.calls[0][0];
       expect(update).toMatchObject({
         signedInByName: null,
@@ -86,6 +106,26 @@ describe("undo and absent clear the hand-over", () => {
         signedInSignature: null,
         signedOutSignature: null,
       });
+    });
+
+    it(`${action} sent without the version it saw is refused, not applied`, async () => {
+      mockArrivalRecords([signedIn]);
+      const res = await POST(
+        createRequest("POST", "/api/attendance/roll-call", { body: { ...base, action } }),
+      );
+      expect(res.status).toBe(409);
+      expect(prismaMock.attendanceRecord.upsert).not.toHaveBeenCalled();
+    });
+
+    it(`${action} from a screen that showed no record can't erase a sign-in made since`, async () => {
+      mockArrivalRecords([signedIn]);
+      const res = await POST(
+        createRequest("POST", "/api/attendance/roll-call", {
+          body: { ...base, action, expectedRevision: null },
+        }),
+      );
+      expect(res.status).toBe(409);
+      expect(prismaMock.attendanceRecord.upsert).not.toHaveBeenCalled();
     });
   }
 });

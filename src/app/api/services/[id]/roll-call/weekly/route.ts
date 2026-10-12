@@ -1,3 +1,4 @@
+import { attendanceRevision } from "@/lib/attendance-revision";
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
@@ -57,22 +58,29 @@ export const GET = withApiAuth(async (req, session, context) => {
       },
       orderBy: { surname: "asc" },
     }),
-    prisma.attendanceRecord.findMany({
-      where: { child: { serviceId: id }, date: { gte: start, lt: end } },
-      select: {
-        id: true,
-        childId: true,
-        date: true,
-        sessionType: true,
-        status: true,
-        signInTime: true,
-        signOutTime: true,
-        signedInById: true,
-        signedOutById: true,
-        absenceReason: true,
-        notes: true,
-      },
-    }),
+    prisma.attendanceRecord
+      .findMany({
+        where: { child: { serviceId: id }, date: { gte: start, lt: end } },
+      })
+      // Full rows for the version token; send back only the grid's fields.
+      // `recordRevision` lets absent/undo refuse to overwrite a record that
+      // changed since this week was loaded (e.g. a sign-in at the door).
+      .then((rows) =>
+        rows.map((r) => ({
+          id: r.id,
+          childId: r.childId,
+          date: r.date,
+          sessionType: r.sessionType,
+          status: r.status,
+          signInTime: r.signInTime,
+          signOutTime: r.signOutTime,
+          signedInById: r.signedInById,
+          signedOutById: r.signedOutById,
+          absenceReason: r.absenceReason,
+          notes: r.notes,
+          recordRevision: attendanceRevision(r),
+        })),
+      ),
     prisma.booking.findMany({
       where: {
         child: { serviceId: id },
