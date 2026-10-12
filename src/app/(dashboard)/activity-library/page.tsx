@@ -88,6 +88,9 @@ export default function ActivityLibraryPage() {
   const { data: session } = useSession();
   const userRole = session?.user?.role as Role | undefined;
   const isAdmin = hasMinRole(userRole, "admin");
+  // Centre accounts (the Coordinator login, role "member") can run the
+  // auto-fill too (Daniel, 2026-10-12) — it only fills empty fields.
+  const canFill = isAdmin || userRole === "member";
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -155,7 +158,7 @@ export default function ActivityLibraryPage() {
             : undefined
         }
       >
-        {isAdmin && (data?.toFill ?? 0) > 0 && (
+        {canFill && (data?.toFill ?? 0) > 0 && (
           <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface/60 px-4 py-3 text-sm">
             <span className="flex-1 min-w-0 text-foreground/85">
               {data!.toFill} {data!.toFill === 1 ? "activity still needs" : "activities still need"} how-to steps,
