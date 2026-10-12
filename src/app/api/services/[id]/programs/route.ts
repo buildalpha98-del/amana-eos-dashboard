@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { assertServiceAccess } from "@/lib/authz-scope";
 import { parseJsonBody } from "@/lib/api-error";
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 
@@ -73,7 +74,8 @@ export const GET = withApiAuth(async (req, session, context) => {
 // POST /api/services/[id]/programs — create single activity
 export const POST = withApiAuth(
   async (req, session, context) => {
-const { id } = await context!.params!;
+  const { id } = await context!.params!;
+  assertServiceAccess(session!, id);
   const body = await parseJsonBody(req);
   const parsed = activitySchema.safeParse(body);
 
@@ -122,7 +124,8 @@ const { id } = await context!.params!;
 // PUT /api/services/[id]/programs — bulk upsert (replace all for a week)
 export const PUT = withApiAuth(
   async (req, session, context) => {
-const { id } = await context!.params!;
+  const { id } = await context!.params!;
+  assertServiceAccess(session!, id);
   const body = await parseJsonBody(req);
   const parsed = bulkSchema.safeParse(body);
 

@@ -319,6 +319,10 @@
       "schedule": "0 15 * * *"
     },
     {
+      "path": "/api/cron/program-plans",
+      "schedule": "0 15-19 * * *"
+    },
+    {
       "path": "/api/cron/casual-conversion-eligibility",
       "schedule": "0 21 * * 0"
     },

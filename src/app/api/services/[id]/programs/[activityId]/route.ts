@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { assertServiceAccess } from "@/lib/authz-scope";
 import { parseJsonBody } from "@/lib/api-error";
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 
@@ -23,6 +24,7 @@ const updateSchema = z.object({
 export const PATCH = withApiAuth(
   async (req, session, context) => {
 const { id, activityId } = await context!.params!;
+  assertServiceAccess(session!, id);
   const body = await parseJsonBody(req);
   const parsed = updateSchema.safeParse(body);
 
@@ -50,6 +52,8 @@ const { id, activityId } = await context!.params!;
   if (data.notes !== undefined) updateData.notes = data.notes;
   if (data.mtopOutcomes !== undefined) updateData.mtopOutcomes = data.mtopOutcomes;
   if (data.programmeBrand !== undefined) updateData.programmeBrand = data.programmeBrand;
+  // Edited by a person: no longer "as imported", so a SharePoint re-sync keeps it.
+  updateData.source = null;
 
   const activity = await prisma.programActivity.update({
     where: { id: activityId },
@@ -76,6 +80,7 @@ const { id, activityId } = await context!.params!;
 export const DELETE = withApiAuth(
   async (req, session, context) => {
 const { id, activityId } = await context!.params!;
+  assertServiceAccess(session!, id);
 
   const existing = await prisma.programActivity.findFirst({
     where: { id: activityId, serviceId: id },

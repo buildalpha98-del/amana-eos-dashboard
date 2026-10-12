@@ -171,9 +171,11 @@ enum WeekDay {
 }
 
 enum MealSlot {
+  breakfast
   morning_tea
   lunch
   afternoon_tea
+  late_snack
 }
 
 enum ParentPostType {
@@ -3020,6 +3022,7 @@ model Service {
   budgetItems           BudgetItem[]                   @relation("ServiceBudgetItems")
   programActivities     ProgramActivity[]              @relation("ServicePrograms")
   menuWeeks             MenuWeek[]                     @relation("ServiceMenus")
+  programPlanSyncs      ProgramPlanSync[]              @relation("ServiceProgramPlanSyncs")
   todoTemplates         TodoTemplate[]                 @relation("ServiceTemplates")
   qrCodes               QrCode[]                       @relation("QrCodeForService")
   marketingPosts        MarketingPostService[]         @relation("ServiceMarketingPosts")
@@ -4703,6 +4706,10 @@ model ProgramActivity {
   templateId     String?
   mtopOutcomes   Int[] // Array of 1-5 representing MTOP learning outcomes
   programmeBrand String? // homework_heroes, iqra_circle, imagination_station, little_champions, fuel_up, free_play
+  /// "sharepoint" while the row is exactly as imported from the centre's
+  /// monthly Program Plan. A re-sync replaces only these; editing a row
+  /// clears it, so a coordinator's change is never overwritten.
+  source         String?
   createdById    String?
   createdBy      User?    @relation("ProgramCreator", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt      DateTime @default(now())
@@ -4714,6 +4721,26 @@ model ProgramActivity {
   @@unique([serviceId, weekStart, day, startTime])
   @@index([serviceId])
   @@index([serviceId, weekStart])
+}
+
+/// One row per centre per SharePoint Program Plan file: what was read, when,
+/// and whether it worked. The etag lets the nightly sync skip unchanged files;
+/// `weeks` keeps each week's theme for the Program header.
+model ProgramPlanSync {
+  id        String   @id @default(cuid())
+  serviceId String
+  service   Service  @relation("ServiceProgramPlanSyncs", fields: [serviceId], references: [id], onDelete: Cascade)
+  itemId    String
+  fileName  String
+  webUrl    String?
+  eTag      String?
+  status    String // ok | error
+  error     String?  @db.Text
+  weeks     Json? // [{ weekStart, title, question }]
+  syncedAt  DateTime @default(now())
+
+  @@unique([serviceId, itemId])
+  @@index([serviceId, syncedAt])
 }
 
 model MenuWeek {
@@ -4742,6 +4769,8 @@ model MenuItem {
   slot        MealSlot
   description String   @db.Text
   allergens   String[]
+  /// "sharepoint" while exactly as imported from the Program Plan (see ProgramActivity.source).
+  source      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -7617,7 +7646,7 @@ model EnrolmentSubmission {
   updatedAt DateTime @updatedAt
 
   childRecords Child[]
-  ownaHandoff EnrolmentOwnaHandoff?
+  ownaHandoff  EnrolmentOwnaHandoff?
 
   ambassadorRecords AmbassadorEnrolment[] @relation("AmbassadorFromSubmission")
 
@@ -7705,19 +7734,19 @@ model Child {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  bookings           Booking[]             @relation("ChildBookings")
-  absences           Absence[]             @relation("ChildAbsences")
-  documents          ParentDocument[]      @relation("ChildDocuments")
-  childDocuments     ChildDocument[]       @relation("ChildProfileDocuments")
-  authorisedPickups  AuthorisedPickup[]    @relation("ChildPickups")
-  postTags           ParentPostChildTag[]  @relation("ChildPostTags")
-  formSignatures     ParentFormSignature[] @relation("ChildFormSignatures")
-  illnessRecords     IllnessRecord[]       @relation("ChildIllnessRecords")
-  discounts          FamilyDiscount[]      @relation("ChildDiscounts")
+  bookings            Booking[]             @relation("ChildBookings")
+  absences            Absence[]             @relation("ChildAbsences")
+  documents           ParentDocument[]      @relation("ChildDocuments")
+  childDocuments      ChildDocument[]       @relation("ChildProfileDocuments")
+  authorisedPickups   AuthorisedPickup[]    @relation("ChildPickups")
+  postTags            ParentPostChildTag[]  @relation("ChildPostTags")
+  formSignatures      ParentFormSignature[] @relation("ChildFormSignatures")
+  illnessRecords      IllnessRecord[]       @relation("ChildIllnessRecords")
+  discounts           FamilyDiscount[]      @relation("ChildDiscounts")
   attendanceMutations AttendanceMutation[]
-  attendanceRecords  AttendanceRecord[]    @relation("ChildAttendance")
-  statementLineItems StatementLineItem[]   @relation("ChildStatementLines")
-  feeAssignments     ChildFeeAssignment[]  @relation("ChildFeeAssignments")
+  attendanceRecords   AttendanceRecord[]    @relation("ChildAttendance")
+  statementLineItems  StatementLineItem[]   @relation("ChildStatementLines")
+  feeAssignments      ChildFeeAssignment[]  @relation("ChildFeeAssignments")
 
   // ── NQS relations ─────────────────────────────────
   observations  LearningObservation[]      @relation("ChildObservations")
@@ -8169,22 +8198,22 @@ enum StatementDeliveryStatus {
 /// One recoverable initial delivery per newly issued statement. Legacy invoices
 /// have no row and are never implicitly resent. Payload is field-encrypted.
 model StatementDelivery {
-  id                   String                  @id @default(cuid())
-  statementId          String                  @unique
-  statement            Statement               @relation(fields: [statementId], references: [id], onDelete: Cascade)
-  status               StatementDeliveryStatus @default(pending)
-  attemptCount         Int                     @default(0)
-  nextAttemptAt        DateTime?               @default(now())
-  leaseToken           String?
-  leaseExpiresAt       DateTime?
-  pdfUrl               String?
-  emailPayload         String?                 @db.Text
-  firstSendStartedAt   DateTime?
-  providerMessageId    String?
-  lastErrorCode        String?
-  sentAt               DateTime?
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime                @updatedAt
+  id                 String                  @id @default(cuid())
+  statementId        String                  @unique
+  statement          Statement               @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  status             StatementDeliveryStatus @default(pending)
+  attemptCount       Int                     @default(0)
+  nextAttemptAt      DateTime?               @default(now())
+  leaseToken         String?
+  leaseExpiresAt     DateTime?
+  pdfUrl             String?
+  emailPayload       String?                 @db.Text
+  firstSendStartedAt DateTime?
+  providerMessageId  String?
+  lastErrorCode      String?
+  sentAt             DateTime?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
 
   @@index([status, nextAttemptAt])
   @@index([status, leaseExpiresAt])
@@ -11123,9 +11152,9 @@ model AmbassadorAdjustment {
 
 // Staff-recorded OWNA handoff. Kept separate from parent-facing submission data.
 model EnrolmentOwnaHandoff {
-  enrolmentId String @id
-  enrolment EnrolmentSubmission @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
-  revision Int @default(1)
-  state Json
-  updatedAt DateTime @updatedAt
+  enrolmentId String              @id
+  enrolment   EnrolmentSubmission @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  revision    Int                 @default(1)
+  state       Json
+  updatedAt   DateTime            @updatedAt
 }

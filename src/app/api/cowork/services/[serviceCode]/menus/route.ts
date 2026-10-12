@@ -9,7 +9,7 @@ import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
-const MEAL_SLOTS = ["morning_tea", "lunch", "afternoon_tea"] as const;
+import { MEAL_SLOTS } from "@/lib/menu-slots";
 
 const importMenuSchema = z.object({
   weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "weekStart must be YYYY-MM-DD").optional(),

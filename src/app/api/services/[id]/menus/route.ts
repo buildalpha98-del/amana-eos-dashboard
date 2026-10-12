@@ -5,8 +5,9 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { assertServiceAccess } from "@/lib/authz-scope";
+import { MEAL_SLOTS } from "@/lib/menu-slots";
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
-const MEAL_SLOTS = ["morning_tea", "lunch", "afternoon_tea"] as const;
 
 const menuItemSchema = z.object({
   day: z.enum(WEEK_DAYS),
@@ -58,7 +59,9 @@ export const GET = withApiAuth(async (req, session, context) => {
 // PUT /api/services/[id]/menus — upsert full week menu
 export const PUT = withApiAuth(
   async (req, session, context) => {
-const { id } = await context!.params!;
+  const { id } = await context!.params!;
+  // A coordinator writes their own centre's menu only.
+  assertServiceAccess(session!, id);
   const body = await parseJsonBody(req);
   const parsed = saveMenuSchema.safeParse(body);
 
@@ -96,6 +99,15 @@ const { id } = await context!.params!;
       },
     });
 
+    // Items imported from SharePoint stay marked as imported while they're
+    // unchanged, so the next sync can still refresh them; anything the
+    // coordinator changed becomes theirs and a sync leaves it alone.
+    const before = await tx.menuItem.findMany({
+      where: { menuWeekId: menuWeek.id, source: "sharepoint" },
+      select: { day: true, slot: true, description: true },
+    });
+    const imported = new Map(before.map((b) => [`${b.day}|${b.slot}`, b.description]));
+
     // Delete existing items and recreate
     await tx.menuItem.deleteMany({
       where: { menuWeekId: menuWeek.id },
@@ -109,6 +121,8 @@ const { id } = await context!.params!;
           slot: item.slot,
           description: item.description,
           allergens: item.allergens || [],
+          source:
+            imported.get(`${item.day}|${item.slot}`) === item.description ? "sharepoint" : null,
         })),
       });
     }

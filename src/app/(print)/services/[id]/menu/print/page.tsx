@@ -2,9 +2,10 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PrintActions } from "../../_components/PrintActions";
 import { getWeekStart } from "@/lib/utils";
+import { MEAL_SLOTS, MEAL_SLOT_LABELS, slotsInUse, type MealSlotKey } from "@/lib/menu-slots";
 
 /**
- * Print view: weekly menu — 5-day rows × 3-slot columns.
+ * Print view: weekly menu — 5-day rows × meal-slot columns.
  *
  * URL: /services/[id]/menu/print?weekStart=YYYY-MM-DD
  *
@@ -14,10 +15,9 @@ import { getWeekStart } from "@/lib/utils";
  */
 
 type Day = "monday" | "tuesday" | "wednesday" | "thursday" | "friday";
-type Slot = "morning_tea" | "lunch" | "afternoon_tea";
+type Slot = MealSlotKey;
 
 const DAYS: Day[] = ["monday", "tuesday", "wednesday", "thursday", "friday"];
-const SLOTS: Slot[] = ["morning_tea", "lunch", "afternoon_tea"];
 
 const DAY_LABELS: Record<Day, string> = {
   monday: "Monday",
@@ -27,11 +27,7 @@ const DAY_LABELS: Record<Day, string> = {
   friday: "Friday",
 };
 
-const SLOT_LABELS: Record<Slot, string> = {
-  morning_tea: "Morning Tea",
-  lunch: "Lunch",
-  afternoon_tea: "Afternoon Tea",
-};
+const SLOT_LABELS: Record<Slot, string> = MEAL_SLOT_LABELS;
 
 function formatWeekLabel(monday: Date): string {
   const friday = new Date(monday);
@@ -79,12 +75,19 @@ export default async function MenuPrintPage({
   if (!service) notFound();
 
   // Build a quick lookup: items[day][slot] => MenuItem
+  // Columns: the OSHC slots, plus morning tea / lunch when a week uses them.
+  const SLOTS = slotsInUse(menuWeek?.items ?? []);
+  const emptyDay = () =>
+    Object.fromEntries(MEAL_SLOTS.map((s) => [s, null])) as Record<
+      Slot,
+      { description: string; allergens: string[] } | null
+    >;
   const itemMap: Record<Day, Record<Slot, { description: string; allergens: string[] } | null>> = {
-    monday: { morning_tea: null, lunch: null, afternoon_tea: null },
-    tuesday: { morning_tea: null, lunch: null, afternoon_tea: null },
-    wednesday: { morning_tea: null, lunch: null, afternoon_tea: null },
-    thursday: { morning_tea: null, lunch: null, afternoon_tea: null },
-    friday: { morning_tea: null, lunch: null, afternoon_tea: null },
+    monday: emptyDay(),
+    tuesday: emptyDay(),
+    wednesday: emptyDay(),
+    thursday: emptyDay(),
+    friday: emptyDay(),
   };
   for (const item of menuWeek?.items ?? []) {
     if (DAYS.includes(item.day as Day) && SLOTS.includes(item.slot as Slot)) {

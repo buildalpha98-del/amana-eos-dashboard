@@ -27,6 +27,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
+import { ProgramPlanBanner } from "@/components/services/program/ProgramPlanBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { AiButton } from "@/components/ui/AiButton";
 import {
@@ -371,6 +372,8 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
               showing a prose panel the educator had to manually re-type. */}
         </div>
       </div>
+
+      <ProgramPlanBanner serviceId={serviceId} weekKey={weekKey} />
 
       {/* Day Grid — split into Before School Care + After School Care */}
       {isLoading ? (
