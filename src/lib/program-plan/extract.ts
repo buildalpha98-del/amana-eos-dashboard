@@ -86,19 +86,26 @@ function isMonday(iso: string) {
   return new Date(`${iso}T00:00:00Z`).getUTCDay() === 1;
 }
 
-export async function extractProgramPlan(pdf: Buffer, fileName: string): Promise<ProgramPlan> {
+/** One forced, schema-checked tool call over a PDF. */
+async function readPdf<T>(
+  pdf: Buffer,
+  fileName: string,
+  system: string,
+  schema: z.ZodType<T>,
+  ask: string,
+): Promise<T> {
   const res = await client().messages.create({
     model: DEFAULT_PROVIDER_MODEL.showcase.modelId,
     max_tokens: 16_000,
-    system: SYSTEM,
+    system,
     tools: [
       {
-        name: "save_program_plan",
-        description: "Save the weeks read from the program plan.",
-        input_schema: z.toJSONSchema(programPlanSchema) as Anthropic.Tool.InputSchema,
+        name: "save",
+        description: "Save what was read from the document.",
+        input_schema: z.toJSONSchema(schema) as Anthropic.Tool.InputSchema,
       },
     ],
-    tool_choice: { type: "tool", name: "save_program_plan" },
+    tool_choice: { type: "tool", name: "save" },
     messages: [
       {
         role: "user",
@@ -108,17 +115,69 @@ export async function extractProgramPlan(pdf: Buffer, fileName: string): Promise
             source: { type: "base64", media_type: "application/pdf", data: pdf.toString("base64") },
             title: fileName,
           },
-          { type: "text", text: "Read every week in this program plan." },
+          { type: "text", text: ask },
         ],
       },
     ],
   });
   const call = res.content.find((b) => b.type === "tool_use");
-  const parsed = programPlanSchema.safeParse(call && "input" in call ? call.input : null);
-  if (!parsed.success) {
-    throw new Error(`Couldn't read ${fileName} as a program plan.`);
-  }
-  const bad = parsed.data.weeks.find((w) => !isMonday(w.weekStart));
-  if (bad) throw new Error(`${fileName}: week "${bad.title}" doesn't start on a Monday (${bad.weekStart}).`);
+  const parsed = schema.safeParse(call && "input" in call ? call.input : null);
+  if (!parsed.success) throw new Error(`Couldn't read ${fileName}.`);
   return parsed.data;
+}
+
+export async function extractProgramPlan(pdf: Buffer, fileName: string): Promise<ProgramPlan> {
+  const plan = await readPdf(pdf, fileName, SYSTEM, programPlanSchema, "Read every week in this program plan.");
+  const bad = plan.weeks.find((w) => !isMonday(w.weekStart));
+  if (bad) throw new Error(`${fileName}: week "${bad.title}" doesn't start on a Monday (${bad.weekStart}).`);
+  return plan;
+}
+
+// ── Menus ───────────────────────────────────────────────────────────────
+// Each centre's "Fuel Up with Amana · Weekly menu" PDF: one page per week,
+// breakfast and afternoon tea per day with allergen codes (M milk, W wheat
+// or gluten, Sy soy…), dairy-free / sesame-free alternatives, and one late
+// snack for the week. When a centre has this file it is the menu — the
+// program plan's food lines are only a summary of it.
+
+/** The menu editor's allergen chips, so imported flags show the same way. */
+export const MENU_ALLERGENS = ["dairy", "gluten", "soy", "eggs", "nuts", "sesame", "shellfish", "fish", "lupin"] as const;
+
+const menuWeek = z.object({
+  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  closedDays: z.array(day).max(5).default([]),
+  meals: z
+    .array(
+      z.object({
+        day,
+        slot: z.enum(["breakfast", "morning_tea", "lunch", "afternoon_tea", "late_snack"]),
+        description: z.string().min(1).max(1000),
+        allergens: z.array(z.enum(MENU_ALLERGENS)).max(9).default([]),
+      }),
+    )
+    .max(40),
+});
+export const menuPlanSchema = z.object({ weeks: z.array(menuWeek).min(1).max(6) });
+export type MenuPlan = z.infer<typeof menuPlanSchema>;
+export type MenuPlanWeek = MenuPlan["weeks"][number];
+
+const MENU_SYSTEM = `You read Amana OSHC weekly menus (Outside School Hours Care, Australia) and return them as data.
+
+Each page is one week ("Week 1 menu · 12 to 16 October 2026") with a row per day: the Rise and Shine Club breakfast, the Amana Afternoons afternoon tea, sometimes an "Alternative" line, and allergen codes after each dish. A "Late snack" line applies to every open day of that week.
+
+For every page return one week:
+- weekStart: the Monday of that week as YYYY-MM-DD.
+- closedDays: days marked closed or with no food listed for them.
+- meals for each open day:
+  - breakfast: the breakfast dish exactly as printed.
+  - afternoon_tea: the afternoon tea dish as printed; prefix "Cooking: " or a special-day label (e.g. "World Food Day: ") when printed. If there is an "Alternative" line, append it in brackets, e.g. "(Dairy-free: fruit kebabs without dip)".
+  - late_snack: the week's late snack, on every open day.
+  - allergens: map each dish's codes using the page's allergen key: M → dairy, W → gluten, Sy → soy, E → eggs, N → nuts, Se or S (sesame) → sesame. "may contain" codes count. Use only these words.
+Do not invent dishes. Ignore delivery, stock and allergy-rule notes.`;
+
+export async function extractMenu(pdf: Buffer, fileName: string): Promise<MenuPlan> {
+  const menu = await readPdf(pdf, fileName, MENU_SYSTEM, menuPlanSchema, "Read every week in this menu.");
+  const bad = menu.weeks.find((w) => !isMonday(w.weekStart));
+  if (bad) throw new Error(`${fileName}: a week doesn't start on a Monday (${bad.weekStart}).`);
+  return menu;
 }

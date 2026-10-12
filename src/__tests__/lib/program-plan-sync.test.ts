@@ -4,8 +4,8 @@
  * libraries (2026-10-12); centre names are the seeded ones.
  */
 import { describe, it, expect } from "vitest";
-import { centreKeys, matchCentreFolder, shareId } from "@/lib/program-plan/sync";
-import { programPlanSchema } from "@/lib/program-plan/extract";
+import { centreKeys, matchCentreFolder, newestTermFolder, shareId, NIGHTLY_PILOT } from "@/lib/program-plan/sync";
+import { menuPlanSchema, programPlanSchema } from "@/lib/program-plan/extract";
 
 const NSW = "https://amanaoshcptyltd.sharepoint.com/NSW%20Schools";
 const VIC = "https://amanaoshcptyltd.sharepoint.com/Melbourne%20Schools";
@@ -43,14 +43,16 @@ describe("matching a centre to its SharePoint folder", () => {
     ["Amana OSHC Minaret Officer", "Amana OSHC - Minaret Officer"],
     ["Amana OSHC Minaret Springvale", "Amana OSHC - Minaret Springvale"],
     ["Amana OSHC AIA KKCC", "Amana OSHC - AIA KKCC"],
+    // The dashboard calls it Coburg; the SharePoint folder is AIA KKCC.
+    ["Amana OSHC AIA Coburg", "Amana OSHC - AIA KKCC"],
   ])("%s → %s", (centre, folder) => {
     expect(find(centre)).toMatchObject({ name: folder });
   });
 
   it("says what to do when the name doesn't match, instead of guessing", () => {
-    const r = find("Amana OSHC AIA Coburg");
+    const r = find("Amana OSHC Somewhere New");
     expect(r).toHaveProperty("error");
-    expect((r as { error: string }).error).toMatch(/Paste the centre's SharePoint folder link/);
+    expect((r as { error: string }).error).toMatch(/Paste the centre's program folder link/);
   });
 
   it("uses the centre's saved SharePoint link first", () => {
@@ -91,5 +93,37 @@ describe("a pasted folder link", () => {
     expect(shareId("https://onedrive.live.com/redir?resid=1231244193912!12&authKey=1201919!12921!1")).toBe(
       "u!aHR0cHM6Ly9vbmVkcml2ZS5saXZlLmNvbS9yZWRpcj9yZXNpZD0xMjMxMjQ0MTkzOTEyITEyJmF1dGhLZXk9MTIwMTkxOSExMjkyMSEx",
     );
+  });
+});
+
+describe("the term folder", () => {
+  it("picks the newest 'Term N YYYY Program' folder and ignores the rest", () => {
+    const items = [
+      { name: "QA1 - Educational Program & Practice" },
+      { name: "Term 3 2026 Program" },
+      { name: "Term 4 2026 Program" },
+      { name: "Term 1 2026 Program" },
+    ];
+    expect(newestTermFolder(items)?.name).toBe("Term 4 2026 Program");
+    expect(newestTermFolder([...items, { name: "Term 1 2027 Program" }])?.name).toBe("Term 1 2027 Program");
+    expect(newestTermFolder([{ name: "Programs" }])).toBeNull();
+  });
+
+  it("pilots the nightly sync on AIA only", () => {
+    expect(NIGHTLY_PILOT?.test("Amana OSHC AIA Coburg")).toBe(true);
+    expect(NIGHTLY_PILOT?.test("Amana OSHC MFIS Greenacre")).toBe(false);
+  });
+});
+
+describe("the menu file", () => {
+  it("keeps allergens to the editor's words", () => {
+    const week = {
+      weekStart: "2026-10-12",
+      meals: [{ day: "monday", slot: "breakfast", description: "Porridge with milk", allergens: ["dairy", "gluten"] }],
+    };
+    expect(menuPlanSchema.safeParse({ weeks: [week] }).success).toBe(true);
+    expect(
+      menuPlanSchema.safeParse({ weeks: [{ ...week, meals: [{ ...week.meals[0], allergens: ["M"] }] }] }).success,
+    ).toBe(false);
   });
 });

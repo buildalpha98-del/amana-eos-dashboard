@@ -17,7 +17,7 @@ async function main() {
     "This check requires the local amana_local database.",
   );
   const { prisma } = await import("../src/lib/prisma");
-  const { writePlanWeek } = await import("../src/lib/program-plan/sync");
+  const { writePlanWeek, writeMenuWeek } = await import("../src/lib/program-plan/sync");
   type Week = Parameters<typeof writePlanWeek>[2];
 
   const week: Week = {
@@ -94,7 +94,27 @@ async function main() {
     await prisma.$transaction((tx) => writePlanWeek(tx, service.id, updated));
     assert.equal(JSON.stringify((await acts()).map((r) => [r.day, r.startTime, r.title]).sort()), before);
 
-    console.log("PASS: plan imported; closed day skipped; edits and own rows kept; re-sync idempotent");
+    // A centre with a menu file: the menu's meals and allergens win, and the
+    // plan (synced with meals: false) no longer touches the menu.
+    await prisma.$transaction((tx) =>
+      writeMenuWeek(tx, service.id, {
+        weekStart: "2026-10-12",
+        closedDays: ["monday"],
+        meals: [
+          { day: "tuesday", slot: "breakfast", description: "Toasted English muffin with Vegemite; apple slices", allergens: ["gluten", "soy"] },
+          { day: "tuesday", slot: "late_snack", description: "Fruit", allergens: [] },
+        ],
+      }),
+    );
+    await prisma.$transaction((tx) => writePlanWeek(tx, service.id, updated, { meals: false }));
+    m = await items();
+    const muffin = m.find((i) => i.day === "tuesday" && i.slot === "breakfast")!;
+    assert.deepEqual(muffin.allergens, ["gluten", "soy"], "allergens from the menu file");
+    assert(m.some((i) => i.slot === "late_snack"), "late snack imported");
+    assert.equal(m.find((i) => i.day === "tuesday" && i.slot === "afternoon_tea")!.description, "Wraps — swapped to pita", "edit still kept");
+    assert(!m.some((i) => i.description === "Za'atar and cheese manoush for World Food Day, with cucumber and tomato"), "plan food lines replaced by the menu file");
+
+    console.log("PASS: plan imported; closed day skipped; edits and own rows kept; re-sync idempotent; menu file wins with allergens");
   } finally {
     await prisma.service.delete({ where: { id: service.id } });
     await prisma.$disconnect();

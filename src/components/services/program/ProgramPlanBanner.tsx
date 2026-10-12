@@ -33,6 +33,7 @@ interface SyncResult {
   status: "synced" | "unchanged" | "no_plan" | "error";
   message?: string;
   files?: string[];
+  folder?: string;
 }
 
 const ago = (iso: string) => {
@@ -63,9 +64,9 @@ export function ProgramPlanBanner({ serviceId, weekKey }: { serviceId: string; w
       toast({
         description:
           r.status === "synced"
-            ? `Program and menu updated from ${r.files?.join(", ")}.`
+            ? `Program and menu updated from ${r.folder ?? "SharePoint"}.`
             : r.status === "unchanged"
-              ? "Already up to date with SharePoint."
+              ? `Already up to date with ${r.folder ?? "SharePoint"}.`
               : (r.message ?? "No program plan found in SharePoint."),
       });
       qc.invalidateQueries({ queryKey: ["program-plan-sync", serviceId] });
