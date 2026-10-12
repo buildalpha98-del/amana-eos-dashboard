@@ -369,6 +369,10 @@
     {
       "path": "/api/cron/statement-deliveries",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/staff-updates-roundup",
+      "schedule": "0 20 * * 0"
     }
   ]
 }
