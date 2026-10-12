@@ -39,6 +39,8 @@ import { WarmCTA } from "@/components/ui/v2";
 import { MetaPixel } from "@/components/analytics/MetaPixel";
 import { formatTime } from "@/lib/service-settings";
 import type { ServiceContent } from "@/lib/service-content-shared";
+import { PARENT_APP_OPEN } from "@/lib/parent-portal-lockdown";
+import type { ParentEnrolmentState } from "@/lib/parent-enrolment-state";
 
 interface CentreRoom {
   id: string | null;
@@ -63,7 +65,7 @@ interface Centre {
 }
 
 const GENERIC_THANK_YOU =
-  "Someone from our team will review your enrolment and be in touch within one business day.";
+  "Someone from our team will get back to you within 24 hours to confirm everything.";
 
 const isPdf = (url: string) => url.toLowerCase().split("?")[0].endsWith(".pdf");
 
@@ -130,20 +132,32 @@ function ThankYouContent() {
     retry: 1,
   });
 
+  // While the app is closed this page is all a family sees (ParentShell), so
+  // it also has to make sense to a family the team has already confirmed.
+  const { data: parentState } = useQuery<{ state: ParentEnrolmentState }>({
+    queryKey: ["parent", "state"],
+    queryFn: () => fetchApi("/api/parent/state"),
+    staleTime: 60_000,
+    retry: false,
+  });
+  const confirmed = parentState?.state === "active";
+
   const centre = serviceId
     ? (data?.centres ?? []).find((c) => c.id === serviceId)
     : undefined;
   const centreMessage = centre?.content.enrolmentThankYou.trim() || null;
 
   return (
-    <div className="pb-24 space-y-6">
-      <section className="warm-card text-center py-10">
+    <div className={PARENT_APP_OPEN ? "pb-24 space-y-6" : "mx-auto max-w-lg px-4 pt-6 pb-16 space-y-6"}>
+      <section className="warm-card text-center py-10 px-5">
         <CheckCircle2 className="w-12 h-12 mx-auto text-[color:var(--color-brand)] mb-3" />
-        <h1 className="text-xl font-heading font-bold text-[color:var(--color-foreground)]">
-          Thank you!
+        <h1 className="text-xl font-heading font-bold text-[color:var(--color-foreground)] [text-wrap:balance]">
+          {confirmed ? "Your enrolment is confirmed" : "Thank you so much for your enrolment"}
         </h1>
-        <p className="text-sm text-[color:var(--color-muted)] mt-2 max-w-sm mx-auto">
-          Your enrolment has been submitted.
+        <p className="text-sm text-[color:var(--color-foreground)]/85 mt-3 max-w-sm mx-auto leading-relaxed">
+          {confirmed
+            ? "We’ll let you know as soon as the Amana app is ready for families. Until then, bookings and fees are managed in OWNA."
+            : GENERIC_THANK_YOU}
         </p>
         {submissionId && (
           <p className="text-2xs text-[color:var(--color-muted)] mt-1">
@@ -152,18 +166,21 @@ function ThankYouContent() {
         )}
       </section>
 
-      <section className="warm-card space-y-2">
-        <p className="text-xs font-semibold text-[color:var(--color-muted)] uppercase tracking-wide flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5" /> What happens next
-        </p>
-        {serviceId && isLoading ? (
-          <Skeleton className="h-12 w-full rounded-lg" />
-        ) : (
-          <p className="text-sm text-[color:var(--color-foreground)]/85 leading-relaxed whitespace-pre-wrap">
-            {centreMessage ?? GENERIC_THANK_YOU}
+      {/* The centre's own "what happens next" note, when it has one. */}
+      {(centreMessage || (serviceId && isLoading)) && (
+        <section className="warm-card space-y-2">
+          <p className="text-xs font-semibold text-[color:var(--color-muted)] uppercase tracking-wide flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5" /> What happens next
           </p>
-        )}
-      </section>
+          {isLoading ? (
+            <Skeleton className="h-12 w-full rounded-lg" />
+          ) : (
+            <p className="text-sm text-[color:var(--color-foreground)]/85 leading-relaxed whitespace-pre-wrap">
+              {centreMessage}
+            </p>
+          )}
+        </section>
+      )}
 
       {/* CCS isn't paid until the family confirms the enrolment in their
           Centrelink account — the most common reason subsidy starts late,
@@ -189,15 +206,23 @@ function ThankYouContent() {
         Enrolling a brother or sister too? Add another child
       </Link>
 
-      <WarmCTA icon={Home} title="Go to my portal" href="/parent" />
-
-      <p className="text-center text-xs text-[color:var(--color-muted)]">
-        Need to change something? Message us from{" "}
-        <Link href="/parent/messages" className="text-[color:var(--color-brand)] underline">
-          Messages
-        </Link>
-        .
-      </p>
+      {PARENT_APP_OPEN ? (
+        <>
+          <WarmCTA icon={Home} title="Go to my portal" href="/parent" />
+          <p className="text-center text-xs text-[color:var(--color-muted)]">
+            Need to change something? Message us from{" "}
+            <Link href="/parent/messages" className="text-[color:var(--color-brand)] underline">
+              Messages
+            </Link>
+            .
+          </p>
+        </>
+      ) : (
+        <p className="text-center text-sm text-[color:var(--color-muted)] leading-relaxed">
+          Need to change something before then? Reply to your confirmation
+          email{centre?.phone || centre?.email ? " or contact your centre above" : ""}.
+        </p>
+      )}
     </div>
   );
 }

@@ -8,6 +8,9 @@ import { isPublicParentRoute } from "@/lib/parent-routes";
 import {
   PARENT_PORTAL_LOCKED,
   isAllowedWhileLocked,
+  PARENT_APP_OPEN,
+  ENROL_THANK_YOU_PATH,
+  isAllowedWhileAppClosed,
 } from "@/lib/parent-portal-lockdown";
 
 /** Where a parent without an enrolment is funnelled. */
@@ -149,6 +152,10 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
     retry: false,
   });
   const mustEnrol = parentState?.state === "needs_enrolment";
+  // Submitted, but the app isn't open to families yet (PARENT_APP_OPEN):
+  // the thank-you page is all they get. Only once the state has loaded, so
+  // a family mid-enrolment is never bounced there first.
+  const appClosed = !PARENT_APP_OPEN && !!parentState && !mustEnrol;
   const { data: conversations } = useParentConversations(isAuthenticated && !isPublicParentRoute(pathname));
   const [actionsOpen, setActionsOpen] = useState(false);
   const unreadCount = (conversations ?? []).reduce(
@@ -170,6 +177,12 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
     if (pathname === ENROL_PATH || isPublicParentRoute(pathname)) return;
     router.replace(ENROL_PATH);
   }, [isAuthenticated, mustEnrol, pathname, router]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !appClosed) return;
+    if (isAllowedWhileAppClosed(pathname) || isPublicParentRoute(pathname)) return;
+    router.replace(ENROL_THANK_YOU_PATH);
+  }, [isAuthenticated, appClosed, pathname, router]);
 
   // Public parent routes — rendered bare, with no shell and no auth gate.
   //
@@ -204,7 +217,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   const allowedWhileLocked =
     !PARENT_PORTAL_LOCKED || isAllowedWhileLocked(pathname);
 
-  if (!allowedWhileLocked && !mustEnrol) {
+  if (!allowedWhileLocked && !mustEnrol && !appClosed) {
     return (
       <div
         data-v2="parent"
@@ -245,7 +258,8 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   // Gated into the enrolment form: render it bare, with no nav. Showing
   // Children/Bookings/Billing tabs they can't use yet is just a row of
   // dead ends.
-  if (mustEnrol) {
+  if (mustEnrol || appClosed) {
+    const showPage = mustEnrol ? pathname === ENROL_PATH : isAllowedWhileAppClosed(pathname);
     return (
       <div data-v2="parent" className="parent-portal min-h-screen bg-parent-bg">
         <header
@@ -280,7 +294,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
           </button>
         </header>
         <main className="pb-10">
-          {pathname === ENROL_PATH ? (
+          {showPage ? (
             children
           ) : (
             // Mid-redirect. A spinner rather than a flash of the old page.

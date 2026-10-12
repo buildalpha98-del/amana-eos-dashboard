@@ -35,7 +35,7 @@ describe("EnrolmentThankYouPage", () => {
   it("thanks the parent and shows a reference derived from the submissionId", async () => {
     mockSearchParams = new URLSearchParams({ submissionId: "abc12345-def6-7890" });
     renderPage();
-    expect(await screen.findByText("Thank you!")).toBeInTheDocument();
+    expect(await screen.findByText("Thank you so much for your enrolment")).toBeInTheDocument();
     expect(screen.getByText(/ABC12345/)).toBeInTheDocument();
   });
 
@@ -43,10 +43,11 @@ describe("EnrolmentThankYouPage", () => {
     mockSearchParams = new URLSearchParams({ submissionId: "sub-1" });
     renderPage();
     expect(
-      await screen.findByText(/be in touch within one business day/i),
+      await screen.findByText(/get back to you within 24 hours to confirm everything/i),
     ).toBeInTheDocument();
-    // No serviceId means the centres query never fires.
-    expect(mockedFetch).not.toHaveBeenCalled();
+    // No serviceId means the centres query never fires (the family's
+    // enrolment state is still read, to word the page).
+    expect(mockedFetch).not.toHaveBeenCalledWith("/api/parent/centres");
   });
 
   it("shows the centre's custom thank-you message when one is set", async () => {
@@ -73,7 +74,7 @@ describe("EnrolmentThankYouPage", () => {
     });
     renderPage();
     expect(
-      await screen.findByText(/be in touch within one business day/i),
+      await screen.findByText(/get back to you within 24 hours to confirm everything/i),
     ).toBeInTheDocument();
   });
 
@@ -84,7 +85,7 @@ describe("EnrolmentThankYouPage", () => {
     });
     renderPage();
     expect(
-      await screen.findByText(/be in touch within one business day/i),
+      await screen.findByText(/get back to you within 24 hours to confirm everything/i),
     ).toBeInTheDocument();
   });
 
@@ -145,7 +146,7 @@ describe("EnrolmentThankYouPage", () => {
         centres: [{ id: "svc-1", name: "Mawson Lakes", content: { enrolmentThankYou: "" } }],
       });
       renderPage();
-      expect(await screen.findByText("Thank you!")).toBeInTheDocument();
+      expect(await screen.findByText("Thank you so much for your enrolment")).toBeInTheDocument();
       expect(screen.queryByText(/Operating hours/)).toBeNull();
     });
 
@@ -158,5 +159,22 @@ describe("EnrolmentThankYouPage", () => {
       expect(await screen.findByText(/12 School Rd/)).toBeInTheDocument();
       expect(screen.queryByText(/Operating hours/)).toBeNull();
     });
+  });
+
+  it("keeps families out of the app: no portal or Messages links while it's closed", async () => {
+    mockSearchParams = new URLSearchParams({ submissionId: "sub-1" });
+    renderPage();
+    await screen.findByText("Thank you so much for your enrolment");
+    expect(screen.queryByText("Go to my portal")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Messages" })).not.toBeInTheDocument();
+  });
+
+  it("tells a family the team has already confirmed that the app is coming", async () => {
+    mockSearchParams = new URLSearchParams({ submissionId: "sub-1" });
+    mockedFetch.mockImplementation(async (url: string) =>
+      url === "/api/parent/state" ? { state: "active" } : { centres: [] },
+    );
+    renderPage();
+    expect(await screen.findByText("Your enrolment is confirmed")).toBeInTheDocument();
   });
 });
