@@ -48,6 +48,7 @@ import { BSCGrowthTracker } from "@/components/marketing/BSCGrowthTracker";
 import { ServiceFilter } from "@/components/marketing/ServiceFilter";
 import { QuickAddFAB } from "@/components/marketing/QuickAddFAB";
 import { EmailComposer } from "@/components/email/EmailComposer";
+import { TemplateLibrary } from "@/components/email/TemplateLibrary";
 import { CreatePostModal } from "@/components/marketing/CreatePostModal";
 import { CreateCampaignModal } from "@/components/marketing/CreateCampaignModal";
 import { CreateTaskModal } from "@/components/marketing/CreateTaskModal";
@@ -123,7 +124,7 @@ export default function MarketingPage() {
   const [showQuickCampaign, setShowQuickCampaign] = useState(false);
 
   /* Sub-view state for composite tabs */
-  const [toolkitView, setToolkitView] = useState<"assets" | "templates" | "email" | "hashtags" | "kpis" | "workload">("assets");
+  const [toolkitView, setToolkitView] = useState<"assets" | "templates" | "email" | "email-templates" | "hashtags" | "kpis" | "workload">("assets");
   const [growthView, setGrowthView] = useState<"occupancy" | "referrals" | "launch">("occupancy");
   const [fieldOpsView, setFieldOpsView] = useState<"activations" | "qr" | "newsletters">(() => {
     const s = urlParam("sub");
@@ -340,11 +341,12 @@ export default function MarketingPage() {
         {activeTab === "toolkit" && (
           <div className="space-y-6">
             {/* Sub-nav pills */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {([
                 { key: "assets", label: "Assets" },
-                { key: "templates", label: "Templates" },
+                { key: "templates", label: "Post Templates" },
                 { key: "email", label: "Email Composer" },
+                { key: "email-templates", label: "Email Templates" },
                 { key: "hashtags", label: "Hashtags" },
                 { key: "kpis", label: "KPIs" },
                 { key: "workload", label: "Workload" },
@@ -370,6 +372,7 @@ export default function MarketingPage() {
                 <EmailComposer />
               </Suspense>
             )}
+            {toolkitView === "email-templates" && <TemplateLibrary defaultFilter="parents" />}
             {toolkitView === "hashtags" && <HashtagsTab />}
             {toolkitView === "kpis" && <KPIsTab />}
             {toolkitView === "workload" && (

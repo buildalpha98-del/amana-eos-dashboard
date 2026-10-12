@@ -10,6 +10,7 @@ import EmailHtmlEditor from "./EmailHtmlEditor";
 import EmailPreview from "./EmailPreview";
 import TemplatePickerModal from "./TemplatePickerModal";
 import AudienceManagerModal from "./AudienceManagerModal";
+import { SaveAsTemplateDialog } from "./TemplateLibrary";
 import {
   useSendEmail,
   useTestSend,
@@ -88,6 +89,7 @@ export function EmailComposer() {
 
   const [previewHtml, setPreviewHtml] = useState("");
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [confirmSend, setConfirmSend] = useState(false);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
   // Branding-seeded + PER-FIELD touch tracking: the panel starts from org
@@ -440,6 +442,15 @@ export function EmailComposer() {
           >
             Templates
           </button>
+          {mode === "blocks" && (
+            <button
+              onClick={() => setShowSaveTemplate(true)}
+              disabled={blocks.length === 0}
+              className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-hover disabled:opacity-50"
+            >
+              Save as template
+            </button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -751,7 +762,15 @@ export function EmailComposer() {
       </div>
 
       {/* Template picker modal */}
+      <SaveAsTemplateDialog
+        open={showSaveTemplate}
+        onClose={() => setShowSaveTemplate(false)}
+        subject={subject}
+        blocks={blocks}
+        defaultAudience="parents"
+      />
       <TemplatePickerModal
+        audience="parents"
         open={showTemplatePicker}
         onClose={() => setShowTemplatePicker(false)}
         onSelect={(template) => {

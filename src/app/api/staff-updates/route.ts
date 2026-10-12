@@ -11,7 +11,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { getOrgSettings } from "@/lib/org-settings";
 import { sendUrgentUpdate } from "@/lib/staff-updates";
-import { staffUpdateFieldsSchema } from "./schema";
+import { staffUpdateFieldsSchema, withContent } from "./schema";
 
 export const maxDuration = 300;
 
@@ -38,7 +38,7 @@ export const POST = withApiAuth(
     const now = new Date();
     const created = await prisma.staffUpdate.create({
       data: {
-        ...parsed.data,
+        ...withContent(parsed.data),
         source: "admin",
         createdById: session.user.id,
         createdByName: session.user.name ?? null,

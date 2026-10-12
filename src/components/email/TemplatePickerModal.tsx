@@ -14,7 +14,15 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSelect: (template: EmailTemplateData) => void;
+  /** Staff emails show staff + both; parent sends show parents + both. */
+  audience?: "staff" | "parents";
 }
+
+export const AUDIENCE_LABELS: Record<string, string> = {
+  staff: "Staff",
+  parents: "Parents",
+  both: "Staff & parents",
+};
 
 const CATEGORY_LABELS: Record<string, string> = {
   enrolment: "Enrolment",
@@ -30,9 +38,10 @@ export default function TemplatePickerModal({
   open,
   onClose,
   onSelect,
+  audience,
 }: Props) {
   useEscapeClose(onClose, open);
-  const { data: templates, isLoading } = useEmailTemplates();
+  const { data: templates, isLoading } = useEmailTemplates(undefined, audience);
   const queryClient = useQueryClient();
   const [seeding, setSeeding] = useState(false);
 
@@ -90,6 +99,7 @@ export default function TemplatePickerModal({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close"
             className="rounded p-1 text-muted hover:bg-hover"
           >
             <X className="h-5 w-5" />
@@ -148,6 +158,11 @@ export default function TemplatePickerModal({
                         <span className="truncate text-sm font-medium">
                           {t.name}
                         </span>
+                        {t.audience && t.audience !== "parents" && (
+                          <span className="shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-2xs font-medium text-brand">
+                            {AUDIENCE_LABELS[t.audience]}
+                          </span>
+                        )}
                         {t.isDefault && (
                           <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />
                         )}
