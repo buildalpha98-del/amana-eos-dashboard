@@ -14,6 +14,29 @@ import { ApiError } from "@/lib/api-error";
  */
 export const PARENT_PORTAL_LOCKED = true;
 
+/**
+ * Daniel, 2026-10-12: after submitting the enrolment form a family sees the
+ * thank-you page and nothing else — no app — until the team confirms the
+ * enrolment and Daniel opens it. While false, ParentShell sends a submitted
+ * family anywhere in /parent back to the thank-you page (adding a sibling
+ * through the enrolment form still works). Flip to true (and redeploy) when
+ * parents may use the Amana app; PARENT_PORTAL_LOCKED then still governs
+ * which parts of it are open.
+ */
+export const PARENT_APP_OPEN = false;
+
+export const ENROL_THANK_YOU_PATH = "/parent/enrol/thank-you";
+
+/** Pages a submitted family can reach while the app is closed: the enrolment flow only. */
+export function isAllowedWhileAppClosed(pathname: string | null | undefined): boolean {
+  if (!pathname) return false;
+  return (
+    pathname === "/parent/enrol" ||
+    pathname.startsWith("/parent/enrol/") || // includes the thank-you page
+    pathname === "/parent/children/new" // enrol a sibling (re-opens the form)
+  );
+}
+
 /** What parents are told whenever they reach something that's switched off. */
 export const OWNA_BOOKING_MESSAGE =
   "Bookings and fees are managed in OWNA. If you need your invitation or help signing in, message the Amana team.";

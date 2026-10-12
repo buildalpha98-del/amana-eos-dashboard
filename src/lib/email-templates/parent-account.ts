@@ -2,6 +2,7 @@
  * Parent account emails. Uses the shared branded layout so these match the
  * rest of our transactional mail rather than being one-off HTML.
  */
+import { PARENT_APP_OPEN } from "@/lib/parent-portal-lockdown";
 import { baseLayout, buttonHtml, parentEmailLayout } from "@/lib/email-templates";
 
 export async function parentVerifyEmail(params: {
@@ -66,15 +67,20 @@ export async function enrolmentReceivedEmail(params: {
       `
       <p>Hi ${params.name},</p>
       <p>Thank you — we've received ${child}'s enrolment.</p>
-      <p>Our team will review the details and get back to you within
-      <strong>one business day</strong> to confirm the enrolment. If we
-      need anything else, we'll give you a call on the number you gave us.</p>
-      <p>In the meantime you can sign in to the Family Portal any time to
+      <p>Someone from our team will get back to you within
+      <strong>24 hours</strong> to confirm everything. If we need anything
+      else, we'll give you a call on the number you gave us.</p>
+      ${
+        PARENT_APP_OPEN
+          ? `<p>In the meantime you can sign in to the Family Portal any time to
       see where things are up to.</p>
       ${buttonHtml("Go to my Family Portal", `${base}/parent`)}
       <p><strong>Your Amana family hub:</strong> find your school information
       and message our team. Bookings, fees and day-to-day updates are managed
-      separately in <strong>OWNA</strong>.</p>
+      separately in <strong>OWNA</strong>.</p>`
+          : `<p>Bookings, fees and day-to-day updates are managed in
+      <strong>OWNA</strong>.</p>`
+      }
       <p>After reviewing your enrolment, our team will arrange your OWNA setup.
       Follow the instructions in your separate OWNA invitation. If you already
       have access, keep using it. Please contact us if you need help finding

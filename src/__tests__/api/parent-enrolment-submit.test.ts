@@ -792,9 +792,12 @@ describe("submit — the things that must not cost a family their enrolment", ()
 });
 
 describe("submit — after it commits", () => {
-  it("invites the second carer to the portal", async () => {
+  it("holds the second carer's portal invite while the app is closed to families", async () => {
+    // PARENT_APP_OPEN is false (Daniel, 2026-10-12): the invite offers only
+    // app access, which would land on the thank-you page.
     await submit({ payment: BANK });
-    expect(sendEmail).toHaveBeenCalledWith(
+    expect(secondaryCarerInviteEmail).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalledWith(
       expect.objectContaining({ to: "sam@example.com" }),
     );
   });

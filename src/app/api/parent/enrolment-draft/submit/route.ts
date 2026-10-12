@@ -23,6 +23,7 @@ import {
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { encryptField } from "@/lib/field-encryption";
 import { sendEmail } from "@/lib/email";
+import { PARENT_APP_OPEN } from "@/lib/parent-portal-lockdown";
 import { logger } from "@/lib/logger";
 import { logAmbassadorEnrolments } from "@/lib/ambassadors/log-enrolment";
 import { normaliseEmail } from "@/lib/parent-account";
@@ -516,8 +517,10 @@ export const POST = withParentAuth(async (req, ctx) => {
   //
   // Deliberately outside the transaction and fully swallowed: a bounced
   // invite must never roll back a family's completed enrolment.
+  // Held while the app is closed to families (PARENT_APP_OPEN): the invite
+  // offers nothing but app access, which would land on the thank-you page.
   const sp = contacts.secondaryParent;
-  if (sp?.email?.trim()) {
+  if (PARENT_APP_OPEN && sp?.email?.trim()) {
     try {
       const spEmail = normaliseEmail(sp.email);
       if (spEmail !== normaliseEmail(ctx.parent.email)) {
