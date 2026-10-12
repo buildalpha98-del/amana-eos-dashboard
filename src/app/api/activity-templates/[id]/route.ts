@@ -18,7 +18,7 @@ const updateSchema = z.object({
   resourcesNeeded: z.string().max(2000).optional().nullable(),
   category: z.enum(CATEGORIES).optional(),
   ageGroup: z.string().max(50).optional().nullable(),
-  durationMinutes: z.number().int().min(1).max(480).optional().nullable(),
+  durationMinutes: z.number().int().min(1).max(480).transform((m) => Math.min(m, 60)).optional().nullable(), // an hour at most (Daniel, 2026-10-12)
   mtopOutcomes: z.array(z.number().int().min(1).max(5)).max(5).optional(),
 });
 

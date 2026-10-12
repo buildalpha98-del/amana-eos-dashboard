@@ -25,7 +25,9 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-import { extractLibraryDetails } from "./extract";
+import { z } from "zod";
+import { generateStructured } from "@/lib/ai-provider";
+import { ACTIVITY_CATEGORIES, extractLibraryDetails } from "./extract";
 
 /** An activity as the plan (or a saved program row) describes it. */
 export interface PlanActivity {
@@ -114,6 +116,7 @@ export async function addPlanToLibrary(
             category: d.category,
             mtopOutcomes: [...new Set([...e.mtopOutcomes, ...c.mtopOutcomes])].sort(),
             source: "sharepoint",
+            enrichedAt: new Date(),
           },
         });
         added += res.count;
@@ -125,11 +128,12 @@ export async function addPlanToLibrary(
         howTo: d.howTo.trim() + DRAFTED_NOTE,
         resourcesNeeded: d.resourcesNeeded.trim() || null,
         category: d.category,
-        durationMinutes: d.durationMinutes ?? null,
+        durationMinutes: capMinutes(d.durationMinutes),
         ageGroup: "5–12",
         mtopOutcomes: c.mtopOutcomes,
         source: "sharepoint",
         sourceKey: c.key,
+        enrichedAt: new Date(),
       });
     }
     if (rows.length) {
@@ -152,6 +156,13 @@ const BRAND_CATEGORY: Record<string, string> = {
   little_champions: "physical_play",
   fuel_up: "cooking_nutrition",
 };
+
+/** Daniel, 2026-10-12: library activities run at most an hour. */
+export const MAX_ACTIVITY_MINUTES = 60;
+export function capMinutes(m: number | null | undefined): number | null {
+  if (!m || m <= 0) return null;
+  return Math.min(Math.round(m), MAX_ACTIVITY_MINUTES);
+}
 
 const minutes = (hhmm: string) => {
   const [h, m] = hhmm.split(":").map(Number);
@@ -196,7 +207,7 @@ export async function sweepActivitiesIntoLibrary(): Promise<number> {
         title: c.title,
         description: c.description,
         category: (BRAND_CATEGORY[r?.programmeBrand ?? ""] ?? "other") as Prisma.ActivityTemplateCreateManyInput["category"],
-        durationMinutes: length > 0 && length <= 240 ? length : null,
+        durationMinutes: capMinutes(length > 0 ? length : null),
         ageGroup: "5–12",
         mtopOutcomes: c.mtopOutcomes,
         source: SWEPT,
@@ -226,5 +237,107 @@ export async function sweepActivitiesIntoLibrarySoon(): Promise<void> {
     await sweepActivitiesIntoLibrary();
   } catch (err) {
     logger.warn("Activity library sweep failed", { err });
+  }
+}
+
+// ── Fill in what a centre's week doesn't say ────────────────────────────
+// An activity typed into a week has a name and maybe a sentence. Claude
+// drafts the rest from those — how to run it, resources, the best category
+// and the MTOP outcomes — for entries the sweep added, filling ONLY empty
+// fields (category only while it's "other"), labelled as drafted.
+
+const enrichSchema = z.object({
+  activities: z
+    .array(
+      z.object({
+        id: z.string(),
+        howTo: z.string().min(1).max(5000),
+        resourcesNeeded: z.string().max(2000),
+        category: z.enum(ACTIVITY_CATEGORIES),
+        mtopOutcomes: z.array(z.number().int().min(1).max(5)).min(1).max(5),
+        durationMinutes: z.number().int().min(5).max(240).optional(),
+      }),
+    )
+    .max(40),
+});
+
+const ENRICH_SYSTEM = `You complete entries in Amana OSHC's Activity Library — reusable activities for Outside School Hours Care (school-age children, 5 to 12, in Australia) that educators at any centre can pick up and run.
+
+For each activity (id, title, description) return:
+- id: exactly as given.
+- howTo: 4 to 8 short numbered steps an educator can follow, based on what the title and description say children do. Include any safety point that matters (handwashing and an allergy check before food, space and cones for active games, an educator at the table for cooking, sun safety outdoors). Warm, plain Australian English.
+- resourcesNeeded: the materials, one per line starting "- ". Only what the activity obviously needs; never specialist equipment it doesn't mention.
+- category: the best fit of physical_play (sport, games, movement), creative_arts (art, craft, drawing, making), music_movement (music, dance), literacy (reading, writing, stories), numeracy (maths, counting, measuring), nature_outdoors (nature, gardening, outdoor exploring), cooking_nutrition (cooking, food, healthy eating), social_emotional (feelings, friendship, wellbeing, group agreements, reflection), quiet_time (calm, mindfulness, rest), free_play, quran_iqra (Quran, Iqra, Islamic learning), homework_help, stem_science (science, experiments, building, engineering, technology), or other ONLY when nothing fits.
+- mtopOutcomes: the My Time, Our Place outcomes the activity mainly supports (1 to 3 of them): 1 children have a strong sense of identity; 2 children are connected with and contribute to their world; 3 children have a strong sense of wellbeing; 4 children are confident and involved learners; 5 children are effective communicators.
+- durationMinutes: a realistic length, at most 60.`;
+
+const ENRICHED_NOTE = "\n\n(Drafted automatically from the activity name and description — check and adjust before running.)";
+
+type Enricher = (list: { id: string; title: string; description: string | null }[]) => Promise<z.infer<typeof enrichSchema>["activities"]>;
+
+const enrichWithClaude: Enricher = async (list) => {
+  const { data } = await generateStructured({
+    system: ENRICH_SYSTEM,
+    prompt: `Complete these activities:\n${JSON.stringify(list)}`,
+    schema: enrichSchema,
+    maxTokens: 12_000,
+    temperature: 0.3,
+  });
+  return data.activities;
+};
+
+/**
+ * Fill entries the sweep added (or any auto-added entry not yet done), a
+ * batch at a time. Returns how many were filled. Never overwrites: each
+ * field is written only where it is still empty.
+ */
+export async function enrichLibraryEntries(
+  opts: { limit?: number; deadline?: number; enrich?: Enricher } = {},
+): Promise<number> {
+  const enrich = opts.enrich ?? enrichWithClaude;
+  const todo = await prisma.activityTemplate.findMany({
+    where: { deleted: false, enrichedAt: null, source: { in: [SWEPT, "sharepoint"] } },
+    select: { id: true, title: true, description: true, howTo: true, resourcesNeeded: true, category: true, mtopOutcomes: true, durationMinutes: true },
+    orderBy: { createdAt: "asc" },
+    take: opts.limit ?? 40,
+  });
+  let filled = 0;
+  for (let i = 0; i < todo.length; i += 20) {
+    if (opts.deadline && Date.now() > opts.deadline) break;
+    const batch = todo.slice(i, i + 20);
+    const out = await enrich(batch.map((t) => ({ id: t.id, title: t.title, description: t.description })));
+    const byId = new Map(out.map((o) => [o.id, o]));
+    for (const t of batch) {
+      const o = byId.get(t.id);
+      if (!o) continue; // not answered — tried again next time
+      await prisma.activityTemplate.update({
+        where: { id: t.id },
+        data: {
+          howTo: t.howTo ?? o.howTo.trim() + ENRICHED_NOTE,
+          resourcesNeeded: t.resourcesNeeded ?? (o.resourcesNeeded.trim() || null),
+          category: t.category === "other" ? o.category : t.category,
+          mtopOutcomes: t.mtopOutcomes.length ? t.mtopOutcomes : [...new Set(o.mtopOutcomes)].sort(),
+          durationMinutes: capMinutes(t.durationMinutes ?? o.durationMinutes ?? null),
+          enrichedAt: new Date(),
+        },
+      });
+      filled++;
+    }
+  }
+  if (filled) logger.info("Library entries filled in automatically", { filled });
+  return filled;
+}
+
+let enriching = false;
+/** Fire-and-forget after a library view: one batch, never throws, never overlaps. */
+export async function enrichLibraryEntriesSoon(): Promise<void> {
+  if (enriching || !process.env.ANTHROPIC_API_KEY) return;
+  enriching = true;
+  try {
+    await enrichLibraryEntries({ limit: 20 });
+  } catch (err) {
+    logger.warn("Library auto-fill failed", { err });
+  } finally {
+    enriching = false;
   }
 }

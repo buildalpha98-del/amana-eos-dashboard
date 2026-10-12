@@ -1,5 +1,5 @@
-import { sweepActivitiesIntoLibrarySoon } from "@/lib/program-plan/library";
-import { NextRequest, NextResponse } from "next/server";
+import { enrichLibraryEntriesSoon, sweepActivitiesIntoLibrarySoon } from "@/lib/program-plan/library";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
@@ -19,7 +19,7 @@ const createSchema = z.object({
   resourcesNeeded: z.string().max(2000).optional().nullable(),
   category: z.enum(CATEGORIES).optional(),
   ageGroup: z.string().max(50).optional().nullable(),
-  durationMinutes: z.number().int().min(1).max(480).optional().nullable(),
+  durationMinutes: z.number().int().min(1).max(480).transform((m) => Math.min(m, 60)).optional().nullable(), // an hour at most (Daniel, 2026-10-12)
   mtopOutcomes: z.array(z.number().int().min(1).max(5)).max(5).optional(),
 });
 
@@ -28,6 +28,9 @@ export const GET = withApiAuth(async (req, session) => {
   // One library for every centre: bring in any activity a centre has added
   // to its week since the last look (throttled; never fails the request).
   await sweepActivitiesIntoLibrarySoon();
+  // Then, after this response is sent, draft how-to / resources / category /
+  // MTOP outcomes for entries that still need them (Claude; a batch at a time).
+  after(() => enrichLibraryEntriesSoon());
   const url = new URL(req.url);
   const category = url.searchParams.get("category");
   const search = url.searchParams.get("search");
