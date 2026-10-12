@@ -3,14 +3,11 @@
 import { useState } from "react";
 import { CalendarDays, ChevronRight, Clock, MapPin, UtensilsCrossed, X } from "lucide-react";
 import { useParentDailyInfo, type WeekDayInfo } from "@/hooks/useParentPortal";
+import { MEAL_SLOTS, MEAL_SLOT_LABELS } from "@/lib/menu-slots";
 
-const SLOT_LABELS: Record<string, string> = {
-  morning_tea: "Morning Tea",
-  lunch: "Lunch",
-  afternoon_tea: "Afternoon Tea",
-};
+const SLOT_LABELS: Record<string, string> = MEAL_SLOT_LABELS;
 
-const SLOT_ORDER = ["morning_tea", "lunch", "afternoon_tea"];
+const SLOT_ORDER: readonly string[] = MEAL_SLOTS;
 
 const DAY_LABELS: Record<string, string> = {
   monday: "Monday",

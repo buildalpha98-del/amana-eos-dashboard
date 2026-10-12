@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+import type { MealSlotKey } from "@/lib/menu-slots";
 
 export interface MenuItemData {
   id?: string;
   day: "monday" | "tuesday" | "wednesday" | "thursday" | "friday";
-  slot: "morning_tea" | "lunch" | "afternoon_tea";
+  slot: MealSlotKey;
   description: string;
   allergens: string[];
 }

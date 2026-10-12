@@ -37,6 +37,7 @@ import { SectionLabel } from "@/components/parent/ui";
 import { ParentFormsSection } from "@/components/parent/ParentFormsList";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { MEAL_SLOT_LABELS } from "@/lib/menu-slots";
 
 interface Contact {
   role: string;
@@ -438,11 +439,7 @@ function WeekTab() {
     thursday: "Thursday",
     friday: "Friday",
   };
-  const SLOT_LABELS: Record<string, string> = {
-    morning_tea: "Morning tea",
-    lunch: "Lunch",
-    afternoon_tea: "Afternoon tea",
-  };
+  const SLOT_LABELS: Record<string, string> = MEAL_SLOT_LABELS;
 
   return (
     <div className="space-y-5">

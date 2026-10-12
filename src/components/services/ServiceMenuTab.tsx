@@ -28,9 +28,13 @@ import {
   type MenuItemData,
 } from "@/hooks/useMenu";
 import { useSession } from "next-auth/react";
+import { MEAL_SLOTS, MEAL_SLOT_LABELS, slotsInUse } from "@/lib/menu-slots";
+import { ProgramPlanBanner } from "@/components/services/program/ProgramPlanBanner";
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
-const SLOTS = ["morning_tea", "lunch", "afternoon_tea"] as const;
+// Every slot is held in state and saved; the grid shows the OSHC three
+// (breakfast, afternoon tea, late snack) plus any other slot in use.
+const SLOTS = MEAL_SLOTS;
 
 const DAY_LABELS: Record<string, string> = {
   monday: "Mon",
@@ -40,11 +44,7 @@ const DAY_LABELS: Record<string, string> = {
   friday: "Fri",
 };
 
-const SLOT_LABELS: Record<string, string> = {
-  morning_tea: "Morning Tea",
-  lunch: "Lunch",
-  afternoon_tea: "Afternoon Tea",
-};
+const SLOT_LABELS: Record<string, string> = MEAL_SLOT_LABELS;
 
 const ALLERGEN_OPTIONS = [
   "gluten",
@@ -117,6 +117,17 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
   // 2026-05-01: aiSuggestion state was removed — the AI Menu button now
   // writes directly into the cells grid (see onResult parser below).
   const [allergenCheckResult, setAllergenCheckResult] = useState<string | null>(null);
+  // Morning tea and lunch are vacation-care meals: hidden until a week uses
+  // them or the coordinator asks for them.
+  const [showVacationSlots, setShowVacationSlots] = useState(false);
+  const visibleSlots = showVacationSlots
+    ? MEAL_SLOTS
+    : slotsInUse(
+        Object.entries(cells).map(([k, c]) => ({
+          slot: k.slice(k.indexOf("_") + 1),
+          description: c.description,
+        })),
+      );
 
   // Sync from server data
   useEffect(() => {
@@ -446,6 +457,8 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
         </div>
       )}
 
+      <ProgramPlanBanner serviceId={serviceId} weekKey={weekKey} />
+
       {/* Uploaded file preview */}
       {menuWeek?.fileUrl && (
         <div className="flex items-center gap-3 p-3 bg-surface/50 rounded-lg border border-border">
@@ -494,6 +507,13 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
         </div>
       ) : (
         <>
+          {canEdit && visibleSlots.length < MEAL_SLOTS.length && (
+            <div className="flex justify-end">
+              <Button variant="ghost" size="sm" onClick={() => setShowVacationSlots(true)}>
+                Add morning tea and lunch (vacation care)
+              </Button>
+            </div>
+          )}
           {/* Mobile: Day selector + vertical meal cards */}
           <div className="sm:hidden space-y-4">
             <div className="flex gap-1 bg-surface rounded-lg p-1">
@@ -513,7 +533,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
               ))}
             </div>
             <div className="space-y-3">
-              {SLOTS.map((slot) => {
+              {visibleSlots.map((slot) => {
                 const key = cellKey(mobileDay, slot);
                 const cell = cells[key] || { description: "", allergens: [] };
                 const isActive = activeCell === key;
@@ -606,7 +626,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
                 </tr>
               </thead>
               <tbody>
-                {SLOTS.map((slot) => (
+                {visibleSlots.map((slot) => (
                   <tr key={slot} className="border-t border-border/50">
                     <td className="p-2 align-top">
                       <span className="text-xs font-medium text-foreground/80 whitespace-nowrap">

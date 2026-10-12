@@ -90,6 +90,13 @@ export const serviceContentSchema = z.object({
    * Empty means the button is hidden rather than a dead link.
    */
   sharepointUrl: z.string().max(2_048),
+  /**
+   * 2026-10-12: the SharePoint folder holding this centre's monthly Program
+   * Plan PDFs. The nightly sync (src/lib/program-plan) reads exactly this
+   * folder into Program and Menu. Any SharePoint link to the folder works —
+   * copied from the address bar or "Copy link".
+   */
+  programPlanFolderUrl: z.string().max(2_048),
 });
 
 export type ServiceContent = z.infer<typeof serviceContentSchema>;
@@ -110,6 +117,7 @@ export const SERVICE_CONTENT_DEFAULTS: ServiceContent = {
   policyDocumentIds: [],
   enrolmentThankYou: "",
   sharepointUrl: "",
+  programPlanFolderUrl: "",
 };
 
 /**
@@ -164,5 +172,6 @@ export function mergeServiceContent(
     policyDocumentIds,
     enrolmentThankYou: str("enrolmentThankYou"),
     sharepointUrl: str("sharepointUrl"),
+    programPlanFolderUrl: str("programPlanFolderUrl"),
   };
 }

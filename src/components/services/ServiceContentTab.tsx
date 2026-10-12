@@ -293,6 +293,23 @@ export function ServiceContentTab({ serviceId }: Props) {
             this page once it&apos;s set.
           </span>
         </Field>
+        <Field label="Program plan folder (SharePoint link)">
+          <input
+            type="url"
+            value={content.programPlanFolderUrl}
+            onChange={(e) =>
+              setContent((c) => ({ ...c, programPlanFolderUrl: e.target.value }))
+            }
+            disabled={!canEdit}
+            placeholder="Link to the folder with this centre's monthly program plans"
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand/40"
+          />
+          <span className="text-2xs text-muted">
+            Each night the newest program plan PDF in this folder fills this
+            centre&apos;s Program and Menu. Open the folder in SharePoint and
+            copy the link from the address bar (or &quot;Copy link&quot;).
+          </span>
+        </Field>
       </Section>
 
       {/* Hero */}
