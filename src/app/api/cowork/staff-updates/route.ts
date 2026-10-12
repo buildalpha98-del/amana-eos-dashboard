@@ -8,7 +8,9 @@
  * ones on their own as soon as they're approved.
  *
  * Body: { type, title, body, linkUrl?, linkLabel?, roles?: Role[],
- *         serviceCodes?: string[], urgent? }
+ *         serviceCodes?: string[], urgent?, blocks? }
+ * `blocks` (optional) makes it a designed email — same block shape as the
+ * template library; `body` may then be empty.
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -18,7 +20,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { parseJsonBody } from "@/lib/api-error";
 import { getOrgSettings } from "@/lib/org-settings";
 import { sendUrgentUpdate } from "@/lib/staff-updates";
-import { staffUpdateFieldsSchema } from "@/app/api/staff-updates/schema";
+import { staffUpdateFieldsSchema, withContent } from "@/app/api/staff-updates/schema";
 
 export const maxDuration = 300;
 
@@ -48,10 +50,18 @@ export const POST = withApiHandler(async (req) => {
     audienceServiceIds = services.map((s) => s.id);
   }
 
+  let content: ReturnType<typeof withContent<typeof fields>>;
+  try {
+    content = withContent(fields);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Invalid body";
+    return setVersionHeaders(NextResponse.json({ error: message }, { status: 400 }), 1);
+  }
+
   const autoApprove = (await getOrgSettings()).notifications.coworkStaffEmailsAutoApprove;
   const update = await prisma.staffUpdate.create({
     data: {
-      ...fields,
+      ...content,
       audienceRoles: roles,
       audienceServiceIds,
       source: "cowork",

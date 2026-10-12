@@ -4,27 +4,21 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
-const blockSchema = z.object({
-  type: z.enum(["heading", "text", "image", "button", "divider", "spacer"]),
-  text: z.string().optional(),
-  level: z.enum(["h1", "h2", "h3"]).optional(),
-  content: z.string().optional(),
-  url: z.string().optional(),
-  alt: z.string().optional(),
-  linkUrl: z.string().optional(),
-  label: z.string().optional(),
-  color: z.string().optional(),
-  height: z.number().optional(),
-});
+import { emailBlocksSchema } from "@/lib/email-block-schema";
+
+const CATEGORIES = ["welcome", "newsletter", "event", "announcement", "enrolment", "nurture", "custom"] as const;
+const AUDIENCES = ["parents", "staff", "both"] as const;
+
 
 const createSchema = z.object({
   name: z.string().min(1).max(200),
   category: z
-    .enum(["welcome", "newsletter", "event", "announcement", "custom"])
+    .enum(CATEGORIES)
     .default("custom"),
   subject: z.string().min(1).max(500),
   htmlContent: z.string().optional().nullable(),
-  blocks: z.array(blockSchema).optional().nullable(),
+  blocks: emailBlocksSchema.optional().nullable(),
+  audience: z.enum(AUDIENCES).optional(),
   isDefault: z.boolean().optional(),
 });
 
@@ -32,14 +26,20 @@ const templateInclude = {
   createdBy: { select: { id: true, name: true } },
 } as const;
 
-// GET /api/email-templates — list templates with optional ?category= filter
-export const GET = withApiAuth(async (req, session) => {
-  const category = new URL(req.url).searchParams.get("category");
+// GET /api/email-templates — list templates. Optional ?category= filter and
+// ?audience=staff|parents, which also includes templates marked "both".
+export const GET = withApiAuth(async (req) => {
+  const params = new URL(req.url).searchParams;
+  const category = params.get("category");
+  const audience = params.get("audience");
+  const where: Prisma.EmailTemplateWhereInput = {};
+  if (category && (CATEGORIES as readonly string[]).includes(category)) {
+    where.category = category as (typeof CATEGORIES)[number];
+  }
+  if (audience === "staff" || audience === "parents") where.audience = { in: [audience, "both"] };
 
   const templates = await prisma.emailTemplate.findMany({
-    where: category
-      ? { category: category as "welcome" | "newsletter" | "event" | "announcement" | "custom" }
-      : undefined,
+    where,
     include: templateInclude,
     orderBy: { updatedAt: "desc" },
   });
@@ -79,4 +79,4 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json(template, { status: 201 });
-});
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

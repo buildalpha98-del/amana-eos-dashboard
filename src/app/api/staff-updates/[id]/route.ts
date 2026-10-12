@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { sendUrgentUpdate } from "@/lib/staff-updates";
-import { staffUpdateFieldsSchema } from "../schema";
+import { staffUpdateFieldsSchema, withContent } from "../schema";
 
 export const maxDuration = 300;
 
@@ -33,7 +33,9 @@ export const PATCH = withApiAuth(
     if (action === "edit" || action === "approve") {
       const parsed = staffUpdateFieldsSchema.partial().safeParse(body);
       if (!parsed.success) throw ApiError.badRequest(parsed.error.issues[0]?.message ?? "Check the form.");
-      fields = Object.fromEntries(Object.entries(parsed.data).filter(([, v]) => v !== undefined));
+      // .partial() keeps body's default("") — drop keys the caller didn't send.
+      const given = Object.fromEntries(Object.entries(parsed.data).filter(([k, v]) => v !== undefined && k in body));
+      fields = withContent(given, existing);
     } else {
       throw ApiError.badRequest("Unknown action.");
     }

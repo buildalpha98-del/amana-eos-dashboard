@@ -113,3 +113,54 @@ describe("Cowork", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("designed emails (from the template library)", () => {
+  const blocks = [
+    { type: "heading", level: "h1", text: "Wellbeing week" },
+    { type: "text", content: "Assalamu Alaikum {{firstName}}," },
+    { type: "button", label: "Read the policy", url: "/policies" },
+  ];
+
+  it("go out on their own at round-up time, not inside the round-up", async () => {
+    prismaMock.staffUpdate.findMany.mockResolvedValue([
+      update({ id: "plain", audienceRoles: ["admin"] }),
+      update({ id: "designed", title: "Wellbeing week, {{firstName}}", blocks, audienceRoles: ["staff"] }),
+    ]);
+    prismaMock.staffUpdate.updateMany.mockResolvedValue({ count: 2 });
+    prismaMock.staffUpdate.update.mockResolvedValue({});
+    await sendWeeklyRoundup(new Date("2026-10-11T20:00:00Z"));
+    const calls = vi.mocked(sendEmail).mock.calls.map((c) => c[0] as { to: string; subject: string; html: string });
+    const designed = calls.find((c) => c.subject === "Wellbeing week, Aisha")!;
+    expect(designed.to).toBe("a@x.test"); // only staff
+    expect(designed.html).toContain("Assalamu Alaikum Aisha,");
+    expect(designed.html).toContain("/policies"); // made absolute
+    expect(designed.html).not.toContain("Unsubscribe");
+    const roundup = calls.find((c) => c.subject.startsWith("Your Amana staff update"))!;
+    expect(roundup.to).toBe("c@x.test");
+    expect(roundup.html).not.toContain("Wellbeing week");
+  });
+
+  it("escape staff names dropped into {{firstName}}", async () => {
+    const { staffDesignedHtml } = await import("@/lib/staff-email-design");
+    const html = staffDesignedHtml(blocks as never, { name: "<img src=x>" });
+    expect(html).not.toContain("<img src=x>");
+  });
+
+  it("a designed email needs no plain message; a simple one does", async () => {
+    const { withContent } = await import("@/app/api/staff-updates/schema");
+    expect(withContent({ body: "", blocks: blocks as never }).body).toContain("Wellbeing week");
+    expect(() => withContent({ body: "  ", blocks: null })).toThrow(/Write the message/);
+  });
+
+  it("Cowork can send blocks; javascript: links are refused", async () => {
+    prismaMock.staffUpdate.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ id: "new", ...data }));
+    const ok = await coworkPOST(createRequest("POST", "/api/cowork/staff-updates", { body: { type: "wellbeing", title: "Wellbeing week", body: "", blocks } }));
+    expect(ok.status).toBe(201);
+    const bad = await coworkPOST(
+      createRequest("POST", "/api/cowork/staff-updates", {
+        body: { type: "wellbeing", title: "x", body: "", blocks: [{ type: "button", label: "Go", url: "javascript:alert(1)" }] },
+      }),
+    );
+    expect(bad.status).toBe(400);
+  });
+});

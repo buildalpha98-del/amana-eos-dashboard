@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { sendEmail } from "@/lib/email";
-import { roundupHtml, urgentHtml } from "@/lib/staff-updates";
+import { roundupHtml, soloSubject, urgentHtml } from "@/lib/staff-updates";
+import { isDesigned } from "@/lib/staff-email-design";
 import { serviceDateOnly } from "@/lib/timezone";
 
 export const POST = withApiAuth(
@@ -15,8 +16,10 @@ export const POST = withApiAuth(
     if (!u) throw ApiError.notFound("That staff email no longer exists.");
     const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { email: true, name: true } });
     if (!me?.email) throw ApiError.badRequest("Your account has no email address.");
-    const html = u.urgent ? urgentHtml(me, u) : roundupHtml(me, [u], serviceDateOnly());
-    const res = await sendEmail({ to: me.email, subject: `[Test] ${u.urgent ? `Important: ${u.title}` : "Your Amana staff update"}`, html });
+    // Designed and urgent emails go out on their own; the rest inside the round-up.
+    const solo = u.urgent || isDesigned(u);
+    const html = solo ? urgentHtml(me, u) : roundupHtml(me, [u], serviceDateOnly());
+    const res = await sendEmail({ to: me.email, subject: `[Test] ${solo ? soloSubject(u, me) : "Your Amana staff update"}`, html });
     if (!res.sent.length) throw new ApiError(502, "The test email couldn't be sent.");
     return NextResponse.json({ sentTo: me.email });
   },

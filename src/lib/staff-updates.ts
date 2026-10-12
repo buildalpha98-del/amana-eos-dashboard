@@ -10,6 +10,10 @@
  *     → approved + urgent → sent ON ITS OWN straight away
  *   → sent | cancelled
  *
+ * A DESIGNED email (`blocks` set — built from the shared template library)
+ * always goes out as its own email: urgent ones at approval, the rest at the
+ * Monday round-up time, never squeezed inside the round-up itself.
+ *
  * Recipients: active people with an email, filtered by role and centre.
  * Shared centre mailboxes (isCentreAccount) aren't people and never get it.
  * Each person gets their own email (no shared To: line).
@@ -21,6 +25,10 @@ import { baseLayout, buttonHtml, escapeHtml } from "@/lib/email-templates/base";
 import { notifyUsers } from "@/lib/notify-user";
 import { logger } from "@/lib/logger";
 import { serviceDateOnly } from "@/lib/timezone";
+import type { EmailBlock } from "@/lib/email-marketing-layout";
+import { isDesigned, staffDesignedHtml } from "@/lib/staff-email-design";
+
+const ORIGIN = () => process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
 
 export const STAFF_UPDATE_TYPES: Record<StaffUpdateType, { label: string; colour: string }> = {
   policy_update: { label: "Policy update", colour: "#004E64" },
@@ -86,7 +94,7 @@ function paragraphs(text: string) {
 function safeLink(url: string | null) {
   if (!url) return null;
   try {
-    const u = new URL(url, process.env.NEXTAUTH_URL ?? "https://amanaoshc.company");
+    const u = new URL(url, ORIGIN());
     return u.protocol === "https:" || u.protocol === "http:" ? u.toString() : null;
   } catch {
     return null;
@@ -126,6 +134,7 @@ export function roundupHtml(person: { name: string }, updates: StaffUpdate[], we
 }
 
 export function urgentHtml(person: { name: string }, u: StaffUpdate) {
+  if (isDesigned(u)) return designedHtml(person, u);
   return baseLayout(
     `
     <p style="margin:0 0 18px;color:#1a1a2e;font-size:15px;">Assalamu Alaikum ${first(person.name)},</p>
@@ -133,6 +142,23 @@ export function urgentHtml(person: { name: string }, u: StaffUpdate) {
     <p style="margin:8px 0 0;color:#1a1a2e;font-size:15px;">Jazak Allahu Khairan,<br/>The Amana OSHC team</p>`,
     "staff",
   );
+}
+
+/** The HTML a designed update sends — the same renderer the composer previews. */
+export function designedHtml(person: { name: string }, u: Pick<StaffUpdate, "blocks">) {
+  return staffDesignedHtml(u.blocks as unknown as EmailBlock[], person, ORIGIN());
+}
+
+/**
+ * Subject line for an update sent on its own (urgent, or designed). Template
+ * subjects can carry {{firstName}} / {{name}} — filled per person (plain
+ * text: subjects aren't HTML).
+ */
+export function soloSubject(u: Pick<StaffUpdate, "title" | "urgent">, person?: { name: string }) {
+  const name = person?.name.trim() ?? "";
+  const first = name.split(/\s+/)[0] || "there";
+  const title = u.title.replace(/\{\{\s*firstName\s*\}\}/g, first).replace(/\{\{\s*name\s*\}\}/g, name || first);
+  return u.urgent ? `Important: ${title}` : title;
 }
 
 async function deliver(
@@ -165,7 +191,7 @@ export async function sendUrgentUpdate(id: string): Promise<{ recipients: number
   const u = await prisma.staffUpdate.findUniqueOrThrow({ where: { id } });
   const people = (await staffRecipients()).filter((p) => inAudience(p, u));
   const sent = await deliver(people, (p) => ({
-    subject: `Important: ${u.title}`,
+    subject: soloSubject(u, p),
     html: urgentHtml(p, u),
     key: `staff-update-${u.id}-${p.id}`,
   }));
@@ -197,16 +223,38 @@ export async function sendWeeklyRoundup(now = new Date()): Promise<{ updates: nu
   if (claimed.count === 0) return { updates: 0, people: 0, sent: 0 };
   const weekOf = serviceDateOnly(now);
   const everyone = await staffRecipients();
-  const perPerson = new Map<string, StaffUpdate[]>();
   const perUpdate = new Map<string, number>();
+  let sentTotal = 0;
+
+  // Designed emails go out on their own, each to its own audience.
+  const designed = due.filter(isDesigned);
+  for (const u of designed) {
+    const people = everyone.filter((p) => inAudience(p, u));
+    const n = await deliver(people, (p) => ({
+      subject: soloSubject(u, p),
+      html: designedHtml(p, u),
+      key: `staff-update-${u.id}-${p.id}`,
+    }));
+    sentTotal += n;
+    perUpdate.set(u.id, n);
+    await notifyUsers(prisma, people.map((p) => p.id), {
+      type: "staff_update",
+      title: u.title,
+      body: STAFF_UPDATE_TYPES[u.type].label,
+      link: null,
+    }).catch(() => undefined);
+  }
+
+  const plain = due.filter((u) => !isDesigned(u));
+  const perPerson = new Map<string, StaffUpdate[]>();
   for (const p of everyone) {
-    const mine = due.filter((u) => inAudience(p, u));
+    const mine = plain.filter((u) => inAudience(p, u));
     if (mine.length) perPerson.set(p.id, mine);
     for (const u of mine) perUpdate.set(u.id, (perUpdate.get(u.id) ?? 0) + 1);
   }
   const people = everyone.filter((p) => perPerson.has(p.id));
   const stamp = weekOf.toISOString().slice(0, 10);
-  const sent = await deliver(people, (p) => ({
+  sentTotal += await deliver(people, (p) => ({
     subject: `Your Amana staff update — week of ${weekOf.toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "UTC" })}`,
     html: roundupHtml(p, perPerson.get(p.id)!, weekOf),
     key: `staff-roundup-${stamp}-${p.id}`,
@@ -223,7 +271,7 @@ export async function sendWeeklyRoundup(now = new Date()): Promise<{ updates: nu
   await Promise.all(
     due.map((u) => prisma.staffUpdate.update({ where: { id: u.id }, data: { recipientCount: perUpdate.get(u.id) ?? 0 } })),
   );
-  return { updates: due.length, people: people.length, sent };
+  return { updates: due.length, people: people.length, sent: sentTotal };
 }
 
 /** How many people an audience reaches — shown while composing. */

@@ -21,6 +21,7 @@ const { id } = await context!.params!;
     data: {
       name: `${source.name} (Copy)`,
       category: source.category,
+      audience: source.audience,
       subject: source.subject,
       htmlContent: source.htmlContent,
       blocks: source.blocks ?? undefined,
@@ -31,4 +32,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(clone, { status: 201 });
-});
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

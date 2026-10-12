@@ -14,7 +14,9 @@ import type { EmailLayoutOptions } from "@/lib/email-marketing-layout";
 export interface EmailTemplateData {
   id: string;
   name: string;
-  category: "welcome" | "newsletter" | "event" | "announcement" | "custom";
+  category: "welcome" | "newsletter" | "event" | "announcement" | "enrolment" | "nurture" | "custom";
+  /** Who it's for — one shared library across staff emails and parent sends. */
+  audience?: EmailTemplateAudience;
   subject: string;
   htmlContent: string | null;
   blocks: unknown[] | null;
@@ -24,13 +26,19 @@ export interface EmailTemplateData {
   updatedAt: string;
 }
 
+export type EmailTemplateAudience = "parents" | "staff" | "both";
+
 // ── Templates ──────────────────────────────────────────────
 
-export function useEmailTemplates(category?: string) {
-  const params = category ? `?category=${category}` : "";
+/** `audience` "staff"/"parents" also returns templates marked "both". */
+export function useEmailTemplates(category?: string, audience?: "staff" | "parents") {
+  const qs = new URLSearchParams();
+  if (category) qs.set("category", category);
+  if (audience) qs.set("audience", audience);
+  const params = qs.size ? `?${qs}` : "";
   return useQuery<EmailTemplateData[]>({
     staleTime: 30_000,
-    queryKey: ["email-templates", category || "all"],
+    queryKey: ["email-templates", category || "all", audience || "any"],
     queryFn: () => fetchApi<EmailTemplateData[]>(`/api/email-templates${params}`),
     retry: 2,
   });

@@ -1,7 +1,10 @@
 "use client";
 
-import { Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { Plus, Trash2, ChevronUp, ChevronDown, ImageUp } from "lucide-react";
 import type { EmailBlock } from "@/lib/email-marketing-layout";
+import { uploadFileSmart } from "@/lib/upload-client";
+import { toast } from "@/hooks/useToast";
 
 interface Props {
   blocks: EmailBlock[];
@@ -27,6 +30,20 @@ const TYPE_LABELS: Record<EmailBlock["type"], string> = {
 };
 
 export default function EmailBlockEditor({ blocks, onChange }: Props) {
+  const [uploading, setUploading] = useState<number | null>(null);
+
+  async function uploadImage(index: number, file: File) {
+    setUploading(index);
+    try {
+      const { fileUrl } = await uploadFileSmart(file);
+      update(index, { url: fileUrl, alt: blocks[index].alt || file.name.replace(/\.[^.]+$/, "") });
+    } catch (err) {
+      toast({ variant: "destructive", description: err instanceof Error ? err.message : "Upload failed" });
+    } finally {
+      setUploading(null);
+    }
+  }
+
   function update(index: number, patch: Partial<EmailBlock>) {
     const next = blocks.map((b, i) => (i === index ? { ...b, ...patch } : b));
     onChange(next);
@@ -78,6 +95,7 @@ export default function EmailBlockEditor({ blocks, onChange }: Props) {
               <button
                 type="button"
                 onClick={() => moveUp(i)}
+                aria-label="Move block up"
                 disabled={i === 0}
                 className="rounded p-1 text-muted hover:bg-hover disabled:opacity-30"
               >
@@ -86,6 +104,7 @@ export default function EmailBlockEditor({ blocks, onChange }: Props) {
               <button
                 type="button"
                 onClick={() => moveDown(i)}
+                aria-label="Move block down"
                 disabled={i === blocks.length - 1}
                 className="rounded p-1 text-muted hover:bg-hover disabled:opacity-30"
               >
@@ -94,6 +113,7 @@ export default function EmailBlockEditor({ blocks, onChange }: Props) {
               <button
                 type="button"
                 onClick={() => remove(i)}
+                aria-label="Remove block"
                 className="rounded p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
               >
                 <Trash2 className="h-4 w-4" />
@@ -139,13 +159,34 @@ export default function EmailBlockEditor({ blocks, onChange }: Props) {
 
           {block.type === "image" && (
             <div className="space-y-2">
-              <input
-                type="url"
-                value={block.url || ""}
-                onChange={(e) => update(i, { url: e.target.value })}
-                placeholder="Image URL"
-                className="w-full rounded-md border border-border bg-surface px-3 py-1.5 text-sm"
-              />
+              {block.url && /^https?:\/\//.test(block.url) && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={block.url} alt="" className="max-h-32 rounded-md border border-border object-contain" />
+              )}
+              <div className="flex gap-2">
+                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-hover">
+                  <ImageUp className="h-4 w-4" aria-hidden />
+                  {uploading === i ? "Uploading…" : "Upload image"}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    className="sr-only"
+                    disabled={uploading !== null}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = "";
+                      if (f) void uploadImage(i, f);
+                    }}
+                  />
+                </label>
+                <input
+                  type="url"
+                  value={block.url || ""}
+                  onChange={(e) => update(i, { url: e.target.value })}
+                  placeholder="…or paste an image URL"
+                  className="min-w-0 flex-1 rounded-md border border-border bg-surface px-3 py-1.5 text-sm"
+                />
+              </div>
               <input
                 type="text"
                 value={block.alt || ""}

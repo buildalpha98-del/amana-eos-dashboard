@@ -4,27 +4,21 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
-const blockSchema = z.object({
-  type: z.enum(["heading", "text", "image", "button", "divider", "spacer"]),
-  text: z.string().optional(),
-  level: z.enum(["h1", "h2", "h3"]).optional(),
-  content: z.string().optional(),
-  url: z.string().optional(),
-  alt: z.string().optional(),
-  linkUrl: z.string().optional(),
-  label: z.string().optional(),
-  color: z.string().optional(),
-  height: z.number().optional(),
-});
+import { emailBlocksSchema } from "@/lib/email-block-schema";
+
+const CATEGORIES = ["welcome", "newsletter", "event", "announcement", "enrolment", "nurture", "custom"] as const;
+const AUDIENCES = ["parents", "staff", "both"] as const;
+
 
 const updateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   category: z
-    .enum(["welcome", "newsletter", "event", "announcement", "custom"])
+    .enum(CATEGORIES)
     .optional(),
   subject: z.string().min(1).max(500).optional(),
   htmlContent: z.string().optional().nullable(),
-  blocks: z.array(blockSchema).optional().nullable(),
+  blocks: emailBlocksSchema.optional().nullable(),
+  audience: z.enum(AUDIENCES).optional(),
   isDefault: z.boolean().optional(),
 });
 
@@ -107,6 +101,15 @@ export const DELETE = withApiAuth(async (req, session, context) => {
     return NextResponse.json(
       { error: "Template not found" },
       { status: 404 },
+    );
+  }
+
+  // A nurture/sequence step pointing at it would silently lose its email.
+  const inUse = await prisma.sequenceStep.count({ where: { emailTemplateId: id } });
+  if (inUse > 0) {
+    return NextResponse.json(
+      { error: `This template is used by ${inUse} automated sequence step${inUse === 1 ? "" : "s"}. Change those first.` },
+      { status: 409 },
     );
   }
 

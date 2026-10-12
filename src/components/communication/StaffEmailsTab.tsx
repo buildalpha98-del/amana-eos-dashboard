@@ -9,7 +9,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Mail, Plus, Send, Bot } from "lucide-react";
+import { Mail, Plus, Send, Bot, LayoutTemplate, Palette } from "lucide-react";
 import type { Role, StaffUpdate, StaffUpdateType } from "@prisma/client";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
@@ -20,6 +20,12 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { useServices } from "@/hooks/useServices";
 import { ROLE_DISPLAY_NAMES } from "@/lib/role-permissions";
+import EmailBlockEditor from "@/components/email/EmailBlockEditor";
+import EmailPreview from "@/components/email/EmailPreview";
+import { SaveAsTemplateDialog, TemplateGallery, TemplateLibrary } from "@/components/email/TemplateLibrary";
+import { useEmailTemplates } from "@/hooks/useEmailTemplates";
+import type { EmailBlock } from "@/lib/email-marketing-layout";
+import { isDesigned, staffDesignedHtml } from "@/lib/staff-email-design";
 
 type Update = Omit<StaffUpdate, "createdAt" | "updatedAt" | "approvedAt" | "sentAt"> & {
   createdAt: string;
@@ -49,6 +55,7 @@ export function StaffEmailsTab() {
     retry: 2,
   });
   const [editing, setEditing] = useState<Update | "new" | null>(null);
+  const [view, setView] = useState<"emails" | "templates">("emails");
   const refresh = () => qc.invalidateQueries({ queryKey: ["staff-updates"] });
 
   const act = useMutation({
@@ -92,6 +99,11 @@ export function StaffEmailsTab() {
         <div className="flex flex-wrap items-center gap-2">
           <span className={cn("rounded-full px-2.5 py-0.5 text-2xs font-semibold", meta.chip)}>{meta.label}</span>
           {u.urgent && <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-2xs font-semibold text-red-800 dark:bg-red-950/50 dark:text-red-200">Urgent</span>}
+          {isDesigned(u) && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2.5 py-0.5 text-2xs font-medium text-brand">
+              <Palette className="h-3 w-3" aria-hidden /> Designed email
+            </span>
+          )}
           {u.source === "cowork" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-surface px-2.5 py-0.5 text-2xs font-medium text-muted">
               <Bot className="h-3 w-3" aria-hidden /> From Cowork
@@ -136,14 +148,40 @@ export function StaffEmailsTab() {
           <h2 className="text-lg font-heading font-semibold text-foreground">Staff emails</h2>
           <p className="mt-1 text-sm text-muted">
             Policy updates, reminders, things to read, professional development and wellbeing. Approved emails go
-            out together in <strong>Monday&rsquo;s round-up at 7am</strong>; urgent ones go straight away. Shared
-            centre mailboxes never receive them.
+            out together in <strong>Monday&rsquo;s round-up at 7am</strong>; urgent ones go straight away.
+            Designed emails (from a template) go out on their own. Shared centre mailboxes never receive them.
           </p>
         </div>
         <Button onClick={() => setEditing("new")}>
           <Plus className="h-4 w-4" aria-hidden /> New staff email
         </Button>
       </div>
+
+      <div className="flex gap-2" role="tablist" aria-label="Staff emails view">
+        {([
+          { key: "emails", label: "Emails", icon: Mail },
+          { key: "templates", label: "Templates", icon: LayoutTemplate },
+        ] as const).map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={view === key}
+            onClick={() => setView(key)}
+            className={cn(
+              "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium",
+              view === key ? "border-brand bg-brand text-white" : "border-border bg-card text-muted hover:text-foreground",
+            )}
+          >
+            <Icon className="h-4 w-4" aria-hidden /> {label}
+          </button>
+        ))}
+      </div>
+
+      {view === "templates" ? (
+        <TemplateLibrary defaultFilter="staff" />
+      ) : (
+      <>
 
       <label className="flex max-w-2xl items-start gap-3 rounded-xl border border-border bg-surface/50 p-4 text-sm">
         <input
@@ -176,6 +214,8 @@ export function StaffEmailsTab() {
           <Section title="Going out in Monday’s round-up" empty="Nothing approved for Monday yet." items={monday} render={(u) => <Card key={u.id} u={u} />} />
           <Section title="Sent" empty="Nothing sent yet." items={sent} render={(u) => <Card key={u.id} u={u} />} />
         </>
+      )}
+      </>
       )}
 
       {editing && (
@@ -214,6 +254,19 @@ function Composer({ initial, onClose, onSaved }: { initial: Update | null; onClo
   const [centres, setCentres] = useState<string[]>(initial?.audienceServiceIds ?? []);
   const [urgent, setUrgent] = useState(initial?.urgent ?? false);
   const [reach, setReach] = useState<number | null>(null);
+  const [format, setFormat] = useState<"simple" | "designed">(initial && isDesigned(initial) ? "designed" : "simple");
+  const [blocks, setBlocks] = useState<EmailBlock[]>(() =>
+    initial && isDesigned(initial) ? (initial.blocks as unknown as EmailBlock[]) : [],
+  );
+  const [picking, setPicking] = useState(!(initial && isDesigned(initial)));
+  const [designView, setDesignView] = useState<"edit" | "preview">("edit");
+  const [saveTemplate, setSaveTemplate] = useState(false);
+  const { data: templates } = useEmailTemplates(undefined, "staff");
+  const designed = format === "designed";
+  const previewHtml = useMemo(
+    () => (designed && designView === "preview" ? staffDesignedHtml(blocks, { name: "Sam Example" }, window.location.origin) : ""),
+    [designed, designView, blocks],
+  );
 
   const audience = useMemo(() => ({ audienceRoles: roles, audienceServiceIds: centres }), [roles, centres]);
   useEffect(() => {
@@ -228,20 +281,30 @@ function Composer({ initial, onClose, onSaved }: { initial: Update | null; onClo
 
   const save = useMutation({
     mutationFn: (approve: boolean) => {
-      const fields = { type, title, body, linkUrl: linkUrl || null, linkLabel: linkLabel || null, ...audience, urgent };
+      const fields = designed
+        ? { type, title, body: "", linkUrl: null, linkLabel: null, ...audience, urgent, blocks }
+        : { type, title, body, linkUrl: linkUrl || null, linkLabel: linkLabel || null, ...audience, urgent, blocks: null };
       return initial
         ? mutateApi(`/api/staff-updates/${initial.id}`, { method: "PATCH", body: { action: approve ? "approve" : "edit", ...fields } })
         : mutateApi(`/api/staff-updates`, { method: "POST", body: { ...fields, approve } });
     },
     onSuccess: (_r, approve) => {
       toast({
-        description: !approve ? "Saved as a draft." : urgent ? "Sent to staff now." : "Approved — it goes out in Monday's round-up.",
+        description: !approve
+          ? "Saved as a draft."
+          : urgent
+            ? "Sent to staff now."
+            : designed
+              ? "Approved — it goes out on its own at Monday's round-up time."
+              : "Approved — it goes out in Monday's round-up.",
       });
       onSaved();
     },
     onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
   });
 
+  const unfilled = designed && JSON.stringify(blocks).match(/\[[A-Z][^\]]{0,40}\]/);
+  const canSave = !!title.trim() && (designed ? blocks.length > 0 : !!body.trim());
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   const field = "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand";
   const chip = (on: boolean) =>
@@ -249,7 +312,7 @@ function Composer({ initial, onClose, onSaved }: { initial: Update | null; onClo
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent size="lg">
+      <DialogContent size={designed ? "full" : "lg"}>
         <DialogTitle className="text-lg font-heading font-semibold">{initial ? "Edit staff email" : "New staff email"}</DialogTitle>
         <div className="mt-4 max-h-[70vh] space-y-4 overflow-y-auto pr-1">
           <fieldset>
@@ -262,10 +325,29 @@ function Composer({ initial, onClose, onSaved }: { initial: Update | null; onClo
               ))}
             </div>
           </fieldset>
+          <fieldset>
+            <legend className="mb-2 text-sm font-medium text-foreground/80">Format</legend>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" aria-pressed={!designed} onClick={() => setFormat("simple")} className={chip(!designed)}>
+                Simple update
+              </button>
+              <button type="button" aria-pressed={designed} onClick={() => setFormat("designed")} className={chip(designed)}>
+                <Palette className="mr-1 inline h-3.5 w-3.5" aria-hidden />
+                Designed email
+              </button>
+            </div>
+            <p className="mt-1.5 text-xs text-muted">
+              {designed
+                ? "Built from a template with headings, images and buttons. Goes out as its own email."
+                : "A short message that goes in Monday's round-up with everything else."}
+            </p>
+          </fieldset>
           <label className="block text-sm font-medium text-foreground/80">
-            Title
+            {designed ? "Subject line" : "Title"}
             <input className={cn(field, "mt-1")} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} placeholder="e.g. Updated Sun Protection Policy" />
           </label>
+          {!designed ? (
+<>
           <label className="block text-sm font-medium text-foreground/80">
             Message
             <textarea className={cn(field, "mt-1 min-h-36")} value={body} onChange={(e) => setBody(e.target.value)} maxLength={5000} placeholder="What staff need to know, in a few short paragraphs." />
@@ -280,6 +362,49 @@ function Composer({ initial, onClose, onSaved }: { initial: Update | null; onClo
               <input className={cn(field, "mt-1")} value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} maxLength={60} placeholder="Read the policy" />
             </label>
           </div>
+</>
+          ) : picking ? (
+            <section aria-label="Choose a template" className="space-y-2">
+              <p className="text-sm font-medium text-foreground/80">Start from a template</p>
+              <TemplateGallery
+                templates={templates ?? []}
+                blank={() => {
+                  setBlocks([{ type: "heading", level: "h1", text: "" }, { type: "text", content: "Assalamu Alaikum {{firstName}}," }]);
+                  setPicking(false);
+                }}
+                onPick={(t) => {
+                  setBlocks(Array.isArray(t.blocks) ? (t.blocks as EmailBlock[]) : []);
+                  if (!title.trim()) setTitle(t.subject.slice(0, 160));
+                  setPicking(false);
+                }}
+              />
+              {templates && templates.length === 0 && (
+                <p className="text-xs text-muted">No staff templates yet — open the Templates view and press &ldquo;Load starter templates&rdquo;.</p>
+              )}
+            </section>
+          ) : (
+            <section aria-label="Design" className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {(["edit", "preview"] as const).map((v) => (
+                  <button key={v} type="button" aria-pressed={designView === v} onClick={() => setDesignView(v)} className={chip(designView === v)}>
+                    {v === "edit" ? "Build" : "Preview"}
+                  </button>
+                ))}
+                <span className="ml-auto flex gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => setPicking(true)}>
+                    Change template
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setSaveTemplate(true)} disabled={blocks.length === 0}>
+                    Save as template
+                  </Button>
+                </span>
+              </div>
+              {designView === "edit" ? <EmailBlockEditor blocks={blocks} onChange={setBlocks} /> : <EmailPreview html={previewHtml} />}
+              <p className="text-xs text-muted">
+                <code>{"{{firstName}}"}</code> becomes each person&rsquo;s first name. Fill in anything in [square brackets] before sending.
+              </p>
+            </section>
+          )}
           <fieldset>
             <legend className="mb-2 text-sm font-medium text-foreground/80">Who gets it? <span className="font-normal text-muted">(none ticked = everyone)</span></legend>
             <div className="flex flex-wrap gap-2">
@@ -302,18 +427,26 @@ function Composer({ initial, onClose, onSaved }: { initial: Update | null; onClo
             <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[var(--color-brand)]" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
             <span>
               <span className="font-medium text-foreground">Urgent — send on its own as soon as it&rsquo;s approved</span>
-              <span className="block text-muted">Otherwise it goes in Monday&rsquo;s round-up with everything else.</span>
+              <span className="block text-muted">
+                {designed ? "Otherwise it goes out at Monday's round-up time." : "Otherwise it goes in Monday’s round-up with everything else."}
+              </span>
             </span>
           </label>
         </div>
+        {unfilled && (
+          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            Still has a blank to fill in: <strong>{unfilled[0]}</strong>
+          </p>
+        )}
+        <SaveAsTemplateDialog open={saveTemplate} onClose={() => setSaveTemplate(false)} subject={title} blocks={blocks} defaultAudience="staff" />
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>
             Close
           </Button>
-          <Button variant="secondary" onClick={() => save.mutate(false)} loading={save.isPending && save.variables === false} disabled={!title.trim() || !body.trim()}>
+          <Button variant="secondary" onClick={() => save.mutate(false)} loading={save.isPending && save.variables === false} disabled={!canSave}>
             Save draft
           </Button>
-          <Button onClick={() => save.mutate(true)} loading={save.isPending && save.variables === true} disabled={!title.trim() || !body.trim()}>
+          <Button onClick={() => save.mutate(true)} loading={save.isPending && save.variables === true} disabled={!canSave}>
             {urgent ? "Approve and send now" : "Approve for Monday"}
           </Button>
         </div>

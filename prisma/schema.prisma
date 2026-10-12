@@ -7437,10 +7437,19 @@ enum EmailTemplateCategory {
   custom
 }
 
+/// Who a saved email template is for (Daniel, 12 Oct 2026) — one shared
+/// library: staff emails pick from staff + both, parent sends from parents + both.
+enum EmailTemplateAudience {
+  parents
+  staff
+  both
+}
+
 model EmailTemplate {
   id          String                @id @default(cuid())
   name        String
   category    EmailTemplateCategory @default(custom)
+  audience    EmailTemplateAudience @default(parents)
   subject     String
   htmlContent String?               @db.Text
   blocks      Json?
@@ -11217,6 +11226,9 @@ model StaffUpdate {
   approvedByName     String?
   approvedAt         DateTime?
   sentAt             DateTime?
+  /// A DESIGNED email (block builder, from a template) instead of a plain
+  /// update: goes out as its own email, not inside the Monday round-up.
+  blocks             Json?
   recipientCount     Int?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
