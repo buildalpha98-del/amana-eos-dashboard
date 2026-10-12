@@ -4,6 +4,7 @@
  */
 import { PARENT_APP_OPEN } from "@/lib/parent-portal-lockdown";
 import { baseLayout, buttonHtml, parentEmailLayout } from "@/lib/email-templates";
+import { escapeHtml } from "@/lib/email-templates/base";
 
 export async function parentVerifyEmail(params: {
   name: string;
@@ -173,11 +174,13 @@ export async function enrolmentApprovedEmail(params: {
 }): Promise<{ subject: string; html: string }> {
   const base = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
 
+  // Family-typed names go into HTML: escape them.
+  const names = params.childNames.map(escapeHtml);
   const child =
-    params.childNames.length === 1
-      ? params.childNames[0]
-      : params.childNames.length > 1
-        ? `${params.childNames.slice(0, -1).join(", ")} and ${params.childNames.at(-1)}`
+    names.length === 1
+      ? names[0]
+      : names.length > 1
+        ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`
         : "your child";
 
   const verifyBlock = params.verifyLink
@@ -187,20 +190,44 @@ export async function enrolmentApprovedEmail(params: {
       ${buttonHtml("Verify my email address", params.verifyLink)}
       <p style="font-size:13px;color:#6b7280;">This link expires in 24 hours.
       If it does, just ask us for a new one.</p>`
-    : `${buttonHtml("Go to my Family Portal", `${base}/parent`)}`;
+    : PARENT_APP_OPEN
+      ? `${buttonHtml("Go to my Family Portal", `${base}/parent`)}`
+      : "";
+
+  // While the family app is closed (PARENT_APP_OPEN) there is no hub to
+  // send them to — the next steps are OWNA and CCS, and our team.
+  const hubBlock = PARENT_APP_OPEN
+    ? `<p><strong>Get to know your centre:</strong> find your team’s contact
+      details, arrival and pickup information, and school resources in your
+      Amana family hub.</p>
+      ${buttonHtml("Explore my centre", `${base}/parent/my-centre`)}`
+    : `<p><strong>What happens next:</strong></p>
+      <ol style="margin:0 0 16px;padding-left:20px;">
+        <li>Our team sets your family up in <strong>OWNA</strong>, where you
+        book sessions and pay fees. Watch for your OWNA invitation.</li>
+        <li>Claiming Child Care Subsidy? When Services Australia asks, confirm
+        the enrolment in your <strong>myGov / Centrelink</strong> account so
+        your fees can be subsidised.</li>
+        <li>We'll confirm your first booked day with you before ${child} starts.</li>
+      </ol>
+      <p>We'll let you know when the Amana family app is ready.</p>`;
 
   return {
-    subject: `${child}'s enrolment is confirmed — Amana OSHC`,
+    // Subjects are plain text — the unescaped names.
+    subject: `${
+      params.childNames.length === 1
+        ? params.childNames[0]
+        : params.childNames.length > 1
+          ? `${params.childNames.slice(0, -1).join(", ")} and ${params.childNames.at(-1)}`
+          : "Your child"
+    }'s enrolment is confirmed — Amana OSHC`,
     html: parentEmailLayout(
       `
-      <p>Assalamu alaikum ${params.name},</p>
+      <p>Assalamu alaikum ${escapeHtml(params.name)},</p>
       <p>Good news — ${child}'s enrolment with Amana OSHC has been
       confirmed. We're looking forward to having them with us.</p>
       ${verifyBlock}
-      <p><strong>Get to know your centre:</strong> find your team’s contact
-      details, arrival and pickup information, and school resources in your
-      Amana family hub.</p>
-      ${buttonHtml("Explore my centre", `${base}/parent/my-centre`)}
+      ${hubBlock}
       <p><strong>Before your first day:</strong> our team sets up your family
       in OWNA separately. Please make sure your OWNA access and booked sessions
       are confirmed with us before attending. Your Amana password does not sign

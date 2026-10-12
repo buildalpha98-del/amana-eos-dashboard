@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/Button";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { isPublicParentRoute } from "@/lib/parent-routes";
@@ -144,19 +145,30 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   //
   // Once submitted they get the full portal but still can't book, until
   // staff approve. That distinction lives in canBook(), not here.
-  const { data: parentState } = useQuery<{ state: ParentEnrolmentState }>({
+  const {
+    data: parentState,
+    isPending: stateLoading,
+    isError: stateFailed,
+    refetch: retryState,
+    isFetching: stateRetrying,
+  } = useQuery<{ state: ParentEnrolmentState }>({
     queryKey: ["parent", "state"],
     queryFn: () => fetchApi("/api/parent/state"),
     enabled: isAuthenticated,
     staleTime: 60_000,
-    retry: false,
+    // A blip shouldn't strand a family on the error card.
+    retry: PARENT_APP_OPEN ? false : 1,
   });
   const mustEnrol = parentState?.state === "needs_enrolment";
   // Submitted, but the app isn't open to families yet (PARENT_APP_OPEN):
   // the thank-you page is all they get. Only once the state has loaded, so
   // a family mid-enrolment is never bounced there first.
   const appClosed = !PARENT_APP_OPEN && !!parentState && !mustEnrol;
-  const { data: conversations } = useParentConversations(isAuthenticated && !isPublicParentRoute(pathname));
+  // Messages are part of the app: not fetched while it's closed (the API
+  // refuses them then anyway).
+  const { data: conversations } = useParentConversations(
+    PARENT_APP_OPEN && isAuthenticated && !isPublicParentRoute(pathname),
+  );
   const [actionsOpen, setActionsOpen] = useState(false);
   const unreadCount = (conversations ?? []).reduce(
     (sum, c) => sum + (c.unreadCount ?? 0),
@@ -208,6 +220,45 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   // Not authenticated — auth provider will redirect, but render nothing in the meantime
   if (!isAuthenticated) {
     return null;
+  }
+
+  // While the app is closed, which page a family may see depends on their
+  // enrolment state — so show nothing of the portal until it's known, and
+  // never fall back to the portal if it can't be loaded.
+  if (!PARENT_APP_OPEN && !parentState) {
+    if (stateLoading && !stateFailed) {
+      return (
+        <div className="min-h-screen bg-parent-bg flex items-center justify-center">
+          <div className="animate-spin h-8 w-8 border-4 border-brand border-t-transparent rounded-full" />
+        </div>
+      );
+    }
+    return (
+      <div data-v2="parent" className="parent-portal min-h-screen bg-parent-bg px-4 py-16">
+        <main className="mx-auto max-w-lg rounded-3xl bg-card p-8 space-y-5 shadow-sm" role="alert">
+          <Image src="/logo-icon.svg" alt="Amana OSHC" width={32} height={44} />
+          <h1 className="text-2xl font-heading font-semibold">We couldn&rsquo;t load your account just now</h1>
+          <p className="text-muted leading-relaxed">
+            Please check your connection and try again. Your enrolment is saved.
+          </p>
+          <Button onClick={() => void retryState()} loading={stateRetrying}>
+            Try again
+          </Button>
+          <div className="flex gap-5">
+            <Link href="/support" className="flex min-h-11 items-center text-brand font-semibold underline underline-offset-4">
+              Help
+            </Link>
+            <button
+              type="button"
+              onClick={logout}
+              className="flex min-h-11 items-center text-brand font-semibold underline underline-offset-4"
+            >
+              Sign out
+            </button>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   // ── TEMPORARY LOCKDOWN ──────────────────────────────────────

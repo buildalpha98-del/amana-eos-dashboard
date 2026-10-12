@@ -4,9 +4,19 @@ import { sendEmail } from "@/lib/email";
 import { sendParentWelcomeInvite } from "@/lib/notifications/parent-welcome";
 import { enrolmentReceivedEmail, enrolmentApprovedEmail } from "@/lib/email-templates/parent-account";
 import { UNSUBSCRIBE_URL_TOKEN } from "@/lib/email-templates/base";
+// The family app's open/closed switch, flipped per test. These tests cover
+// the OPEN app unless they say otherwise; the closed app holds invites.
+const app = vi.hoisted(() => ({ open: true }));
+vi.mock("@/lib/parent-portal-lockdown", async (orig) => ({
+  ...(await orig<typeof import("@/lib/parent-portal-lockdown")>()),
+  get PARENT_APP_OPEN() {
+    return app.open;
+  },
+}));
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn() }));
 
 beforeEach(() => {
+  app.open = true;
   vi.clearAllMocks();
   prismaMock.centreContact.findUnique.mockResolvedValue({
     id: "contact-test", email: "parent@example.test", firstName: "Aysha",
@@ -54,4 +64,32 @@ it("brands receipt and approval emails consistently with the parent portal", asy
     expect(html).toContain("OWNA");
     expect(html).not.toContain(UNSUBSCRIBE_URL_TOKEN);
   }
+});
+
+describe("while the family app is closed", () => {
+  beforeEach(() => {
+    app.open = false;
+  });
+
+  it("holds the welcome invite and mints no sign-in link", async () => {
+    const res = await sendParentWelcomeInvite({ contactId: "contact-1" });
+    expect(res).toEqual({ sent: false, held: true });
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(prismaMock.parentMagicLink.create).not.toHaveBeenCalled();
+  });
+
+  it("approval email gives next steps instead of portal buttons", async () => {
+    const { html, subject } = await enrolmentApprovedEmail({ name: "Aysha", childNames: ["Zayd"], verifyLink: null });
+    expect(subject).toBe("Zayd's enrolment is confirmed — Amana OSHC");
+    expect(html).not.toContain("Go to my Family Portal");
+    expect(html).not.toContain("Explore my centre");
+    expect(html).toContain("OWNA");
+    expect(html).toContain("myGov");
+  });
+
+  it("escapes family-typed names in the approval email but keeps the subject plain", async () => {
+    const { html, subject } = await enrolmentApprovedEmail({ name: "<b>A</b>", childNames: ["O'Brien"], verifyLink: null });
+    expect(html).not.toContain("<b>A</b>");
+    expect(subject).toBe("O'Brien's enrolment is confirmed — Amana OSHC");
+  });
 });

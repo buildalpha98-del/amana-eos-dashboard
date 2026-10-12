@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { sendNotificationEmail } from "@/lib/notifications/sendEmail";
-import { parentEmailLayout, baseLayout, buttonHtml } from "@/lib/email-templates/base";
+import { parentEmailLayout, baseLayout, buttonHtml, escapeHtml } from "@/lib/email-templates/base";
+import { PARENT_APP_OPEN } from "@/lib/parent-portal-lockdown";
 import { sendPushToContact } from "@/lib/push/webPush";
 import { sendSms } from "@/lib/sms";
 import { logger } from "@/lib/logger";
@@ -39,7 +40,7 @@ export async function sendNewMessageNotification(
       include: {
         conversation: {
           include: {
-            service: { select: { id: true, name: true } },
+            service: { select: { id: true, name: true, email: true, phone: true } },
             family: { select: { id: true, firstName: true, lastName: true, email: true } },
           },
         },
@@ -66,22 +67,39 @@ export async function sendNewMessageNotification(
         .filter(Boolean)
         .join(" ") || "Parent";
 
+      // While the family app is closed (PARENT_APP_OPEN) the parent can't
+      // open Messages — so the message itself goes in the email, with the
+      // centre's own contact details for a reply.
+      const service = conversation.service;
+      const contactLine = [
+        service.phone ? `call <strong>${escapeHtml(service.phone)}</strong>` : null,
+        service.email ? `email <strong>${escapeHtml(service.email)}</strong>` : null,
+      ]
+        .filter(Boolean)
+        .join(" or ");
+      const readIt = PARENT_APP_OPEN
+        ? `<p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
+            Log in to your parent portal to read and reply.
+          </p>
+          ${buttonHtml("View Message", `${PORTAL_URL}/parent/messages/${conversation.id}`)}`
+        : `<div style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #FECE00;background:#FFFAE6;color:#1a1a2e;font-size:15px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(message.body ?? "")}</div>
+          <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
+            To reply, ${contactLine || "contact your centre"}.
+          </p>`;
+
       await sendNotificationEmail({
         to: parentEmail,
         toName: parentName,
         subject: `New message from ${serviceName} — ${subject}`,
         html: parentEmailLayout(`
           <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
-            Assalamu Alaikum ${parentName},
+            Assalamu Alaikum ${escapeHtml(parentName)},
           </p>
           <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
-            You have a new message from <strong>${serviceName}</strong> regarding
-            &ldquo;${subject}&rdquo;.
+            You have a new message from <strong>${escapeHtml(serviceName)}</strong> regarding
+            &ldquo;${escapeHtml(subject)}&rdquo;.
           </p>
-          <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
-            Log in to your parent portal to read and reply.
-          </p>
-          ${buttonHtml("View Message", `${PORTAL_URL}/parent/messages/${conversation.id}`)}
+          ${readIt}
           <p style="margin:24px 0 0;color:#1a1a2e;font-size:15px;line-height:1.6;">
             Jazak Allahu Khairan,<br/>
             The Amana OSHC Team
@@ -226,7 +244,7 @@ export async function sendBroadcastNotification(
               <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
                 ${broadcast.body}
               </p>
-              ${buttonHtml("Open Parent Portal", `${PORTAL_URL}/parent`)}
+              ${PARENT_APP_OPEN ? buttonHtml("Open Parent Portal", `${PORTAL_URL}/parent`) : ""}
               <p style="margin:24px 0 0;color:#1a1a2e;font-size:15px;line-height:1.6;">
                 Jazak Allahu Khairan,<br/>
                 The Amana OSHC Team

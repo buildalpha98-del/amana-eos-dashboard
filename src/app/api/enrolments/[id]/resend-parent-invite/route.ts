@@ -3,6 +3,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { sendParentWelcomeInvite } from "@/lib/notifications/parent-welcome";
+import { APP_CLOSED_INVITE_MESSAGE, PARENT_APP_OPEN } from "@/lib/parent-portal-lockdown";
 import { logger } from "@/lib/logger";
 
 const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
@@ -21,6 +22,8 @@ const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
  */
 export const POST = withApiAuth(
   async (_req, session, context) => {
+    // The family app is closed: an invite would only lead to the thank-you page.
+    if (!PARENT_APP_OPEN) throw ApiError.conflict(APP_CLOSED_INVITE_MESSAGE);
     const { id } = (await context!.params!) as { id: string };
 
     const submission = await prisma.enrolmentSubmission.findUnique({

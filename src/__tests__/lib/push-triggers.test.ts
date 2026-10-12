@@ -53,6 +53,7 @@ import {
   notifyParentNewPost,
 } from "@/lib/parent-notifications";
 import { sendNewMessageNotification } from "@/lib/notifications/messaging";
+import { sendNotificationEmail } from "@/lib/notifications/sendEmail";
 
 const mockedSendPushToParentEmail = vi.mocked(sendPushToParentEmail);
 const mockedSendPushToContact = vi.mocked(sendPushToContact);
@@ -185,6 +186,28 @@ describe("parent-post push trigger", () => {
 describe("messaging push trigger", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("puts the message itself in the email while the family app is closed", async () => {
+    // PARENT_APP_OPEN is false: the parent can't open Messages, so the email
+    // must carry the message and say how to reply.
+    prismaMock.message.findUnique.mockResolvedValue({
+      senderType: "staff",
+      body: "Zayd left his <b>jumper</b> here today.",
+      conversation: {
+        id: "conv-1",
+        subject: "Lost property",
+        service: { id: "svc-1", name: "MFIS Greenacre", email: "mfisgreenacre@amanaoshc.com.au", phone: "0400 000 000" },
+        family: { id: "contact-1", email: "parent@x.com", firstName: "Aysha", lastName: "K" },
+      },
+    });
+    await sendNewMessageNotification("msg-1");
+    await flush();
+    const { html } = vi.mocked(sendNotificationEmail).mock.calls[0][0] as { html: string };
+    expect(html).toContain("Zayd left his &lt;b&gt;jumper&lt;/b&gt; here today.");
+    expect(html).toContain("mfisgreenacre@amanaoshc.com.au");
+    expect(html).toContain("0400 000 000");
+    expect(html).not.toContain("View Message");
   });
 
   it("fires a push to the parent's contactId when staff sends a new message", async () => {

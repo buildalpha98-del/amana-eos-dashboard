@@ -27,6 +27,33 @@ export const PARENT_APP_OPEN = false;
 
 export const ENROL_THANK_YOU_PATH = "/parent/enrol/thank-you";
 
+/**
+ * Parent APIs a family can use while the app is closed: the enrolment form
+ * (draft, sibling re-open, uploads), the thank-you page (state, centre
+ * details), the Help page's "signed in?" check, and sign-in/out. Everything
+ * else is the app — withParentAuth refuses it server-side, so a cached tab,
+ * bookmark or direct call can't reach what the shell no longer shows.
+ */
+const PARENT_API_OPEN_WHILE_CLOSED = [
+  "/api/parent/state",
+  "/api/parent/enrolment-draft",
+  "/api/parent/centres",
+  "/api/parent/upload",
+  "/api/parent/me",
+  "/api/parent/auth",
+];
+
+export function isParentApiAllowedWhileAppClosed(pathname: string): boolean {
+  return PARENT_API_OPEN_WHILE_CLOSED.some((base) => pathname === base || pathname.startsWith(`${base}/`));
+}
+
+export const APP_CLOSED_MESSAGE =
+  "The Amana family app isn't open yet. Bookings and fees are in OWNA, and your centre can help with anything else.";
+
+/** What staff see if they try to (re)send a portal invite while the app is closed. */
+export const APP_CLOSED_INVITE_MESSAGE =
+  "The Amana family app isn't open to families yet, so there's no sign-in link to send. Families book and pay in OWNA — send their OWNA invitation from OWNA.";
+
 /** Pages a submitted family can reach while the app is closed: the enrolment flow only. */
 export function isAllowedWhileAppClosed(pathname: string | null | undefined): boolean {
   if (!pathname) return false;
