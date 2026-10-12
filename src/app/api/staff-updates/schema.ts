@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Prisma, Role, StaffUpdateType } from "@prisma/client";
 import { emailBlocksSchema } from "@/lib/email-block-schema";
-import { blocksSummary } from "@/lib/staff-email-design";
+import { blocksSummary, htmlSummary, MAX_STAFF_HTML_LENGTH } from "@/lib/staff-email-design";
 import type { EmailBlock } from "@/lib/email-marketing-layout";
 import { ApiError } from "@/lib/api-error";
 
@@ -24,27 +24,38 @@ export const staffUpdateFieldsSchema = z.object({
   urgent: z.boolean().default(false),
   /** Set = a designed email from the template library; null = plain update. */
   blocks: emailBlocksSchema.nullable().optional(),
+  /** Set = an HTML email (pasted or uploaded .html); wins over `blocks`. */
+  htmlContent: z.string().max(MAX_STAFF_HTML_LENGTH, "That HTML is over 1MB — link to hosted images instead of embedding them.").nullable().optional(),
 });
 
 /**
- * A staff email needs a message OR designed blocks. For a designed one the
- * plain `body` becomes a text summary of the blocks (card preview, Cowork
- * reads, notification). Returns Prisma-ready data (`blocks` → DbNull).
+ * A staff email needs a message, designed blocks, OR HTML. For a designed or
+ * HTML one the plain `body` becomes a text summary (card preview, Cowork
+ * reads, notification). HTML wins over blocks — an email is one or the other,
+ * never both. Returns Prisma-ready data (`blocks` → DbNull).
  */
-export function withContent<T extends { body?: string; blocks?: EmailBlock[] | null }>(
+export function withContent<T extends { body?: string; blocks?: EmailBlock[] | null; htmlContent?: string | null }>(
   fields: T,
-  existing?: { body: string; blocks: unknown },
+  existing?: { body: string; blocks: unknown; htmlContent?: string | null },
 ) {
-  const blocks = fields.blocks !== undefined ? fields.blocks : ((existing?.blocks as EmailBlock[] | null) ?? null);
+  const html = fields.htmlContent !== undefined ? fields.htmlContent : (existing?.htmlContent ?? null);
+  const isHtml = !!html?.trim();
+  const blocks = isHtml
+    ? null
+    : fields.blocks !== undefined
+      ? fields.blocks
+      : ((existing?.blocks as EmailBlock[] | null) ?? null);
   const designed = Array.isArray(blocks) && blocks.length > 0;
   let body = fields.body !== undefined ? fields.body : (existing?.body ?? "");
+  if (isHtml && !body.trim()) body = htmlSummary(html!) || "(HTML email)";
   if (designed && !body.trim()) body = blocksSummary(blocks!) || "(Designed email)";
-  if (!designed && !body.trim()) throw ApiError.badRequest("Write the message.");
-  const { blocks: _b, ...rest } = fields;
+  if (!isHtml && !designed && !body.trim()) throw ApiError.badRequest("Write the message.");
+  const { blocks: _b, htmlContent: _h, ...rest } = fields;
   return {
     ...rest,
     body,
-    ...(fields.blocks !== undefined || designed
+    htmlContent: isHtml ? html : null,
+    ...(fields.blocks !== undefined || designed || isHtml
       ? { blocks: designed ? (blocks as unknown as Prisma.InputJsonValue) : Prisma.DbNull }
       : {}),
   };

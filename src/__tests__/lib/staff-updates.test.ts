@@ -164,3 +164,53 @@ describe("designed emails (from the template library)", () => {
     expect(bad.status).toBe(400);
   });
 });
+
+describe("HTML staff emails (pasted or uploaded .html)", () => {
+  const fullDoc = `<!doctype html><html><head><style>p{color:red}</style></head><body><h1>Term 4 kick-off</h1><p>Hi {{firstName}}, see you Monday.</p></body></html>`;
+
+  it("go out on their own at round-up time, exactly as designed", async () => {
+    prismaMock.staffUpdate.findMany.mockResolvedValue([
+      update({ id: "plain", audienceRoles: ["admin"] }),
+      update({ id: "html", title: "Term 4, {{firstName}}", htmlContent: fullDoc, blocks: null, audienceRoles: ["staff"] }),
+    ]);
+    prismaMock.staffUpdate.updateMany.mockResolvedValue({ count: 2 });
+    prismaMock.staffUpdate.update.mockResolvedValue({});
+    await sendWeeklyRoundup(new Date("2026-10-11T20:00:00Z"));
+    const calls = vi.mocked(sendEmail).mock.calls.map((c) => c[0] as { to: string; subject: string; html: string });
+    const sent = calls.find((c) => c.subject === "Term 4, Aisha")!;
+    expect(sent.to).toBe("a@x.test");
+    expect(sent.html).toContain("Hi Aisha, see you Monday.");
+    expect(sent.html.startsWith("<!doctype html>")).toBe(true); // not re-wrapped
+    const roundup = calls.find((c) => c.subject.startsWith("Your Amana staff update"))!;
+    expect(roundup.html).not.toContain("Term 4 kick-off");
+  });
+
+  it("a fragment gets the staff header and footer; names are escaped", async () => {
+    const { staffHtmlEmail } = await import("@/lib/staff-email-design");
+    const html = staffHtmlEmail("<p>Hello {{firstName}}</p>", { name: "<img src=x>" });
+    expect(html).toContain("Staff update"); // staff footer
+    expect(html).not.toContain("Unsubscribe");
+    expect(html).not.toContain("<img src=x>");
+  });
+
+  it("needs no plain message, wins over blocks, and summarises for the card", async () => {
+    const { withContent } = await import("@/app/api/staff-updates/schema");
+    const out = withContent({ body: "", htmlContent: fullDoc, blocks: [{ type: "text", content: "x" }] as never });
+    expect(out.htmlContent).toBe(fullDoc);
+    const { Prisma } = await import("@prisma/client");
+    expect(out.blocks).toBe(Prisma.DbNull); // blocks cleared — one or the other
+    expect(String(out.body)).toContain("Term 4 kick-off");
+    expect(String(out.body)).not.toContain("color:red");
+    // Switching back to a simple update clears the HTML.
+    const back = withContent({ body: "Plain now", htmlContent: null, blocks: null }, { body: "", blocks: null, htmlContent: fullDoc });
+    expect(back.htmlContent).toBeNull();
+  });
+
+  it("Cowork can send HTML", async () => {
+    prismaMock.staffUpdate.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ id: "new", ...data }));
+    const res = await coworkPOST(createRequest("POST", "/api/cowork/staff-updates", { body: { type: "please_read", title: "Read me", body: "", htmlContent: fullDoc } }));
+    expect(res.status).toBe(201);
+    const data = vi.mocked(prismaMock.staffUpdate.create).mock.calls.at(-1)![0].data as Record<string, unknown>;
+    expect(data.htmlContent).toBe(fullDoc);
+  });
+});
