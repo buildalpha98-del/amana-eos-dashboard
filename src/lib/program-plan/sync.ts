@@ -85,8 +85,8 @@ export function matchCentreFolder(
   return {
     error:
       hits.length === 0
-        ? `No SharePoint folder matches "${service.name}". Paste the centre's SharePoint folder link in Configure → Centre info.`
-        : `More than one SharePoint folder matches "${service.name}" (${hits.map((h) => h.name).join(", ")}). Paste the right folder link in Configure → Centre info.`,
+        ? `No SharePoint folder matches "${service.name}". Paste the centre's SharePoint folder link in Configure → What families see.`
+        : `More than one SharePoint folder matches "${service.name}" (${hits.map((h) => h.name).join(", ")}). Paste the right folder link in Configure → What families see.`,
   };
 }
 
@@ -212,7 +212,7 @@ async function listItemFiles(driveId: string, itemId: string): Promise<DriveItem
 
 /**
  * Where this centre's plans are. The folder link saved on the centre
- * (Configure → Centre info → "Program plan folder") is exact: every PDF in
+ * (Configure → What families see → "Program plan folder") is exact: every PDF in
  * it counts. Without one, fall back to the centre's "Program Plans" folder
  * found by name, where only *Program_Plan*.pdf files count.
  */
@@ -241,7 +241,7 @@ async function locatePlans(
   }
   const folder = matchCentreFolder({ name: service.name, sharepointUrl: content.sharepointUrl }, folders);
   if ("error" in folder) {
-    return { error: `${folder.error.replace(/ Paste.*$/, "")} Add this centre's program plan folder link in Configure → Centre info.` };
+    return { error: `${folder.error.replace(/ Paste.*$/, "")} Add this centre's program plan folder link in Configure → What families see.` };
   }
   try {
     const files = (await listFolderFiles(folder.driveId, `${folder.name}/${PLANS_PATH}`, (n) => SKIP_FOLDER.test(n)))
@@ -249,7 +249,7 @@ async function locatePlans(
     if (files.length === 0) return { error: `No program plan PDF in ${folder.name}/${PLANS_PATH}.` };
     return { driveId: folder.driveId, files };
   } catch {
-    return { error: `No "Program Plans" folder in ${folder.name}. Add the program plan folder link in Configure → Centre info.` };
+    return { error: `No "Program Plans" folder in ${folder.name}. Add the program plan folder link in Configure → What families see.` };
   }
 }
 
