@@ -43,6 +43,8 @@ async function main() {
     ],
   };
 
+  // Library entries that exist before this run; anything newer is ours to remove.
+  const libraryBefore = new Set((await prisma.activityTemplate.findMany({ select: { id: true } })).map((t) => t.id));
   const service = await prisma.service.create({
     data: { name: `Program plan check ${randomUUID()}`, code: `PPC-${randomUUID().slice(0, 8)}` },
   });
@@ -147,8 +149,42 @@ async function main() {
       await prisma.activityTemplate.deleteMany({ where: { sourceKey: { in: keys } } });
     }
 
-    console.log("PASS: plan imported; closed day skipped; edits and own rows kept; re-sync idempotent; menu file wins with allergens; library add-only");
+    // Shared library sweep: a coordinator's typed-in activity reaches the
+    // library; a later plan read fills its empty details; staff edits stay.
+    const { sweepActivitiesIntoLibrary } = await import("../src/lib/program-plan/library");
+    const sweepTag = randomUUID().slice(0, 8);
+    const typed = `Coordinator Kite Making ${sweepTag}`;
+    const edited = `Coordinator Clay Pots ${sweepTag}`;
+    for (const [title, startTime] of [[typed, "15:00"], [edited, "15:05"]] as const) {
+      await prisma.programActivity.create({
+        data: { serviceId: service.id, weekStart, day: "monday", startTime, endTime: "15:45", title, mtopOutcomes: [4] },
+      });
+    }
+    const sweepKeys = [typed, edited].map((t) => libraryKey(t));
+    try {
+      assert((await sweepActivitiesIntoLibrary()) >= 2, "typed activities swept in");
+      let swept = await prisma.activityTemplate.findMany({ where: { sourceKey: { in: sweepKeys } } });
+      assert.equal(swept.length, 2);
+      assert(swept.every((t) => t.source === "program" && t.howTo === null && t.durationMinutes != null));
+      assert.equal(await sweepActivitiesIntoLibrary(), 0, "second sweep adds nothing");
+      // Staff fill in one entry themselves.
+      await prisma.activityTemplate.updateMany({ where: { sourceKey: sweepKeys[1] }, data: { howTo: "Staff's own steps" } });
+      // The same two activities now appear in a plan: only the untouched one is filled.
+      await addPlanToLibrary([{ title: typed }, { title: edited }], planFile, null, fakeRead);
+      swept = await prisma.activityTemplate.findMany({ where: { sourceKey: { in: sweepKeys } } });
+      const kite = swept.find((t) => t.sourceKey === sweepKeys[0])!;
+      const clay = swept.find((t) => t.sourceKey === sweepKeys[1])!;
+      assert.match(kite.howTo ?? "", /1\. Do it/, "bare entry filled from the plan");
+      assert.equal(kite.resourcesNeeded, "- Cups");
+      assert.equal(clay.howTo, "Staff's own steps", "staff-written how-to never overwritten");
+    } finally {
+      await prisma.activityTemplate.deleteMany({ where: { sourceKey: { in: sweepKeys } } });
+    }
+
+    console.log("PASS: plan imported; closed day skipped; edits and own rows kept; re-sync idempotent; menu file wins with allergens; library add-only; shared-library sweep");
   } finally {
+    // The library sweep picks up this synthetic centre's activities too.
+    await prisma.activityTemplate.deleteMany({ where: { id: { notIn: [...libraryBefore] } } });
     await prisma.service.delete({ where: { id: service.id } });
     await prisma.$disconnect();
   }

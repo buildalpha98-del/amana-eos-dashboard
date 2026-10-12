@@ -15,6 +15,7 @@ import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { isProgramPlanSyncConfigured, runProgramPlanSync } from "@/lib/program-plan/sync";
+import { sweepActivitiesIntoLibrary } from "@/lib/program-plan/library";
 
 export const maxDuration = 300;
 
@@ -28,6 +29,8 @@ export const GET = withApiHandler(async (req) => {
   if (!guard.acquired) return NextResponse.json({ message: guard.reason, skipped: true });
 
   try {
+    // Every activity any centre has added → the shared library (DB-only, quick).
+    const swept = await sweepActivitiesIntoLibrary().catch(() => 0);
     const results = await runProgramPlanSync({ deadline: Date.now() + 90_000 });
     const summary = {
       centres: results.length,
@@ -35,6 +38,7 @@ export const GET = withApiHandler(async (req) => {
       unchanged: results.filter((r) => r.status === "unchanged").length,
       noPlan: results.filter((r) => r.status === "no_plan").map((r) => r.serviceName),
       errors: results.filter((r) => r.status === "error").map((r) => `${r.serviceName}: ${r.message}`),
+      libraryAdded: swept,
     };
     logger.info("Program plan sync complete", summary);
     await guard.complete(summary);
