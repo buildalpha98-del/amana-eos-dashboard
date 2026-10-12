@@ -124,7 +124,7 @@ export default function ActivityLibraryPage() {
       {/* Header */}
       <PageHeader
         title="Activity Library"
-        description="Reusable activity templates for weekly programming. Browse, search, and use templates to pre-fill your program."
+        description="One library for every Amana centre. Every activity a centre adds to its week lands here, so any centre can pick it up — with the resources needed, how to run it and the MTOP outcomes it covers."
         primaryAction={
           isAdmin
             ? {
@@ -296,7 +296,7 @@ function TemplateCard({
           </span>
         )}
       </div>
-      {(template.mtopOutcomes?.length > 0 || template.source === "sharepoint") && (
+      {(template.mtopOutcomes?.length > 0 || template.source === "sharepoint" || template.source === "program") && (
         <div className="mt-2 flex flex-wrap items-center gap-1">
           {MTOP_OUTCOMES.filter((o) => template.mtopOutcomes?.includes(o.id)).map((o) => (
             <span
@@ -311,6 +311,14 @@ function TemplateCard({
           {template.source === "sharepoint" && (
             <span className="rounded-full bg-brand/10 px-2 py-0.5 text-2xs font-medium text-brand">
               From a program plan
+            </span>
+          )}
+          {template.source === "program" && (
+            <span
+              className="rounded-full bg-surface px-2 py-0.5 text-2xs font-medium text-muted"
+              title="Added automatically from a centre's week. Add the resources and how-to when you can."
+            >
+              From a centre&rsquo;s week
             </span>
           )}
         </div>

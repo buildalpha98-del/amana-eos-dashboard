@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { markLibraryStale } from "@/lib/program-plan/library";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
@@ -71,6 +72,7 @@ const { id, activityId } = await context!.params!;
     },
   });
 
+  markLibraryStale(); // new activities reach the shared library
   return NextResponse.json(activity);
   },
   { roles: ["owner", "head_office", "admin", "member"] },

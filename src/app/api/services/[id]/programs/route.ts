@@ -1,4 +1,5 @@
 import { serviceWeekStart } from "@/lib/timezone";
+import { markLibraryStale } from "@/lib/program-plan/library";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
@@ -116,6 +117,7 @@ export const POST = withApiAuth(
     },
   });
 
+  markLibraryStale(); // new activities reach the shared library
   return NextResponse.json(activity, { status: 201 });
   },
   { roles: ["owner", "head_office", "admin", "member"] },
@@ -180,6 +182,7 @@ export const PUT = withApiAuth(
     },
   });
 
+  markLibraryStale(); // new activities reach the shared library
   return NextResponse.json(result);
   },
   { roles: ["owner", "head_office", "admin", "member"] },

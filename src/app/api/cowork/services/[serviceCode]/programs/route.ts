@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { markLibraryStale } from "@/lib/program-plan/library";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
@@ -110,6 +111,7 @@ export const POST = withApiHandler(async (req, context) => {
       details: { serviceCode, serviceName: service.name, weekStart: weekStartStr, count: activities.length, via: "api_key", keyName: "Cowork Automation" },
     });
 
+    markLibraryStale(); // new activities reach the shared library
     return NextResponse.json(
       { service: { code: service.code, name: service.name }, weekStart: weekStartStr, activities: result },
       { status: 201 },

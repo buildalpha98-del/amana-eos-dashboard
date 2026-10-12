@@ -1,3 +1,4 @@
+import { sweepActivitiesIntoLibrarySoon } from "@/lib/program-plan/library";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
@@ -24,6 +25,9 @@ const createSchema = z.object({
 
 // GET /api/activity-templates?category=X&search=X&page=1&limit=20
 export const GET = withApiAuth(async (req, session) => {
+  // One library for every centre: bring in any activity a centre has added
+  // to its week since the last look (throttled; never fails the request).
+  await sweepActivitiesIntoLibrarySoon();
   const url = new URL(req.url);
   const category = url.searchParams.get("category");
   const search = url.searchParams.get("search");
