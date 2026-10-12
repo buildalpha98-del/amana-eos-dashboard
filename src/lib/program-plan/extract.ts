@@ -127,6 +127,35 @@ async function readPdf<T>(
   return parsed.data;
 }
 
+/**
+ * The same forced, schema-checked tool call as readPdf, for text only (the
+ * Activity Library auto-fill). A tool call can't come back as prose or a
+ * differently-wrapped JSON, which plain "reply with JSON" can.
+ */
+export async function askWithTool<T>(system: string, schema: z.ZodType<T>, ask: string): Promise<T> {
+  const res = await client().messages.create({
+    model: DEFAULT_PROVIDER_MODEL.showcase.modelId,
+    max_tokens: 16_000,
+    system,
+    tools: [
+      {
+        name: "save",
+        description: "Save the completed entries.",
+        input_schema: z.toJSONSchema(schema) as Anthropic.Tool.InputSchema,
+      },
+    ],
+    tool_choice: { type: "tool", name: "save" },
+    messages: [{ role: "user", content: ask }],
+  });
+  const call = res.content.find((b) => b.type === "tool_use");
+  const parsed = schema.safeParse(call && "input" in call ? call.input : null);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new Error(`Claude's answer didn't fit (${issue?.path.join(".") || "response"}: ${issue?.message ?? "missing"}).`);
+  }
+  return parsed.data;
+}
+
 export async function extractProgramPlan(pdf: Buffer, fileName: string): Promise<ProgramPlan> {
   const plan = await readPdf(pdf, fileName, SYSTEM, programPlanSchema, "Read every week in this program plan.");
   const bad = plan.weeks.find((w) => !isMonday(w.weekStart));

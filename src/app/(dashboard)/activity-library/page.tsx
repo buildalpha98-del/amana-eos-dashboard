@@ -18,6 +18,8 @@ import {
   Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { mutateApi } from "@/lib/fetch-api";
+import { Button } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -118,6 +120,24 @@ export default function ActivityLibraryPage() {
   };
 
   const totalPages = data ? Math.ceil(data.total / data.limit) : 1;
+  const [filling, setFilling] = useState(false);
+  const fillDetails = async () => {
+    setFilling(true);
+    try {
+      const r = await mutateApi<{ filled: number; remaining: number }>("/api/activity-templates/fill", { method: "POST" });
+      toast({
+        description:
+          r.remaining > 0
+            ? `Filled in ${r.filled}. ${r.remaining} still to go — press again to carry on.`
+            : `Filled in ${r.filled}. Every activity now has its details.`,
+      });
+      void refetch();
+    } catch (err) {
+      toast({ variant: "destructive", description: err instanceof Error ? err.message : "Couldn't fill in details." });
+    } finally {
+      setFilling(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -135,6 +155,17 @@ export default function ActivityLibraryPage() {
             : undefined
         }
       >
+        {isAdmin && (data?.toFill ?? 0) > 0 && (
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface/60 px-4 py-3 text-sm">
+            <span className="flex-1 min-w-0 text-foreground/85">
+              {data!.toFill} {data!.toFill === 1 ? "activity still needs" : "activities still need"} how-to steps,
+              resources and MTOP outcomes. They fill in automatically in the background, or now:
+            </span>
+            <Button size="sm" variant="secondary" onClick={fillDetails} loading={filling}>
+              {filling ? "Drafting with Claude…" : "Fill in missing details"}
+            </Button>
+          </div>
+        )}
         {/* Action bar */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">

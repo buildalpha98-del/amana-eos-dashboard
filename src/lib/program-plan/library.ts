@@ -26,8 +26,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
-import { generateStructured } from "@/lib/ai-provider";
-import { ACTIVITY_CATEGORIES, extractLibraryDetails } from "./extract";
+import { ACTIVITY_CATEGORIES, askWithTool, extractLibraryDetails } from "./extract";
 
 /** An activity as the plan (or a saved program row) describes it. */
 export interface PlanActivity {
@@ -273,16 +272,12 @@ For each activity (id, title, description) return:
 
 const ENRICHED_NOTE = "\n\n(Drafted automatically from the activity name and description — check and adjust before running.)";
 
+const ENRICH_BATCH = 8;
+
 type Enricher = (list: { id: string; title: string; description: string | null }[]) => Promise<z.infer<typeof enrichSchema>["activities"]>;
 
 const enrichWithClaude: Enricher = async (list) => {
-  const { data } = await generateStructured({
-    system: ENRICH_SYSTEM,
-    prompt: `Complete these activities:\n${JSON.stringify(list)}`,
-    schema: enrichSchema,
-    maxTokens: 12_000,
-    temperature: 0.3,
-  });
+  const data = await askWithTool(ENRICH_SYSTEM, enrichSchema, `Complete these activities:\n${JSON.stringify(list)}`);
   return data.activities;
 };
 
@@ -302,9 +297,10 @@ export async function enrichLibraryEntries(
     take: opts.limit ?? 40,
   });
   let filled = 0;
-  for (let i = 0; i < todo.length; i += 20) {
+  // Small batches: each Claude call stays well under a minute.
+  for (let i = 0; i < todo.length; i += ENRICH_BATCH) {
     if (opts.deadline && Date.now() > opts.deadline) break;
-    const batch = todo.slice(i, i + 20);
+    const batch = todo.slice(i, i + ENRICH_BATCH);
     const out = await enrich(batch.map((t) => ({ id: t.id, title: t.title, description: t.description })));
     const byId = new Map(out.map((o) => [o.id, o]));
     for (const t of batch) {
@@ -334,10 +330,18 @@ export async function enrichLibraryEntriesSoon(): Promise<void> {
   if (enriching || !process.env.ANTHROPIC_API_KEY) return;
   enriching = true;
   try {
-    await enrichLibraryEntries({ limit: 20 });
+    // Two small batches, inside the route's 300s allowance.
+    await enrichLibraryEntries({ limit: 16, deadline: Date.now() + 150_000 });
   } catch (err) {
     logger.warn("Library auto-fill failed", { err });
   } finally {
     enriching = false;
   }
+}
+
+/** How many auto-added entries still need filling in. */
+export function countEntriesToFill() {
+  return prisma.activityTemplate.count({
+    where: { deleted: false, enrichedAt: null, source: { in: [SWEPT, "sharepoint"] } },
+  });
 }

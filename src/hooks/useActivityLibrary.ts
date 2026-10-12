@@ -63,7 +63,7 @@ export function useActivityTemplates(filters?: ActivityTemplateFilters) {
   if (filters?.page) params.set("page", String(filters.page));
   if (filters?.limit) params.set("limit", String(filters.limit));
 
-  return useQuery<{ templates: ActivityTemplate[]; total: number; page: number; limit: number }>({
+  return useQuery<{ templates: ActivityTemplate[]; total: number; page: number; limit: number; toFill?: number }>({
     staleTime: 30_000,
     queryKey: ["activity-templates", filters?.category, filters?.search, filters?.page, filters?.limit],
     queryFn: () => fetchApi(`/api/activity-templates?${params}`),
