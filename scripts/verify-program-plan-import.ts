@@ -177,11 +177,42 @@ async function main() {
       assert.match(kite.howTo ?? "", /1\. Do it/, "bare entry filled from the plan");
       assert.equal(kite.resourcesNeeded, "- Cups");
       assert.equal(clay.howTo, "Staff's own steps", "staff-written how-to never overwritten");
+
+      // Auto-fill: Claude (faked) drafts what's missing; staff writing stays.
+      const { enrichLibraryEntries } = await import("../src/lib/program-plan/library");
+      const third = `Coordinator Balloon Rockets ${sweepTag}`;
+      await prisma.programActivity.create({
+        data: { serviceId: service.id, weekStart, day: "tuesday", startTime: "15:00", endTime: "16:30", title: third, description: "Race balloons along a string" },
+      });
+      sweepKeys.push(libraryKey(third));
+      await sweepActivitiesIntoLibrary();
+      const rocket0 = await prisma.activityTemplate.findUnique({ where: { sourceKey: libraryKey(third) } });
+      assert.equal(rocket0!.durationMinutes, 60, "90-minute slot capped at an hour");
+      const fakeEnrich = async (list: { id: string; title: string }[]) =>
+        list.map((x) => ({
+          id: x.id,
+          howTo: "1. Thread the string",
+          resourcesNeeded: "- Balloons\n- String",
+          category: "stem_science" as const,
+          mtopOutcomes: [4],
+          durationMinutes: 90,
+        }));
+      await prisma.activityTemplate.updateMany({ where: { sourceKey: libraryKey(third) }, data: { mtopOutcomes: [2] } });
+      assert((await enrichLibraryEntries({ enrich: fakeEnrich, limit: 500 })) >= 1);
+      const rocket = await prisma.activityTemplate.findUnique({ where: { sourceKey: libraryKey(third) } });
+      assert.match(rocket!.howTo ?? "", /Drafted automatically/);
+      assert.equal(rocket!.category, "stem_science", "category chosen instead of other");
+      assert.deepEqual(rocket!.mtopOutcomes, [2], "existing outcomes kept");
+      assert.equal(rocket!.durationMinutes, 60);
+      assert(rocket!.enrichedAt, "marked done");
+      const clay2 = await prisma.activityTemplate.findUnique({ where: { sourceKey: sweepKeys[1] } });
+      assert.equal(clay2!.howTo, "Staff's own steps", "auto-fill never overwrites staff writing");
+      assert.equal(await enrichLibraryEntries({ enrich: fakeEnrich, limit: 500 }), 0, "nothing left to fill");
     } finally {
       await prisma.activityTemplate.deleteMany({ where: { sourceKey: { in: sweepKeys } } });
     }
 
-    console.log("PASS: plan imported; closed day skipped; edits and own rows kept; re-sync idempotent; menu file wins with allergens; library add-only; shared-library sweep");
+    console.log("PASS: plan imported; closed day skipped; edits and own rows kept; re-sync idempotent; menu file wins with allergens; library add-only; shared-library sweep; auto-fill");
   } finally {
     // The library sweep picks up this synthetic centre's activities too.
     await prisma.activityTemplate.deleteMany({ where: { id: { notIn: [...libraryBefore] } } });

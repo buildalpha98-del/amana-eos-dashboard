@@ -6,7 +6,7 @@
 import { describe, it, expect } from "vitest";
 import { centreKeys, matchCentreFolder, newestTermFolder, shareId, NIGHTLY_PILOT } from "@/lib/program-plan/sync";
 import { menuPlanSchema, programPlanSchema } from "@/lib/program-plan/extract";
-import { libraryCandidates, libraryKey } from "@/lib/program-plan/library";
+import { capMinutes, libraryCandidates, libraryKey } from "@/lib/program-plan/library";
 
 const NSW = "https://amanaoshcptyltd.sharepoint.com/NSW%20Schools";
 const VIC = "https://amanaoshcptyltd.sharepoint.com/Melbourne%20Schools";
@@ -148,5 +148,14 @@ describe("program-plan activities for the Activity Library", () => {
 
   it("treats punctuation and case as the same activity", () => {
     expect(libraryKey("Fuel Up — Friendship Fruit Kebabs!")).toBe(libraryKey("fuel up friendship fruit kebabs"));
+  });
+});
+
+describe("library activity length", () => {
+  it("is an hour at most", () => {
+    expect(capMinutes(75)).toBe(60);
+    expect(capMinutes(45)).toBe(45);
+    expect(capMinutes(0)).toBeNull();
+    expect(capMinutes(null)).toBeNull();
   });
 });

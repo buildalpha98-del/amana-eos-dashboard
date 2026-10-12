@@ -4802,6 +4802,9 @@ model ActivityTemplate {
   /// Normalised title for program-plan activities, so the same activity run
   /// at eleven centres (or in two months) is one library entry.
   sourceKey       String?          @unique
+  /// When Claude last filled this entry's empty how-to / resources /
+  /// category / MTOP outcomes (auto-added entries only). Null = still to do.
+  enrichedAt      DateTime?
   deleted         Boolean          @default(false)
   createdById     String?
   createdBy       User?            @relation("ActivityTemplateCreator", fields: [createdById], references: [id], onDelete: SetNull)

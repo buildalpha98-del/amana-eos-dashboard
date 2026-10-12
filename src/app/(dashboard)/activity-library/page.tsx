@@ -525,7 +525,7 @@ function TemplateModal({
                 onChange={(e) => setDurationMinutes(e.target.value)}
                 disabled={!isAdmin}
                 min={1}
-                max={480}
+                max={60}
                 className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-surface/50"
                 placeholder="30"
               />

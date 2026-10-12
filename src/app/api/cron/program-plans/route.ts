@@ -15,7 +15,7 @@ import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { isProgramPlanSyncConfigured, runProgramPlanSync } from "@/lib/program-plan/sync";
-import { sweepActivitiesIntoLibrary } from "@/lib/program-plan/library";
+import { enrichLibraryEntries, sweepActivitiesIntoLibrary } from "@/lib/program-plan/library";
 
 export const maxDuration = 300;
 
@@ -31,7 +31,12 @@ export const GET = withApiHandler(async (req) => {
   try {
     // Every activity any centre has added → the shared library (DB-only, quick).
     const swept = await sweepActivitiesIntoLibrary().catch(() => 0);
-    const results = await runProgramPlanSync({ deadline: Date.now() + 90_000 });
+    const started = Date.now();
+    const results = await runProgramPlanSync({ deadline: started + 90_000 });
+    // Library entries still missing a how-to etc.: one batch, only if this
+    // run has time left (a batch is about a minute of Claude).
+    const filled =
+      Date.now() - started < 100_000 ? await enrichLibraryEntries({ limit: 20 }).catch(() => 0) : 0;
     const summary = {
       centres: results.length,
       synced: results.filter((r) => r.status === "synced").length,
@@ -39,6 +44,7 @@ export const GET = withApiHandler(async (req) => {
       noPlan: results.filter((r) => r.status === "no_plan").map((r) => r.serviceName),
       errors: results.filter((r) => r.status === "error").map((r) => `${r.serviceName}: ${r.message}`),
       libraryAdded: swept,
+      libraryFilled: filled,
     };
     logger.info("Program plan sync complete", summary);
     await guard.complete(summary);
