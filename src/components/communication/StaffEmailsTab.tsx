@@ -9,7 +9,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Mail, Plus, Send, Bot, LayoutTemplate, Palette } from "lucide-react";
+import { Mail, Plus, Send, Bot, LayoutTemplate, Palette, Code } from "lucide-react";
 import type { Role, StaffUpdate, StaffUpdateType } from "@prisma/client";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
@@ -22,10 +22,11 @@ import { useServices } from "@/hooks/useServices";
 import { ROLE_DISPLAY_NAMES } from "@/lib/role-permissions";
 import EmailBlockEditor from "@/components/email/EmailBlockEditor";
 import EmailPreview from "@/components/email/EmailPreview";
+import EmailHtmlEditor from "@/components/email/EmailHtmlEditor";
 import { SaveAsTemplateDialog, TemplateGallery, TemplateLibrary } from "@/components/email/TemplateLibrary";
 import { useEmailTemplates } from "@/hooks/useEmailTemplates";
 import type { EmailBlock } from "@/lib/email-marketing-layout";
-import { isDesigned, staffDesignedHtml } from "@/lib/staff-email-design";
+import { isDesigned, isHtmlEmail, staffDesignedHtml, staffHtmlEmail } from "@/lib/staff-email-design";
 
 type Update = Omit<StaffUpdate, "createdAt" | "updatedAt" | "approvedAt" | "sentAt"> & {
   createdAt: string;
@@ -99,11 +100,15 @@ export function StaffEmailsTab() {
         <div className="flex flex-wrap items-center gap-2">
           <span className={cn("rounded-full px-2.5 py-0.5 text-2xs font-semibold", meta.chip)}>{meta.label}</span>
           {u.urgent && <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-2xs font-semibold text-red-800 dark:bg-red-950/50 dark:text-red-200">Urgent</span>}
-          {isDesigned(u) && (
+          {isHtmlEmail(u) ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2.5 py-0.5 text-2xs font-medium text-brand">
+              <Code className="h-3 w-3" aria-hidden /> HTML email
+            </span>
+          ) : isDesigned(u) ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2.5 py-0.5 text-2xs font-medium text-brand">
               <Palette className="h-3 w-3" aria-hidden /> Designed email
             </span>
-          )}
+          ) : null}
           {u.source === "cowork" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-surface px-2.5 py-0.5 text-2xs font-medium text-muted">
               <Bot className="h-3 w-3" aria-hidden /> From Cowork
@@ -254,19 +259,26 @@ function Composer({ initial, onClose, onSaved }: { initial: Update | null; onClo
   const [centres, setCentres] = useState<string[]>(initial?.audienceServiceIds ?? []);
   const [urgent, setUrgent] = useState(initial?.urgent ?? false);
   const [reach, setReach] = useState<number | null>(null);
-  const [format, setFormat] = useState<"simple" | "designed">(initial && isDesigned(initial) ? "designed" : "simple");
-  const [blocks, setBlocks] = useState<EmailBlock[]>(() =>
-    initial && isDesigned(initial) ? (initial.blocks as unknown as EmailBlock[]) : [],
+  const initialBlocks = Array.isArray(initial?.blocks) ? (initial.blocks as unknown as EmailBlock[]) : [];
+  const [format, setFormat] = useState<"simple" | "designed" | "html">(
+    initial && isHtmlEmail(initial) ? "html" : initialBlocks.length > 0 ? "designed" : "simple",
   );
-  const [picking, setPicking] = useState(!(initial && isDesigned(initial)));
+  const [blocks, setBlocks] = useState<EmailBlock[]>(initialBlocks);
+  const [htmlContent, setHtmlContent] = useState(initial?.htmlContent ?? "");
+  const [picking, setPicking] = useState(initialBlocks.length === 0);
   const [designView, setDesignView] = useState<"edit" | "preview">("edit");
   const [saveTemplate, setSaveTemplate] = useState(false);
   const { data: templates } = useEmailTemplates(undefined, "staff");
   const designed = format === "designed";
-  const previewHtml = useMemo(
-    () => (designed && designView === "preview" ? staffDesignedHtml(blocks, { name: "Sam Example" }, window.location.origin) : ""),
-    [designed, designView, blocks],
-  );
+  const html = format === "html";
+  // Designed and HTML emails both go out on their own, not in the round-up.
+  const solo = designed || html;
+  const previewHtml = useMemo(() => {
+    if (designView !== "preview") return "";
+    if (designed) return staffDesignedHtml(blocks, { name: "Sam Example" }, window.location.origin);
+    if (html && htmlContent.trim()) return staffHtmlEmail(htmlContent, { name: "Sam Example" });
+    return "";
+  }, [designed, html, designView, blocks, htmlContent]);
 
   const audience = useMemo(() => ({ audienceRoles: roles, audienceServiceIds: centres }), [roles, centres]);
   useEffect(() => {
@@ -281,9 +293,11 @@ function Composer({ initial, onClose, onSaved }: { initial: Update | null; onClo
 
   const save = useMutation({
     mutationFn: (approve: boolean) => {
-      const fields = designed
-        ? { type, title, body: "", linkUrl: null, linkLabel: null, ...audience, urgent, blocks }
-        : { type, title, body, linkUrl: linkUrl || null, linkLabel: linkLabel || null, ...audience, urgent, blocks: null };
+      const fields = html
+        ? { type, title, body: "", linkUrl: null, linkLabel: null, ...audience, urgent, blocks: null, htmlContent }
+        : designed
+          ? { type, title, body: "", linkUrl: null, linkLabel: null, ...audience, urgent, blocks, htmlContent: null }
+          : { type, title, body, linkUrl: linkUrl || null, linkLabel: linkLabel || null, ...audience, urgent, blocks: null, htmlContent: null };
       return initial
         ? mutateApi(`/api/staff-updates/${initial.id}`, { method: "PATCH", body: { action: approve ? "approve" : "edit", ...fields } })
         : mutateApi(`/api/staff-updates`, { method: "POST", body: { ...fields, approve } });
@@ -294,7 +308,7 @@ function Composer({ initial, onClose, onSaved }: { initial: Update | null; onClo
           ? "Saved as a draft."
           : urgent
             ? "Sent to staff now."
-            : designed
+            : solo
               ? "Approved — it goes out on its own at Monday's round-up time."
               : "Approved — it goes out in Monday's round-up.",
       });
@@ -304,7 +318,7 @@ function Composer({ initial, onClose, onSaved }: { initial: Update | null; onClo
   });
 
   const unfilled = designed && JSON.stringify(blocks).match(/\[[A-Z][^\]]{0,40}\]/);
-  const canSave = !!title.trim() && (designed ? blocks.length > 0 : !!body.trim());
+  const canSave = !!title.trim() && (html ? !!htmlContent.trim() : designed ? blocks.length > 0 : !!body.trim());
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   const field = "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand";
   const chip = (on: boolean) =>
@@ -312,7 +326,7 @@ function Composer({ initial, onClose, onSaved }: { initial: Update | null; onClo
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent size={designed ? "full" : "lg"}>
+      <DialogContent size={solo ? "full" : "lg"}>
         <DialogTitle className="text-lg font-heading font-semibold">{initial ? "Edit staff email" : "New staff email"}</DialogTitle>
         <div className="mt-4 max-h-[70vh] space-y-4 overflow-y-auto pr-1">
           <fieldset>
@@ -328,25 +342,55 @@ function Composer({ initial, onClose, onSaved }: { initial: Update | null; onClo
           <fieldset>
             <legend className="mb-2 text-sm font-medium text-foreground/80">Format</legend>
             <div className="flex flex-wrap gap-2">
-              <button type="button" aria-pressed={!designed} onClick={() => setFormat("simple")} className={chip(!designed)}>
+              <button type="button" aria-pressed={format === "simple"} onClick={() => setFormat("simple")} className={chip(format === "simple")}>
                 Simple update
               </button>
               <button type="button" aria-pressed={designed} onClick={() => setFormat("designed")} className={chip(designed)}>
                 <Palette className="mr-1 inline h-3.5 w-3.5" aria-hidden />
                 Designed email
               </button>
+              <button type="button" aria-pressed={html} onClick={() => setFormat("html")} className={chip(html)}>
+                <Code className="mr-1 inline h-3.5 w-3.5" aria-hidden />
+                HTML
+              </button>
             </div>
             <p className="mt-1.5 text-xs text-muted">
-              {designed
-                ? "Built from a template with headings, images and buttons. Goes out as its own email."
-                : "A short message that goes in Monday's round-up with everything else."}
+              {html
+                ? "Paste or upload your own HTML email. Goes out as its own email."
+                : designed
+                  ? "Built from a template with headings, images and buttons. Goes out as its own email."
+                  : "A short message that goes in Monday's round-up with everything else."}
             </p>
           </fieldset>
           <label className="block text-sm font-medium text-foreground/80">
-            {designed ? "Subject line" : "Title"}
+            {solo ? "Subject line" : "Title"}
             <input className={cn(field, "mt-1")} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} placeholder="e.g. Updated Sun Protection Policy" />
           </label>
-          {!designed ? (
+          {html ? (
+            <section aria-label="HTML email" className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {(["edit", "preview"] as const).map((v) => (
+                  <button key={v} type="button" aria-pressed={designView === v} onClick={() => setDesignView(v)} className={chip(designView === v)}>
+                    {v === "edit" ? "HTML" : "Preview"}
+                  </button>
+                ))}
+              </div>
+              {designView === "edit" ? (
+                <EmailHtmlEditor
+                  value={htmlContent}
+                  onChange={setHtmlContent}
+                  hint={
+                    <p className="text-xs text-muted">
+                      <code>{"{{firstName}}"}</code> becomes each person&rsquo;s first name. A full HTML email (with its own header) is sent exactly as
+                      designed; a snippet gets the Amana staff header and footer.
+                    </p>
+                  }
+                />
+              ) : (
+                <EmailPreview html={previewHtml} />
+              )}
+            </section>
+          ) : !designed ? (
 <>
           <label className="block text-sm font-medium text-foreground/80">
             Message
@@ -428,7 +472,7 @@ function Composer({ initial, onClose, onSaved }: { initial: Update | null; onClo
             <span>
               <span className="font-medium text-foreground">Urgent — send on its own as soon as it&rsquo;s approved</span>
               <span className="block text-muted">
-                {designed ? "Otherwise it goes out at Monday's round-up time." : "Otherwise it goes in Monday’s round-up with everything else."}
+                {solo ? "Otherwise it goes out at Monday's round-up time." : "Otherwise it goes in Monday’s round-up with everything else."}
               </span>
             </span>
           </label>

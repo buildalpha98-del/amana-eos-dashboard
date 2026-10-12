@@ -10,8 +10,9 @@
  *     → approved + urgent → sent ON ITS OWN straight away
  *   → sent | cancelled
  *
- * A DESIGNED email (`blocks` set — built from the shared template library)
- * always goes out as its own email: urgent ones at approval, the rest at the
+ * A DESIGNED email (`blocks` set — built from the shared template library —
+ * or `htmlContent`, an HTML email pasted/uploaded by the office) always goes
+ * out as its own email: urgent ones at approval, the rest at the
  * Monday round-up time, never squeezed inside the round-up itself.
  *
  * Recipients: active people with an email, filtered by role and centre.
@@ -26,7 +27,7 @@ import { notifyUsers } from "@/lib/notify-user";
 import { logger } from "@/lib/logger";
 import { serviceDateOnly } from "@/lib/timezone";
 import type { EmailBlock } from "@/lib/email-marketing-layout";
-import { isDesigned, staffDesignedHtml } from "@/lib/staff-email-design";
+import { isDesigned, isHtmlEmail, staffDesignedHtml, staffHtmlEmail } from "@/lib/staff-email-design";
 
 const ORIGIN = () => process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
 
@@ -144,8 +145,9 @@ export function urgentHtml(person: { name: string }, u: StaffUpdate) {
   );
 }
 
-/** The HTML a designed update sends — the same renderer the composer previews. */
-export function designedHtml(person: { name: string }, u: Pick<StaffUpdate, "blocks">) {
+/** The HTML a designed (or HTML) update sends — the same renderer the composer previews. */
+export function designedHtml(person: { name: string }, u: Pick<StaffUpdate, "blocks" | "htmlContent">) {
+  if (isHtmlEmail(u)) return staffHtmlEmail(u.htmlContent!, person);
   return staffDesignedHtml(u.blocks as unknown as EmailBlock[], person, ORIGIN());
 }
 

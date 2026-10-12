@@ -11229,6 +11229,9 @@ model StaffUpdate {
   /// A DESIGNED email (block builder, from a template) instead of a plain
   /// update: goes out as its own email, not inside the Monday round-up.
   blocks             Json?
+  /// An HTML email (pasted or uploaded .html) — sent as its own email like
+  /// `blocks`. Set = HTML wins and `blocks` is cleared (see schema.ts).
+  htmlContent        String?           @db.Text
   recipientCount     Int?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt

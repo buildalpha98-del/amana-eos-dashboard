@@ -8,9 +8,10 @@
  * ones on their own as soon as they're approved.
  *
  * Body: { type, title, body, linkUrl?, linkLabel?, roles?: Role[],
- *         serviceCodes?: string[], urgent?, blocks? }
+ *         serviceCodes?: string[], urgent?, blocks?, htmlContent? }
  * `blocks` (optional) makes it a designed email — same block shape as the
- * template library; `body` may then be empty.
+ * template library; `htmlContent` makes it an HTML email (wins over blocks);
+ * `body` may then be empty.
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
