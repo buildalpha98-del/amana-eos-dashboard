@@ -25,6 +25,7 @@ import { toast } from "@/hooks/useToast";
 import { hasMinRole } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
+import { MTOP_OUTCOMES } from "@/lib/mtop-numbered";
 import {
   useActivityTemplates,
   useCreateActivityTemplate,
@@ -47,6 +48,9 @@ const CATEGORIES = [
   { value: "social_emotional", label: "Social & Emotional" },
   { value: "quiet_time", label: "Quiet Time" },
   { value: "free_play", label: "Free Play" },
+  { value: "quran_iqra", label: "Quran & Iqra" },
+  { value: "homework_help", label: "Homework Help" },
+  { value: "stem_science", label: "STEM & Science" },
   { value: "other", label: "Other" },
 ];
 
@@ -61,6 +65,9 @@ const CATEGORY_COLORS: Record<string, string> = {
   social_emotional: "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300",
   quiet_time: "bg-sky-100 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300",
   free_play: "bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300",
+  quran_iqra: "bg-lime-100 dark:bg-lime-950/50 text-lime-700 dark:text-lime-300",
+  homework_help: "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300",
+  stem_science: "bg-cyan-100 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300",
   other: "bg-surface text-foreground/80",
 };
 
@@ -289,6 +296,25 @@ function TemplateCard({
           </span>
         )}
       </div>
+      {(template.mtopOutcomes?.length > 0 || template.source === "sharepoint") && (
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          {MTOP_OUTCOMES.filter((o) => template.mtopOutcomes?.includes(o.id)).map((o) => (
+            <span
+              key={o.id}
+              title={`MTOP Outcome ${o.id}: ${o.label}`}
+              className="inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-2xs font-medium text-foreground/80"
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${o.color}`} aria-hidden />
+              {o.label}
+            </span>
+          ))}
+          {template.source === "sharepoint" && (
+            <span className="rounded-full bg-brand/10 px-2 py-0.5 text-2xs font-medium text-brand">
+              From a program plan
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -313,6 +339,7 @@ function TemplateModal({
   const [category, setCategory] = useState(template?.category || "other");
   const [ageGroup, setAgeGroup] = useState(template?.ageGroup || "");
   const [durationMinutes, setDurationMinutes] = useState(template?.durationMinutes?.toString() || "");
+  const [mtopOutcomes, setMtopOutcomes] = useState<number[]>(template?.mtopOutcomes ?? []);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const createTemplate = useCreateActivityTemplate();
@@ -336,6 +363,7 @@ function TemplateModal({
       category,
       ageGroup: ageGroup.trim() || null,
       durationMinutes: durationMinutes ? parseInt(durationMinutes) : null,
+      mtopOutcomes,
     };
 
     try {
@@ -493,6 +521,33 @@ function TemplateModal({
                 className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-surface/50"
                 placeholder="30"
               />
+            </div>
+          </div>
+
+          {/* MTOP outcomes */}
+          <div>
+            <p className="block text-sm font-medium text-foreground/80 mb-2">MTOP outcomes it covers</p>
+            <div className="flex flex-wrap gap-2">
+              {MTOP_OUTCOMES.map((o) => {
+                const on = mtopOutcomes.includes(o.id);
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    disabled={!isAdmin}
+                    aria-pressed={on}
+                    onClick={() =>
+                      setMtopOutcomes((prev) => (on ? prev.filter((v) => v !== o.id) : [...prev, o.id].sort()))
+                    }
+                    className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-medium disabled:opacity-60 ${
+                      on ? "border-brand bg-brand/10 text-brand" : "border-border text-muted"
+                    }`}
+                  >
+                    <span className={`h-2 w-2 rounded-full ${o.color}`} aria-hidden />
+                    {o.id}. {o.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

@@ -93,6 +93,7 @@ async function readPdf<T>(
   system: string,
   schema: z.ZodType<T>,
   ask: string,
+  more: { pdf: Buffer; fileName: string }[] = [],
 ): Promise<T> {
   const res = await client().messages.create({
     model: DEFAULT_PROVIDER_MODEL.showcase.modelId,
@@ -110,11 +111,11 @@ async function readPdf<T>(
       {
         role: "user",
         content: [
-          {
-            type: "document",
-            source: { type: "base64", media_type: "application/pdf", data: pdf.toString("base64") },
-            title: fileName,
-          },
+          ...[{ pdf, fileName }, ...more].map((d) => ({
+            type: "document" as const,
+            source: { type: "base64" as const, media_type: "application/pdf" as const, data: d.pdf.toString("base64") },
+            title: d.fileName,
+          })),
           { type: "text", text: ask },
         ],
       },
@@ -180,4 +181,59 @@ export async function extractMenu(pdf: Buffer, fileName: string): Promise<MenuPl
   const bad = menu.weeks.find((w) => !isMonday(w.weekStart));
   if (bad) throw new Error(`${fileName}: a week doesn't start on a Monday (${bad.weekStart}).`);
   return menu;
+}
+
+// ── Activity Library ────────────────────────────────────────────────────
+// Program-plan activities become reusable library entries (Daniel,
+// 2026-10-12): name, resources needed, how to run it, MTOP outcomes. The
+// plan gives the name, what children do and the outcomes; the Centre
+// Insert's materials checklist names the activity each item is "used for".
+// The how-to is drafted from those and labelled as drafted.
+
+export const ACTIVITY_CATEGORIES = [
+  "physical_play", "creative_arts", "music_movement", "literacy", "numeracy",
+  "nature_outdoors", "cooking_nutrition", "social_emotional", "quiet_time",
+  "free_play", "quran_iqra", "homework_help", "stem_science", "other",
+] as const;
+
+export const libraryDetailsSchema = z.object({
+  activities: z
+    .array(
+      z.object({
+        title: z.string().min(1).max(200),
+        resourcesNeeded: z.string().max(2000),
+        howTo: z.string().min(1).max(5000),
+        category: z.enum(ACTIVITY_CATEGORIES),
+        durationMinutes: z.number().int().min(5).max(240).optional(),
+      }),
+    )
+    .max(60),
+});
+export type LibraryDetails = z.infer<typeof libraryDetailsSchema>["activities"];
+
+const LIBRARY_SYSTEM = `You prepare entries for Amana OSHC's Activity Library — reusable activities for Outside School Hours Care (school-age children, 5–12) that educators at any centre can pick up and run.
+
+You get a monthly program plan and, when there is one, the Centre Insert (its materials checklist lists each item with the activity it is "used for"). For EACH activity title you are given, return:
+- title: exactly as given.
+- resourcesNeeded: the materials for that activity, one per line ("- 20 blunt lollipop sticks"), taken from the materials checklist and the plan. Include food items for cooking activities. If nothing is listed, give the obvious basics only (e.g. "- Paper and coloured pencils") — never invent specialist equipment.
+- howTo: how to run it, as 4–8 short numbered steps an educator can follow, including any safety point that matters (handwashing before cooking, allergy check before food, cones and space for active games, an educator at the table for cooking). Base it on what the plan says children do. Warm, plain Australian English.
+- category: the closest of: physical_play, creative_arts, music_movement, literacy, numeracy, nature_outdoors, cooking_nutrition, social_emotional, quiet_time, free_play, quran_iqra, homework_help, stem_science, other.
+- durationMinutes: from the plan's times if shown.
+Return only the titles you were given.`;
+
+export async function extractLibraryDetails(
+  plan: { pdf: Buffer; fileName: string },
+  insert: { pdf: Buffer; fileName: string } | null,
+  activities: { title: string; description?: string | null }[],
+): Promise<LibraryDetails> {
+  const list = activities.map((a) => `- ${a.title}${a.description ? `: ${a.description}` : ""}`).join("\n");
+  const out = await readPdf(
+    plan.pdf,
+    plan.fileName,
+    LIBRARY_SYSTEM,
+    libraryDetailsSchema,
+    `Prepare library entries for these activities:\n${list}`,
+    insert ? [insert] : [],
+  );
+  return out.activities;
 }

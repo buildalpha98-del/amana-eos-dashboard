@@ -24,6 +24,10 @@ export interface ActivityTemplate {
   category: string;
   ageGroup: string | null;
   durationMinutes: number | null;
+  /** MTOP learning outcomes 1–5. */
+  mtopOutcomes: number[];
+  /** "sharepoint" when added from a centre's program plan. */
+  source: string | null;
   deleted: boolean;
   createdById: string | null;
   createdBy: { id: string; name: string } | null;
@@ -47,6 +51,7 @@ export interface CreateTemplateInput {
   category?: string;
   ageGroup?: string | null;
   durationMinutes?: number | null;
+  mtopOutcomes?: number[];
 }
 
 // ── Queries ───────────────────────────────────────────────────

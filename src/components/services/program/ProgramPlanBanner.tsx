@@ -34,6 +34,7 @@ interface SyncResult {
   message?: string;
   files?: string[];
   folder?: string;
+  more?: boolean;
 }
 
 const ago = (iso: string) => {
@@ -62,8 +63,9 @@ export function ProgramPlanBanner({ serviceId, weekKey }: { serviceId: string; w
     mutationFn: () => mutateApi<SyncResult>(`/api/services/${serviceId}/programs/sharepoint`, { method: "POST", body: {} }),
     onSuccess: (r) => {
       toast({
-        description:
-          r.status === "synced"
+        description: r.more
+          ? "Part-way there — the rest of this month's files still need reading. Press Sync now again in a moment."
+          : r.status === "synced"
             ? `Program and menu updated from ${r.folder ?? "SharePoint"}.`
             : r.status === "unchanged"
               ? `Already up to date with ${r.folder ?? "SharePoint"}.`

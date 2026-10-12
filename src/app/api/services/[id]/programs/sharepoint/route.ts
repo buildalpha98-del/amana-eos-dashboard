@@ -41,7 +41,9 @@ export const POST = withApiAuth(
       throw new ApiError(503, "SharePoint isn't connected yet, so the program can't be pulled in.");
     }
     const body = bodySchema.parse(await parseJsonBody(req).catch(() => undefined));
-    const [result] = await runProgramPlanSync({ serviceId: id, force: body?.force });
+    // Stop starting files after 90s so the last one finishes inside the
+    // limit; `more` tells the button to say "press again".
+    const [result] = await runProgramPlanSync({ serviceId: id, force: body?.force, deadline: Date.now() + 90_000 });
     if (!result) throw ApiError.notFound("Centre not found.");
     if (result.status === "error") throw new ApiError(502, result.message ?? "Couldn't read the program plan.");
     return NextResponse.json(result);
