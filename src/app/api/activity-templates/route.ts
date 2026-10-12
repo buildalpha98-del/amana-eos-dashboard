@@ -1,4 +1,8 @@
-import { enrichLibraryEntriesSoon, sweepActivitiesIntoLibrarySoon } from "@/lib/program-plan/library";
+import { countEntriesToFill, enrichLibraryEntriesSoon, sweepActivitiesIntoLibrarySoon } from "@/lib/program-plan/library";
+
+// The background auto-fill (after the response) needs Claude time; the
+// default function limit stopped it before it finished.
+export const maxDuration = 300;
 import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
@@ -59,7 +63,8 @@ export const GET = withApiAuth(async (req, session) => {
     prisma.activityTemplate.count({ where }),
   ]);
 
-  return NextResponse.json({ templates, total, page, limit });
+  const toFill = await countEntriesToFill();
+  return NextResponse.json({ templates, total, page, limit, toFill });
 });
 
 // POST /api/activity-templates
