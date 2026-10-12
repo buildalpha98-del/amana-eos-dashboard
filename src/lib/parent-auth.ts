@@ -6,6 +6,7 @@ import type { WrappedRouteHandler } from "@/lib/route-handler";
  * This is completely separate from staff NextAuth sessions.
  */
 
+import { APP_CLOSED_MESSAGE, PARENT_APP_OPEN, isParentApiAllowedWhileAppClosed } from "@/lib/parent-portal-lockdown";
 import { SignJWT, jwtVerify } from "jose";
 import { NextRequest, NextResponse } from "next/server";
 import { ApiError } from "@/lib/api-error";
@@ -192,6 +193,13 @@ export function withParentAuth(
 
       // Rate limit: 60 req/min per parent per endpoint
       const endpoint = new URL(req.url).pathname;
+
+      // The family app is closed (PARENT_APP_OPEN): only the enrolment flow,
+      // thank-you page and sign-in/out stay reachable — enforced here, not
+      // just by ParentShell hiding pages.
+      if (!PARENT_APP_OPEN && !isParentApiAllowedWhileAppClosed(endpoint)) {
+        throw new ApiError(403, APP_CLOSED_MESSAGE);
+      }
       const rl = await checkRateLimit(`parent:${parent.email}:${endpoint}`, 60, 60_000);
       if (rl.limited) {
         return NextResponse.json({ error: "Too many requests" }, { status: 429 });

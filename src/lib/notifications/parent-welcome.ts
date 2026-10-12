@@ -13,6 +13,7 @@ import { sendEmail } from "@/lib/email";
 import { buttonHtml, escapeHtml, parentEmailLayout } from "@/lib/email-templates/base";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
+import { PARENT_APP_OPEN } from "@/lib/parent-portal-lockdown";
 
 const PORTAL_URL = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
 const WELCOME_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -50,7 +51,12 @@ interface SendParentWelcomeInviteOptions {
  */
 export async function sendParentWelcomeInvite(
   opts: SendParentWelcomeInviteOptions,
-): Promise<{ sent: boolean; email?: string }> {
+): Promise<{ sent: boolean; email?: string; held?: boolean }> {
+  // While the family app is closed (PARENT_APP_OPEN) this email would
+  // promise a portal that only shows the thank-you page. Hold it, and don't
+  // mint a 30-day sign-in token nobody needs. The approval email still goes.
+  if (!PARENT_APP_OPEN) return { sent: false, held: true };
+
   const contact = await prisma.centreContact.findUnique({
     where: { id: opts.contactId },
     select: {

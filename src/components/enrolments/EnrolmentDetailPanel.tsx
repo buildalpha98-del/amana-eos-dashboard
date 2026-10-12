@@ -1,5 +1,6 @@
 "use client";
 
+import { PARENT_APP_OPEN } from "@/lib/parent-portal-lockdown";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   X,
@@ -378,6 +379,8 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
           </button>
           {e.status === "processed" && (
             <>
+              {/* No family app to invite them to while PARENT_APP_OPEN is false. */}
+              {PARENT_APP_OPEN && (
               <button
                 onClick={handleResendInvite}
                 disabled={resending}
@@ -387,6 +390,7 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
                 <Send className="h-3.5 w-3.5" />
                 {resending ? "Sending..." : "Resend Amana Invite"}
               </button>
+              )}
               <button
                 onClick={() => handleStatusChange("archived")}
                 disabled={updateMutation.isPending}

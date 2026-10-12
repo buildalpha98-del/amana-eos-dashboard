@@ -16,6 +16,15 @@ vi.mock("@/lib/logger", () => ({
   },
   generateRequestId: () => "test-req-id",
 }));
+// The family app's open/closed switch, flipped per test. These tests cover
+// the OPEN app unless they say otherwise; the closed app holds invites.
+const app = vi.hoisted(() => ({ open: true }));
+vi.mock("@/lib/parent-portal-lockdown", async (orig) => ({
+  ...(await orig<typeof import("@/lib/parent-portal-lockdown")>()),
+  get PARENT_APP_OPEN() {
+    return app.open;
+  },
+}));
 vi.mock("@/lib/notifications/parent-welcome", () => ({
   sendParentWelcomeInvite: vi.fn(),
 }));
@@ -29,6 +38,7 @@ const ctx = { params: Promise.resolve({ id: CONTACT_ID }) };
 
 describe("POST /api/centre-contacts/[id]/resend-invite", () => {
   beforeEach(() => {
+    app.open = true;
     vi.clearAllMocks();
     _clearUserActiveCache();
     prismaMock.user.findUnique.mockResolvedValue({ active: true });
@@ -98,5 +108,16 @@ describe("POST /api/centre-contacts/[id]/resend-invite", () => {
     });
     const res = await POST(createRequest("POST", `/api/centre-contacts/${CONTACT_ID}/resend-invite`), ctx);
     expect(res.status).toBe(500);
+  });
+
+  it("409s with an explanation, and sends nothing, while the family app is closed", async () => {
+    app.open = false;
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    const res = await POST(createRequest("POST", "/api/centre-contacts/c1/resend-invite"), {
+      params: Promise.resolve({ id: "c1" }),
+    });
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toMatch(/isn't open to families yet/);
+    expect(sendParentWelcomeInvite).not.toHaveBeenCalled();
   });
 });
