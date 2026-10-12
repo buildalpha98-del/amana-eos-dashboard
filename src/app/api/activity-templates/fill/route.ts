@@ -1,6 +1,6 @@
 /**
  * POST /api/activity-templates/fill — "Fill in missing details" on the
- * Activity Library (admins). Runs the Claude auto-fill straight away for up
+ * Activity Library (office and centre accounts). Runs the Claude auto-fill straight away for up
  * to about four minutes and says how many entries it filled and how many
  * are left — or exactly why it couldn't, instead of failing silently in the
  * background.
@@ -26,5 +26,7 @@ export const POST = withApiAuth(
       throw new ApiError(502, `Couldn't fill in details: ${err instanceof Error ? err.message : String(err)}`);
     }
   },
-  { roles: [...ADMIN_ROLES], rateLimit: { max: 4, windowMs: 60_000 }, timeoutMs: 290_000 },
+  // Office and centre accounts (the Coordinator login). Only empty fields
+  // are ever filled, so it can't undo anyone's writing.
+  { roles: [...ADMIN_ROLES, "member"], rateLimit: { max: 4, windowMs: 60_000 }, timeoutMs: 290_000 },
 );
