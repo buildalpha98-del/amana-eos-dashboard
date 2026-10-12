@@ -160,3 +160,40 @@ describe("POST /api/measurables/[id]/entries — sanity", () => {
     expect(res.status).toBe(201);
   });
 });
+
+describe("the week an entry is stored under (12 Oct 2026 bug)", () => {
+  // The grid sends its column as an ISO instant: Monday 00:00 in Sydney is
+  // still Sunday in UTC. Truncating to UTC midnight stored entries under the
+  // SUNDAY, so the grid (which reads the Sydney Monday) never found them.
+  const monday5Oct = "2026-10-05T00:00:00.000Z";
+  const setup = () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.measurable.findUnique.mockResolvedValue({ id: "m-1", goalValue: 10, goalDirection: "above" });
+    prismaMock.measurableEntry.upsert.mockResolvedValue({ id: "e-1", value: 5, onTrack: false });
+    prismaMock.measurableEntry.delete.mockResolvedValue({});
+  };
+
+  it.each([
+    ["the grid's ISO instant for Mon 5 Oct, Sydney (AEDT)", "2026-10-04T13:00:00.000Z"],
+    ["a plain date", "2026-10-05"],
+    ["the Monday at UTC midnight (what the crons store)", "2026-10-05T00:00:00.000Z"],
+  ])("POST stores %s under Monday 5 October", async (_label, weekOf) => {
+    setup();
+    await POST(
+      createRequest("POST", "/api/measurables/m-1/entries", { body: { weekOf, value: 5 } }),
+      { params: Promise.resolve({ id: "m-1" }) },
+    );
+    const where = prismaMock.measurableEntry.upsert.mock.calls[0][0].where.measurableId_weekOf;
+    expect((where.weekOf as Date).toISOString()).toBe(monday5Oct);
+  });
+
+  it("DELETE clears the same Monday the POST wrote", async () => {
+    setup();
+    await DELETE(
+      createRequest("DELETE", "/api/measurables/m-1/entries?weekOf=2026-10-04T13:00:00.000Z"),
+      { params: Promise.resolve({ id: "m-1" }) },
+    );
+    const where = prismaMock.measurableEntry.delete.mock.calls[0][0].where.measurableId_weekOf;
+    expect((where.weekOf as Date).toISOString()).toBe(monday5Oct);
+  });
+});

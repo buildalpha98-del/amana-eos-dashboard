@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { serviceDateOnly } from "@/lib/timezone";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -51,9 +52,13 @@ const { id: measurableId } = await context!.params!;
       break;
   }
 
-  const weekOf = new Date(parsed.data.weekOf);
-  // Normalize to UTC midnight to prevent timezone drift on upsert
-  weekOf.setUTCHours(0, 0, 0, 0);
+  // The week is the CENTRE's (Sydney) Monday, stored as UTC midnight — the
+  // same shape the auto-measurables crons write and the grid reads. The
+  // grid sends its column as an ISO instant (Mon 00:00 Sydney is still
+  // Sunday in UTC); truncating that to UTC midnight stored entries under
+  // the SUNDAY, so after the 9 Oct Sydney-date change the grid couldn't
+  // find them and typed values "disappeared" on refetch (12 Oct 2026).
+  const weekOf = serviceDateOnly(new Date(parsed.data.weekOf));
 
   // Upsert — allows re-entering data for the same week
   const entry = await prisma.measurableEntry.upsert({
@@ -123,10 +128,8 @@ export const DELETE = withApiAuth(async (req, session, context) => {
     return NextResponse.json({ error: "Measurable not found" }, { status: 404 });
   }
 
-  const weekOf = new Date(parsed.data.weekOf);
-  // Normalise to UTC midnight — same as the POST upsert so the
-  // compound unique key matches.
-  weekOf.setUTCHours(0, 0, 0, 0);
+  // Same Sydney-Monday normalisation as the POST, so the unique key matches.
+  const weekOf = serviceDateOnly(new Date(parsed.data.weekOf));
 
   // Idempotent — swallow Prisma's P2025 (record not found) so callers
   // can hammer DELETE on already-empty cells without an error.
