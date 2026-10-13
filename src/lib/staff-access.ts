@@ -121,7 +121,8 @@ export async function canAccessStaffProfile(
 
 /**
  * Can this viewer open a Document that belongs to a staff member?
- * The staff member, its uploader, or owner/admin (canViewPrivateStaffFiles).
+ * The staff member, owner/admin (canViewPrivateStaffFiles), or — for an
+ * unassigned file only — whoever uploaded it.
  *
  * `assignedToId` is what makes a Document personal — it names the staff
  * member the document is *about*. A document with no assignee is an
@@ -134,10 +135,13 @@ export async function canViewStaffDocument(
   doc: { uploadedById: string | null; assignedToId: string | null },
 ): Promise<boolean> {
   if (doc.assignedToId && doc.assignedToId === viewerId) return true;
-  if (doc.uploadedById && doc.uploadedById === viewerId) return true;
-  // 2026-10-13: assigned Documents are private (contracts, HR letters), so
-  // only owner/admin — no longer State Managers or the centre's Director.
-  return canViewPrivateStaffFiles(viewerRole);
+  if (canViewPrivateStaffFiles(viewerRole)) return true;
+  // 2026-10-13: a file ABOUT someone else (assigned to them) is private —
+  // owner/admin only, even for whoever uploaded it, so a Director who
+  // uploads a contract doesn't keep access to it. The uploader exception
+  // survives only for a viewer's own unassigned uploads.
+  if (doc.assignedToId) return false;
+  return !!doc.uploadedById && doc.uploadedById === viewerId;
 }
 
 /**

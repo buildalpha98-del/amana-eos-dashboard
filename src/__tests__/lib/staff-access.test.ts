@@ -164,14 +164,28 @@ describe("canViewStaffDocument", () => {
     ).toBe(true);
   });
 
-  it("allows the uploader", async () => {
+  it("allows the uploader of an unassigned file", async () => {
     expect(
       await canViewStaffDocument("u-1", "staff", {
         uploadedById: "u-1",
-        assignedToId: "u-9",
+        assignedToId: null,
       }),
     ).toBe(true);
   });
+
+  // 2026-10-13: uploading a file about someone else (e.g. their contract)
+  // does not keep a Director/State Manager's access to it.
+  it.each(["member", "head_office", "staff"])(
+    "denies a %s who uploaded a file assigned to someone else",
+    async (role) => {
+      expect(
+        await canViewStaffDocument("u-1", role, {
+          uploadedById: "u-1",
+          assignedToId: "u-9",
+        }),
+      ).toBe(false);
+    },
+  );
 
   it("returns false for a document with no assignee", async () => {
     // Not a personal document — the caller's own centre rules decide.
