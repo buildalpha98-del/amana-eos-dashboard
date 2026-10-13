@@ -18,7 +18,7 @@ import {
   type ContractData,
 } from "@/hooks/useContracts";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { hasMinRole } from "@/lib/permissions";
+import { canViewPrivateStaffFiles } from "@/lib/role-permissions";
 import type { Role } from "@prisma/client";
 import { ContractsTable } from "@/components/contracts/ContractsTable";
 import { NewContractModal } from "@/components/contracts/NewContractModal";
@@ -37,7 +37,8 @@ export default function ContractsPage() {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const role = (session?.user?.role as Role) || undefined;
-  const isAdmin = hasMinRole(role, "admin");
+  // 2026-10-13: owner/admin only — hasMinRole let State Managers through.
+  const isAdmin = canViewPrivateStaffFiles(role);
 
   // Tab state (URL-synced). 2026-06-02: added "archived" — terminated
   // contracts now move out of the default Issued view automatically.

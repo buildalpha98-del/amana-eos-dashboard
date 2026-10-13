@@ -178,7 +178,7 @@ describe("GET /api/documents", () => {
     },
   );
 
-  it.each(["owner", "admin", "head_office"] as const)(
+  it.each(["owner", "admin"] as const)(
     "%s can still FIND personal documents by searching",
     async (role) => {
       mockSession({ id: `${role}-1`, name: "Admin", role });
@@ -190,6 +190,17 @@ describe("GET /api/documents", () => {
       expect(visibilityClause(callArgs)).toBeUndefined();
     },
   );
+
+  // 2026-10-13: contracts and personal HR files are owner/admin only.
+  it("head_office search never reaches personal documents", async () => {
+    mockSession({ id: "ho-1", name: "State Manager", role: "head_office" });
+    prismaMock.document.findMany.mockResolvedValue([]);
+    prismaMock.document.count.mockResolvedValue(0);
+
+    await GET(createRequest("GET", "/api/documents?search=contract"));
+    const callArgs = prismaMock.document.findMany.mock.calls[0][0];
+    expect(visibilityClause(callArgs)).toEqual({ assignedToId: null });
+  });
 
   it("a staff search does not widen scope past their own centre", async () => {
     mockSession({ id: "u-1", name: "Staff", role: "staff", serviceId: "svc-1" });

@@ -21,7 +21,7 @@
  * profile, which enforce their own checks.
  */
 import type { Prisma } from "@prisma/client";
-import { isAdminRole } from "@/lib/role-permissions";
+import { canViewPrivateStaffFiles, isAdminRole } from "@/lib/role-permissions";
 
 /** How AI Knowledge entries are marked (see /api/settings/ai-knowledge). */
 export const AI_KNOWLEDGE_FILE_URL = "internal://knowledge";
@@ -36,7 +36,7 @@ export interface DocumentViewer {
 const CENTRE_SCOPED_ROLES = new Set(["staff", "member"]);
 
 export function canSeeAllDocuments(viewer: DocumentViewer): boolean {
-  return isAdminRole(viewer.role);
+  return canViewPrivateStaffFiles(viewer.role);
 }
 
 /** Prisma where-fragment: the documents `viewer` may see. */
@@ -44,6 +44,9 @@ export function documentVisibilityWhere(
   viewer: DocumentViewer,
 ): Prisma.DocumentWhereInput {
   if (canSeeAllDocuments(viewer)) return {};
+  // State Managers: every org document, but not personal HR files
+  // (2026-10-13 — contracts and private paperwork are owner/admin only).
+  if (isAdminRole(viewer.role)) return { assignedToId: null };
 
   const centreBranch: Prisma.DocumentWhereInput[] = CENTRE_SCOPED_ROLES.has(viewer.role)
     ? viewer.serviceId
@@ -74,6 +77,7 @@ export function documentVisibilitySql(
   firstParam: number,
 ): { sql: string; params: unknown[] } {
   if (canSeeAllDocuments(viewer)) return { sql: "TRUE", params: [] };
+  if (isAdminRole(viewer.role)) return { sql: `d."assignedToId" IS NULL`, params: [] };
 
   const p = (i: number) => `$${firstParam + i}`;
   const params: unknown[] = [AI_KNOWLEDGE_FILE_URL, `%${AI_KNOWLEDGE_URL_SEGMENT}%`, viewer.id];

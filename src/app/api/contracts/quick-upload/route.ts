@@ -35,7 +35,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { uploadFile } from "@/lib/storage";
 import { logger } from "@/lib/logger";
-import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { PRIVATE_STAFF_FILE_ROLES } from "@/lib/staff-access";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB — matches /api/upload and the
                                    // existing ContractFormFields uploader
@@ -188,5 +188,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json(contract, { status: 201 });
   },
-  { roles: [...ADMIN_ROLES] },
+  { roles: [...PRIVATE_STAFF_FILE_ROLES] },
 );

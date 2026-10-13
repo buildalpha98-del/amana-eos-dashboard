@@ -183,7 +183,9 @@ describe("canViewStaffDocument", () => {
     ).toBe(false);
   });
 
-  it("carries the widened centre scope through to documents", async () => {
+  // 2026-10-13: personal documents (uploaded contracts, HR letters) are
+  // owner/admin only — a Director no longer gets them via centre scope.
+  it("does not open personal documents to a Director, even in centre scope", async () => {
     prismaMock.user.findUnique.mockImplementation(
       ({ where }: { where?: { id?: string } }) => {
         if (where?.id === "dir-1") return Promise.resolve({ serviceId: "svc-a" });
@@ -206,7 +208,21 @@ describe("canViewStaffDocument", () => {
         uploadedById: "admin-1",
         assignedToId: "u-9",
       }),
-    ).toBe(true);
+    ).toBe(false);
+  });
+
+  it.each([
+    ["owner", true],
+    ["admin", true],
+    ["head_office", false],
+    ["member", false],
+  ])("personal documents: %s → %s", async (role, expected) => {
+    expect(
+      await canViewStaffDocument("viewer-1", role, {
+        uploadedById: "someone-else",
+        assignedToId: "u-9",
+      }),
+    ).toBe(expected);
   });
 
   it("denies a Director with no overlapping centre", async () => {

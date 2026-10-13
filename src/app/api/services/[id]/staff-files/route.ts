@@ -12,12 +12,15 @@
  * contracts are deliberately NOT included — they carry pay rates, and a
  * spot check doesn't need them (admins still see them in Documents → Staff
  * files). Files open through the existing authorised proxies.
+ *
+ * 2026-10-13: assigned Documents (uploaded contracts, HR letters) are
+ * owner/admin only too — Directors and State Managers get certificates only.
  */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
-import { canViewServiceRecords } from "@/lib/staff-access";
+import { canViewPrivateStaffFiles, canViewServiceRecords } from "@/lib/staff-access";
 import { getOrgSettings } from "@/lib/org-settings";
 import { getRequiredCertTypes } from "@/lib/cert-requirements";
 
@@ -58,17 +61,20 @@ export const GET = withApiAuth(async (_req, session, context) => {
   });
   const ids = staff.map((s) => s.id);
   const now = new Date();
+  const showPrivate = canViewPrivateStaffFiles(session!.user.role);
   const [certs, docs, orgSettings] = await Promise.all([
     prisma.complianceCertificate.findMany({
       where: { userId: { in: ids }, supersededAt: null },
       select: { id: true, userId: true, type: true, label: true, fileUrl: true, expiryDate: true },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.document.findMany({
-      where: { assignedToId: { in: ids }, deleted: false },
-      select: { id: true, assignedToId: true, title: true, createdAt: true },
-      orderBy: { createdAt: "desc" },
-    }),
+    showPrivate
+      ? prisma.document.findMany({
+          where: { assignedToId: { in: ids }, deleted: false },
+          select: { id: true, assignedToId: true, title: true, createdAt: true },
+          orderBy: { createdAt: "desc" },
+        })
+      : Promise.resolve([]),
     getOrgSettings().catch(() => null),
   ]);
 

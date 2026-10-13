@@ -1,5 +1,5 @@
 /**
- * GET /api/documents/staff-folders — admin-only: one virtual folder per
+ * GET /api/documents/staff-folders — owner/admin only: one virtual folder per
  * staff member holding their personal files (2026-10-08, Daniel: "instead
  * of it being spammed … can they live within folders for each staff").
  *
@@ -12,7 +12,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
-import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { PRIVATE_STAFF_FILE_ROLES } from "@/lib/staff-access";
 
 export const GET = withApiAuth(
   async () => {
@@ -74,5 +74,6 @@ export const GET = withApiAuth(
 
     return NextResponse.json({ folders });
   },
-  { roles: [...ADMIN_ROLES] },
+  // 2026-10-13: contracts + private HR files — owner/admin only.
+  { roles: [...PRIVATE_STAFF_FILE_ROLES] },
 );
