@@ -6,7 +6,7 @@
  * redirect, which the in-app viewer could not render — see
  * src/lib/blob-proxy.ts). The matrix:
  *   - Own contract (contract.userId === viewer): 200 (streamed)
- *   - Admin (owner / admin / head_office): 200 (streamed)
+ *   - Owner / admin: 200 (streamed); State Manager: 403
  *   - Acknowledged contracts and pending-ack contracts both: 307 (no
  *     status gating; staff can refer back to either)
  *   - Other staff's contract: 403
@@ -161,6 +161,20 @@ describe("GET /api/contracts/[id]/document", () => {
       documentUrl: BLOB_URL,
     });
     prismaMock.user.findUnique.mockImplementation(activeUser("staff-1"));
+
+    const res = await callRoute("ct-1");
+    expect(res.status).toBe(403);
+  });
+
+  // 2026-10-13: contracts are owner/admin only — State Managers too are out.
+  it("returns 403 when a State Manager tries to view another staff's contract", async () => {
+    mockSession({ id: "ho-1", name: "State Manager", role: "head_office" });
+    prismaMock.employmentContract.findUnique.mockResolvedValue({
+      id: "ct-1",
+      userId: "staff-99",
+      documentUrl: BLOB_URL,
+    });
+    prismaMock.user.findUnique.mockImplementation(activeUser("ho-1"));
 
     const res = await callRoute("ct-1");
     expect(res.status).toBe(403);

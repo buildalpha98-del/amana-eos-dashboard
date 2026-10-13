@@ -36,6 +36,21 @@ export function isAdminRole(role: string | null | undefined): boolean {
 }
 
 /**
+ * Who may open a staff member's PRIVATE files — employment contracts and
+ * any Document assigned to them (uploaded contracts, letters, HR paperwork).
+ *
+ * 2026-10-13 (Daniel): owner and admin only. State Managers (head_office)
+ * and Directors of Service (member) still see compliance certificates
+ * (First Aid, CPR, WWCC…) and whether they're missing, but never contracts
+ * or other private paperwork. The staff member always sees their own.
+ */
+export const PRIVATE_STAFF_FILE_ROLES = ["owner", "admin"] as const;
+
+export function canViewPrivateStaffFiles(role: string | null | undefined): boolean {
+  return !!role && (PRIVATE_STAFF_FILE_ROLES as readonly string[]).includes(role);
+}
+
+/**
  * Safely narrow a session role value to the Prisma Role enum.
  *
  * Returns the Role enum if valid, null otherwise. Case-sensitive.
@@ -761,7 +776,12 @@ const headOfficeFeatures: readonly Feature[] = features.filter(
     f !== "xero.connect" &&
     f !== "xero.manage_mappings" &&
     f !== "timesheets.export_to_xero" &&
-    f !== "crm.manage_templates"
+    f !== "crm.manage_templates" &&
+    // 2026-10-13: contracts are owner/admin only (see
+    // canViewPrivateStaffFiles). State Managers keep contracts.view /
+    // .acknowledge for their OWN contract only.
+    f !== "contracts.create" &&
+    f !== "contracts.edit"
 );
 
 const adminFeatures: readonly Feature[] = features.filter(

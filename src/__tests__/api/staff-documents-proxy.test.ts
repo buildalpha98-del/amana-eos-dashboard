@@ -6,7 +6,7 @@
  *
  * Matrix:
  *   - Uploader OR assignee is the viewer: 200 (streamed)
- *   - Admin (owner / admin / head_office): 200 (streamed)
+ *   - Owner / admin: 200 (streamed); State Manager and Director: 403
  *   - Director of Service (member) at any centre the assignee is attached
  *     to — primary, their own membership, or one they manage: 307
  *   - Member in a different service: 403
@@ -147,7 +147,9 @@ describe("GET /api/staff-documents/[id]", () => {
     expect(res.status).toBe(200);
   });
 
-  it("streams the file for a member in the same service as the doc's assignee", async () => {
+  // 2026-10-13: personal documents are owner/admin only — a Director at the
+  // same centre no longer gets them.
+  it("returns 403 for a member in the same service as the doc's assignee", async () => {
     mockSession({ id: "coord-1", name: "Coord", role: "member" });
     prismaMock.document.findUnique.mockResolvedValue({
       id: "doc-1",
@@ -173,7 +175,7 @@ describe("GET /api/staff-documents/[id]", () => {
     });
 
     const res = await callRoute("doc-1");
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(403);
   });
 
   it("returns 403 for a member in a different service than the doc's assignee", async () => {
@@ -265,7 +267,7 @@ describe("GET /api/staff-documents/[id]", () => {
   // Wiring check for the widened centre scope (the rule itself is covered
   // in src/__tests__/lib/staff-access.test.ts). A Director whose second
   // centre comes from a membership must reach that centre's staff files.
-  it("streams the file for a member covering the assignee's centre via a membership", async () => {
+  it("returns 403 for a member covering the assignee's centre via a membership", async () => {
     mockSession({ id: "coord-4", name: "Coord", role: "member" });
     prismaMock.document.findUnique.mockResolvedValue({
       id: "doc-1",
@@ -297,7 +299,7 @@ describe("GET /api/staff-documents/[id]", () => {
     });
 
     const res = await callRoute("doc-1");
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(403);
   });
 
   it("returns 404 when the document is soft-deleted", async () => {

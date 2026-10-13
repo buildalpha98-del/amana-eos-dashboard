@@ -2,8 +2,17 @@ import { describe, it, expect } from "vitest";
 import { documentVisibilityWhere, documentVisibilitySql } from "@/lib/document-visibility";
 
 describe("documentVisibilityWhere", () => {
-  it.each(["owner", "admin", "head_office"])("%s sees everything", (role) => {
+  it.each(["owner", "admin"])("%s sees everything", (role) => {
     expect(documentVisibilityWhere({ id: "u", role })).toEqual({});
+  });
+
+  // 2026-10-13: personal HR files (contracts etc.) are owner/admin only.
+  it("head_office sees every org document but no personal files", () => {
+    expect(documentVisibilityWhere({ id: "u", role: "head_office" })).toEqual({ assignedToId: null });
+    expect(documentVisibilitySql({ id: "u", role: "head_office" }, 1)).toEqual({
+      sql: `d."assignedToId" IS NULL`,
+      params: [],
+    });
   });
 
   it("an Educator sees published docs, their centre, AI knowledge and their own uploads — never loose or personal files", () => {

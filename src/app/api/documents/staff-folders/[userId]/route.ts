@@ -1,5 +1,5 @@
 /**
- * GET /api/documents/staff-folders/[userId] — admin-only: everything in one
+ * GET /api/documents/staff-folders/[userId] — owner/admin only: everything in one
  * staff member's virtual folder (see ../route.ts). File links go through
  * the existing authorised proxies — /api/staff-documents/[id],
  * /api/compliance/[id]/download, /api/contracts/[id]/document — never raw
@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
-import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { PRIVATE_STAFF_FILE_ROLES } from "@/lib/staff-access";
 
 export const GET = withApiAuth(
   async (_req, _session, context) => {
@@ -68,5 +68,6 @@ export const GET = withApiAuth(
       ],
     });
   },
-  { roles: [...ADMIN_ROLES] },
+  // 2026-10-13: contracts + private HR files — owner/admin only.
+  { roles: [...PRIVATE_STAFF_FILE_ROLES] },
 );

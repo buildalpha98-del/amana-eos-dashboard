@@ -24,7 +24,7 @@ import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FileText, Shield } from "lucide-react";
 import type { Role } from "@prisma/client";
-import { hasMinRole } from "@/lib/permissions";
+import { canViewPrivateStaffFiles } from "@/lib/role-permissions";
 import {
   useContract,
   useContracts,
@@ -52,7 +52,8 @@ export default function ContractDetailPage({
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const role = (session?.user?.role as Role) || undefined;
-  const isAdmin = hasMinRole(role, "admin");
+  // 2026-10-13: owner/admin only — hasMinRole let State Managers through.
+  const isAdmin = canViewPrivateStaffFiles(role);
 
   const { data: contract, isLoading, error } = useContract(isAdmin ? id : null);
 

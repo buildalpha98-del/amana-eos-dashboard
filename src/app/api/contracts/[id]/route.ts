@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
-import { isAdminRole } from "@/lib/role-permissions";
+import { canViewPrivateStaffFiles } from "@/lib/staff-access";
 const updateContractSchema = z.object({
   contractType: z
     .enum(["ct_casual", "ct_part_time", "ct_permanent", "ct_fixed_term"])
@@ -79,7 +79,8 @@ const { id } = await context!.params!;
   // /api/contracts/[id]/document all let them through — so the contract
   // list rendered for them and every row's detail failed. Uses the shared
   // ADMIN_ROLES set now.
-  const isAdmin = isAdminRole(session!.user.role);
+  // 2026-10-13: contracts are owner/admin only — not State Managers.
+  const isAdmin = canViewPrivateStaffFiles(session!.user.role);
   if (!isAdmin && contract.userId !== session!.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

@@ -42,10 +42,13 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { isAdminRole } from "@/lib/role-permissions";
+import { canViewPrivateStaffFiles, isAdminRole } from "@/lib/role-permissions";
+
+export { canViewPrivateStaffFiles, PRIVATE_STAFF_FILE_ROLES } from "@/lib/role-permissions";
 
 /** The non-admin role trusted with their own centres' staff records. */
 export const STAFF_RECORD_SUPERVISOR_ROLE = "member";
+
 
 /**
  * Centres a Director supervises: the one they're based at, any they
@@ -118,6 +121,7 @@ export async function canAccessStaffProfile(
 
 /**
  * Can this viewer open a Document that belongs to a staff member?
+ * The staff member, its uploader, or owner/admin (canViewPrivateStaffFiles).
  *
  * `assignedToId` is what makes a Document personal — it names the staff
  * member the document is *about*. A document with no assignee is an
@@ -131,16 +135,9 @@ export async function canViewStaffDocument(
 ): Promise<boolean> {
   if (doc.assignedToId && doc.assignedToId === viewerId) return true;
   if (doc.uploadedById && doc.uploadedById === viewerId) return true;
-  if (isAdminRole(viewerRole)) return true;
-  if (!doc.assignedToId) return false;
-
-  const assignee = await prisma.user.findUnique({
-    where: { id: doc.assignedToId },
-    select: { id: true, serviceId: true },
-  });
-  if (!assignee) return false;
-
-  return canAccessStaffProfile(viewerId, viewerRole, assignee);
+  // 2026-10-13: assigned Documents are private (contracts, HR letters), so
+  // only owner/admin — no longer State Managers or the centre's Director.
+  return canViewPrivateStaffFiles(viewerRole);
 }
 
 /**

@@ -55,4 +55,30 @@ describe("GET /api/services/[id]/staff-files", () => {
     // Contracts carry pay rates — never part of a centre's staff files.
     expect(prismaMock.employmentContract.findMany).not.toHaveBeenCalled();
   });
+
+  // 2026-10-13: assigned Documents (uploaded contracts, HR letters) are
+  // owner/admin only — Directors and State Managers get certificates only.
+  it.each(["member", "head_office"])("%s never gets personal documents", async (role) => {
+    mockSession({ id: "d1", name: "Dir", role, serviceId: "svc-1" });
+    prismaMock.user.findUnique.mockResolvedValue({ active: true, serviceId: "svc-1" } as never);
+    prismaMock.user.findMany.mockResolvedValue([{ id: "u1", name: "Safina", role: "staff", avatar: null }] as never);
+
+    const res = await call();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.staff[0].files.every((f: { kind: string }) => f.kind === "certificate")).toBe(true);
+    expect(prismaMock.document.findMany).not.toHaveBeenCalled();
+  });
+
+  it("an admin also sees the staff member's assigned documents", async () => {
+    mockSession({ id: "a1", name: "Admin", role: "admin" });
+    prismaMock.user.findUnique.mockResolvedValue({ active: true } as never);
+    prismaMock.user.findMany.mockResolvedValue([{ id: "u1", name: "Safina", role: "staff", avatar: null }] as never);
+    prismaMock.document.findMany.mockResolvedValue([
+      { id: "d9", assignedToId: "u1", title: "Signed contract", createdAt: new Date() },
+    ] as never);
+
+    const body = await (await call()).json();
+    expect(body.staff[0].files).toContainEqual(expect.objectContaining({ kind: "document", id: "d9" }));
+  });
 });

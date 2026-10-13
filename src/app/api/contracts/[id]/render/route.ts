@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
-import { isAdminRole } from "@/lib/role-permissions";
+import { canViewPrivateStaffFiles } from "@/lib/staff-access";
 import { renderTemplateHtml, type TipTapDoc } from "@/lib/contract-templates/render-html";
 
 /**
@@ -58,7 +58,8 @@ export const GET = withApiAuth(async (_req, session, context) => {
   const viewerId = session!.user.id;
   const viewerRole = session!.user.role ?? "";
   const isOwn = contract.userId === viewerId;
-  const isAdmin = isAdminRole(viewerRole);
+  // 2026-10-13: contracts are owner/admin only — not State Managers.
+  const isAdmin = canViewPrivateStaffFiles(viewerRole);
   if (!isOwn && !isAdmin) throw ApiError.forbidden();
 
   // templateValues is stored as `{ auto: Record<string,string>, manual: Record<string,string> }`

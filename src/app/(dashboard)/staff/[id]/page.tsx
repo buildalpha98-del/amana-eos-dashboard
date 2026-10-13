@@ -11,7 +11,10 @@ import { getOrgSettings } from "@/lib/org-settings";
 import { getRequiredCertTypes } from "@/lib/cert-requirements";
 import { buildListWhere } from "@/lib/employees/build-list-where";
 import { getCentreScope } from "@/lib/centre-scope";
-import { canAccessStaffProfile as canAccessProfile } from "@/lib/staff-access";
+import {
+  canAccessStaffProfile as canAccessProfile,
+  canViewPrivateStaffFiles,
+} from "@/lib/staff-access";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -381,11 +384,17 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
   // it — State Managers included (see canViewStaffPay). The layout hides the
   // Pay & compensation section, but the balances must not travel to the
   // browser at all: they are the one pay signal nothing else on the page
-  // surfaces. Contracts deliberately still load — the Documents section
-  // renders them, and tenure is derived from the earliest start date.
+  // surfaces. (Contracts are gated separately, owner/admin only — below.)
   const viewerCanViewPay = canViewStaffPay(viewerRole, isSelf);
   const visibleBalances = viewerCanViewPay ? balances : [];
   const visibleLeaveRequests = viewerCanViewPay ? recentLeaveRequests : [];
+  // 2026-10-13: contracts and personal documents (uploaded contracts, HR
+  // letters) are owner/admin only — Directors and State Managers see the
+  // certificates and nothing else. Withheld here so they never reach the
+  // browser; tenure below still reads the unfiltered start dates.
+  const viewerCanViewPrivate = isSelf || canViewPrivateStaffFiles(viewerRole);
+  const visibleContracts = viewerCanViewPrivate ? contracts : [];
+  const visibleDocuments = viewerCanViewPrivate ? documents : [];
 
   // Derived stats
   const annualLeave = visibleBalances.find((b) => b.leaveType === "annual");
@@ -427,19 +436,19 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     surveyStatus: r.survey.status,
   }));
 
-  const latestContract = contracts[0] ?? null;
+  const latestContract = visibleContracts[0] ?? null;
 
   const data: StaffProfileData = {
     targetUser,
     emergencyContacts,
     latestContract,
-    contracts,
+    contracts: visibleContracts,
     balances: visibleBalances,
     recentLeaveRequests: visibleLeaveRequests,
     timesheetWeeks,
     qualifications,
     certificates,
-    documents,
+    documents: visibleDocuments,
     policyAcks,
     unackedPolicies,
     inductionEnrollments,
