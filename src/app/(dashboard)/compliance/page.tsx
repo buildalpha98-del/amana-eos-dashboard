@@ -117,6 +117,9 @@ const certTypes = [
   "other",
 ] as const;
 
+/** Shown in their own open section on the staff view, never collapsed. */
+const TRAINING_CERT_TYPES: readonly string[] = ["geccko"];
+
 interface ServiceOption {
   id: string;
   name: string;
@@ -394,8 +397,17 @@ function StaffComplianceView() {
   const requiredTypes = getRequiredCertTypes(session?.user?.role, orgConfig, {
     isCentreAccount: session?.user?.isCentreAccount,
   });
+  // 2026-10-13 (Daniel): GECCKO training gets its own always-open section
+  // rather than hiding in "Other certificate types". Not made required —
+  // if the org matrix requires it, it stays in the required grid instead.
+  const trainingTypes = TRAINING_CERT_TYPES.filter(
+    (t) => !(requiredTypes as string[]).includes(t),
+  );
   const optionalTypes = certTypes.filter(
-    (t) => t !== "other" && !(requiredTypes as string[]).includes(t),
+    (t) =>
+      t !== "other" &&
+      !(requiredTypes as string[]).includes(t) &&
+      !(trainingTypes as string[]).includes(t),
   );
 
   const renderCertCard = (type: string) => {
@@ -514,6 +526,17 @@ function StaffComplianceView() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {requiredTypes.map((type) => renderCertCard(type))}
           </div>
+
+          {trainingTypes.length > 0 && (
+            <div className="mt-6">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted mb-3">
+                Training
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {trainingTypes.map((type) => renderCertCard(type))}
+              </div>
+            </div>
+          )}
 
           {optionalTypes.length > 0 && (
             <div className="mt-6">

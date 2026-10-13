@@ -58,7 +58,7 @@ describe("GET /api/services/[id]/staff-files", () => {
 
   // 2026-10-13: assigned Documents (uploaded contracts, HR letters) are
   // owner/admin only — Directors and State Managers get certificates only.
-  it.each(["member", "head_office"])("%s never gets personal documents", async (role) => {
+  it.each(["member", "head_office"] as const)("%s never gets personal documents", async (role) => {
     mockSession({ id: "d1", name: "Dir", role, serviceId: "svc-1" });
     prismaMock.user.findUnique.mockResolvedValue({ active: true, serviceId: "svc-1" } as never);
     prismaMock.user.findMany.mockResolvedValue([{ id: "u1", name: "Safina", role: "staff", avatar: null }] as never);
