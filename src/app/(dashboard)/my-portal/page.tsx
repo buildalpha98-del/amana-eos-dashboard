@@ -88,6 +88,7 @@ const certTypeLabels: Record<string, string> = {
   cpr: "CPR",
   police_check: "Police Check",
   annual_review: "Annual Review",
+  geccko: "GECCKO",
   other: "Other",
 };
 
