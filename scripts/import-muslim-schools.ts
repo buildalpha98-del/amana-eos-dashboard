@@ -204,6 +204,84 @@ const schools: School[] = [
     postcode: "2179",
     contactName: "Sam Halbouni",
   },
+  {
+    schoolName: "Al Sadiq College — Yagoona Campus",
+    suburb: "Yagoona",
+    state: "NSW",
+    address: "178 Cooper Rd",
+    postcode: "2199",
+    contactPhone: "02 9796 4240",
+    website: "https://alsadiq.nsw.edu.au",
+  },
+  {
+    schoolName: "Al Sadiq College — Greenacre Campus",
+    suburb: "Greenacre",
+    state: "NSW",
+    address: "114 Waterloo Road",
+    postcode: "2190",
+    contactPhone: "02 8199 9600",
+    website: "https://alsadiq.nsw.edu.au",
+  },
+  {
+    schoolName: "Arrahman College",
+    suburb: "Austral",
+    state: "NSW",
+    address: "95-105 Seventeenth Avenue",
+    postcode: "2179",
+    website: "https://arrahmancollege.nsw.edu.au",
+  },
+  {
+    schoolName: "Bellfield College",
+    suburb: "Rossmore",
+    state: "NSW",
+    address: "29-31 Rossmore Avenue",
+    postcode: "2557",
+  },
+  {
+    schoolName: "Irfan College",
+    suburb: "Cecil Park",
+    state: "NSW",
+    postcode: "2178",
+    website: "https://www.irfancollege.nsw.edu.au",
+  },
+  {
+    schoolName: "My Dream Australian Academy",
+    suburb: "Auburn",
+    state: "NSW",
+    postcode: "2144",
+  },
+  {
+    schoolName: "Rissalah College",
+    suburb: "Lakemba",
+    state: "NSW",
+    postcode: "2195",
+    website: "https://www.rissalah.nsw.edu.au",
+  },
+  {
+    schoolName: "Salamah College",
+    suburb: "Chester Hill",
+    state: "NSW",
+    address: "1/40 Hector Street",
+    postcode: "2162",
+    contactName: "Ayman Alwan",
+    website: "https://salamah.nsw.edu.au",
+  },
+  {
+    schoolName: "Western Grammar School",
+    suburb: "Plumpton",
+    state: "NSW",
+    address: "15 Cannery Road",
+    postcode: "2761",
+    website: "https://www.wgs.nsw.edu.au",
+  },
+  {
+    schoolName: "Zahra Grammar School",
+    suburb: "Minto",
+    state: "NSW",
+    address: "44/48 Westmoreland Rd",
+    postcode: "2566",
+    website: "https://zahragrammar.nsw.edu.au",
+  },
 
   // ── VIC ─────────────────────────────────────────────────────────────
   {
@@ -454,6 +532,13 @@ const schools: School[] = [
     contactPhone: "07 5596 6565",
     website: "https://aiic.qld.edu.au",
   },
+  {
+    schoolName: "Two Rivers Community School",
+    suburb: "Mareeba",
+    state: "QLD",
+    address: "405 Chewko Rd",
+    postcode: "4880",
+  },
 
   // ── WA ──────────────────────────────────────────────────────────────
   {
@@ -523,6 +608,16 @@ const schools: School[] = [
     address: "22A Cedar Ave",
     postcode: "5008",
   },
+  {
+    schoolName: "IQRA College",
+    suburb: "O'Halloran Hill",
+    state: "SA",
+    address: "5 Majors Road",
+    postcode: "5158",
+    contactPhone: "08 8298 2550",
+    contactEmail: "admin@iqracollege.sa.edu.au",
+    website: "https://iqracollege.sa.edu.au",
+  },
 
   // ── ACT ─────────────────────────────────────────────────────────────
   {
@@ -534,6 +629,13 @@ const schools: School[] = [
     contactPhone: "+61 2 6181 6870",
     contactEmail: "info@taqwaschool.act.edu.au",
     website: "https://taqwaschool.act.edu.au",
+  },
+  {
+    schoolName: "Islamic School of Canberra",
+    suburb: "Weston",
+    state: "ACT",
+    address: "33 Heysen Street",
+    postcode: "2611",
   },
 
   // ── NT ──────────────────────────────────────────────────────────────
