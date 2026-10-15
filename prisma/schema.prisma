@@ -11186,11 +11186,15 @@ model AmbassadorAdjustment {
 
 // Staff-recorded OWNA handoff. Kept separate from parent-facing submission data.
 model EnrolmentOwnaHandoff {
-  enrolmentId String              @id
-  enrolment   EnrolmentSubmission @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
-  revision    Int                 @default(1)
-  state       Json
-  updatedAt   DateTime            @updatedAt
+  enrolmentId    String              @id
+  enrolment      EnrolmentSubmission @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  revision       Int                 @default(1)
+  state          Json
+  /// When the family was last nudged about an unaccepted OWNA invitation
+  /// (cron owna-handover-nudge). Compared with the invitation's own time, so
+  /// a re-sent invitation can be nudged again.
+  inviteNudgedAt DateTime?
+  updatedAt      DateTime            @updatedAt
 }
 
 // ============================================================

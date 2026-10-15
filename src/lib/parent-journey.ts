@@ -28,7 +28,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
+import { rescheduleFirstSession, scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 
 /** Stages the portal drives. Others stay the office's to set by hand. */
@@ -137,7 +137,14 @@ export async function syncParentJourney(input: JourneyInput): Promise<void> {
       if (next > current) {
         await logEnquiryStageEvent(enquiryId, existing.stage, input.stage);
       }
-      if (next <= current) return;
+      if (next <= current) {
+        // Same stage, new first day (staff confirmed the real one on the
+        // OWNA checklist): move the already-scheduled first-session emails.
+        if (input.firstSessionDate && current >= RANK.first_session) {
+          await rescheduleFirstSession(enquiryId, input.firstSessionDate);
+        }
+        return;
+      }
     }
 
     await scheduleNurtureFromStageChange(enquiryId, input.stage);

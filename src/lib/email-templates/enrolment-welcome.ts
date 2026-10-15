@@ -18,11 +18,11 @@ import { DEFAULT_FIRST_SESSION_TIPS } from "@/lib/centre-welcome-defaults";
 
 export { DEFAULT_FIRST_SESSION_TIPS };
 
-const GREEN = "#004E64";
-const JONQUIL = "#FECE00";
-const CHIFFON = "#FFF2BF";
+export const GREEN = "#004E64";
+export const JONQUIL = "#FECE00";
+export const CHIFFON = "#FFF2BF";
 const LATTE = "#FFFAE6";
-const BODY = "#374151";
+export const BODY = "#374151";
 
 export interface WelcomeProgramWeek {
   /** "Week of 20 October" */
@@ -53,10 +53,10 @@ export interface EnrolmentWelcomeData {
 }
 
 
-const p = (html: string, extra = "") =>
+export const p = (html: string, extra = "") =>
   `<p style="margin:0 0 16px;color:${BODY};font-size:15px;line-height:1.7;${extra}">${html}</p>`;
 
-function sectionTitle(text: string) {
+export function sectionTitle(text: string) {
   return `<p style="margin:0 0 10px;color:${GREEN};font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">${text}</p>`;
 }
 
@@ -67,7 +67,7 @@ export function joinNames(names: string[], fallback = "your child"): string {
   return `${n.slice(0, -1).join(", ")} and ${n.at(-1)}`;
 }
 
-function coordinatorCard(d: EnrolmentWelcomeData) {
+export function coordinatorCard(d: EnrolmentWelcomeData) {
   if (!d.coordinatorName && !d.centrePhone && !d.centreEmail) return "";
   const photo = d.coordinatorPhoto
     ? `<td width="76" valign="top" style="padding-right:14px;">
@@ -99,7 +99,7 @@ function coordinatorCard(d: EnrolmentWelcomeData) {
   </table>`;
 }
 
-function firstSessionBlock(d: EnrolmentWelcomeData) {
+export function firstSessionBlock(d: EnrolmentWelcomeData) {
   const facts: string[] = [];
   if (d.sessionTimes.length) facts.push(`<strong>Session times:</strong> ${d.sessionTimes.map(escapeHtml).join(" · ")}`);
   if (d.locationWithinSchool) facts.push(`<strong>Where to find us:</strong> ${escapeHtml(d.locationWithinSchool)}`);

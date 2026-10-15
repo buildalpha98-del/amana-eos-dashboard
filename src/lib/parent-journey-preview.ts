@@ -10,6 +10,19 @@ import { enrolmentReceivedEmail } from "@/lib/email-templates/parent-account";
 import { UNSUBSCRIBE_URL_TOKEN } from "@/lib/email-templates/base";
 import { enrolmentWelcomeEmail } from "@/lib/email-templates/enrolment-welcome";
 import { centreWelcomeData } from "@/lib/enrolment-welcome";
+import {
+  firstDayConfirmedEmail,
+  ownaExistingEmail,
+  ownaInvitationEmail,
+  ownaNudgeEmail,
+} from "@/lib/email-templates/owna-handover";
+
+const HANDOVER: Record<string, typeof ownaInvitationEmail> = {
+  owna_invitation: ownaInvitationEmail,
+  owna_existing: ownaExistingEmail,
+  first_day_confirmed: firstDayConfirmedEmail,
+  owna_nudge: ownaNudgeEmail,
+};
 
 export const SAMPLE_FAMILY = { parentFirstName: "Sarah", childNames: ["Yusuf"] };
 const BASE = () => process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
@@ -33,6 +46,19 @@ export async function renderJourneyEmail(
     const centre = await centreWelcomeData(service.id);
     if (!centre) return null;
     out = await enrolmentWelcomeEmail({ ...centre, ...SAMPLE_FAMILY, verifyLink: null });
+  } else if (HANDOVER[id]) {
+    if (!service) return null;
+    const centre = await centreWelcomeData(service.id);
+    if (!centre) return null;
+    // A sample first day: next Tuesday.
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + ((9 - d.getUTCDay()) % 7 || 7));
+    out = await HANDOVER[id]({
+      ...centre,
+      ...SAMPLE_FAMILY,
+      parentEmail: "sarah@example.com",
+      firstDay: d.toISOString().slice(0, 10),
+    });
   } else if (id === "enrolment_received") {
     out = await enrolmentReceivedEmail({ name: first, childNames });
   } else if (id === "session_reminder") {

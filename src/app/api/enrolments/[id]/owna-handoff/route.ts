@@ -10,6 +10,8 @@ import {
   placementKey,
   readHandoff,
 } from "@/lib/owna-handoff";
+import { runAfter } from "@/lib/run-after";
+import { onHandoffStepCompleted } from "@/lib/owna-handover";
 
 const include = {
   childRecords: {
@@ -146,6 +148,14 @@ export const PATCH = withApiAuth(async (req, session, context) => {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
+    // 2026-10-16: ticking "invitation" or "sessions" emails the family the
+    // next step (OWNA setup guide / first day confirmed) — after commit,
+    // unless staff untick "Email the family".
+    const { action, step, notifyFamily } = parsed.data;
+    const done = step ? result.state.steps[step] : undefined;
+    if (action === "complete" && step && done && notifyFamily !== false) {
+      runAfter(() => onHandoffStepCompleted(id, step, done));
+    }
     return NextResponse.json(result);
   } catch (err) {
     if (
