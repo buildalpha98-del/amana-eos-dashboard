@@ -107,6 +107,7 @@ export const PARENT_JOURNEY: JourneyStage[] = [
     title: "7. Settled in",
     description: "The longer-term touches.",
     emails: [
+      { id: "missed_sessions", overrideKey: "parent.missedSessions", usesCentreContent: true, name: "We've missed Yusuf! (gentle check-in)", when: "A regular hasn't been in for 14 days of term", status: "new", note: "Only children with regular booked days, never across holidays, only when OWNA data is complete. \"No need to reply\"; answers go to the centre." },
       { id: "month1_referral", templateKey: "month1_referral", overrideKey: "nurture.month1Referral", name: "Know another family? A free day each", when: "About 6 weeks after starting", status: "live" },
       { id: "nps_survey", templateKey: "nps_survey", overrideKey: "nurture.npsSurvey", name: "Would you recommend us?", when: "About 2 months after starting", status: "live" },
     ],

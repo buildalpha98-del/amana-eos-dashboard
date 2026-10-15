@@ -76,6 +76,7 @@ export async function recordOwnaAttendance(serviceId: string, records: OwnaAtten
       await prisma.child.update({
         where: { id: match.id },
         data: {
+          ownaMatchChildId: o.ownaChildId,
           ...(first || when < match.firstAttendedAt! ? { firstAttendedAt: when } : {}),
           ...(!match.lastAttendedAt || when > match.lastAttendedAt ? { lastAttendedAt: when } : {}),
         },

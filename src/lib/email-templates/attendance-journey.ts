@@ -99,3 +99,55 @@ ${signOff}`,
     wrap: (b) => parentEmailLayout(b, { transactional: false, preheader: "What's on next week, and how to add a day." }),
   }).then((r) => ({ ...r, subject: plain(r.subject) }));
 }
+
+// ── "We've missed Yusuf" (2026-10-16) ───────────────────────
+
+const MISSED_ANSWERS: { key: string; label: string }[] = [
+  { key: "all_good", label: "All good — just taking a break" },
+  { key: "unwell", label: "They've been unwell" },
+  { key: "change_days", label: "We'd like to change our days" },
+  { key: "stopping", label: "We're thinking of stopping" },
+  { key: "call_me", label: "Please give me a call" },
+];
+
+/**
+ * A gentle check-in after a regular child hasn't been in for two weeks of
+ * term. Written so a family with a sick child doesn't feel chased: "no need
+ * to reply" is said up front.
+ */
+export async function missedSessionsEmail(
+  d: Centre & { childFirstName: string; lastSeen: string; links: Record<string, string> },
+) {
+  const buttons = MISSED_ANSWERS.map(
+    (a) => `<tr><td style="padding:0 0 10px;">
+      <a href="${escapeHtml(d.links[a.key] ?? "#")}" style="display:block;padding:13px 18px;border:2px solid ${GREEN};border-radius:12px;color:${GREEN};font-size:15px;font-weight:700;text-decoration:none;background-color:#ffffff;">
+        ${escapeHtml(a.label)}
+      </a></td></tr>`,
+  ).join("");
+  return applyEmailTemplateOverride({
+    key: "parent.missedSessions",
+    defaultSubject: "We've missed {{childNamesPlain}} at {{centreNamePlain}}",
+    defaultBody: `
+<h1 style="margin:0 0 12px;color:${GREEN};font-size:24px;font-weight:700;line-height:1.25;">We've missed {{childNames}}!</h1>
+<p style="margin:0 0 16px;color:${BODY};font-size:15px;line-height:1.7;">
+  Assalamu alaikum {{firstName}}, just a friendly check-in. We haven't seen {{childNames}} at
+  <strong>{{centreName}}</strong> since <strong>{{lastSeen}}</strong>, and the team has been asking after them.
+</p>
+<p style="margin:0 0 16px;color:${BODY};font-size:15px;line-height:1.7;">
+  If they've been unwell or you're having a break, there's no need to reply. If there's anything we can help with,
+  one tap lets us know:
+</p>
+{{answers}}
+${signOff}`,
+    vars: {
+      firstName: escapeHtml(d.parentFirstName || "there"),
+      childNames: escapeHtml(d.childFirstName),
+      childNamesPlain: d.childFirstName,
+      centreName: escapeHtml(d.centreName),
+      centreNamePlain: d.centreName,
+      lastSeen: escapeHtml(d.lastSeen),
+      answers: `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">${buttons}</table>`,
+    },
+    wrap: (b) => parentEmailLayout(b, { transactional: true, preheader: "No need to reply if all's well — we just wanted to check in." }),
+  }).then((r) => ({ ...r, subject: plain(r.subject) }));
+}

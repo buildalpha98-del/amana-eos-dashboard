@@ -413,6 +413,21 @@ export const EMAIL_TEMPLATE_MANIFEST: EmailTemplateManifestEntry[] = [
     ],
   },
   {
+    key: "parent.missedSessions",
+    category: "Parent",
+    label: "We've missed you (gentle check-in)",
+    description: "A child with regular days hasn't attended for 14 days of term. Says \"no need to reply\"; one-tap answers go to the centre.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "childNames", description: "Child's first name" },
+      { name: "childNamesPlain", description: "Child's first name (subject line)" },
+      { name: "centreName", description: "Centre name" },
+      { name: "centreNamePlain", description: "Centre name (subject line)" },
+      { name: "lastSeen", description: "e.g. Tuesday 30 September" },
+      { name: "answers", description: "The five one-tap answer buttons" },
+    ],
+  },
+  {
     key: "nurture.welcome",
     category: "Nurture",
     label: "Nurture step 1 — welcome",

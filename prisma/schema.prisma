@@ -7763,19 +7763,27 @@ model Child {
   noAppPosting              Boolean @default(false)
   allowSocialMediaPost      Boolean @default(false)
 
-  status          String    @default("pending") // pending, active, withdrawn
+  status                String    @default("pending") // pending, active, withdrawn
   // OWNA sync fields
   /// From OWNA sign-ins (2026-10-16): when this child actually attended —
   /// set on an ENROLMENT child by matching OWNA's own record (centre + name
   /// + date of birth). Drives the attendance-based parent emails.
-  firstAttendedAt DateTime?
-  lastAttendedAt  DateTime?
-  ownaChildId     String?   @unique
-  ownaRoomId      String?
-  ownaRoomName    String?
-  ownaSyncedAt    DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  firstAttendedAt       DateTime?
+  lastAttendedAt        DateTime?
+  /// The OWNA child record this enrolment child was matched to (its
+  /// ownaChildId) — for OWNA's current booked days and enrolment status.
+  ownaMatchChildId      String?
+  /// "We've missed Yusuf" check-in: when sent, and the family's answer
+  /// (all_good | unwell | change_days | stopping | call_me).
+  missedCheckInSentAt   DateTime?
+  missedCheckInReason   String?
+  missedCheckInReasonAt DateTime?
+  ownaChildId           String?   @unique
+  ownaRoomId            String?
+  ownaRoomName          String?
+  ownaSyncedAt          DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   bookings            Booking[]             @relation("ChildBookings")
   absences            Absence[]             @relation("ChildAbsences")
