@@ -97,6 +97,24 @@ export const serviceContentSchema = z.object({
    * copied from the address bar or "Copy link".
    */
   programPlanFolderUrl: z.string().max(2_048),
+
+  // ── 2026-10-15: the welcome email families get when staff approve them ──
+  // (src/lib/parent-welcome-email.ts). Every field is optional: a blank one
+  // falls back to the centre's website details (centre-welcome-defaults.ts)
+  // or is left out of the email — never sent empty.
+  /** Who families are told to look for. Blank = the website's coordinator. */
+  welcomeCoordinatorName: z.string().max(120),
+  /** Their photo. Blank = the website's coordinator photo. */
+  welcomeCoordinatorPhoto: z.string().max(2_048),
+  /** This school's welcome pack PDF. Blank = the pack on the website. */
+  welcomePackUrl: z.string().max(2_048),
+  /**
+   * "Good to know before your first session" — one tip per line, shown as
+   * a checklist. Blank = the standard tips (OWNA, sign in/out, medical).
+   */
+  firstSessionTips: z.string().max(2_000),
+  /** An optional personal line from the centre, shown under the greeting. */
+  welcomeNote: z.string().max(1_000),
 });
 
 export type ServiceContent = z.infer<typeof serviceContentSchema>;
@@ -118,6 +136,11 @@ export const SERVICE_CONTENT_DEFAULTS: ServiceContent = {
   enrolmentThankYou: "",
   sharepointUrl: "",
   programPlanFolderUrl: "",
+  welcomeCoordinatorName: "",
+  welcomeCoordinatorPhoto: "",
+  welcomePackUrl: "",
+  firstSessionTips: "",
+  welcomeNote: "",
 };
 
 /**
@@ -173,5 +196,10 @@ export function mergeServiceContent(
     enrolmentThankYou: str("enrolmentThankYou"),
     sharepointUrl: str("sharepointUrl"),
     programPlanFolderUrl: str("programPlanFolderUrl"),
+    welcomeCoordinatorName: str("welcomeCoordinatorName"),
+    welcomeCoordinatorPhoto: str("welcomeCoordinatorPhoto"),
+    welcomePackUrl: str("welcomePackUrl"),
+    firstSessionTips: str("firstSessionTips"),
+    welcomeNote: str("welcomeNote"),
   };
 }

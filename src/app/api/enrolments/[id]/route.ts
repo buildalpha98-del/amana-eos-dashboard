@@ -9,7 +9,8 @@ import { logger } from "@/lib/logger";
 import { syncParentJourney } from "@/lib/parent-journey";
 import { sendEmail } from "@/lib/email";
 import { reissueVerification } from "@/lib/parent-account";
-import { enrolmentApprovedEmail } from "@/lib/email-templates/parent-account";
+import { sendEnrolmentWelcome } from "@/lib/enrolment-welcome";
+import { runAfter } from "@/lib/run-after";
 import { parseJsonBody } from "@/lib/api-error";
 import { upsertContactsFromSubmission } from "@/lib/enrolment-parent-contacts";
 import { sendParentWelcomeInvite } from "@/lib/notifications/parent-welcome";
@@ -72,7 +73,7 @@ const { id } = await context!.params!;
 
   const existing = await prisma.enrolmentSubmission.findUnique({
     where: { id },
-    select: { serviceId: true },
+    select: { serviceId: true, status: true },
   });
   if (!existing) throw ApiError.notFound("Enrolment not found");
   assertEnrolmentAccess(session, existing.serviceId);
@@ -173,38 +174,30 @@ const { id } = await context!.params!;
   // Outside the transaction and fully swallowed — a mail failure must
   // never roll back an approval that already activated the children and
   // generated their bookings.
+  // The school-specific WELCOME email (2026-10-15) replaces the old plain
+  // "enrolment is confirmed" email — one email at approval, never two. Sent
+  // only on the transition INTO processed, and sendEnrolmentWelcome claims
+  // welcomeEmailSentAt first, so re-saving an approved enrolment can't send
+  // it again. After the response, fully swallowed: a mail failure must never
+  // roll back an approval that already activated children and bookings.
   if (parsed.data.status === "processed") {
-    void (async () => {
-      try {
-        const primary = updated.primaryParent as {
-          email?: string;
-          firstName?: string;
-        } | null;
-        const email = primary?.email?.trim();
-        if (!email) return;
-
-        const kids = await prisma.child.findMany({
-          where: { enrolmentId: id },
-          select: { firstName: true },
-        });
-
-        // null when the address is already verified — then it's simply a
-        // confirmation email with nothing to action.
-        const reissued = await reissueVerification(email);
-        const base = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
-
-        const { subject, html } = await enrolmentApprovedEmail({
-          name: primary?.firstName?.trim() || "there",
-          childNames: kids.map((c) => c.firstName).filter(Boolean),
-          verifyLink: reissued
-            ? `${base}/parent/confirm?token=${reissued.token}`
-            : null,
-        });
-        await sendEmail({ to: email, subject, html });
-      } catch (err) {
-        logger.error("Enrolment approval email failed", { enrolmentId: id, err });
-      }
-    })();
+    if (existing.status !== "processed") {
+      runAfter(async () => {
+        try {
+          const primary = updated.primaryParent as { email?: string } | null;
+          const email = primary?.email?.trim();
+          if (!email) return;
+          // null when the address is already verified.
+          const reissued = await reissueVerification(email);
+          const base = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
+          await sendEnrolmentWelcome(id, {
+            verifyLink: reissued ? `${base}/parent/confirm?token=${reissued.token}` : null,
+          });
+        } catch (err) {
+          logger.error("Enrolment welcome email failed", { enrolmentId: id, err });
+        }
+      });
+    }
 
     // ── Hand the family to the onboarding flow ───────────────────────
     // The first-session sequence (reminder the day before, day-1 and
@@ -212,7 +205,7 @@ const { id } = await context!.params!;
     // on the date they actually start, which is the booking preference
     // they gave in the form. Approval is the first moment that date is
     // real, so it's the right place to hand over.
-    void (async () => {
+    runAfter(async () => {
       try {
         const primary = updated.primaryParent as {
           email?: string;
@@ -243,7 +236,7 @@ const { id } = await context!.params!;
       } catch (err) {
         logger.error("Could not start onboarding flow", { enrolmentId: id, err });
       }
-    })();
+    });
   }
 
   return NextResponse.json(updated);

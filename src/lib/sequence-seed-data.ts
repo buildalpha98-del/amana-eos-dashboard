@@ -71,6 +71,20 @@ export const SEED_SEQUENCES: SeedSequence[] = [
     ],
   },
   {
+    // 2026-10-15: a second, more personal nudge for families who started the
+    // form but haven't finished three days later ("reply with a time and we'll
+    // finish it together"). A separate sequence rather than a new step on
+    // "Form Support" because seeding is create-only by name — an edited
+    // sequence would never reach production. Cancelled on submit with the
+    // other pre-enrolment keys (cancelPreEnrolmentNurture).
+    name: "Form Support Follow-up",
+    type: "parent_nurture",
+    triggerStage: "form_started",
+    steps: [
+      { name: "Still saving your spot", delayHours: 72, templateKey: "form_abandonment" },
+    ],
+  },
+  {
     name: "First Session Onboarding",
     type: "parent_nurture",
     triggerStage: "first_session",

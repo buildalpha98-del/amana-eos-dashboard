@@ -22,6 +22,10 @@ import {
   SERVICE_CONTENT_DEFAULTS,
   type ServiceContent,
 } from "@/lib/service-content-shared";
+import {
+  DEFAULT_FIRST_SESSION_TIPS,
+  type CentreWelcomeDefaults as WelcomeDefaults,
+} from "@/lib/centre-welcome-defaults";
 
 const ORG_WIDE_EDIT_ROLES = new Set<Role>(["owner", "head_office", "admin"]);
 
@@ -59,6 +63,9 @@ export function ServiceContentTab({ serviceId }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const mapRef = useRef<HTMLInputElement>(null);
   const [policyDocs, setPolicyDocs] = useState<PolicyDoc[]>([]);
+  // What the welcome email falls back to (the website's details).
+  const [welcomeDefaults, setWelcomeDefaults] = useState<WelcomeDefaults | null>(null);
+  const [uploadingWelcome, setUploadingWelcome] = useState<"photo" | "pack" | null>(null);
 
   // The policy library is org-wide and jurisdiction-mixed — a Victorian
   // regulation and a NSW one sit side by side — so this offers ALL of
@@ -91,9 +98,10 @@ export function ServiceContentTab({ serviceId }: Props) {
     let cancelled = false;
     fetch(`/api/services/${serviceId}/content`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((body: { content?: ServiceContent } | null) => {
+      .then((body: { content?: ServiceContent; welcomeDefaults?: WelcomeDefaults } | null) => {
         if (cancelled) return;
         if (body?.content) setContent(body.content);
+        if (body?.welcomeDefaults) setWelcomeDefaults(body.welcomeDefaults);
         setLoaded(true);
       })
       .catch(() => {
@@ -187,6 +195,29 @@ export function ServiceContentTab({ serviceId }: Props) {
       });
     } finally {
       setUploadingMap(false);
+    }
+  }
+
+  /** Coordinator photo or welcome-pack PDF for the welcome email. */
+  async function handleWelcomeUpload(file: File, kind: "photo" | "pack") {
+    setUploadingWelcome(kind);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/content-uploads", { method: "POST", body: form });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || `Upload failed (${res.status})`);
+      }
+      const body = (await res.json()) as { url: string };
+      setContent((c) =>
+        kind === "photo" ? { ...c, welcomeCoordinatorPhoto: body.url } : { ...c, welcomePackUrl: body.url },
+      );
+      toast({ description: "Uploaded. Save to apply." });
+    } catch (err) {
+      toast({ variant: "destructive", description: err instanceof Error ? err.message : "Upload failed" });
+    } finally {
+      setUploadingWelcome(null);
     }
   }
 
@@ -633,6 +664,134 @@ export function ServiceContentTab({ serviceId }: Props) {
           rows={5}
           placeholder="What new families can expect when they enrol — orientation steps, first-day routine, who to call."
         />
+      </Section>
+
+      {/* 2026-10-15: the email a family gets when their enrolment is
+          approved. Blank fields fall back to the website's details. */}
+      <Section
+        title="Welcome email (sent when an enrolment is approved)"
+        actions={
+          <a
+            href={`/parent-journey?service=${serviceId}`}
+            className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+          >
+            Preview the email <ExternalLink className="h-3 w-3" aria-hidden />
+          </a>
+        }
+      >
+        <p className="text-xs text-muted">
+          Leave a field blank to use what&apos;s on the website
+          {welcomeDefaults?.centrePageUrl ? " for this centre" : ""}. Session times come from
+          Settings, &ldquo;Where to find us&rdquo; from the Location fields above, and activities from
+          this centre&apos;s Program.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Coordinator's name">
+            <input
+              type="text"
+              value={content.welcomeCoordinatorName}
+              onChange={(e) => setContent((c) => ({ ...c, welcomeCoordinatorName: e.target.value }))}
+              disabled={!canEdit}
+              placeholder={welcomeDefaults?.coordinatorName ? `Website: ${welcomeDefaults.coordinatorName}` : "e.g. Sarah Awad"}
+              className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand/40"
+            />
+          </Field>
+          <Field label="Coordinator's photo">
+            <div className="flex items-center gap-3">
+              {(content.welcomeCoordinatorPhoto || welcomeDefaults?.coordinatorPhoto) && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={content.welcomeCoordinatorPhoto || welcomeDefaults?.coordinatorPhoto || ""}
+                  alt=""
+                  className="h-12 w-12 shrink-0 rounded-full border-2 border-accent object-cover"
+                />
+              )}
+              {canEdit && (
+                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-surface">
+                  <Upload className="h-4 w-4" aria-hidden />
+                  {uploadingWelcome === "photo" ? "Uploading…" : content.welcomeCoordinatorPhoto ? "Replace" : "Upload"}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="sr-only"
+                    disabled={uploadingWelcome !== null}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = "";
+                      if (f) void handleWelcomeUpload(f, "photo");
+                    }}
+                  />
+                </label>
+              )}
+              {canEdit && content.welcomeCoordinatorPhoto && (
+                <button
+                  type="button"
+                  onClick={() => setContent((c) => ({ ...c, welcomeCoordinatorPhoto: "" }))}
+                  className="text-xs text-muted hover:text-foreground"
+                >
+                  Use website photo
+                </button>
+              )}
+            </div>
+          </Field>
+        </div>
+        <Field label="Welcome pack (PDF)">
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="url"
+              value={content.welcomePackUrl}
+              onChange={(e) => setContent((c) => ({ ...c, welcomePackUrl: e.target.value }))}
+              disabled={!canEdit}
+              placeholder={welcomeDefaults?.welcomePackUrl ? "Using the pack on the website" : "Link to this school's welcome pack"}
+              className="min-w-0 flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand/40"
+            />
+            {canEdit && (
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-surface">
+                <Upload className="h-4 w-4" aria-hidden />
+                {uploadingWelcome === "pack" ? "Uploading…" : "Upload PDF"}
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  className="sr-only"
+                  disabled={uploadingWelcome !== null}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    if (f) void handleWelcomeUpload(f, "pack");
+                  }}
+                />
+              </label>
+            )}
+            {(content.welcomePackUrl || welcomeDefaults?.welcomePackUrl) && (
+              <a
+                href={content.welcomePackUrl || welcomeDefaults?.welcomePackUrl || "#"}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+              >
+                <FileText className="h-3.5 w-3.5" aria-hidden /> Open
+              </a>
+            )}
+          </div>
+        </Field>
+        <Field label="Good to know before the first session (one per line)">
+          <Textarea
+            value={content.firstSessionTips}
+            onChange={(v) => setContent((c) => ({ ...c, firstSessionTips: v }))}
+            disabled={!canEdit}
+            rows={5}
+            placeholder={DEFAULT_FIRST_SESSION_TIPS.join("\n")}
+          />
+        </Field>
+        <Field label="A personal note from the centre (optional)">
+          <Textarea
+            value={content.welcomeNote}
+            onChange={(v) => setContent((c) => ({ ...c, welcomeNote: v }))}
+            disabled={!canEdit}
+            rows={2}
+            placeholder="e.g. We'll be at the school hall doors at 3pm on your first afternoon. Come and say hello!"
+          />
+        </Field>
       </Section>
 
       {/* 2026-09-08: shown on the parent-facing thank-you page right after

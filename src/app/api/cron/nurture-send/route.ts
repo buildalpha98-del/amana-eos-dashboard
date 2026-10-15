@@ -2,29 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret } from "@/lib/cron-guard";
 import { getResend, sendEmail } from "@/lib/email";
-import {
-  nurtureWelcomeEmail,
-  nurtureHowToEnrolEmail,
-  nurtureWhatToBringEmail,
-  nurtureAppSetupEmail,
-  nurtureFirstWeekEmail,
-  nurtureNpsSurveyEmail,
-  nurtureCcsAssistEmail,
-  nurtureNudge1Email,
-  nurtureFormSupportEmail,
-  nurtureNudge2Email,
-  nurtureFinalNudgeEmail,
-  nurtureDay1CheckinEmail,
-  nurtureDay3CheckinEmail,
-  nurtureWeek2FeedbackEmail,
-  nurtureMonth1ReferralEmail,
-  nurtureSessionReminderEmail,
-  centreWebsiteUrl,
-  retentionCasualReengageEmail,
-  retentionDayChangeReminderEmail,
-  retentionWithdrawalInterceptEmail,
-  nurtureFormAbandonmentEmail,
-} from "@/lib/email-templates";
+import { nurtureSessionReminderEmail, centreWebsiteUrl } from "@/lib/email-templates";
+import { NURTURE_TEMPLATE_MAP } from "@/lib/nurture-template-map";
 import { appendUnsubscribeFooter } from "@/lib/email-templates/base";
 import { withApiHandler } from "@/lib/api-handler";
 import { acquireCronLock } from "@/lib/cron-guard";
@@ -66,32 +45,7 @@ function buildSmsBody(templateKey: string, firstName: string, centreName: string
  * SequenceStep has no custom EmailTemplate override. `session_reminder` is
  * handled separately (it needs the service address + orientation video).
  */
-const TEMPLATE_MAP: Record<
-  string,
-  (firstName: string, centreName: string, enrolUrl?: string, feedbackUrl?: string) =>
-    | { subject: string; html: string }
-    | Promise<{ subject: string; html: string }>
-> = {
-  welcome: nurtureWelcomeEmail,
-  how_to_enrol: nurtureHowToEnrolEmail,
-  what_to_bring: nurtureWhatToBringEmail,
-  app_setup: nurtureAppSetupEmail,
-  first_week: nurtureFirstWeekEmail,
-  nps_survey: nurtureNpsSurveyEmail,
-  ccs_assist: nurtureCcsAssistEmail,
-  nudge_1: nurtureNudge1Email,
-  form_support: nurtureFormSupportEmail,
-  nudge_2: nurtureNudge2Email,
-  final_nudge: nurtureFinalNudgeEmail,
-  day1_checkin: nurtureDay1CheckinEmail,
-  day3_checkin: nurtureDay3CheckinEmail,
-  week2_feedback: nurtureWeek2FeedbackEmail,
-  month1_referral: nurtureMonth1ReferralEmail,
-  casual_reengage: retentionCasualReengageEmail,
-  day_change_reminder: retentionDayChangeReminderEmail,
-  withdrawal_intercept: retentionWithdrawalInterceptEmail,
-  form_abandonment: nurtureFormAbandonmentEmail,
-};
+const TEMPLATE_MAP = NURTURE_TEMPLATE_MAP;
 
 const BATCH_SIZE = 15;
 /** Failed sends are retried until this many attempts, then marked terminally failed. */

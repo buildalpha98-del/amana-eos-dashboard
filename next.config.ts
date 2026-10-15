@@ -44,7 +44,8 @@ const securityHeaders = (opts: { metaPixel?: boolean } = {}) => [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       // www.facebook.com: Meta Pixel event beacons (/tr) — pixel routes only
-      `img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.vercel-storage.com${opts.metaPixel ? " https://www.facebook.com" : ""}`,
+      // amanaoshc.com.au: our own website — coordinator photos in parent-email previews.
+      `img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.vercel-storage.com https://amanaoshc.com.au${opts.metaPixel ? " https://www.facebook.com" : ""}`,
       // 2026-06-15: added vercel.com + blob.vercel-storage.com so the
       // @vercel/blob client can call its token-mint endpoint and upload
       // file bytes directly to Blob storage. AI Knowledge bulk-upload
