@@ -2,14 +2,15 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { publicVacancyWhere } from "@/lib/recruitment/public-vacancy";
 import { normalisePublicSource } from "@/lib/recruitment/pool";
 import { CareerApplyForm } from "./CareerApplyForm";
 
 /**
  * /careers/[id] — public application page for a single vacancy.
  *
- * Server component: looks up the vacancy and only renders if it's open AND
- * published to the website (`postedChannels` has "website"). Otherwise 404 —
+ * Server component: looks up the vacancy and only renders if it's still being
+ * hired for AND published to the website (`publicVacancyWhere`). Otherwise 404 —
  * you can't reach a draft/filled role by guessing its id. The website
  * careers page links here; the form posts to /api/public/careers/[id]/apply.
  *
@@ -40,12 +41,7 @@ export const dynamic = "force-dynamic";
 
 async function getVacancy(id: string) {
   return prisma.recruitmentVacancy.findFirst({
-    where: {
-      id,
-      deleted: false,
-      status: "open",
-      postedChannels: { has: "website" },
-    },
+    where: publicVacancyWhere(id),
     include: { service: { select: { name: true, suburb: true, state: true } } },
   });
 }
