@@ -18,7 +18,8 @@ import { logger } from "@/lib/logger";
 import { parentEnrolmentReminderEmail } from "@/lib/email-templates/parent-account";
 import { findEnrolmentIdsForEmail } from "@/lib/parent-account";
 import { getParentEnrolmentState } from "@/lib/parent-enrolment-state";
-import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { ADMIN_ROLES, isAdminRole } from "@/lib/role-permissions";
+import { draftServiceId } from "@/lib/enrolment-follow-ups";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -40,6 +41,15 @@ export const POST = withApiAuth(
       },
     });
     if (!account) throw ApiError.notFound("Parent account not found");
+
+    // 2026-10-16: coordinators chase their own centre's unfinished forms
+    // (Enrolments → Follow-ups) — only families whose form is for their centre.
+    if (!isAdminRole(session!.user.role)) {
+      const own = (session!.user as { serviceId?: string | null }).serviceId ?? null;
+      if (!own || (await draftServiceId(id)) !== own) {
+        throw ApiError.forbidden("This family isn't at your centre.");
+      }
+    }
 
     // Re-check state server-side rather than trusting the client's view of
     // the list, which may have been open for a while.
@@ -106,5 +116,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json({ ok: true, email: account.email });
   },
-  { roles: [...ADMIN_ROLES] },
+  { roles: [...ADMIN_ROLES, "member"] },
 );

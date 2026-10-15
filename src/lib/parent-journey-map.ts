@@ -45,6 +45,7 @@ export const PARENT_JOURNEY: JourneyStage[] = [
       { id: "nudge_1", templateKey: "nudge_1", overrideKey: "nurture.nudge1", name: "Anything we can help with?", when: "Day 5", status: "live" },
       { id: "nudge_2", templateKey: "nudge_2", overrideKey: "nurture.nudge2", name: "A peek inside our day", when: "Day 9", status: "live" },
       { id: "final_nudge", templateKey: "final_nudge", overrideKey: "nurture.finalNudge", name: "Last email — your spot's still here", when: "Day 14", status: "live" },
+      { name: "Call within the hour (staff)", when: "Straight away — the centre gets an in-app + push alert", status: "new" },
     ],
   },
   {
@@ -54,7 +55,7 @@ export const PARENT_JOURNEY: JourneyStage[] = [
     emails: [
       { id: "form_support", templateKey: "form_support", overrideKey: "nurture.formSupport", name: "Stuck on the form?", when: "4 hours after starting", status: "live" },
       { id: "form_abandonment", templateKey: "form_abandonment", overrideKey: "nurture.formAbandonment", name: "Still saving your spot — finish it together", when: "3 days after starting", status: "new" },
-      { name: "Call list for the centre", when: "After 7 days", status: "planned", note: "Families still unfinished show up for a phone call." },
+      { name: "Call list for the centre (staff)", when: "After 4 days without progress", status: "new", note: "Enrolments → Follow-ups: phone number, where they stopped, \"Email a reminder\" and \"We called them\"." },
     ],
   },
   {
@@ -63,7 +64,8 @@ export const PARENT_JOURNEY: JourneyStage[] = [
     description: "The form is in. Our team reviews it and promises to get back within 24 hours.",
     emails: [
       { id: "enrolment_received", name: "We've received your enrolment", when: "Straight away", status: "live" },
-      { name: "Staff alert + 24-hour countdown", when: "Straight away (to the centre and head office)", status: "planned" },
+      { name: "Alert to the centre + head office (staff)", when: "Straight away — in the dashboard, by push, and to the centre's mailbox", status: "new" },
+      { name: "24-hour reply clock (staff)", when: "Reminder at 20 hours; head office told at 24 hours", status: "new", note: "Countdown on Enrolments → Follow-ups until it's marked contacted." },
     ],
   },
   {
