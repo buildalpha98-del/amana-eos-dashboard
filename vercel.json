@@ -275,6 +275,10 @@
       "schedule": "20 * * * *"
     },
     {
+      "path": "/api/cron/owna-handover-nudge",
+      "schedule": "30 23 * * *"
+    },
+    {
       "path": "/api/cron/ai-task-agent",
       "schedule": "0 * * * *"
     },

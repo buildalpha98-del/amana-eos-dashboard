@@ -38,6 +38,8 @@ export function OwnaHandoffPanel({
   const [step, setStep] = useState<HandoffStep>("children");
   const [mode, setMode] = useState<"sent" | "existing">("sent");
   const [message, setMessage] = useState("");
+  const [firstDay, setFirstDay] = useState("");
+  const [notifyFamily, setNotifyFamily] = useState(true);
   const query = useQuery({
     queryKey: ["owna-handoff", id],
     queryFn: () => fetchApi<Response>(`/api/enrolments/${id}/owna-handoff`),
@@ -51,6 +53,7 @@ export function OwnaHandoffPanel({
       }),
     onSuccess: () => {
       setEvidence("");
+      setFirstDay("");
       setMessage("Handoff saved.");
       client.invalidateQueries({ queryKey: ["owna-handoff", id] });
       client.invalidateQueries({ queryKey: ["enrolments"] });
@@ -76,8 +79,18 @@ export function OwnaHandoffPanel({
   const stale = !!state && state.placement !== placement;
   const disabled =
     mutation.isPending || query.isFetching || status !== "processed";
+  // Ticking these two emails the family (unless unticked below).
+  const emailsFamily = step === "invitation" || step === "sessions";
+  const completing = !state?.steps[step];
   const act = (action: HandoffPatch["action"]) =>
-    mutation.mutate({ action, step, evidence, mode });
+    mutation.mutate({
+      action,
+      step,
+      evidence,
+      mode,
+      ...(action === "complete" && step === "sessions" ? { firstDay } : {}),
+      ...(action === "complete" && emailsFamily ? { notifyFamily } : {}),
+    });
   return (
     <section
       aria-labelledby="owna-handoff-heading"
@@ -91,8 +104,9 @@ export function OwnaHandoffPanel({
           {handoffSummary(state, placement, status)}
         </p>
         <p className="text-xs text-muted mt-2">
-          Staff checklist only. Saving does not send invitations, update OWNA or
-          confirm an enrolment.
+          Staff checklist. It doesn&apos;t send the OWNA invitation or change OWNA.
+          Ticking the invitation or first-sessions step emails the family their
+          next step (you can untick that).
         </p>
         <p className="text-sm mt-2">
           Each check covers all children and their assigned services:{" "}
@@ -156,6 +170,9 @@ export function OwnaHandoffPanel({
                       : done.mode === "sent"
                         ? " · Invitation sent"
                         : ""}
+                    {done.firstDay
+                      ? ` · First day ${new Date(`${done.firstDay}T00:00:00Z`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}`
+                      : ""}
                   </p>
                   <p className="whitespace-pre-wrap break-words">
                     {done.evidence}
@@ -203,6 +220,43 @@ export function OwnaHandoffPanel({
             </select>
           </>
         )}
+        {step === "sessions" && completing && (
+          <>
+            <label className="block text-sm" htmlFor="handoff-first-day">
+              First booked day
+            </label>
+            <input
+              id="handoff-first-day"
+              type="date"
+              value={firstDay}
+              onChange={(e) => setFirstDay(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background p-2 text-sm"
+            />
+            <p className="text-xs text-muted">
+              The day-before reminder and first-week check-ins are timed from this date.
+            </p>
+          </>
+        )}
+        {emailsFamily && completing && (
+          <label className="flex items-start gap-2 rounded-lg bg-surface p-3 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-[var(--color-brand)]"
+              checked={notifyFamily}
+              onChange={(e) => setNotifyFamily(e.target.checked)}
+            />
+            <span>
+              Email the family
+              <span className="block text-xs text-muted">
+                {step === "invitation"
+                  ? mode === "existing"
+                    ? "“You're all set in OWNA — sign in as usual.”"
+                    : "A step-by-step guide to finding the invitation and getting into OWNA. If they haven't got in after 3 days, they get a friendly nudge and you get an alert."
+                  : "“You're booked in!” with the first day, times, where to find us and what to bring."}
+              </span>
+            </span>
+          </label>
+        )}
         <label className="block text-sm" htmlFor="handoff-evidence">
           Evidence, next action or reason
         </label>
@@ -231,7 +285,12 @@ export function OwnaHandoffPanel({
           ) : (
             <>
               <Button
-                disabled={disabled || !evidence.trim() || !state?.owner}
+                disabled={
+                  disabled ||
+                  !evidence.trim() ||
+                  !state?.owner ||
+                  (step === "sessions" && completing && !firstDay)
+                }
                 onClick={() => act(state?.steps[step] ? "reopen" : "complete")}
               >
                 {state?.steps[step] ? "Reopen check" : "Mark checked"}

@@ -265,3 +265,39 @@ async function createSequenceEnrolment(
     logger.error("Failed to create sequence enrolment", { err: e });
   }
 }
+
+/**
+ * Re-time the First Session Onboarding emails to the REAL first day
+ * (2026-10-16): staff confirm it on the OWNA checklist, which can differ
+ * from the start date the family typed on the form. Pending steps move;
+ * steps already sent stay sent; a step skipped earlier (its time had
+ * passed) is created if it's now in the future; a pending step whose new
+ * time has already passed is cancelled rather than sent late.
+ */
+export async function rescheduleFirstSession(enquiryId: string, anchorDate: Date): Promise<void> {
+  const now = new Date();
+  const enrolments = await prisma.sequenceEnrolment.findMany({
+    where: { enquiryId, sequence: { type: "parent_nurture", triggerStage: "first_session" } },
+    include: {
+      sequence: { include: { steps: true } },
+      executions: { select: { id: true, stepId: true, status: true } },
+    },
+  });
+  for (const enr of enrolments) {
+    await prisma.sequenceEnrolment.update({ where: { id: enr.id }, data: { anchorDate } });
+    for (const step of enr.sequence.steps) {
+      const when = new Date(anchorDate.getTime() + step.delayHours * 3_600_000);
+      const exec = enr.executions.find((e) => e.stepId === step.id);
+      if (exec?.status === "pending") {
+        await prisma.sequenceStepExecution.update({
+          where: { id: exec.id },
+          data: when > now ? { scheduledFor: when } : { status: "cancelled" },
+        });
+      } else if (!exec && when > now) {
+        await prisma.sequenceStepExecution.create({
+          data: { enrolmentId: enr.id, stepId: step.id, scheduledFor: when, status: "pending" },
+        });
+      }
+    }
+  }
+}

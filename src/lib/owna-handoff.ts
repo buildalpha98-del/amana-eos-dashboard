@@ -13,6 +13,8 @@ const completion = z.object({
   by: actor,
   evidence: z.string(),
   mode: z.enum(["sent", "existing"]).optional(),
+  /** "First sessions confirmed": the first booked day, YYYY-MM-DD. */
+  firstDay: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 export const handoffStateSchema = z.object({
   placement: z.string(),
@@ -33,6 +35,13 @@ export const handoffPatchSchema = z
     step: z.enum(["children", "invitation", "access", "sessions"]).optional(),
     evidence: z.string().trim().max(1000).optional(),
     mode: z.enum(["sent", "existing"]).optional(),
+    /** First booked day (YYYY-MM-DD) — required to confirm first sessions. */
+    firstDay: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose the first booked day").optional(),
+    /**
+     * 2026-10-16: completing "invitation" or "sessions" emails the family
+     * (OWNA setup guide / first day confirmed) unless this is false.
+     */
+    notifyFamily: z.boolean().optional(),
   })
   .strict()
   .superRefine((v, ctx) => {
@@ -45,6 +54,8 @@ export const handoffPatchSchema = z
         code: "custom",
         message: "Choose invitation sent or existing access",
       });
+    if (v.action === "complete" && v.step === "sessions" && !v.firstDay)
+      ctx.addIssue({ code: "custom", message: "Choose the first booked day" });
   });
 export type HandoffPatch = z.infer<typeof handoffPatchSchema>;
 export type HandoffPlacement = {
@@ -115,6 +126,7 @@ export function applyHandoff(
       by,
       evidence: patch.evidence!,
       ...(patch.step === "invitation" ? { mode: patch.mode } : {}),
+      ...(patch.step === "sessions" ? { firstDay: patch.firstDay } : {}),
     };
   }
   return next;

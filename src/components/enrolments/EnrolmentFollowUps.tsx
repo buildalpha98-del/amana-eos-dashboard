@@ -11,12 +11,12 @@
  */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ChevronDown, Clock, Mail, Phone, PhoneCall } from "lucide-react";
+import { CheckCircle2, ChevronDown, Clock, KeyRound, Mail, Phone, PhoneCall } from "lucide-react";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
-import type { AwaitingReply, UnfinishedForm } from "@/lib/enrolment-follow-ups";
+import type { AwaitingReply, OwnaSetup, UnfinishedForm } from "@/lib/enrolment-follow-ups";
 
 function ago(iso: string) {
   const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000);
@@ -36,7 +36,7 @@ function clockChip(hoursLeft: number) {
 export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) => void }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(true);
-  const { data } = useQuery<{ awaiting: AwaitingReply[]; unfinished: UnfinishedForm[] }>({
+  const { data } = useQuery<{ awaiting: AwaitingReply[]; unfinished: UnfinishedForm[]; ownaSetup: OwnaSetup[] }>({
     queryKey: ["enrolment-follow-ups"],
     queryFn: () => fetchApi("/api/enrolments/follow-ups"),
     retry: 2,
@@ -75,7 +75,8 @@ export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) =
 
   const awaiting = data?.awaiting ?? [];
   const unfinished = data?.unfinished ?? [];
-  if (!data || (awaiting.length === 0 && unfinished.length === 0)) return null;
+  const ownaSetup = data?.ownaSetup ?? [];
+  if (!data || (awaiting.length === 0 && unfinished.length === 0 && ownaSetup.length === 0)) return null;
   const overdue = awaiting.filter((a) => a.hoursLeft <= 0).length;
 
   return (
@@ -97,11 +98,16 @@ export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) =
             {unfinished.length} unfinished form{unfinished.length === 1 ? "" : "s"}
           </span>
         )}
+        {ownaSetup.length > 0 && (
+          <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-muted">
+            {ownaSetup.length} OWNA setup{ownaSetup.length === 1 ? "" : "s"} to finish
+          </span>
+        )}
         <ChevronDown className={cn("ml-auto h-4 w-4 text-muted transition-transform", open && "rotate-180")} aria-hidden />
       </button>
 
       {open && (
-        <div className="grid gap-4 border-t border-border p-4 lg:grid-cols-2">
+        <div className="grid gap-4 border-t border-border p-4 lg:grid-cols-2 2xl:grid-cols-3">
           <div className="min-w-0 space-y-2">
             <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
               <Clock className="h-4 w-4 text-brand" aria-hidden /> Reply within 24 hours
@@ -209,6 +215,60 @@ export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) =
                         loading={called.isPending && called.variables === u.accountId}
                       >
                         We called them
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="min-w-0 space-y-2">
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <KeyRound className="h-4 w-4 text-brand" aria-hidden /> OWNA setup
+            </h3>
+            <p className="text-xs text-muted">
+              Approved families whose OWNA handover isn&apos;t finished. Open one to tick the next step — the family is
+              emailed what to do.
+            </p>
+            {ownaSetup.length === 0 ? (
+              <p className="flex items-center gap-1.5 py-2 text-sm text-muted">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden /> Every approved family is set up.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {ownaSetup.map((o) => (
+                  <li key={o.id} className="rounded-lg border border-border p-3">
+                    <div className="flex flex-wrap items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">{o.childNames}</p>
+                        <p className="text-xs text-muted">
+                          {o.parentName}
+                          {o.serviceName ? ` · ${o.serviceName}` : ""} · approved{" "}
+                          {o.daysSinceApproval === 0 ? "today" : `${o.daysSinceApproval} day${o.daysSinceApproval === 1 ? "" : "s"} ago`}
+                          {o.owner ? ` · ${o.owner}` : ""}
+                        </p>
+                        <p className="mt-1 text-xs font-medium text-foreground">
+                          Next: {o.nextStep} <span className="font-normal text-muted">({o.stepsDone}/4 done)</span>
+                        </p>
+                      </div>
+                      {o.waitingOnFamily && (
+                        <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-2xs font-semibold text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+                          Waiting on family
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {o.phone && (
+                        <a
+                          href={`tel:${o.phone.replace(/\s+/g, "")}`}
+                          className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs font-medium text-foreground hover:bg-surface"
+                        >
+                          <Phone className="h-3.5 w-3.5" aria-hidden /> {o.phone}
+                        </a>
+                      )}
+                      <Button size="sm" onClick={() => onOpen(o.id)}>
+                        Open the checklist
                       </Button>
                     </div>
                   </li>

@@ -77,9 +77,21 @@ export const PARENT_JOURNEY: JourneyStage[] = [
     ],
   },
   {
+    key: "owna",
+    title: "5. Getting into OWNA",
+    description: "Sent when staff tick the OWNA checklist on the enrolment — so the family always knows the next step. Staff can untick \"Email the family\".",
+    emails: [
+      { id: "owna_invitation", overrideKey: "parent.ownaInvitation", usesCentreContent: true, name: "Your OWNA invitation is on its way (4-step guide)", when: "When \"Invitation sent\" is ticked", status: "new" },
+      { id: "owna_existing", overrideKey: "parent.ownaExisting", usesCentreContent: true, name: "You're all set in OWNA", when: "When \"Existing OWNA access\" is ticked", status: "new" },
+      { id: "owna_nudge", overrideKey: "parent.ownaNudge", usesCentreContent: true, name: "Did your OWNA invitation arrive?", when: "3 days after the invitation, if they haven't got in (centre alerted too)", status: "new" },
+      { id: "first_day_confirmed", overrideKey: "parent.firstDayConfirmed", usesCentreContent: true, name: "You're booked in! First day confirmed", when: "When \"First sessions confirmed\" is ticked with the date", status: "new", note: "Also re-times the day-before reminder and check-ins to that real date." },
+      { name: "OWNA setup list for staff", when: "Enrolments → Follow-ups, until the checklist is done", status: "new" },
+    ],
+  },
+  {
     key: "first_session",
-    title: "5. First sessions",
-    description: "Timed from the start date the family chose on the form.",
+    title: "6. First sessions",
+    description: "Timed from the first day staff confirm on the OWNA checklist (or, until then, the start date on the form).",
     emails: [
       { id: "session_reminder", templateKey: "session_reminder", name: "Tomorrow's the big day!", when: "Day before the start date", status: "live" },
       { id: "day1_checkin", templateKey: "day1_checkin", overrideKey: "nurture.day1Checkin", name: "How did day one go? (+ SMS)", when: "Day after the start date", status: "live" },
@@ -91,7 +103,7 @@ export const PARENT_JOURNEY: JourneyStage[] = [
   },
   {
     key: "settled",
-    title: "6. Settled in",
+    title: "7. Settled in",
     description: "The longer-term touches.",
     emails: [
       { id: "month1_referral", templateKey: "month1_referral", overrideKey: "nurture.month1Referral", name: "Know another family? A free day each", when: "About 6 weeks after starting", status: "live" },
@@ -100,7 +112,7 @@ export const PARENT_JOURNEY: JourneyStage[] = [
   },
   {
     key: "leaving",
-    title: "7. Leaving",
+    title: "8. Leaving",
     description: "Sent by staff when a family withdraws.",
     emails: [
       { id: "exit_survey", name: "We'll miss your family (exit survey)", when: "When staff record a withdrawal", status: "manual" },
