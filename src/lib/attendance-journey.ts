@@ -19,6 +19,7 @@
  * who HAS been coming would look like a no-show.
  */
 import { createHmac, timingSafeEqual } from "crypto";
+import { recordMarketingSends } from "@/lib/frequency-cap";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email";
@@ -206,6 +207,7 @@ export async function runNoShowChecks(now = new Date()): Promise<{ sent: number 
         links,
       });
       await sendEmail({ to: parent.email, subject, html }, { idempotencyKey: `no-show-${s.id}` });
+      await recordMarketingSends(prisma, [{ email: parent.email }], { source: "lifecycle" });
       sent++;
     } catch (err) {
       logger.error("No-show email failed", { enrolmentId: s.id, err });
@@ -290,6 +292,7 @@ export async function runExtraDayOffers(now = new Date()): Promise<{ sent: numbe
       });
       const withFooter = appendUnsubscribeFooter(html, contact.id, process.env.NEXTAUTH_URL ?? "https://amanaoshc.company");
       await sendEmail({ to: parent.email, subject, html: withFooter }, { idempotencyKey: `extra-day-${s.id}` });
+      await recordMarketingSends(prisma, [{ email: parent.email, contactId: contact.id }], { source: "lifecycle" });
       sent++;
     } catch (err) {
       logger.error("Extra-day email failed", { enrolmentId: s.id, err });

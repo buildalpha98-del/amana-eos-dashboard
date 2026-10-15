@@ -10,6 +10,7 @@
  *
  * Swallow-and-log throughout — a mail problem must never undo a checklist save.
  */
+import { recordMarketingSends } from "@/lib/frequency-cap";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
@@ -62,6 +63,7 @@ export async function onHandoffStepCompleted(
     if (step === "invitation") {
       const { subject, html } = completion.mode === "existing" ? await ownaExistingEmail(d) : await ownaInvitationEmail(d);
       await sendEmail({ to: d.parentEmail, subject, html }, { idempotencyKey: `owna-invitation-${enrolmentId}-${completion.at}` });
+      await recordMarketingSends(prisma, [{ email: d.parentEmail }], { source: "lifecycle" });
       return;
     }
 
@@ -69,6 +71,7 @@ export async function onHandoffStepCompleted(
     if (!completion.firstDay) return;
     const { subject, html } = await firstDayConfirmedEmail(d);
     await sendEmail({ to: d.parentEmail, subject, html }, { idempotencyKey: `first-day-${enrolmentId}-${completion.at}` });
+    await recordMarketingSends(prisma, [{ email: d.parentEmail }], { source: "lifecycle" });
     const sub = await prisma.enrolmentSubmission.findUnique({ where: { id: enrolmentId }, select: { serviceId: true } });
     await syncParentJourney({
       email: d.parentEmail,
@@ -112,6 +115,7 @@ export async function runOwnaNudges(now = new Date()): Promise<{ nudged: number 
       if (d) {
         const { subject, html } = await ownaNudgeEmail(d);
         await sendEmail({ to: d.parentEmail, subject, html }, { idempotencyKey: `owna-nudge-${r.enrolmentId}-${inv.at}` });
+        await recordMarketingSends(prisma, [{ email: d.parentEmail }], { source: "lifecycle" });
       }
       if (r.enrolment.serviceId) {
         const kids = childNamesFrom(r.enrolment.children);

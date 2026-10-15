@@ -5,6 +5,7 @@ import { getResend, sendEmail } from "@/lib/email";
 import { nurtureSessionReminderEmail, centreWebsiteUrl } from "@/lib/email-templates";
 import { NURTURE_TEMPLATE_MAP } from "@/lib/nurture-template-map";
 import { attendanceGate } from "@/lib/attendance-journey";
+import { paceNurtureSend } from "@/lib/journey-pacing";
 import { appendUnsubscribeFooter } from "@/lib/email-templates/base";
 import { withApiHandler } from "@/lib/api-handler";
 import { acquireCronLock } from "@/lib/cron-guard";
@@ -183,6 +184,17 @@ async function processSequenceExecutions(now: Date) {
             gate === "hold"
               ? { status: "pending", scheduledFor: new Date(Date.now() + 24 * 3_600_000) }
               : { status: "cancelled", error: "No attendance recorded" },
+        });
+        return "skipped";
+      }
+      // "Never too many emails": one from us in the last 20 hours → wait a day.
+      const due = exec.enrolment.anchorDate
+        ? new Date(exec.enrolment.anchorDate.getTime() + exec.step.delayHours * 3_600_000)
+        : null;
+      if ((await paceNurtureSend(email, exec.step.templateKey, due)) === "hold") {
+        await prisma.sequenceStepExecution.update({
+          where: { id: exec.id },
+          data: { status: "pending", scheduledFor: new Date(Date.now() + 24 * 3_600_000) },
         });
         return "skipped";
       }
