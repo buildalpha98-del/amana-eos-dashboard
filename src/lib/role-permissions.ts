@@ -202,6 +202,8 @@ export const allPages = [
   // Owner/head_office/admin only — inherited via allPages, deliberately
   // NOT added to the marketing/member/staff/EOS allowlists.
   "/help-centre",
+  // 2026-10-15: every email a family gets, stage by stage (previews + tests).
+  "/parent-journey",
   // Tools
   "/tools/ccs-calculator",
   // 2026-07-05 (nav consolidation phase 1): /handbook is the consolidated
@@ -294,6 +296,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/surveys",
     "/learn/[enrollmentId]",
     "/marketing",
+    "/parent-journey",
     "/requests",
     "/marketing/vendor-briefs",
     "/marketing/activations",

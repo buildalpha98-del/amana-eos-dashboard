@@ -19,6 +19,7 @@
 
 import { parentEmailLayout, buttonHtml, escapeHtml } from "./base";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
+import { CENTRE_WEBSITE_SLUGS } from "@/lib/centre-welcome-defaults";
 
 /**
  * Where we send a family to enrol.
@@ -638,14 +639,12 @@ export async function nurtureFormAbandonmentEmail(firstName: string, centreName:
             enrolment; don't let that stop you.
           </p>
           <p style="margin:0 0 12px;color:#004E64;font-size:14px;line-height:1.7;">
-            <strong>"I wasn't sure which days to pick"</strong> — You don't have to decide
-            now. Leave the days empty and book casually through our app, then set up a
-            recurring schedule whenever you're ready (recurring days can be adjusted with
-            7 days' notice).
+            <strong>"I wasn't sure which days to pick"</strong> — Pick what you know for
+            now. We can add or change days with you once you're enrolled.
           </p>
           <p style="margin:0;color:#004E64;font-size:14px;line-height:1.7;">
-            <strong>"The card details made me pause"</strong> — Nothing is debited until
-            after your child attends, and only if they love their first days.
+            <strong>"The bank details made me pause"</strong> — Call us and we'll walk you
+            through how fees, direct debit and Child Care Subsidy work before you submit.
           </p>
         </td>
       </tr>
@@ -676,21 +675,6 @@ export async function nurtureFormAbandonmentEmail(firstName: string, centreName:
  * exact spot in the school (usually the hall), photos, and the centre's
  * direct number for pickup dramas. Keyed by Service.code.
  */
-const CENTRE_WEBSITE_SLUGS: Record<string, string> = {
-  "MFIS-GA": "mfis-greenacre",
-  "MFIS-HP": "mfis-hoxton-park",
-  "MFIS-BH": "mfis-beaumont-hills",
-  "UG": "unity-grammar",
-  "ARK": "arkana-college",
-  "MNC": "minarah-college",
-  "IRF": "irfan-college",
-  "AICS": "aics",
-  "ATC": "al-taqwa-college",
-  "MIN-OFF": "minaret-officer",
-  "MIN-SPR": "minaret-springvale",
-  "MIN-DOV": "minaret-doveton",
-  "AIA-COB": "aia-kkcc",
-};
 
 export function centreWebsiteUrl(serviceCode?: string | null): string | undefined {
   const slug = serviceCode ? CENTRE_WEBSITE_SLUGS[serviceCode] : undefined;
@@ -772,8 +756,8 @@ export function nurtureSessionReminderEmail(
     </table>
     <p style="margin:16px 0 16px;color:#004E64;font-size:14px;line-height:1.7;">
       <strong>And here's how you'll know they're doing great:</strong> our educators collect
-      your child straight from their classroom, you'll get a notification the moment they're
-      signed in, and we'll send you photos of how they're settling in during the session.
+      your child straight from their classroom, and you'll see their sign-in and daily
+      updates in the <strong>OWNA app</strong>.
     </p>
     ${videoBlock}
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
@@ -901,8 +885,8 @@ export async function nurtureDay1CheckinEmail(
       <strong>The {{centreName}} Team</strong>
     </p>
     <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.7;">
-      PS — if they're already asking to go back, you can book more days or set up a
-      recurring schedule in the app anytime.
+      PS — if they're already asking to go back, you can book extra days in the
+      <strong>OWNA app</strong>, or email enrolments@amanaoshc.com.au and we'll add them for you.
     </p>
   `,
     vars: {

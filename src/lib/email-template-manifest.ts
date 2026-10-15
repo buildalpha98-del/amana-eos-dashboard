@@ -301,6 +301,27 @@ export const EMAIL_TEMPLATE_MANIFEST: EmailTemplateManifestEntry[] = [
   // transition) remain hardcoded for now — listed here are the ones that
   // route through applyEmailTemplateOverride().
   {
+    key: "parent.enrolmentWelcome",
+    category: "Parent",
+    label: "Welcome email (enrolment approved)",
+    description:
+      "Sent once when staff approve an enrolment. School-specific: coordinator, first-session tips, welcome pack, upcoming activities, extra days, OWNA/CCS next steps. The centre details come from each service's Content tab.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "childNames", description: "Child name(s), e.g. \"Yusuf and Maryam\"" },
+      { name: "childNamesPlain", description: "Child name(s) for the subject line" },
+      { name: "centreName", description: "Centre name, e.g. \"MFIS Greenacre\"" },
+      { name: "welcomeNote", description: "The centre's personal note (blank if none)" },
+      { name: "verifyBlock", description: "Confirm-email button (only when the address isn't verified)" },
+      { name: "coordinatorCard", description: "Coordinator photo, name and centre contact card" },
+      { name: "firstSessionBlock", description: "Session times, where to find us, first-session checklist" },
+      { name: "welcomePackBlock", description: "The school's welcome pack button" },
+      { name: "programBlock", description: "Next 3 weeks of planned activities (hidden when none)" },
+      { name: "extraDaysBlock", description: "Extra-day offer" },
+      { name: "nextStepsBlock", description: "OWNA / CCS / first day next steps" },
+    ],
+  },
+  {
     key: "nurture.welcome",
     category: "Nurture",
     label: "Nurture step 1 — welcome",

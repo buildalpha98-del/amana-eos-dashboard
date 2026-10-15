@@ -24,6 +24,7 @@ import {
   serviceContentSchema,
 } from "@/lib/service-content-shared";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { centreWelcomeDefaults } from "@/lib/centre-welcome-defaults";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -35,12 +36,14 @@ export const GET = withApiAuth(async (_req, _session, context) => {
   const { id: serviceId } = await (context as unknown as RouteCtx).params;
   const row = await prisma.service.findUnique({
     where: { id: serviceId },
-    select: { content: true, updatedAt: true },
+    select: { content: true, updatedAt: true, code: true },
   });
   if (!row) throw ApiError.notFound("Service not found");
   return NextResponse.json({
     content: mergeServiceContent(row.content),
     updatedAt: row.updatedAt,
+    // What the welcome email uses when the welcome fields are blank.
+    welcomeDefaults: centreWelcomeDefaults(row.code),
   });
 });
 
