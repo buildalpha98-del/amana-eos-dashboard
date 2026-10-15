@@ -7,6 +7,9 @@ import { getServiceScope } from "@/lib/service-scope";
 import { withApiHandler } from "@/lib/api-handler";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
+import { runAfter } from "@/lib/run-after";
+import { alertCentreTeam } from "@/lib/centre-team-alerts";
+import { escapeHtml } from "@/lib/email-templates/base";
 
 import { parseJsonBody } from "@/lib/api-error";
 import { getWeekStart } from "@/lib/utils";
@@ -84,6 +87,33 @@ export const POST = withApiHandler(async (req) => {
       } catch (e) {
         logger.error("QuickFeedback: Failed to create alert", { e });
       }
+    }
+
+    // 2026-10-16: unhappy feedback reaches the people who can fix it — the
+    // centre's team (in-app, push, the centre's mailbox), and head office for
+    // a 1 or 2. A 3 with a comment goes to the centre. After the response.
+    if (data.score <= 2 || (data.score === 3 && data.comment?.trim())) {
+      const who = data.parentName?.trim() || "A parent";
+      const comment = data.comment?.trim();
+      runAfter(() =>
+        alertCentreTeam({
+          serviceId: data.serviceId,
+          type: "parent_feedback_low",
+          title: `${who} rated their experience ${data.score}/5`,
+          body: comment ? `"${comment.slice(0, 200)}"` : "No comment left. A quick call to check in would help.",
+          link: `/services/${data.serviceId}`,
+          headOffice: data.score <= 2,
+          email: {
+            subject: `Parent feedback ${data.score}/5 at ${service.name.replace(/^Amana OSHC\s+/i, "")} — please follow up`,
+            lines: [
+              `<strong>${escapeHtml(who)}</strong> rated their child's experience <strong>${data.score} out of 5</strong>.`,
+              comment ? `They said: <em>"${escapeHtml(comment)}"</em>` : "They didn't leave a comment.",
+              data.parentEmail ? `Their email: ${escapeHtml(data.parentEmail)}. A personal call within a day makes all the difference.` : "A personal follow-up within a day makes all the difference.",
+            ],
+            button: "Open the centre",
+          },
+        }),
+      );
     }
 
     return NextResponse.json({ id: feedback.id, message: "Feedback submitted" }, { status: 201 });

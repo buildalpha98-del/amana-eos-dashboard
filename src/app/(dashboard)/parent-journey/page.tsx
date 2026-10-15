@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ParentFunnel } from "@/components/parent-journey/ParentFunnel";
 import type { JourneyEmail, JourneyEmailStatus, JourneyStage } from "@/lib/parent-journey-map";
 
 interface JourneyData {
@@ -92,8 +93,10 @@ function ParentJourney() {
     <div className="space-y-6">
       <PageHeader
         title="Parent journey"
-        description="Every email a family gets, from first enquiry to settled in. Click one to preview it for any centre."
+        description="Where every family is, and every email they get — from first enquiry to settled in. Click an email to preview it for any centre."
       />
+
+      <ParentFunnel />
 
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
         <label className="flex min-w-56 flex-col gap-1 text-xs font-medium text-muted">
@@ -114,6 +117,10 @@ function ParentJourney() {
           <Mail className="h-4 w-4" aria-hidden /> Send me every email ({allIds.length})
         </Button>
         <p className="text-xs text-muted">Tests go to your own inbox only, marked [Test]. Sample family: Sarah, child Yusuf.</p>
+        <p className="basis-full text-xs text-muted">
+          <strong className="font-semibold text-foreground">Never too many emails:</strong> a scheduled email waits a day if the
+          family heard from us in the last 20 hours (except the day-before reminder). Emails only go out in the daytime.
+        </p>
       </div>
 
       {isLoading || !data ? (

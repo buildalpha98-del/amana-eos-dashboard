@@ -9,6 +9,7 @@
  * Session times come from Service.sessionTimes; activities from the centre's
  * Program (ProgramActivity, synced nightly from SharePoint).
  */
+import { recordMarketingSends } from "@/lib/frequency-cap";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
@@ -143,7 +144,9 @@ export async function sendEnrolmentWelcome(
       childNames: kids.map((k) => k.firstName).filter(Boolean),
       verifyLink: opts.verifyLink,
     });
-    await sendEmail({ to: email, subject, html }, { idempotencyKey: `enrolment-welcome-${enrolmentId}` });
+    const res = await sendEmail({ to: email, subject, html }, { idempotencyKey: `enrolment-welcome-${enrolmentId}` });
+    // The frequency ledger: so automatic follow-ups don't land the same day.
+    if (res.sent.length) await recordMarketingSends(prisma, [{ email }], { source: "lifecycle" });
     return "sent";
   } catch (err) {
     // Release the claim so staff (or a retry) can send it.

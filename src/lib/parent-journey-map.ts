@@ -98,6 +98,7 @@ export const PARENT_JOURNEY: JourneyStage[] = [
       { id: "day3_checkin", templateKey: "day3_checkin", overrideKey: "nurture.day3Checkin", name: "Getting into the groove", when: "3 days after", status: "live" },
       { id: "week2_feedback", templateKey: "week2_feedback", overrideKey: "nurture.week2Feedback", name: "Two weeks in — feedback", when: "2 weeks after", status: "live" },
       { id: "no_show", overrideKey: "parent.noShow", usesCentreContent: true, name: "Is anything stopping you? (one-tap answers)", when: "14 days after approval with no sessions attended", status: "new", note: "Their answer goes straight to the centre. Only at centres whose OWNA sync is running." },
+      { name: "Unhappy feedback alert (staff)", when: "A 1–2 out of 5 on the feedback form → centre + head office; a 3 with a comment → centre", status: "new", note: "The check-in emails link to this form." },
       { id: "extra_day", overrideKey: "parent.extraDay", usesCentreContent: true, name: "Fancy an extra day? (+ what's on next week)", when: "3 weeks after the child's first actual session", status: "new" },
     ],
   },
