@@ -23,6 +23,8 @@ import {
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { encryptField } from "@/lib/field-encryption";
 import { sendEmail } from "@/lib/email";
+import { runAfter } from "@/lib/run-after";
+import { alertNewEnrolment } from "@/lib/centre-team-alerts";
 import { PARENT_APP_OPEN } from "@/lib/parent-portal-lockdown";
 import { logger } from "@/lib/logger";
 import { logAmbassadorEnrolments } from "@/lib/ambassadors/log-enrolment";
@@ -559,6 +561,11 @@ export const POST = withParentAuth(async (req, ctx) => {
       error: err instanceof Error ? err.message : String(err),
     });
   }
+
+  // ── Tell the centre (and head office) ────────────────────────────────
+  // The thank-you page promises a reply within 24 hours; nothing told
+  // anyone a family was waiting. After the response, swallow-and-log.
+  runAfter(() => alertNewEnrolment(submission.id));
 
   // ── Stop the pre-enrolment chase ─────────────────────────────────────
   // They've just finished the form; "need a hand with the form?" arriving

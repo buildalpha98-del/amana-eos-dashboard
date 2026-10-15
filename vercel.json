@@ -271,6 +271,10 @@
       "schedule": "0 * * * *"
     },
     {
+      "path": "/api/cron/enrolment-reply-clock",
+      "schedule": "20 * * * *"
+    },
+    {
       "path": "/api/cron/ai-task-agent",
       "schedule": "0 * * * *"
     },

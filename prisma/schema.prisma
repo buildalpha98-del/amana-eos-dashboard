@@ -7664,6 +7664,10 @@ model EnrolmentSubmission {
   /// When the school-specific welcome email went out (staff approval).
   /// Claimed before sending, so re-saving an approved enrolment never
   /// emails the family twice.
+  /// 24-hour reply promise (thank-you page): staff reminded at 20h, head
+  /// office told at 24h if it's still "submitted". Claimed before sending.
+  slaReminderSentAt  DateTime?
+  slaOverdueSentAt   DateTime?
   welcomeEmailSentAt DateTime?
   processedAt        DateTime?
   pdfUrl             String?
@@ -7940,6 +7944,9 @@ model ParentAccount {
   // 2026-07-30: when staff last nudged this family to finish their
   // enrolment. Stored so the Families list can show "reminded 2 days ago"
   // and staff don't unknowingly send the same parent three emails.
+  /// Staff phoned this family about their unfinished form (Enrolments →
+  /// Follow-ups). Hides them from the call list for 14 days.
+  followUpCalledAt          DateTime?
   enrolmentReminderSentAt   DateTime?
   // 2026-08-03: staff can switch a family's portal access off without
   // deleting them. Deleting loses the enrolment history and the billing

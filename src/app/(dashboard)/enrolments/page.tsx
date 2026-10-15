@@ -25,6 +25,7 @@ import {
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useEnrolmentApplications } from "@/hooks/useEnrolmentApplications";
 import { EnrolmentDetailPanel } from "@/components/enrolments/EnrolmentDetailPanel";
+import { EnrolmentFollowUps } from "@/components/enrolments/EnrolmentFollowUps";
 import { SiblingEnrolmentInbox } from "@/components/enrolments/SiblingEnrolmentInbox";
 import { BackfillServiceDialog } from "@/components/enrolments/BackfillServiceDialog";
 import { BackfillBookingGridDialog } from "@/components/enrolments/BackfillBookingGridDialog";
@@ -60,7 +61,10 @@ export default function EnrolmentsPage() {
   const [showGridBackfill, setShowGridBackfill] = useState(false);
   const [search, setSearch] = useState("");
   const [exporting, setExporting] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // ?id= opens that enrolment — the links in staff alerts land here.
+  const [selectedId, setSelectedId] = useState<string | null>(() =>
+    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("id"),
+  );
   // Search hits the server now, so it waits for a pause in typing.
   const debouncedSearch = useDebouncedValue(search, 300);
   const {
@@ -186,6 +190,8 @@ export default function EnrolmentsPage() {
         <SiblingEnrolmentInbox />
       ) : (
       <>
+      <EnrolmentFollowUps onOpen={setSelectedId} />
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[

@@ -7,6 +7,7 @@ import { logCoworkActivity } from "@/app/api/cowork/_lib/cowork-activity-log";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
+import { alertNewEnquiry } from "@/lib/centre-team-alerts";
 
 import { parseJsonBody } from "@/lib/api-error";
 import { resolveActivationFromUtm } from "@/lib/activation-attribution";
@@ -151,6 +152,8 @@ export const POST = withApiHandler(async (req) => {
       await scheduleNurtureFromStageChange(enquiry.id, "new_enquiry").catch((err) =>
         logger.error("Failed to schedule welcome nurture", { enquiryId: enquiry.id, err }),
       );
+      // Tell the centre a family is waiting (in-app + push).
+      await alertNewEnquiry(enquiry.id);
     });
 
     return NextResponse.json({ success: true, enquiry }, { status: 201 });

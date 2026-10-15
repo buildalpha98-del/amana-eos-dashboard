@@ -8,6 +8,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { resolveActivationFromUtm } from "@/lib/activation-attribution";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
+import { alertNewEnquiry } from "@/lib/centre-team-alerts";
 import { clientIpFromRequest } from "@/lib/activation-qr";
 import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 
@@ -111,6 +112,8 @@ export const POST = withApiHandler(async (req) => {
       await scheduleNurtureFromStageChange(enquiry.id, "new_enquiry").catch((err) =>
         logger.error("Failed to schedule welcome nurture", { enquiryId: enquiry.id, err }),
       );
+      // Tell the centre a family is waiting (in-app + push).
+      await alertNewEnquiry(enquiry.id);
     });
 
     return NextResponse.json({ ok: true, enquiryId: enquiry.id }, { status: 201 });
