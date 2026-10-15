@@ -7659,19 +7659,26 @@ model EnrolmentSubmission {
   documentUploads Json? // [{ childIndex, type, filename, url }]
 
   // Status
-  status             String    @default("submitted")
-  processedById      String?
+  status              String    @default("submitted")
+  processedById       String?
   /// When the school-specific welcome email went out (staff approval).
   /// Claimed before sending, so re-saving an approved enrolment never
   /// emails the family twice.
   /// 24-hour reply promise (thank-you page): staff reminded at 20h, head
   /// office told at 24h if it's still "submitted". Claimed before sending.
-  slaReminderSentAt  DateTime?
-  slaOverdueSentAt   DateTime?
-  welcomeEmailSentAt DateTime?
-  processedAt        DateTime?
-  pdfUrl             String?
-  notes              String?   @db.Text
+  slaReminderSentAt   DateTime?
+  slaOverdueSentAt    DateTime?
+  /// "Is anything stopping you?" — approved 14+ days, no attendance yet.
+  noShowSentAt        DateTime?
+  /// The family's one-tap answer: not_booked | owna_trouble | next_term | changed_plans | other
+  noShowReason        String?
+  noShowReasonAt      DateTime?
+  /// Week-3 "add an extra day" email, three weeks after the first attendance.
+  extraDayOfferSentAt DateTime?
+  welcomeEmailSentAt  DateTime?
+  processedAt         DateTime?
+  pdfUrl              String?
+  notes               String?   @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -7756,14 +7763,19 @@ model Child {
   noAppPosting              Boolean @default(false)
   allowSocialMediaPost      Boolean @default(false)
 
-  status       String    @default("pending") // pending, active, withdrawn
+  status          String    @default("pending") // pending, active, withdrawn
   // OWNA sync fields
-  ownaChildId  String?   @unique
-  ownaRoomId   String?
-  ownaRoomName String?
-  ownaSyncedAt DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  /// From OWNA sign-ins (2026-10-16): when this child actually attended —
+  /// set on an ENROLMENT child by matching OWNA's own record (centre + name
+  /// + date of birth). Drives the attendance-based parent emails.
+  firstAttendedAt DateTime?
+  lastAttendedAt  DateTime?
+  ownaChildId     String?   @unique
+  ownaRoomId      String?
+  ownaRoomName    String?
+  ownaSyncedAt    DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   bookings            Booking[]             @relation("ChildBookings")
   absences            Absence[]             @relation("ChildAbsences")

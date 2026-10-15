@@ -145,11 +145,11 @@ describe("re-timing first-session emails to the real first day", () => {
     prismaMock.sequenceStepExecution.update.mockResolvedValue({});
     prismaMock.sequenceStepExecution.create.mockResolvedValue({});
     await rescheduleFirstSession("q1", anchor);
-    const updates = prismaMock.sequenceStepExecution.update.mock.calls.map((c) => [c[0].where.id, c[0].data]);
+    const updates = prismaMock.sequenceStepExecution.update.mock.calls.map((c: any) => [c[0].where.id, c[0].data]);
     expect(updates).toEqual([
       ["x-rem", { scheduledFor: new Date(anchor.getTime() - 24 * 3_600_000) }],
       ["x-past", { status: "cancelled" }],
     ]);
-    expect(prismaMock.sequenceStepExecution.create.mock.calls.map((c) => c[0].data.stepId)).toEqual(["week2"]);
+    expect(prismaMock.sequenceStepExecution.create.mock.calls.map((c: any) => c[0].data.stepId)).toEqual(["week2"]);
   });
 });
