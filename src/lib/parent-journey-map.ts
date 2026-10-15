@@ -91,14 +91,14 @@ export const PARENT_JOURNEY: JourneyStage[] = [
   {
     key: "first_session",
     title: "6. First sessions",
-    description: "Timed from the first day staff confirm on the OWNA checklist (or, until then, the start date on the form).",
+    description: "Timed from the day the child actually first attends (OWNA sign-ins), else the first day staff confirm, else the form's start date. \"How did day one go?\" and the later check-ins wait until the child has really attended.",
     emails: [
       { id: "session_reminder", templateKey: "session_reminder", name: "Tomorrow's the big day!", when: "Day before the start date", status: "live" },
       { id: "day1_checkin", templateKey: "day1_checkin", overrideKey: "nurture.day1Checkin", name: "How did day one go? (+ SMS)", when: "Day after the start date", status: "live" },
       { id: "day3_checkin", templateKey: "day3_checkin", overrideKey: "nurture.day3Checkin", name: "Getting into the groove", when: "3 days after", status: "live" },
       { id: "week2_feedback", templateKey: "week2_feedback", overrideKey: "nurture.week2Feedback", name: "Two weeks in — feedback", when: "2 weeks after", status: "live" },
-      { name: "Haven't started yet? What's stopping you?", when: "14 days after approval with no sessions attended", status: "planned", note: "Needs attendance matched to each child from OWNA." },
-      { name: "Add an extra day", when: "Week 3, families who are attending", status: "planned" },
+      { id: "no_show", overrideKey: "parent.noShow", usesCentreContent: true, name: "Is anything stopping you? (one-tap answers)", when: "14 days after approval with no sessions attended", status: "new", note: "Their answer goes straight to the centre. Only at centres whose OWNA sync is running." },
+      { id: "extra_day", overrideKey: "parent.extraDay", usesCentreContent: true, name: "Fancy an extra day? (+ what's on next week)", when: "3 weeks after the child's first actual session", status: "new" },
     ],
   },
   {

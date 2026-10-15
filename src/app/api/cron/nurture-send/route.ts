@@ -4,6 +4,7 @@ import { verifyCronSecret } from "@/lib/cron-guard";
 import { getResend, sendEmail } from "@/lib/email";
 import { nurtureSessionReminderEmail, centreWebsiteUrl } from "@/lib/email-templates";
 import { NURTURE_TEMPLATE_MAP } from "@/lib/nurture-template-map";
+import { attendanceGate } from "@/lib/attendance-journey";
 import { appendUnsubscribeFooter } from "@/lib/email-templates/base";
 import { withApiHandler } from "@/lib/api-handler";
 import { acquireCronLock } from "@/lib/cron-guard";
@@ -168,6 +169,23 @@ async function processSequenceExecutions(now: Date) {
         data: { status: "cancelled", error: "Unsubscribed" },
       });
       return "skipped";
+    }
+
+    // 2026-10-16: "How did day one go?", day-3 and week-2 wait until the
+    // child has actually attended (OWNA sign-ins), at centres where that
+    // data is live. Held a day at a time; dropped after two weeks.
+    if (isParent && email) {
+      const gate = await attendanceGate(exec.step.templateKey, email, svc?.id, exec.enrolment.anchorDate, new Date());
+      if (gate !== "send") {
+        await prisma.sequenceStepExecution.update({
+          where: { id: exec.id },
+          data:
+            gate === "hold"
+              ? { status: "pending", scheduledFor: new Date(Date.now() + 24 * 3_600_000) }
+              : { status: "cancelled", error: "No attendance recorded" },
+        });
+        return "skipped";
+      }
     }
 
     const name = isParent

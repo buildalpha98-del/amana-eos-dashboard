@@ -35,6 +35,8 @@ function makeChild(
 ): ChildProfileRecord {
   return {
     placementReason: null,
+    firstAttendedAt: null,
+    lastAttendedAt: null,
     preferredName: null,
     livesWith: null,
     mainLanguageAtHome: null,

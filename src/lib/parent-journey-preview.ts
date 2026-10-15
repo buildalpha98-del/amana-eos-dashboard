@@ -16,6 +16,8 @@ import {
   ownaInvitationEmail,
   ownaNudgeEmail,
 } from "@/lib/email-templates/owna-handover";
+import { extraDayEmail, noShowEmail } from "@/lib/email-templates/attendance-journey";
+import { upcomingProgram } from "@/lib/enrolment-welcome";
 
 const HANDOVER: Record<string, typeof ownaInvitationEmail> = {
   owna_invitation: ownaInvitationEmail,
@@ -59,6 +61,14 @@ export async function renderJourneyEmail(
       parentEmail: "sarah@example.com",
       firstDay: d.toISOString().slice(0, 10),
     });
+  } else if (id === "no_show" || id === "extra_day") {
+    if (!service) return null;
+    const centre = await centreWelcomeData(service.id);
+    if (!centre) return null;
+    out =
+      id === "no_show"
+        ? await noShowEmail({ ...centre, ...SAMPLE_FAMILY, links: {} })
+        : await extraDayEmail({ ...centre, ...SAMPLE_FAMILY, nextWeek: (await upcomingProgram(service.id))[0] ?? null });
   } else if (id === "enrolment_received") {
     out = await enrolmentReceivedEmail({ name: first, childNames });
   } else if (id === "session_reminder") {

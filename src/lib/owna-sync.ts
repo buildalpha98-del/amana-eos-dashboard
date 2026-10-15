@@ -5,6 +5,7 @@
  * The cron route handler imports `syncOwnaService` and loops over services.
  */
 
+import { recordOwnaAttendance } from "@/lib/attendance-journey";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import type { SessionType } from "@prisma/client";
@@ -381,6 +382,10 @@ export async function syncOwnaService(
       }
 
       stats.attendance = records.length;
+
+      // Per child (2026-10-16): stamp first/last attendance on the matching
+      // ENROLMENT child — drives the attendance-based parent emails.
+      await recordOwnaAttendance(serviceId, records);
     }
 
     logger.info("OWNA attendance sync complete", { serviceCode, count: stats.attendance });

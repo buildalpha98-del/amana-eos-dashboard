@@ -279,6 +279,10 @@
       "schedule": "30 23 * * *"
     },
     {
+      "path": "/api/cron/attendance-journey",
+      "schedule": "45 23 * * *"
+    },
+    {
       "path": "/api/cron/ai-task-agent",
       "schedule": "0 * * * *"
     },
