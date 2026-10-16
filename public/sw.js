@@ -7,7 +7,7 @@
 // phones running the PWA serve a cached /dashboard HTML that references JS
 // chunks that no longer exist after a deploy, silently breaking every button.
 // The activate handler deletes all caches that don't match the current name.
-const CACHE_NAME = "amana-v3";
+const CACHE_NAME = "amana-v4";
 
 // App shell assets to cache on install
 const APP_SHELL = ["/dashboard", "/icons/icon-192.png", "/icons/icon-512.png"];
@@ -41,6 +41,12 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
+  // Never touch another site's requests (2026-10-17). Re-fetching them from
+  // here runs under sw.js's own CSP, whose connect-src doesn't list them —
+  // so the Meta Pixel (connect.facebook.net, www.facebook.com/tr) failed with
+  // net::ERR_FAILED on every page this worker controlled, and ad conversions
+  // never reached Meta. Let the browser load them under the PAGE's CSP.
+  if (url.origin !== self.location.origin) return;
   if (!url.protocol.startsWith("http") || url.pathname.startsWith("/auth/") ||
       url.pathname === "/parent/login/confirm") {
     return;
