@@ -110,3 +110,16 @@ describe("publicVacancyWhere", () => {
     expect(gte.gte.toISOString().slice(0, 10)).toBe("2026-11-20");
   });
 });
+
+import { applicationRecipients } from "@/lib/recruitment/application-recipients";
+
+describe("applicationRecipients", () => {
+  it("sends VIC to HR and Tracie, NSW to HR and Mirna", () => {
+    expect(applicationRecipients("VIC")).toEqual(["hr@amanaoshc.com.au", "tracie@amanaoshc.com.au"]);
+    expect(applicationRecipients("NSW")).toEqual(["hr@amanaoshc.com.au", "mirna@amanaoshc.com.au"]);
+  });
+  it("always includes HR, and dedupes an assigned recruiter", () => {
+    expect(applicationRecipients(null)).toEqual(["hr@amanaoshc.com.au"]);
+    expect(applicationRecipients("NSW", "Mirna@amanaoshc.com.au")).toEqual(["hr@amanaoshc.com.au", "mirna@amanaoshc.com.au"]);
+  });
+});

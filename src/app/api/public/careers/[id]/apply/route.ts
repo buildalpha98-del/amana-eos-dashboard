@@ -21,6 +21,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { storeResume } from "@/lib/recruitment/resume-upload";
 import { sendEmail } from "@/lib/email";
+import { applicationRecipients } from "@/lib/recruitment/application-recipients";
 import { logger } from "@/lib/logger";
 import { FIT_LABELS, fitForRecords } from "@/lib/recruitment/fit";
 import { publicVacancyWhere } from "@/lib/recruitment/public-vacancy";
@@ -181,20 +182,14 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
     hasResume: Boolean(resumeFileUrl),
   });
 
-  // Best-effort notification to the assigned recruiter (fall back to
-  // head-office / owners). The candidate record is the durable artifact —
+  // Best-effort notification to HR and the state's hiring lead. The candidate record is the durable artifact —
   // if email fails, the application is still safe in the pipeline.
   try {
-    let recipients: string[] = [];
-    if (vacancy.assignedTo?.email) {
-      recipients = [vacancy.assignedTo.email];
-    } else {
-      const owners = await prisma.user.findMany({
-        where: { active: true, role: { in: ["owner", "head_office"] } },
-        select: { email: true },
-      });
-      recipients = owners.map((o) => o.email);
-    }
+    // HR + the state's hiring lead (Tracie VIC / Mirna NSW) on one email.
+    const recipients = applicationRecipients(
+      vacancy.state ?? vacancy.service?.state ?? data.state,
+      vacancy.assignedTo?.email,
+    );
     if (recipients.length > 0) {
       const dashUrl = `${process.env.NEXTAUTH_URL ?? "https://amanaoshc.company"}/hiring`;
       await sendEmail({
