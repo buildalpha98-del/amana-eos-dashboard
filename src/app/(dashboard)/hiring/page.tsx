@@ -167,7 +167,7 @@ export default function RecruitmentPage() {
                     { header: "Status", accessor: (v: Record<string, unknown>) => v.status as string },
                     { header: "Qualification Required", accessor: (v: Record<string, unknown>) => ((v.qualificationRequired as string) ?? "").replace(/_/g, " ") },
                     { header: "Employment Type", accessor: (v: Record<string, unknown>) => ((v.employmentType as string) ?? "").replace(/_/g, " ") },
-                    { header: "Centre", accessor: (v: Record<string, unknown>) => ((v.service as Record<string, unknown>)?.name as string) ?? "" },
+                    { header: "Centre", accessor: (v: Record<string, unknown>) => ((v.service as Record<string, unknown> | null)?.name as string) ?? (v.region as string) ?? "" },
                     { header: "Candidates", accessor: (v: Record<string, unknown>) => ((v._count as Record<string, unknown>)?.candidates as number) ?? 0 },
                     { header: "Created", accessor: (v: Record<string, unknown>) => v.createdAt ? new Date(v.createdAt as string).toLocaleDateString("en-AU") : "" },
                   ],

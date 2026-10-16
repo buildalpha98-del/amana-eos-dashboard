@@ -25,7 +25,11 @@ interface Vacancy {
   qualificationRequired: string | null;
   createdAt: string;
   targetFillDate: string | null;
-  service: { id: string; name: string; code: string };
+  title?: string | null;
+  region?: string | null;
+  state?: string | null;
+  /** Null on regional ads (e.g. Holiday Quest), which cover an area, not one centre. */
+  service: { id: string; name: string; code: string } | null;
   assignedTo: { id: string; name: string } | null;
   _count: { candidates: number };
 }
@@ -79,11 +83,13 @@ export function VacancyTable({ vacancies, isLoading, onSelect }: VacancyTablePro
             >
               <td className="px-4 py-3">
                 <span className="text-sm font-medium text-foreground">
-                  {ROLE_LABELS[v.role] || v.role}
+                  {v.title?.trim() || ROLE_LABELS[v.role] || v.role}
                 </span>
               </td>
               <td className="px-4 py-3">
-                <span className="text-sm text-muted">{v.service.name}</span>
+                <span className="text-sm text-muted">
+                  {v.service?.name ?? ([v.region, v.state].filter(Boolean).join(", ") || "—")}
+                </span>
               </td>
               <td className="px-4 py-3">
                 <span className="text-sm text-muted capitalize">
