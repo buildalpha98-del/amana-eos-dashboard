@@ -12,6 +12,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
+import { publicVacancyWhere, vacancyState } from "@/lib/recruitment/public-vacancy";
 
 // Human-facing labels for the enum-ish stored values.
 const ROLE_LABELS: Record<string, string> = {
@@ -33,11 +34,7 @@ const QUALIFICATION_LABELS: Record<string, string> = {
 
 export const GET = withApiHandler(async () => {
   const vacancies = await prisma.recruitmentVacancy.findMany({
-    where: {
-      deleted: false,
-      status: "open",
-      postedChannels: { has: "website" },
-    },
+    where: publicVacancyWhere(),
     include: {
       service: { select: { name: true, suburb: true, state: true } },
     },
@@ -48,6 +45,12 @@ export const GET = withApiHandler(async () => {
     id: v.id,
     role: v.role,
     roleLabel: ROLE_LABELS[v.role] ?? v.role.replace(/_/g, " "),
+    // 2026-10-16: what makes an ad clear — all optional (null when unset).
+    title: v.title?.trim() || null,
+    payRate: v.payRate?.trim() || null,
+    state: vacancyState(v),
+    closesAt: v.closesAt ? v.closesAt.toISOString() : null,
+    workPeriod: v.workPeriod?.trim() || null,
     employmentType: v.employmentType,
     employmentLabel: EMPLOYMENT_LABELS[v.employmentType] ?? v.employmentType,
     qualification: v.qualificationRequired

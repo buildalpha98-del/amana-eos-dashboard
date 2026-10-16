@@ -102,6 +102,7 @@ export const RIGHT_TO_WORK = [
   "citizen",
   "permanent_resident",
   "visa",
+  "no_rights",
   "unknown",
 ] as const;
 export type RightToWork = (typeof RIGHT_TO_WORK)[number];
@@ -109,6 +110,7 @@ export const RIGHT_TO_WORK_LABELS: Record<RightToWork, string> = {
   citizen: "Australian citizen",
   permanent_resident: "Permanent resident",
   visa: "Visa with work rights",
+  no_rights: "No work rights",
   unknown: "Not stated",
 };
 
@@ -129,6 +131,11 @@ export const POOL_SOURCES = [
   "community",
   "university",
   "walkin",
+  // 2026-10-16: the free job boards (Indeed now needs paid sponsorship).
+  "workforce_australia",
+  "linkedin",
+  "facebook",
+  "jora",
   "other",
 ] as const;
 export type PoolSource = (typeof POOL_SOURCES)[number];
@@ -140,6 +147,10 @@ export const POOL_SOURCE_LABELS: Record<PoolSource, string> = {
   community: "Community",
   university: "University",
   walkin: "Walk-in",
+  workforce_australia: "Workforce Australia",
+  linkedin: "LinkedIn",
+  facebook: "Facebook",
+  jora: "Jora",
   other: "Other",
 };
 

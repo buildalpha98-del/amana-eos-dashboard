@@ -14,6 +14,7 @@ import { VacancyTable } from "@/components/recruitment/VacancyTable";
 import { VacancyDetailPanel } from "@/components/recruitment/VacancyDetailPanel";
 import { ReferralsTable } from "@/components/recruitment/ReferralsTable";
 import { CandidatePoolTab } from "@/components/recruitment/CandidatePoolTab";
+import { HolidayQuestAdsCard } from "@/components/recruitment/HolidayQuestAdsCard";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
@@ -225,6 +226,8 @@ export default function RecruitmentPage() {
 
       {activeTab === "vacancies" ? (
         <>
+          <HolidayQuestAdsCard />
+
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <StatCard icon={Briefcase} label="Open" value={stats.open} color="blue" />

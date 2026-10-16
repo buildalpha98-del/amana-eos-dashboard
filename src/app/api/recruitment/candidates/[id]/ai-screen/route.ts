@@ -32,15 +32,32 @@ export const POST = withApiAuth(
     if (candidate.vacancy?.deleted) {
       throw ApiError.notFound("Candidate's vacancy has been deleted");
     }
-    if (!candidate.resumeText || candidate.resumeText.trim().length === 0) {
-      throw ApiError.badRequest("Candidate has no resume text to screen");
+    // 2026-10-16: online applicants rarely have résumé TEXT (uploads are
+    // files), so screen their application answers instead of refusing.
+    const answers = [
+      candidate.qualification && `Highest qualification: ${candidate.qualification}${candidate.qualificationName ? ` (${candidate.qualificationName})` : ""}`,
+      candidate.studying && "Currently studying",
+      candidate.vicDiplomaLevel != null && `Victorian diploma-level qualification: ${candidate.vicDiplomaLevel ? "yes" : "no"}`,
+      candidate.state && `Wants to work in: ${candidate.state}`,
+      candidate.wwccNumber ? "Has a Working With Children Check" : null,
+      candidate.rightToWork && `Right to work: ${candidate.rightToWork}`,
+      candidate.hasFirstAid && "Has a first aid certificate",
+      candidate.yearsExperience != null && `Years working with children: ${candidate.yearsExperience}`,
+      candidate.previousRole && `Most recent role: ${candidate.previousRole}${candidate.previousEmployer ? ` at ${candidate.previousEmployer}` : ""}`,
+      candidate.holidayWeeks != null && `Holiday weeks available: ${candidate.holidayWeeks}`,
+      (candidate.availableDays ?? []).length > 0 && `Days available: ${candidate.availableDays.join(", ")}`,
+      candidate.notes && `In their words: ${candidate.notes}`,
+    ].filter(Boolean).join("\n");
+    const screenText = candidate.resumeText?.trim() || answers;
+    if (!screenText) {
+      throw ApiError.badRequest("This candidate has no résumé text or application answers to screen");
     }
 
     const prompt = buildScreenPrompt({
       candidateName: candidate.name,
       candidateEmail: candidate.email,
       candidatePhone: candidate.phone,
-      resumeText: candidate.resumeText,
+      resumeText: screenText,
       // 2026-09-15: pool candidates have no vacancy. Screen them against the
       // role the pool actually exists to fill — a casual educator working
       // across centres — rather than refusing to screen at all.

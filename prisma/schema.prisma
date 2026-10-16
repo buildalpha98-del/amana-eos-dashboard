@@ -6471,6 +6471,20 @@ model RecruitmentVacancy {
   assignedToId          String?
   assignedTo            User?                  @relation("VacancyAssignee", fields: [assignedToId], references: [id])
   notes                 String?                @db.Text
+  // ── 2026-10-16: what a public ad needs to be clear (Daniel) ──
+  /// Public headline, e.g. "Holiday Quest Educator — Victoria (Diploma-level)".
+  /// Falls back to the role label when empty.
+  title                 String?
+  /// "NSW" | "VIC". A regional ad has no centre, so its state is set here;
+  /// a centre ad falls back to the centre's state.
+  state                 String?
+  /// Pay shown on the ad, e.g. "$45.71/hr + super (casual)".
+  payRate               String?
+  /// When the work is, e.g. "Summer school holidays, Dec 2026 – Jan 2027".
+  workPeriod            String?
+  /// Applications close at the end of this day; the ad comes off the public
+  /// careers page after it.
+  closesAt              DateTime?
   deleted               Boolean                @default(false)
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
@@ -6492,31 +6506,47 @@ model RecruitmentVacancy {
 /// afternoon in Eastern Melbourne, and are they cleared to start?" without
 /// opening a r\u00e9sum\u00e9 or making a phone call.
 model RecruitmentCandidate {
-  id               String              @id @default(cuid())
-  vacancyId        String?
-  vacancy          RecruitmentVacancy? @relation(fields: [vacancyId], references: [id], onDelete: SetNull)
-  name             String
-  email            String?
-  phone            String?
+  id                String              @id @default(cuid())
+  vacancyId         String?
+  vacancy           RecruitmentVacancy? @relation(fields: [vacancyId], references: [id], onDelete: SetNull)
+  name              String
+  email             String?
+  phone             String?
   /// Where they live — the pool is searched by proximity, because a casual who
   /// can reach the centre in 15 minutes is worth more than a better CV an hour
   /// away.
-  suburb           String?
-  postcode         String?
+  suburb            String?
+  postcode          String?
   /// Catchment they want to work in; matches RecruitmentVacancy.region.
-  preferredRegion  String?
-  source           String // website, indeed, seek, referral, community, mosque, university, walkin
-  stage            String              @default("applied") // see POOL_STAGES in src/lib/recruitment/pool.ts
-  appliedAt        DateTime            @default(now())
-  stageChangedAt   DateTime            @default(now())
-  interviewNotes   String?             @db.Text
-  referredByUserId String?
-  referredByUser   User?               @relation("CandidateReferrer", fields: [referredByUserId], references: [id])
-  notes            String?             @db.Text
-  resumeText       String?             @db.Text
-  resumeFileUrl    String?
-  aiScreenScore    Int? // 0-100 fit score
-  aiScreenSummary  String?             @db.Text
+  preferredRegion   String?
+  source            String // website, indeed, seek, referral, community, mosque, university, walkin
+  stage             String              @default("applied") // see POOL_STAGES in src/lib/recruitment/pool.ts
+  appliedAt         DateTime            @default(now())
+  stageChangedAt    DateTime            @default(now())
+  interviewNotes    String?             @db.Text
+  referredByUserId  String?
+  referredByUser    User?               @relation("CandidateReferrer", fields: [referredByUserId], references: [id])
+  notes             String?             @db.Text
+  resumeText        String?             @db.Text
+  resumeFileUrl     String?
+  /// 2026-10-16: application answers used to rank candidates automatically.
+  /// "NSW" | "VIC" — where they want to work.
+  state             String?
+  /// The exact qualification they hold or are studying, in their words
+  /// ("Bachelor of Education (Primary)").
+  qualificationName String?
+  /// They said their qualification is on Victoria's diploma-level OSHC list
+  /// (or they're enrolled in one) — ticked against the list on the form.
+  vicDiplomaLevel   Boolean?
+  /// Holiday weeks they can work over the summer program (0–6).
+  holidayWeeks      Int?
+  /// Automatic fit for the ad they applied to (src/lib/recruitment/fit.ts):
+  /// 0–100, a label (strong | good | possible | not_eligible) and the reasons.
+  fitScore          Int?
+  fitLabel          String?
+  fitReasons        String[]
+  aiScreenScore     Int? // 0-100 fit score
+  aiScreenSummary   String?             @db.Text
 
   // ── Eligibility: can this person legally start? ───────────────────────
   /// Highest qualification. NULL means unqualified — normal for OSHC casuals,

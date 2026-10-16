@@ -20,6 +20,11 @@ const updateVacancySchema = z.object({
   assignedToId: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   positionDescriptionId: z.string().nullable().optional(),
+  title: z.string().max(160).nullable().optional(),
+  state: z.enum(["NSW", "VIC"]).nullable().optional(),
+  payRate: z.string().max(120).nullable().optional(),
+  workPeriod: z.string().max(200).nullable().optional(),
+  closesAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 });
 
 export const GET = withApiAuth(async (req, session, context) => {
@@ -75,7 +80,10 @@ const { id } = await context!.params!;
 
   for (const [field, value] of Object.entries(parsed.data)) {
     if (value === undefined) continue;
-    if (["postedAt", "targetFillDate", "filledAt"].includes(field) && value) {
+    if (field === "closesAt" && value) {
+      // A closing DATE — stored as UTC midnight, open until the end of that day.
+      data[field] = new Date(`${value}T00:00:00Z`);
+    } else if (["postedAt", "targetFillDate", "filledAt"].includes(field) && value) {
       data[field] = new Date(value as string);
     } else {
       data[field] = value;
