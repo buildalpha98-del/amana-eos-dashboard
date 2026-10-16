@@ -36,7 +36,6 @@ import {
 import { fetchApi } from "@/lib/fetch-api";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WarmCTA } from "@/components/ui/v2";
-import { MetaPixel } from "@/components/analytics/MetaPixel";
 import { formatTime } from "@/lib/service-settings";
 import type { ServiceContent } from "@/lib/service-content-shared";
 import { PARENT_APP_OPEN } from "@/lib/parent-portal-lockdown";
@@ -72,16 +71,9 @@ const isPdf = (url: string) => url.toLowerCase().split("?")[0].endsWith(".pdf");
 export default function EnrolmentThankYouPage() {
   return (
     <Suspense fallback={null}>
-      <MetaPixel />
       <ThankYouContent />
     </Suspense>
   );
-}
-
-declare global {
-  interface Window {
-    fbq?: (...args: unknown[]) => void;
-  }
 }
 
 /**
@@ -89,7 +81,7 @@ declare global {
  * refresh or Back must not count it twice). The retired legacy wizard did
  * this on submit; the live form never did, so ads saw no enrolments.
  * fbq loads after hydration, so wait briefly for it; production-only,
- * because MetaPixel renders nothing elsewhere.
+ * because MetaPixel (rendered by the /parent/enrol layout) renders nothing elsewhere.
  */
 function useEnrolmentConversion(submissionId: string | null) {
   useEffect(() => {

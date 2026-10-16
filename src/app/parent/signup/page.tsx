@@ -16,7 +16,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { WebsiteEnrolContext } from "@/components/enrol/WebsiteEnrolContext";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
-import { MetaPixel } from "@/components/analytics/MetaPixel";
+import { MetaPixel, trackMetaEvent } from "@/components/analytics/MetaPixel";
 
 // Ambassadors: educator QR codes land here as /parent/signup?ref=CODE.
 // window.location (not useSearchParams) so the page needs no Suspense
@@ -123,6 +123,9 @@ export default function ParentSignupPage() {
       // Signed in already — go straight to the form. router.push would
       // leave the signup page on the back stack, and pressing Back into a
       // form you've already started is disorienting.
+      // A family account is a lead in Meta's terms — the step before an
+      // enrolment is submitted (CompleteRegistration on the thank-you page).
+      trackMetaEvent("Lead");
       router.replace(res?.redirectTo ?? "/parent/enrol");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
