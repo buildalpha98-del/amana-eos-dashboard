@@ -1,6 +1,7 @@
 /**
  * /start-check/thanks — where a family lands after tapping an answer in the
- * "Is anything stopping you?" email (GET /api/public/start-check). Public.
+ * "Is anything stopping you?" email (GET /api/public/start-check) or the
+ * "We've missed Yusuf" email (GET /api/public/check-in). Public.
  */
 import { CheckCircle2 } from "lucide-react";
 
@@ -10,6 +11,12 @@ const NEXT: Record<string, string> = {
   next_term: "Lovely — we'll look forward to seeing you next term. We'll check your start date is in OWNA.",
   changed_plans: "Thanks for letting us know. Someone from your centre will be in touch, and your place is there if things change.",
   other: "Thanks — someone from your centre will give you a call.",
+  // "We've missed Yusuf" answers
+  all_good: "Lovely, thanks for letting us know. Enjoy the break — we'll see you when you're back!",
+  unwell: "Sorry to hear that. We hope they feel better soon — we'll see them when they're ready.",
+  change_days: "No problem — someone from your centre will be in touch to sort out new days.",
+  stopping: "Thanks for telling us. Someone from your centre will give you a call — we'd love the chance to help.",
+  call_me: "Of course — someone from your centre will give you a call.",
 };
 
 export default async function StartCheckThanks({ searchParams }: { searchParams: Promise<{ r?: string }> }) {

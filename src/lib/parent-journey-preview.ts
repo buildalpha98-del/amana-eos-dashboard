@@ -16,7 +16,7 @@ import {
   ownaInvitationEmail,
   ownaNudgeEmail,
 } from "@/lib/email-templates/owna-handover";
-import { extraDayEmail, noShowEmail } from "@/lib/email-templates/attendance-journey";
+import { extraDayEmail, missedSessionsEmail, noShowEmail } from "@/lib/email-templates/attendance-journey";
 import { upcomingProgram } from "@/lib/enrolment-welcome";
 
 const HANDOVER: Record<string, typeof ownaInvitationEmail> = {
@@ -61,6 +61,12 @@ export async function renderJourneyEmail(
       parentEmail: "sarah@example.com",
       firstDay: d.toISOString().slice(0, 10),
     });
+  } else if (id === "missed_sessions") {
+    if (!service) return null;
+    const centre = await centreWelcomeData(service.id);
+    if (!centre) return null;
+    const lastSeen = new Date(Date.now() - 15 * 86_400_000).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
+    out = await missedSessionsEmail({ ...centre, ...SAMPLE_FAMILY, childFirstName: "Yusuf", lastSeen, links: {} });
   } else if (id === "no_show" || id === "extra_day") {
     if (!service) return null;
     const centre = await centreWelcomeData(service.id);

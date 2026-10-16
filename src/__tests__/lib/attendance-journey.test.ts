@@ -71,7 +71,7 @@ describe("matching OWNA sign-ins to enrolled children", () => {
     expect(await recordOwnaAttendance("svc", [rec("o1"), rec("o2")])).toBe(1); // Adam's DOB differs → no match
     expect(prismaMock.child.update.mock.calls[0][0]).toEqual({
       where: { id: "c1" },
-      data: { firstAttendedAt: new Date("2026-10-15T00:00:00Z"), lastAttendedAt: new Date("2026-10-15T00:00:00Z") },
+      data: { ownaMatchChildId: "o1", firstAttendedAt: new Date("2026-10-15T00:00:00Z"), lastAttendedAt: new Date("2026-10-15T00:00:00Z") },
     });
     expect(vi.mocked(syncParentJourney)).toHaveBeenCalledWith(
       expect.objectContaining({ stage: "first_session", firstSessionDate: new Date("2026-10-15T00:00:00Z") }),
