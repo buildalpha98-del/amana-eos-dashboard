@@ -5,7 +5,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import type { Role } from "@prisma/client";
 import { X, Plus, UserPlus, Sparkles, ExternalLink } from "lucide-react";
-import { AiButton } from "@/components/ui/AiButton";
 import { AiScreenBadge } from "@/components/recruitment/AiScreenBadge";
 import { CandidateDetailPanel } from "@/components/recruitment/CandidateDetailPanel";
 import { useAiScreenCandidate, useConvertCandidate } from "@/hooks/useRecruitment";
@@ -17,7 +16,9 @@ import { toast } from "@/hooks/useToast";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { ROLE_DISPLAY_NAMES } from "@/lib/role-permissions";
-import { normaliseStage } from "@/lib/recruitment/pool";
+import { normaliseStage, POOL_STAGES, POOL_STAGE_LABELS } from "@/lib/recruitment/pool";
+import { FitBadge } from "@/components/recruitment/FitBadge";
+import { AdDetailsEditor } from "@/components/recruitment/AdDetailsEditor";
 import { IndeedPostPanel } from "@/components/recruitment/IndeedPostPanel";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -28,25 +29,20 @@ const ROLE_LABELS: Record<string, string> = {
   director: "Director",
 };
 
-// "hired" is deliberately absent from STAGE_LABELS: it's a terminal stage
-// stamped only by the convert-to-employee flow, never picked from the select.
-const STAGE_LABELS: Record<string, string> = {
-  applied: "Applied",
-  screened: "Screened",
-  interviewed: "Interviewed",
-  offered: "Offered",
-  accepted: "Accepted",
-  rejected: "Rejected",
-  withdrawn: "Withdrawn",
-};
+// "hired" is deliberately absent: it's a terminal stage stamped only by the
+// convert-to-employee flow, never picked from the select. Same stages the
+// PATCH route validates (POOL_STAGES) — the old list 400'd on four options.
+const STAGE_LABELS: Record<string, string> = Object.fromEntries(
+  POOL_STAGES.filter((st) => st !== "hired").map((st) => [st, POOL_STAGE_LABELS[st]]),
+);
 
 const STAGE_STYLES: Record<string, string> = {
   applied: "bg-surface text-foreground/80",
-  screened: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  screening: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
   interviewed: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
-  offered: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
-  accepted: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
-  rejected: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
+  reference_check: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  available: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  not_suitable: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
   withdrawn: "bg-surface text-muted",
   hired: "bg-emerald-600 text-white",
 };
@@ -61,6 +57,21 @@ const CONVERT_BASE_ROLES: Role[] = [
   "eos_viewer",
   "eos_implementer",
 ];
+
+interface CandidateRow {
+  id: string;
+  name: string;
+  email: string | null;
+  source: string;
+  stage: string;
+  appliedAt: string;
+  resumeText: string | null;
+  aiScreenScore: number | null;
+  aiScreenSummary: string | null;
+  fitScore: number | null;
+  fitLabel: string | null;
+  fitReasons: string[];
+}
 
 interface VacancyDetailPanelProps {
   vacancyId: string;
@@ -84,7 +95,6 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [screenResults, setScreenResults] = useState<string | null>(null);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(
     null,
   );
@@ -227,10 +237,11 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
         <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-card z-10">
           <div>
             <h3 className="text-lg font-semibold text-foreground">
-              {ROLE_LABELS[vacancy.role] || vacancy.role}
+              {vacancy.title || ROLE_LABELS[vacancy.role] || vacancy.role}
             </h3>
             <p className="text-sm text-muted">
-              {vacancy.service?.name ?? vacancy.region ?? "No location set"}{" "}
+              {vacancy.service?.name ?? vacancy.region ?? "No location set"}
+              {vacancy.state ? ` (${vacancy.state})` : ""}{" "}
               &middot; {vacancy.employmentType.replace("_", " ")}
             </p>
           </div>
@@ -298,6 +309,8 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
           {/* Indeed posting kit — Indeed has no API we can post through, so
               this is the copy-paste path plus the tracked apply link that
               brings those applicants back into the pool. */}
+          <AdDetailsEditor key={vacancy.updatedAt} vacancy={vacancy} onSaved={onUpdated} />
+
           <IndeedPostPanel vacancy={vacancy} />
 
           {/* Details */}
@@ -388,32 +401,6 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                 Candidates ({vacancy.candidates?.length || 0})
               </h4>
               <div className="flex items-center gap-2">
-                <AiButton
-                  templateSlug="recruitment/resume-screen"
-                  variables={{
-                    vacancyRole: ROLE_LABELS[vacancy.role] || vacancy.role,
-                    vacancyQualification: vacancy.qualificationRequired?.replace("_", " ") || "none",
-                    vacancyNotes: vacancy.notes || "None",
-                    serviceName: vacancy.service?.name || "Amana OSHC",
-                    candidates: (vacancy.candidates || [])
-                      .filter((c: { stage: string }) =>
-                        ["applied", "screening"].includes(normaliseStage(c.stage)),
-                      )
-                      .map((c: { id: string; name: string; source: string; notes: string | null; resumeText?: string | null }) =>
-                        `ID:${c.id} | Name: ${c.name} | Source: ${c.source} | Resume: ${c.resumeText || c.notes || "No resume provided"}`
-                      )
-                      .join("\n") || "No candidates to screen.",
-                  }}
-                  onResult={(text) => setScreenResults(text)}
-                  label="Screen Candidates"
-                  size="sm"
-                  section="recruitment"
-                  disabled={
-                    !vacancy.candidates?.some((c: { stage: string }) =>
-                      ["applied", "screening"].includes(normaliseStage(c.stage)),
-                    )
-                  }
-                />
                 <button
                   onClick={() => setShowAddCandidate(!showAddCandidate)}
                   className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
@@ -512,37 +499,18 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
               </form>
             )}
 
-            {/* AI Screening Results */}
-            {screenResults && (
-              <div className="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 p-4 mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-purple-700 flex items-center gap-1">
-                    <Sparkles className="h-3.5 w-3.5" /> AI Screening Results
-                  </span>
-                  <button onClick={() => setScreenResults(null)} className="text-purple-400 hover:text-purple-600">
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="text-sm text-purple-900 whitespace-pre-wrap max-h-48 overflow-y-auto">{screenResults}</div>
-              </div>
-            )}
-
             {/* Candidate List */}
             <div className="space-y-2">
               {vacancy.candidates?.length === 0 && (
                 <p className="text-sm text-muted text-center py-4">No candidates yet</p>
               )}
-              {vacancy.candidates?.map((c: {
-                id: string;
-                name: string;
-                email: string | null;
-                source: string;
-                stage: string;
-                appliedAt: string;
-                resumeText: string | null;
-                aiScreenScore: number | null;
-                aiScreenSummary: string | null;
-              }) => (
+              {[...(vacancy.candidates ?? [])]
+                // Best fit first; not-eligible last; then newest.
+                .sort((a: CandidateRow, b: CandidateRow) =>
+                  (b.fitLabel === "not_eligible" ? -1 : (b.fitScore ?? 0)) - (a.fitLabel === "not_eligible" ? -1 : (a.fitScore ?? 0)) ||
+                  +new Date(b.appliedAt) - +new Date(a.appliedAt),
+                )
+                .map((c: CandidateRow) => (
                 <div key={c.id} className="bg-surface/50 rounded-lg px-4 py-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <button
@@ -553,6 +521,7 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                     >
                       <span className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium text-foreground">{c.name}</span>
+                        <FitBadge label={c.fitLabel} score={c.fitScore} reasons={c.fitReasons} />
                         {c.aiScreenScore !== null && (
                           <AiScreenBadge score={c.aiScreenScore} summary={c.aiScreenSummary} />
                         )}
@@ -560,13 +529,15 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                       <span className="block text-xs text-muted">
                         {c.source} &middot; Applied {new Date(c.appliedAt).toLocaleDateString("en-AU")}
                       </span>
+                      {c.fitReasons?.length ? (
+                        <span className="mt-0.5 block text-xs text-muted">{c.fitReasons.slice(0, 3).join(" · ")}</span>
+                      ) : null}
                     </button>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
                         onClick={() => aiScreen.mutate(c.id)}
-                        disabled={aiScreen.isPending || !c.resumeText}
-                        title={!c.resumeText ? "Candidate has no resume text to screen" : undefined}
+                        disabled={aiScreen.isPending}
                         className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg border border-border text-foreground/80 hover:bg-surface disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <Sparkles className="h-3 w-3" />

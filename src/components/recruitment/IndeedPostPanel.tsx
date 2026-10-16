@@ -15,12 +15,13 @@
  * "[PAY RATE — e.g. $30–$35 per hour]", costs real applicants — and you only
  * find out days later when nobody has applied.
  */
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Check, Copy, ExternalLink, AlertTriangle } from "lucide-react";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 import { useOrigin } from "@/hooks/useOrigin";
+import type { PoolSource } from "@/lib/recruitment/pool";
 import {
   buildIndeedAd,
   formatIndeedAd,
@@ -84,16 +85,32 @@ function CopyRow({
   );
 }
 
+/**
+ * Where to post (2026-10-16). Indeed now needs paid sponsorship, so the free
+ * channels come first. Each gets its own tracked apply link, so Candidates
+ * shows which board actually produced people.
+ */
+const CHANNELS: { source: PoolSource; name: string; cost: "Free" | "Paid"; url?: string; how: string }[] = [
+  { source: "university", name: "University job boards", cost: "Free", how: "Students are ideal holiday casuals — and education, youth-work and sport students often already count as diploma level in Victoria. Free at ACU CareerHub, Victoria University and DeakinTALENT (ask Western Sydney University careers). Ads must state the pay or award." },
+  { source: "workforce_australia", name: "Workforce Australia", cost: "Free", url: "https://www.workforceaustralia.gov.au/businesses", how: "The government jobs board: free to post, with screening questions and access to job seekers. Needs your ABN and myID to register." },
+  { source: "facebook", name: "Facebook", cost: "Free", how: "Post on the Amana page and in local community, parent and uni student groups (check each group's rules)." },
+  { source: "linkedin", name: "LinkedIn", cost: "Free", url: "https://www.linkedin.com/talent/post-a-job", how: "One free post at a time, live for about 14 days. Best for diploma-level or coordinator roles." },
+  { source: "indeed", name: "Indeed", cost: "Paid", how: "Indeed now needs paid sponsorship for visibility. Use \"apply on company website\" with the link below." },
+  { source: "seek", name: "SEEK", cost: "Paid", how: "Paid per ad. Use the link below as the apply link if you post there." },
+];
+
 export function IndeedPostPanel({ vacancy }: { vacancy: IndeedAdVacancy }) {
   // Empty until the client renders — see useOrigin for why it isn't hard-coded.
   const origin = useOrigin();
+  const [channel, setChannel] = useState<PoolSource>("university");
+  const current = CHANNELS.find((c) => c.source === channel)!;
 
-  const ad = useMemo(() => buildIndeedAd(vacancy, origin), [vacancy, origin]);
+  const ad = buildIndeedAd(vacancy, origin, channel);
 
   const copyAll = async () => {
     try {
       await navigator.clipboard.writeText(formatIndeedAd(ad));
-      toast({ description: "Ad copied — paste it into Indeed field by field." });
+      toast({ description: `Ad copied — paste it into ${current.name}.` });
     } catch {
       toast({
         variant: "destructive",
@@ -104,10 +121,37 @@ export function IndeedPostPanel({ vacancy }: { vacancy: IndeedAdVacancy }) {
 
   return (
     <CollapsibleSection
-      title="Post to Indeed"
-      description="Copy the ad across, then paste the apply link so applicants land in your pool"
+      title="Post this ad"
+      description="Free job boards first. Each has its own apply link, so you can see which one works."
     >
       <div className="space-y-4">
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Where to post">
+          {CHANNELS.map((c) => (
+            <button
+              key={c.source}
+              type="button"
+              aria-pressed={channel === c.source}
+              onClick={() => setChannel(c.source)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                channel === c.source ? "border-brand bg-brand/10 text-brand" : "border-border text-muted hover:text-foreground"
+              }`}
+            >
+              {c.name}
+              <span className={`ml-1.5 text-2xs ${c.cost === "Free" ? "text-emerald-700 dark:text-emerald-300" : "text-muted"}`}>{c.cost}</span>
+            </button>
+          ))}
+        </div>
+        <p className="rounded-lg bg-surface p-3 text-xs text-foreground/80">
+          {current.how.replace("[origin]", origin)}
+          {current.url && (
+            <>
+              {" "}
+              <a href={current.url} target="_blank" rel="noopener noreferrer" className="font-medium text-brand hover:underline">
+                Open {current.name}
+              </a>
+            </>
+          )}
+        </p>
         {ad.blockers.length > 0 && (
           <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/40">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
@@ -150,7 +194,7 @@ export function IndeedPostPanel({ vacancy }: { vacancy: IndeedAdVacancy }) {
           <CopyRow label="Company" value={ad.company} />
           <CopyRow label="Location" value={ad.location} />
           <CopyRow label="Job type" value={ad.jobType} />
-          <CopyRow label="Apply on company website" value={ad.applyUrl} />
+          <CopyRow label={`Apply link for ${current.name}`} value={ad.applyUrl} />
           <CopyRow label="Description" value={ad.description} multiline />
         </div>
 
@@ -172,10 +216,10 @@ export function IndeedPostPanel({ vacancy }: { vacancy: IndeedAdVacancy }) {
         </div>
 
         <p className="text-xs text-muted">
-          Set Indeed&apos;s application method to &ldquo;apply on company
-          website&rdquo; and paste the link above. Anyone who applies through it
-          appears under Candidates, tagged <strong>Indeed</strong>, with their
-          availability, WWCC and right to work already captured.
+          Use the apply link above wherever the board asks for an application
+          link or website. Anyone who applies through it appears under
+          Candidates, tagged <strong>{current.name}</strong>, with an automatic
+          fit score, their availability, WWCC and right to work.
         </p>
       </div>
     </CollapsibleSection>

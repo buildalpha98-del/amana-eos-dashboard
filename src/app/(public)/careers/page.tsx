@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { closingLabel, publicVacancyWhere, vacancyHeadline } from "@/lib/recruitment/public-vacancy";
 
 /**
  * /careers — public index of open, website-published vacancies.
@@ -16,12 +17,6 @@ export const metadata: Metadata = {
 // than freezing the list at build time.
 export const dynamic = "force-dynamic";
 
-const ROLE_LABELS: Record<string, string> = {
-  educator: "Educator",
-  senior_educator: "Senior Educator",
-  member: "Coordinator",
-  director: "Director",
-};
 const EMPLOYMENT_LABELS: Record<string, string> = {
   casual: "Casual",
   part_time: "Part-time",
@@ -31,7 +26,7 @@ const EMPLOYMENT_LABELS: Record<string, string> = {
 
 export default async function CareersIndexPage() {
   const vacancies = await prisma.recruitmentVacancy.findMany({
-    where: { deleted: false, status: "open", postedChannels: { has: "website" } },
+    where: publicVacancyWhere(),
     include: { service: { select: { name: true, suburb: true, state: true } } },
     orderBy: { createdAt: "desc" },
   });
@@ -83,9 +78,11 @@ export default async function CareersIndexPage() {
         ) : (
           <div className="mt-8 space-y-4">
             {vacancies.map((v) => {
-              const roleLabel = ROLE_LABELS[v.role] ?? v.role.replace(/_/g, " ");
-              const centre = v.service?.name ?? "Amana OSHC";
-              const location = [v.service?.suburb, v.service?.state].filter(Boolean).join(", ");
+              const roleLabel = vacancyHeadline(v);
+              // A regional ad has no centre: its catchment is the location.
+              const centre = v.service?.name ?? v.region ?? "Amana OSHC";
+              const location = [v.service?.suburb, v.service?.state ?? v.state].filter(Boolean).join(", ");
+              const closing = closingLabel(v.closesAt);
               return (
                 <Link
                   key={v.id}
@@ -103,7 +100,13 @@ export default async function CareersIndexPage() {
                         {location}
                       </span>
                     )}
+                    {v.payRate && (
+                      <span className="rounded-full bg-[#FFF2BF] px-3 py-1 text-sm font-medium text-brand">{v.payRate}</span>
+                    )}
                   </div>
+                  {(v.workPeriod || closing) && (
+                    <p className="mt-3 text-sm text-brand/70">{[v.workPeriod, closing].filter(Boolean).join(" · ")}</p>
+                  )}
                   <p className="mt-4 font-semibold text-brand underline decoration-accent decoration-2 underline-offset-4">
                     View &amp; apply →
                   </p>

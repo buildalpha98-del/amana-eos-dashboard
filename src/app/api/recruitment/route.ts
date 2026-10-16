@@ -23,6 +23,12 @@ const createVacancySchema = z.object({
   // Optional link to a Position Description — the interviewer sees
   // the PD inline on the vacancy detail surface when set.
   positionDescriptionId: z.string().optional().nullable(),
+  // 2026-10-16: public ad details.
+  title: z.string().max(160).optional().nullable(),
+  state: z.enum(["NSW", "VIC"]).optional().nullable(),
+  payRate: z.string().max(120).optional().nullable(),
+  workPeriod: z.string().max(200).optional().nullable(),
+  closesAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
 }).refine((v) => Boolean(v.serviceId) || Boolean(v.region?.trim()), {
   message: "Give the ad a centre or a region — the public listing needs a location",
   path: ["region"],
@@ -81,6 +87,11 @@ const body = await parseJsonBody(req);
     notes,
     assignedToId,
     positionDescriptionId,
+    title,
+    state,
+    payRate,
+    workPeriod,
+    closesAt,
   } = parsed.data;
 
   const vacancy = await prisma.recruitmentVacancy.create({
@@ -95,6 +106,11 @@ const body = await parseJsonBody(req);
       notes: notes || null,
       assignedToId: assignedToId || null,
       positionDescriptionId: positionDescriptionId || null,
+      title: title?.trim() || null,
+      state: state ?? null,
+      payRate: payRate?.trim() || null,
+      workPeriod: workPeriod?.trim() || null,
+      closesAt: closesAt ? new Date(`${closesAt}T00:00:00Z`) : null,
     },
     include: {
       service: { select: { id: true, name: true, code: true } },

@@ -52,6 +52,12 @@ export interface IndeedAdVacancy {
     suburb?: string | null;
     state?: string | null;
   } | null;
+  /** 2026-10-16: public headline, pay, when, state and closing date. */
+  title?: string | null;
+  payRate?: string | null;
+  workPeriod?: string | null;
+  state?: string | null;
+  closesAt?: string | Date | null;
 }
 
 export interface IndeedAd {
@@ -127,8 +133,19 @@ function locationFor(v: IndeedAdVacancy): string {
 export function buildIndeedAd(
   vacancy: IndeedAdVacancy,
   origin: string,
+  source: PoolSource = "indeed",
 ): IndeedAd {
-  const description = vacancy.notes?.trim() ?? "";
+  // Job boards show pay and dates as separate fields only sometimes — put
+  // them at the top of the copy too, so they're never lost.
+  const facts = [
+    vacancy.payRate?.trim() ? `Pay: ${vacancy.payRate.trim()}` : "",
+    vacancy.workPeriod?.trim() ? `When: ${vacancy.workPeriod.trim()}` : "",
+    vacancy.closesAt
+      ? `Applications close: ${new Date(vacancy.closesAt).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })}`
+      : "",
+  ].filter(Boolean);
+  const body = vacancy.notes?.trim() ?? "";
+  const description = facts.length && body ? `${facts.join("\n")}\n\n${body}` : body;
   const location = locationFor(vacancy);
   const channels = vacancy.postedChannels ?? [];
 
@@ -146,21 +163,22 @@ export function buildIndeedAd(
   if (!description) {
     blockers.push("There is no ad copy yet — write the Notes first.");
   }
-  if (!location) {
+  if (!location && !vacancy.state) {
     blockers.push("No centre or region set — Indeed needs a location.");
   }
 
   return {
     title:
-      INDEED_ROLE_TITLES[vacancy.role] ??
+      vacancy.title?.trim() ||
+      INDEED_ROLE_TITLES[vacancy.role] ||
       `${vacancy.role.replace(/_/g, " ")} — Out of School Hours Care`,
     company: COMPANY_NAME,
-    location,
+    location: location || vacancy.state || "",
     jobType:
       EMPLOYMENT_LABELS[vacancy.employmentType] ??
       vacancy.employmentType.replace(/_/g, " "),
     description,
-    applyUrl: trackedApplyUrl(origin, vacancy.id),
+    applyUrl: trackedApplyUrl(origin, vacancy.id, source),
     placeholders: findPlaceholders(description),
     blockers,
   };

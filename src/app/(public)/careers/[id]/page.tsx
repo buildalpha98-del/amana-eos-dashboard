@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { normalisePublicSource } from "@/lib/recruitment/pool";
 import { CareerApplyForm } from "./CareerApplyForm";
+import { closingLabel, publicVacancyWhere, vacancyHeadline, vacancyState } from "@/lib/recruitment/public-vacancy";
+import { vacancyIsHoliday } from "@/lib/recruitment/fit";
 
 /**
  * /careers/[id] — public application page for a single vacancy.
@@ -17,12 +19,6 @@ import { CareerApplyForm } from "./CareerApplyForm";
  * a Seek listing, a flyer QR). It is whitelisted server-side, so a stranger
  * editing the URL can't invent a channel — see `normalisePublicSource`.
  */
-const ROLE_LABELS: Record<string, string> = {
-  educator: "Educator",
-  senior_educator: "Senior Educator",
-  member: "Coordinator",
-  director: "Director",
-};
 const EMPLOYMENT_LABELS: Record<string, string> = {
   casual: "Casual",
   part_time: "Part-time",
@@ -40,12 +36,7 @@ export const dynamic = "force-dynamic";
 
 async function getVacancy(id: string) {
   return prisma.recruitmentVacancy.findFirst({
-    where: {
-      id,
-      deleted: false,
-      status: "open",
-      postedChannels: { has: "website" },
-    },
+    where: { id, ...publicVacancyWhere() },
     include: { service: { select: { name: true, suburb: true, state: true } } },
   });
 }
@@ -58,10 +49,11 @@ export async function generateMetadata({
   const { id } = await params;
   const v = await getVacancy(id);
   if (!v) return { title: "Role not available — Amana OSHC Careers" };
-  const role = ROLE_LABELS[v.role] ?? v.role;
+  const role = vacancyHeadline(v);
+  const where = v.service?.name ?? v.region ?? "Amana OSHC";
   return {
-    title: `${role} — ${v.service?.name ?? "Amana OSHC"} | Careers`,
-    description: `Apply for the ${role} role at ${v.service?.name ?? "Amana OSHC"}.`,
+    title: `${role} — ${where} | Careers`,
+    description: [`Apply for the ${role} role at ${where}.`, v.payRate, v.workPeriod].filter(Boolean).join(" "),
   };
 }
 
@@ -77,7 +69,8 @@ export default async function CareerApplyPage({
   const v = await getVacancy(id);
   if (!v) notFound();
 
-  const roleLabel = ROLE_LABELS[v.role] ?? v.role.replace(/_/g, " ");
+  const roleLabel = vacancyHeadline(v);
+  const state = vacancyState(v);
   // A regional casual-pool ad has no single centre — its catchment IS the
   // location, and it is the common shape for pool advertising. Falling back to
   // a bare "Amana OSHC" told an applicant nothing about where the work is.
@@ -92,8 +85,9 @@ export default async function CareerApplyPage({
     v.qualificationRequired
       ? QUALIFICATION_LABELS[v.qualificationRequired] ?? v.qualificationRequired
       : null,
-    location || null,
+    location || (state && !v.service ? state : null),
   ].filter(Boolean) as string[];
+  const closing = closingLabel(v.closesAt);
 
   return (
     <main className="min-h-screen bg-[#FFFAE6] px-4 py-10 md:py-16">
@@ -116,6 +110,29 @@ export default async function CareerApplyPage({
           </div>
         )}
 
+        {(v.payRate || v.workPeriod || closing) && (
+          <dl className="mt-6 grid gap-3 rounded-2xl bg-card p-5 text-brand shadow-sm ring-1 ring-black/5 sm:grid-cols-3">
+            {v.payRate && (
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-brand/60">Pay</dt>
+                <dd className="mt-1 font-semibold">{v.payRate}</dd>
+              </div>
+            )}
+            {v.workPeriod && (
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-brand/60">When</dt>
+                <dd className="mt-1 font-semibold">{v.workPeriod}</dd>
+              </div>
+            )}
+            {closing && (
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-brand/60">Closing date</dt>
+                <dd className="mt-1 font-semibold">{closing.replace("Applications close ", "")}</dd>
+              </div>
+            )}
+          </dl>
+        )}
+
         {v.notes?.trim() && (
           <div className="mt-8 whitespace-pre-wrap rounded-2xl bg-card p-6 text-brand/90 shadow-sm ring-1 ring-black/5 md:p-8">
             {v.notes.trim()}
@@ -128,6 +145,9 @@ export default async function CareerApplyPage({
             roleLabel={roleLabel}
             centre={centre}
             source={normalisePublicSource(src)}
+            vacancyState={state}
+            qualificationRequired={v.qualificationRequired}
+            holiday={vacancyIsHoliday(v)}
           />
         </div>
 

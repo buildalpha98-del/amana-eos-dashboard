@@ -22,10 +22,13 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { storeResume } from "@/lib/recruitment/resume-upload";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import { FIT_LABELS, fitForRecords } from "@/lib/recruitment/fit";
+import { publicVacancyWhere } from "@/lib/recruitment/public-vacancy";
 import {
   POOL_SESSIONS,
   POOL_DAYS,
   POOL_SOURCES,
+  RIGHT_TO_WORK,
   normalisePublicSource,
   sourceLabel,
 } from "@/lib/recruitment/pool";
@@ -50,6 +53,15 @@ const applySchema = z.object({
   availableSessions: z.array(z.enum(POOL_SESSIONS)).optional(),
   availableDays: z.array(z.enum(POOL_DAYS)).optional(),
   hasTransport: z.boolean().optional(),
+  // 2026-10-16: the answers the automatic fit score uses (recruitment/fit.ts).
+  state: z.enum(["NSW", "VIC"]).optional().nullable(),
+  qualificationName: z.string().max(200).optional().nullable(),
+  vicDiplomaLevel: z.boolean().optional().nullable(),
+  holidayWeeks: z.number().int().min(0).max(8).optional().nullable(),
+  wwccNumber: z.string().max(40).optional().nullable(),
+  hasFirstAid: z.boolean().optional(),
+  rightToWork: z.enum(RIGHT_TO_WORK).optional().nullable(),
+  yearsExperience: z.number().int().min(0).max(50).optional().nullable(),
   /**
    * Where this application came from, carried on the ad's link as `?src=`.
    * Whitelisted rather than free text — see `normalisePublicSource`. An
@@ -103,14 +115,9 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
 
   // Only open, website-published vacancies accept applications.
   const vacancy = await prisma.recruitmentVacancy.findFirst({
-    where: {
-      id,
-      deleted: false,
-      status: "open",
-      postedChannels: { has: "website" },
-    },
+    where: { id, ...publicVacancyWhere() },
     include: {
-      service: { select: { name: true } },
+      service: { select: { name: true, state: true } },
       assignedTo: { select: { email: true, name: true } },
     },
   });
@@ -125,7 +132,24 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
   // public intake paths can't drift on what they accept.
   const resumeFileUrl = await storeResume(data);
 
-  const roleLabel = ROLE_LABELS[vacancy.role] ?? vacancy.role.replace(/_/g, " ");
+  const roleLabel = vacancy.title?.trim() || (ROLE_LABELS[vacancy.role] ?? vacancy.role.replace(/_/g, " "));
+
+  const answers = {
+    state: data.state ?? null,
+    qualification: data.qualification ?? null,
+    studying: data.studying ?? false,
+    vicDiplomaLevel: data.vicDiplomaLevel ?? null,
+    wwccNumber: data.wwccNumber?.trim() || null,
+    hasFirstAid: data.hasFirstAid ?? false,
+    rightToWork: data.rightToWork ?? null,
+    yearsExperience: data.yearsExperience ?? null,
+    previousRole: data.previousRole?.trim() || null,
+    holidayWeeks: data.holidayWeeks ?? null,
+    availableSessions: data.availableSessions ?? [],
+    availableDays: data.availableDays ?? [],
+    hasTransport: data.hasTransport ?? false,
+  };
+  const fit = fitForRecords(vacancy, answers);
   const centre = vacancy.service?.name ?? "Amana OSHC";
 
   const candidate = await prisma.recruitmentCandidate.create({
@@ -139,13 +163,12 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
       resumeFileUrl,
       suburb: data.suburb?.trim() || null,
       postcode: data.postcode?.trim() || null,
-      qualification: data.qualification ?? null,
-      studying: data.studying ?? false,
-      previousRole: data.previousRole?.trim() || null,
+      ...answers,
+      qualificationName: data.qualificationName?.trim() || null,
       previousEmployer: data.previousEmployer?.trim() || null,
-      availableSessions: data.availableSessions ?? [],
-      availableDays: data.availableDays ?? [],
-      hasTransport: data.hasTransport ?? false,
+      fitScore: fit.score,
+      fitLabel: fit.label,
+      fitReasons: fit.reasons,
     },
     select: { id: true },
   });
@@ -176,8 +199,9 @@ export const POST = withApiHandler(async (req: NextRequest, context) => {
       const dashUrl = `${process.env.NEXTAUTH_URL ?? "https://amanaoshc.company"}/hiring`;
       await sendEmail({
         to: recipients,
-        subject: `New application: ${roleLabel} — ${centre}`,
+        subject: `New application (${FIT_LABELS[fit.label]}): ${roleLabel} — ${centre}`,
         html: `<p>A new application came in from the ${escapeHtml(sourceLabel(source))} careers link.</p>
+               <p><strong>Automatic fit:</strong> ${FIT_LABELS[fit.label]} (${fit.score}/100) — ${escapeHtml(fit.reasons.slice(0, 4).join("; "))}</p>
                <p><strong>Applicant:</strong> ${escapeHtml(data.name)}</p>
                <p><strong>Role:</strong> ${escapeHtml(roleLabel)} — ${escapeHtml(centre)}</p>
                <p><strong>Email:</strong> ${escapeHtml(data.email)}</p>

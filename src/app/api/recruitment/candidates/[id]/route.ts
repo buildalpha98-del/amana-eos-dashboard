@@ -13,6 +13,7 @@ import {
   RIGHT_TO_WORK,
   NOT_HIRED_REASONS,
 } from "@/lib/recruitment/pool";
+import { fitForRecords } from "@/lib/recruitment/fit";
 /**
  * 2026-09-15: extended for the casual pool (see src/lib/recruitment/pool.ts).
  * `stage` and `source` were unvalidated free text — the convert route wrote
@@ -29,6 +30,10 @@ const updateCandidateSchema = z.object({
   source: z.enum(POOL_SOURCES).optional(),
   stage: z.enum(POOL_STAGES).optional(),
   vacancyId: z.string().nullable().optional(),
+  state: z.enum(["NSW", "VIC"]).nullable().optional(),
+  qualificationName: z.string().max(200).nullable().optional(),
+  vicDiplomaLevel: z.boolean().nullable().optional(),
+  holidayWeeks: z.number().int().min(0).max(8).nullable().optional(),
   qualification: z
     .enum(["cert_iii", "diploma", "bachelor", "masters", "other"])
     .nullable()
@@ -81,11 +86,33 @@ const { id } = await context!.params!;
     data.stageChangedAt = new Date();
   }
 
-  const candidate = await prisma.recruitmentCandidate.update({
+  let candidate = await prisma.recruitmentCandidate.update({
     where: { id },
     data,
     include: candidateInclude,
   });
+
+  // Keep the automatic fit in step with what staff just corrected.
+  if (candidate.vacancyId) {
+    const vacancy = await prisma.recruitmentVacancy.findUnique({
+      where: { id: candidate.vacancyId },
+      select: {
+        state: true,
+        qualificationRequired: true,
+        title: true,
+        workPeriod: true,
+        service: { select: { state: true } },
+      },
+    });
+    if (vacancy) {
+      const fit = fitForRecords(vacancy, candidate);
+      candidate = await prisma.recruitmentCandidate.update({
+        where: { id },
+        data: { fitScore: fit.score, fitLabel: fit.label, fitReasons: fit.reasons },
+        include: candidateInclude,
+      });
+    }
+  }
 
   return NextResponse.json(candidate);
 }, { feature: "recruitment.candidates.manage" });
