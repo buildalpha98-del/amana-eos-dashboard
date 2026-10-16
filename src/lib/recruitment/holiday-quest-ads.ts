@@ -14,7 +14,7 @@ export interface HolidayQuestAd {
   key: string;
   state: "NSW" | "VIC";
   region: string;
-  schools: string[];
+  suburbs: string[];
   title: string;
   payRate: string;
   qualificationRequired: "none" | "diploma";
@@ -23,14 +23,16 @@ export interface HolidayQuestAd {
 
 const PAY = { VIC: "$40–$46 an hour + super (casual)", NSW: "$35–$45 an hour + super (casual)" } as const;
 
-function ad(state: "NSW" | "VIC", region: string, schools: string[]): HolidayQuestAd {
+function ad(state: "NSW" | "VIC", region: string, suburbs: string[]): HolidayQuestAd {
   const vic = state === "VIC";
-  const where = schools.join(", ");
+  // Suburbs, not school names: Holiday Quest only runs at some of them
+  // (Daniel, 16 Oct 2026), so we confirm the school when offering shifts.
+  const where = suburbs.length > 1 ? `${suburbs.slice(0, -1).join(", ")} and ${suburbs.at(-1)}` : suburbs[0];
   const notes = `Join our Holiday Quest team in ${region} these summer holidays!
 
 Holiday Quest is Amana OSHC's school holiday program: action-packed days of excursions, incursions, sport, art and STEM for primary school children aged 5–12, run at our school-based centres from 7:00am to 6:00pm. We're looking for warm, reliable casual educators to help make it a summer to remember.
 
-Where: ${where}
+Where: around ${where} — Holiday Quest runs at one of our schools in this area, and we'll confirm where when we offer you shifts.
 When: from the end of Term 4 up to Christmas, a break between Christmas and New Year, then from Monday 4 January until school goes back in late January 2027. Pick the weeks that suit you.
 Pay: ${PAY[state]} — casual rates under the Children's Services Award. Where you sit in the range depends on your qualification and experience.
 
@@ -56,7 +58,7 @@ Apply online in about 3 minutes. We'll be in touch within a few days.`;
     key: `${state.toLowerCase()}-${region.toLowerCase().replace(/[^a-z]+/g, "-")}`,
     state,
     region,
-    schools,
+    suburbs,
     title: `Holiday Quest Educator — ${region}${vic ? " (diploma-level)" : ""}`,
     payRate: PAY[state],
     qualificationRequired: vic ? "diploma" : "none",
@@ -65,9 +67,9 @@ Apply online in about 3 minutes. We'll be in touch within a few days.`;
 }
 
 export const HOLIDAY_QUEST_ADS: HolidayQuestAd[] = [
-  ad("VIC", "North & West Melbourne", ["Al-Taqwa College (Truganina)", "AIA KKCC (Coburg)"]),
-  ad("VIC", "South-East Melbourne", ["Minaret College Doveton", "Minaret College Officer", "Minaret College Springvale"]),
-  ad("NSW", "South-West Sydney", ["Minarah College (Green Valley)", "MFIS Hoxton Park", "Unity Grammar (Austral)"]),
-  ad("NSW", "Inner South-West Sydney", ["MFIS Greenacre", "Arkana College (Kingsgrove)"]),
-  ad("NSW", "Hills District", ["MFIS Beaumont Hills"]),
+  ad("VIC", "North & West Melbourne", ["Truganina", "Coburg"]),
+  ad("VIC", "South-East Melbourne", ["Doveton", "Officer", "Springvale"]),
+  ad("NSW", "South-West Sydney", ["Green Valley", "Hoxton Park", "Austral"]),
+  ad("NSW", "Inner South-West Sydney", ["Greenacre", "Kingsgrove"]),
+  ad("NSW", "Hills District", ["Beaumont Hills"]),
 ];
