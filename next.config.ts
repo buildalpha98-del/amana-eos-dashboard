@@ -114,11 +114,19 @@ const nextConfig: NextConfig = {
         source: "/parent/signup",
         headers: securityHeaders({ metaPixel: true }),
       },
-      // The enrolment conversion fires here (CompleteRegistration). The
-      // live form never fired it — only the retired legacy wizard did — so
-      // Meta ads couldn't see a single completed enrolment.
+      // The whole live enrolment form (17 Oct 2026) — the pixel used to
+      // stop at signup, so Meta saw who clicked but not who started an
+      // enrolment. :path* also covers /parent/enrol itself and thank-you,
+      // where CompleteRegistration fires.
       {
-        source: "/parent/enrol/thank-you",
+        source: "/parent/enrol/:path*",
+        headers: securityHeaders({ metaPixel: true }),
+      },
+      // Returning families arrive here from the website's sign-in links.
+      // Exact path only: /parent/login/confirm carries a login token and
+      // must never load the pixel (it reports the page URL to Meta).
+      {
+        source: "/parent/login",
         headers: securityHeaders({ metaPixel: true }),
       },
     ];

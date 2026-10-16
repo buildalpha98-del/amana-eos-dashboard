@@ -8,12 +8,13 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { mutateApi } from "@/lib/fetch-api";
+import { trackMetaEvent } from "@/components/analytics/MetaPixel";
 import ParentSignupPage from "@/app/parent/signup/page";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
 vi.mock("next/image", () => ({ default: () => null }));
-vi.mock("@/components/analytics/MetaPixel", () => ({ MetaPixel: () => null }));
+vi.mock("@/components/analytics/MetaPixel", () => ({ MetaPixel: () => null, trackMetaEvent: vi.fn() }));
 vi.mock("@/lib/fetch-api", () => ({ mutateApi: vi.fn(), fetchApi: vi.fn() }));
 const mutate = vi.mocked(mutateApi);
 const password = "Synthetic-test-password-2026";
@@ -77,6 +78,8 @@ describe("Parent signup journey", () => {
     );
     finish({ redirectTo: "/parent/enrol" });
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/parent/enrol"));
+    // A new family account is reported to Meta as a Lead.
+    expect(vi.mocked(trackMetaEvent)).toHaveBeenCalledWith("Lead");
   });
   it("announces server errors, preserves entered details and permits retry", async () => {
     mutate.mockRejectedValueOnce(
