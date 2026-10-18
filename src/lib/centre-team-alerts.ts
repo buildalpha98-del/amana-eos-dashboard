@@ -9,12 +9,19 @@
  *     is watched even when nobody has the dashboard open;
  *   - head office (active `head_office` users) when `headOffice` is set.
  * Swallow-and-log: an alert must never fail the parent's request.
+ *
+ * Enrolment replies are the exception (Daniel, 19 Oct 2026): the enrolments
+ * team contacts new families, not the centre — so a new enrolment and its
+ * 20/24-hour reminders email ENROLMENTS_INBOX only, and the in-app alert
+ * goes to head office only (`enrolmentsTeam: true`).
  */
 import { prisma } from "@/lib/prisma";
 import { notifyUsers } from "@/lib/notify-user";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 import { baseLayout, buttonHtml, escapeHtml } from "@/lib/email-templates/base";
+
+export const ENROLMENTS_INBOX = "enrolment@amanaoshc.com.au";
 
 const BASE = () => process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
 
@@ -42,20 +49,31 @@ export interface CentreAlert {
   /** Dashboard path, e.g. "/enrolments?id=…" */
   link: string;
   headOffice?: boolean;
+  /**
+   * Route to the enrolments team instead of the centre: email goes ONLY to
+   * ENROLMENTS_INBOX and the in-app alert only to head office.
+   */
+  enrolmentsTeam?: boolean;
   /** Also email the centre's mailbox (and head office, when set). */
   email?: { subject: string; lines: string[]; button: string };
 }
 
 export async function alertCentreTeam(alert: CentreAlert): Promise<void> {
   try {
-    const ids = await centreTeamUserIds(alert.serviceId, { headOffice: alert.headOffice });
+    const ids = alert.enrolmentsTeam
+      ? (await prisma.user.findMany({ where: { active: true, role: "head_office" }, select: { id: true } })).map((u) => u.id)
+      : await centreTeamUserIds(alert.serviceId, { headOffice: alert.headOffice });
     await notifyUsers(prisma, ids, { type: alert.type, title: alert.title, body: alert.body, link: alert.link });
 
     if (!alert.email) return;
-    const service = await prisma.service.findUnique({ where: { id: alert.serviceId }, select: { email: true } });
     const to = new Set<string>();
-    if (service?.email?.trim()) to.add(service.email.trim().toLowerCase());
-    if (alert.headOffice) {
+    if (alert.enrolmentsTeam) {
+      to.add(ENROLMENTS_INBOX);
+    } else {
+      const service = await prisma.service.findUnique({ where: { id: alert.serviceId }, select: { email: true } });
+      if (service?.email?.trim()) to.add(service.email.trim().toLowerCase());
+    }
+    if (alert.headOffice && !alert.enrolmentsTeam) {
       const ho = await prisma.user.findMany({
         where: { active: true, role: "head_office", isCentreAccount: false },
         select: { email: true },
@@ -99,6 +117,7 @@ export async function alertNewEnrolment(submissionId: string): Promise<void> {
     select: { id: true, serviceId: true, children: true, primaryParent: true },
   });
   if (!sub?.serviceId) return;
+  const centreName = (await prisma.service.findUnique({ where: { id: sub.serviceId }, select: { name: true } }))?.name;
   const kids = childNamesFrom(sub.children);
   const parent = parentNameFrom(sub.primaryParent);
   const phone = (sub.primaryParent as { mobile?: string } | null)?.mobile;
@@ -108,13 +127,13 @@ export async function alertNewEnrolment(submissionId: string): Promise<void> {
     title: `New enrolment: ${kids}`,
     body: `${parent} has submitted an enrolment. We promised to get back to them within 24 hours.`,
     link: `/enrolments?id=${sub.id}`,
-    headOffice: true,
+    enrolmentsTeam: true,
     email: {
-      subject: `New enrolment: ${kids} — please reply within 24 hours`,
+      subject: `New enrolment: ${kids} — please contact the family within 24 hours`,
       lines: [
-        `<strong>${escapeHtml(parent)}</strong> has just submitted an enrolment for <strong>${escapeHtml(kids)}</strong>.`,
+        `<strong>${escapeHtml(parent)}</strong> has just submitted an enrolment for <strong>${escapeHtml(kids)}</strong>${centreName ? ` at <strong>${escapeHtml(centreName)}</strong>` : ""}.`,
         `The family has been told someone will get back to them <strong>within 24 hours</strong>.${phone ? ` Their number: <strong>${escapeHtml(phone)}</strong>.` : ""}`,
-        "Open it in the dashboard to review, then mark it as contacted.",
+        "Please contact them, then open the enrolment in the dashboard and press <strong>Mark contacted</strong>.",
       ],
       button: "Open the enrolment",
     },
