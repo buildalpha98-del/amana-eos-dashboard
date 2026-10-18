@@ -38,7 +38,7 @@ describe("who hears about it", () => {
     expect(where.OR).toEqual([{ id: "mgr" }, { role: "member", serviceId: "svc-ga" }, { role: "head_office" }]);
   });
 
-  it("a new enrolment alerts the team in-app and emails the centre mailbox + head office", async () => {
+  it("a new enrolment goes to the enrolments inbox and head office in-app — not the centre", async () => {
     prismaMock.enrolmentSubmission.findUnique.mockResolvedValue({
       id: "e1",
       serviceId: "svc-ga",
@@ -48,7 +48,7 @@ describe("who hears about it", () => {
     await alertNewEnrolment("e1");
     expect(vi.mocked(notifyUsers).mock.calls[0][2]).toMatchObject({ title: "New enrolment: Yusuf", link: "/enrolments?id=e1" });
     const to = vi.mocked(sendEmail).mock.calls.map((c) => (c[0] as { to: string }).to);
-    expect(to.sort()).toEqual(["ho@amanaoshc.com.au", "mfisgreenacre@amanaoshc.com.au"]);
+    expect(to).toEqual(["enrolment@amanaoshc.com.au"]);
   });
 
   it("a new enquiry is in-app only — no extra email", async () => {

@@ -45,7 +45,7 @@ export async function runEnrolmentReplyClock(now = new Date()): Promise<{ remind
       title: `Overdue: ${kids}'s family has waited over 24 hours`,
       body: "We promised a reply within 24 hours. Please call the family today, then mark the enrolment as contacted.",
       link: `/enrolments?id=${s.id}`,
-      headOffice: true,
+      enrolmentsTeam: true,
       email: {
         subject: `Overdue: ${kids}'s enrolment has waited over 24 hours`,
         lines: [
@@ -80,6 +80,7 @@ export async function runEnrolmentReplyClock(now = new Date()): Promise<{ remind
       title: `4 hours left to reply: ${kids}`,
       body: "This family was promised a reply within 24 hours. Give them a call, then mark the enrolment as contacted.",
       link: `/enrolments?id=${s.id}`,
+      enrolmentsTeam: true,
       email: {
         subject: `Reminder: reply to ${kids}'s family within 4 hours`,
         lines: [
