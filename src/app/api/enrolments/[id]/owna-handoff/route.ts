@@ -5,8 +5,10 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { assertEnrolmentAccess } from "@/lib/enrolment-access";
 import {
+  HANDOFF_OWNER_ROLES,
   applyHandoff,
   handoffPatchSchema,
+  isCoordinationAction,
   placementKey,
   readHandoff,
 } from "@/lib/owna-handoff";
@@ -47,7 +49,14 @@ export const GET = withApiAuth(async (_req, session, context) => {
       user: { select: { name: true } },
     },
   });
+  // Who the handoff can be assigned to (owner dropdown).
+  const assignees = await prisma.user.findMany({
+    where: { active: true, role: { in: [...HANDOFF_OWNER_ROLES] }, isCentreAccount: false },
+    select: { id: true, name: true, role: true },
+    orderBy: { name: "asc" },
+  });
   return NextResponse.json({
+    assignees,
     scope: e.childRecords
       .map(
         (c) =>
@@ -77,11 +86,14 @@ export const PATCH = withApiAuth(async (req, session, context) => {
         assertEnrolmentAccess(session, e.serviceId);
         for (const child of e.childRecords)
           assertEnrolmentAccess(session, child.serviceId);
+        // Owner / next action can be set while awaiting approval; checklist
+        // ticks need a processed, placed enrolment (they email the family).
         if (
-          e.status !== "processed" ||
+          !isCoordinationAction(parsed.data.action) &&
+          (e.status !== "processed" ||
           !e.serviceId ||
           !e.childRecords.length ||
-          e.childRecords.some((c) => !c.serviceId || c.status !== "active")
+          e.childRecords.some((c) => !c.serviceId || c.status !== "active"))
         )
           throw ApiError.badRequest(
             "Confirm the enrolment and assign all children to services with active child records first.",
@@ -96,6 +108,20 @@ export const PATCH = withApiAuth(async (req, session, context) => {
         const state = readHandoff(current?.state);
         if (current && !state)
           throw ApiError.badRequest("Handoff data needs administrator review.");
+        let assignee: { id: string; name: string } | undefined;
+        if (parsed.data.action === "assign") {
+          const u = await tx.user.findFirst({
+            where: {
+              id: parsed.data.ownerId,
+              active: true,
+              role: { in: [...HANDOFF_OWNER_ROLES] },
+              isCentreAccount: false,
+            },
+            select: { id: true, name: true },
+          });
+          if (!u) throw ApiError.badRequest("That person can't own a handoff — choose an owner, head office or admin.");
+          assignee = { id: u.id, name: u.name || "Staff member" };
+        }
         let next;
         const by = {
           id: session.user.id,
@@ -108,6 +134,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
             by,
             placement,
             new Date().toISOString(),
+            assignee,
           );
         } catch (err) {
           throw ApiError.badRequest((err as Error).message);

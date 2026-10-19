@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import {
   HANDOFF_STEPS,
+  handoffIsStale,
   handoffSummary,
   type HandoffPatch,
   type HandoffState,
@@ -13,6 +15,7 @@ import {
 } from "@/lib/owna-handoff";
 
 type Response = {
+  assignees: { id: string; name: string | null; role: string }[];
   scope: string;
   revision: number;
   state: HandoffState | null;
@@ -34,6 +37,8 @@ export function OwnaHandoffPanel({
   childrenLabel: string;
 }) {
   const client = useQueryClient();
+  const { data: session } = useSession();
+  const myId = session?.user?.id;
   const [evidence, setEvidence] = useState("");
   const [step, setStep] = useState<HandoffStep>("children");
   const [mode, setMode] = useState<"sent" | "existing">("sent");
@@ -75,10 +80,22 @@ export function OwnaHandoffPanel({
         </Button>
       </div>
     );
-  const { state, placement, history } = query.data;
-  const stale = !!state && state.placement !== placement;
-  const disabled =
-    mutation.isPending || query.isFetching || status !== "processed";
+  const { state, placement, history, assignees } = query.data;
+  const stale = handoffIsStale(state, placement);
+  const busy = mutation.isPending || query.isFetching;
+  // Owner and next action can be set before approval; the checklist can't.
+  const disabled = busy || status !== "processed";
+  const ownerId = state?.owner?.id ?? "";
+  // Keep a current owner who's no longer in the list (e.g. a coordinator
+  // who claimed it earlier) visible rather than silently showing "Unassigned".
+  const ownerOptions =
+    state?.owner && !assignees.some((a) => a.id === state.owner!.id)
+      ? [{ id: state.owner.id, name: state.owner.name, role: "" }, ...assignees]
+      : assignees;
+  const setOwner = (id: string) =>
+    id
+      ? mutation.mutate({ action: "assign", ownerId: id })
+      : mutation.mutate({ action: "release" });
   // Ticking these two emails the family (unless unticked below).
   const emailsFamily = step === "invitation" || step === "sessions";
   const completing = !state?.steps[step];
@@ -113,33 +130,37 @@ export function OwnaHandoffPanel({
           <strong>{query.data.scope || childrenLabel}</strong>.
         </p>
       </div>
-      <div className="flex flex-wrap gap-2 items-center">
-        <p className="text-sm">
-          Owner: <strong>{state?.owner?.name ?? "Unassigned"}</strong>
+      {status !== "processed" && (
+        <p className="rounded-lg bg-surface p-3 text-sm">
+          This enrolment is still <strong>awaiting approval</strong>. You can
+          choose who owns the OWNA setup now. The checklist opens once the
+          enrolment is approved and the children are placed at their centre.
         </p>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={disabled || stale}
-          onClick={() => act("claim")}
+      )}
+      <div className="space-y-1">
+        <label htmlFor="handoff-owner" className="block text-sm font-medium">
+          Owner
+        </label>
+        <select
+          id="handoff-owner"
+          value={ownerId}
+          disabled={busy || stale}
+          onChange={(e) => setOwner(e.target.value)}
+          className="w-full max-w-sm rounded-lg border border-border bg-background p-2 text-sm"
         >
-          {state?.owner ? "Take ownership" : "Assign to me"}
-        </Button>
-        {state?.owner && (
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={disabled || stale}
-            onClick={() => act("release")}
-          >
-            Release owner
-          </Button>
-        )}
+          <option value="">Unassigned</option>
+          {ownerOptions.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name ?? "Staff member"}
+              {a.id === myId ? " (me)" : ""}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted">
+          The person setting this family up in OWNA. Owners, head office and
+          admins can be chosen; changes are logged.
+        </p>
       </div>
-      <p className="text-xs text-muted">
-        Ownership is a coordination label. Authorised team members can update or
-        take over; changes are logged.
-      </p>
       {state?.note && (
         <p className="text-sm rounded-lg bg-surface p-3 whitespace-pre-wrap break-words">
           <strong>Next action:</strong> {state.note}
@@ -183,11 +204,6 @@ export function OwnaHandoffPanel({
           );
         })}
       </ol>
-      {status !== "processed" && (
-        <p className="text-sm">
-          Confirm and place the enrolment before recording the OWNA handoff.
-        </p>
-      )}
       <div className="space-y-2">
         <label className="block text-sm" htmlFor="handoff-step">
           Checklist step
@@ -297,7 +313,7 @@ export function OwnaHandoffPanel({
               </Button>
               <Button
                 variant="outline"
-                disabled={disabled}
+                disabled={busy}
                 onClick={() => act("note")}
               >
                 Save next action
