@@ -22,31 +22,29 @@ const patch = (step: HandoffPatch["step"]): HandoffPatch => ({
   mode: "existing",
 });
 describe("OWNA manual handoff", () => {
-  it("requires evidence and an invitation arrangement", () => {
+  it("needs no notes to tick, but does need the invitation arrangement", () => {
     expect(
-      handoffPatchSchema.safeParse({
-        revision: 0,
-        action: "complete",
-        step: "children",
-      }).success,
-    ).toBe(false);
+      handoffPatchSchema.safeParse({ revision: 0, action: "complete", step: "children" }).success,
+    ).toBe(true);
     expect(
-      handoffPatchSchema.safeParse({ ...patch("invitation"), mode: undefined })
-        .success,
+      handoffPatchSchema.safeParse({ ...patch("invitation"), mode: undefined }).success,
     ).toBe(false);
+  });
+  it("first sessions: a first day OR casual bookings only", () => {
+    const base = { revision: 0, action: "complete", step: "sessions" } as const;
+    expect(handoffPatchSchema.safeParse(base).success).toBe(false);
+    expect(handoffPatchSchema.safeParse({ ...base, firstDay: "2026-10-27" }).success).toBe(true);
+    expect(handoffPatchSchema.safeParse({ ...base, casual: true }).success).toBe(true);
+    let s = applyHandoff(state(), patch("children"), actor, "p", "now");
+    s = applyHandoff(s, { ...base, casual: true, firstDay: "2026-10-27" }, actor, "p", "now");
+    expect(s.steps.sessions).toMatchObject({ casual: true });
+    expect(s.steps.sessions?.firstDay).toBeUndefined();
   });
   it("does not infer readiness from approval", () =>
     expect(handoffSummary(null, "p", "processed")).toBe("OWNA: not checked"));
-  it("enforces owner and prerequisites", () => {
-    expect(() =>
-      applyHandoff(
-        { ...state(), owner: null },
-        patch("children"),
-        actor,
-        "p",
-        "now",
-      ),
-    ).toThrow("ownership");
+  it("ticking with no owner makes you the owner; prerequisites still apply", () => {
+    const s = applyHandoff({ ...state(), owner: null }, patch("children"), actor, "p", "now");
+    expect(s.owner).toEqual(actor);
     expect(() =>
       applyHandoff(state(), patch("access"), actor, "p", "now"),
     ).toThrow("child records");

@@ -18,6 +18,7 @@
  * running (synced in the last 48 hours). Without attendance data, a family
  * who HAS been coming would look like a no-show.
  */
+import { readHandoff } from "@/lib/owna-handoff";
 import { createHmac, timingSafeEqual } from "crypto";
 import { recordMarketingSends } from "@/lib/frequency-cap";
 import { prisma } from "@/lib/prisma";
@@ -184,11 +185,20 @@ export async function runNoShowChecks(now = new Date()): Promise<{ sent: number 
       serviceId: { not: null },
       processedAt: { lte: new Date(now.getTime() - NO_SHOW_AFTER_DAYS * DAY), gte: new Date(now.getTime() - 60 * DAY) },
     },
-    select: { id: true, serviceId: true, primaryParent: true, childRecords: { select: { firstName: true, firstAttendedAt: true } } },
+    select: {
+      id: true,
+      serviceId: true,
+      primaryParent: true,
+      childRecords: { select: { firstName: true, firstAttendedAt: true } },
+      ownaHandoff: { select: { state: true } },
+    },
   });
   let sent = 0;
   for (const s of subs) {
     if (s.childRecords.some((c) => c.firstAttendedAt)) continue;
+    // Casual-only families book when they need us — not attending yet
+    // isn't a sign anything is wrong (20 Oct 2026).
+    if (readHandoff(s.ownaHandoff?.state)?.steps.sessions?.casual) continue;
     if (!(await attendanceDataLive(s.serviceId!, now))) continue;
     const parent = s.primaryParent as { email?: string; firstName?: string } | null;
     if (!parent?.email) continue;

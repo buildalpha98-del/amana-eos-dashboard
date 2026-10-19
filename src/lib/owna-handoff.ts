@@ -31,6 +31,8 @@ const completion = z.object({
   mode: z.enum(["sent", "existing"]).optional(),
   /** "First sessions confirmed": the first booked day, YYYY-MM-DD. */
   firstDay: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  /** "First sessions confirmed": the family books casually — no first day. */
+  casual: z.boolean().optional(),
 });
 export const handoffStateSchema = z.object({
   placement: z.string(),
@@ -55,6 +57,8 @@ export const handoffPatchSchema = z
     mode: z.enum(["sent", "existing"]).optional(),
     /** First booked day (YYYY-MM-DD) — required to confirm first sessions. */
     firstDay: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose the first booked day").optional(),
+    /** Confirm first sessions as "casual bookings only" instead of a date. */
+    casual: z.boolean().optional(),
     /**
      * 2026-10-16: completing "invitation" or "sessions" emails the family
      * (OWNA setup guide / first day confirmed) unless this is false.
@@ -67,15 +71,13 @@ export const handoffPatchSchema = z
       ctx.addIssue({ code: "custom", message: "Choose who owns this handoff" });
     if (["complete", "reopen"].includes(v.action) && !v.step)
       ctx.addIssue({ code: "custom", message: "Choose a checklist step" });
-    if (["complete", "reopen", "reset"].includes(v.action) && !v.evidence)
-      ctx.addIssue({ code: "custom", message: "Add evidence or a reason" });
     if (v.action === "complete" && v.step === "invitation" && !v.mode)
       ctx.addIssue({
         code: "custom",
         message: "Choose invitation sent or existing access",
       });
-    if (v.action === "complete" && v.step === "sessions" && !v.firstDay)
-      ctx.addIssue({ code: "custom", message: "Choose the first booked day" });
+    if (v.action === "complete" && v.step === "sessions" && !v.firstDay && !v.casual)
+      ctx.addIssue({ code: "custom", message: "Choose the first booked day, or casual bookings only" });
   });
 export type HandoffPatch = z.infer<typeof handoffPatchSchema>;
 export type HandoffPlacement = {
@@ -120,7 +122,7 @@ export function applyHandoff(
   assignee?: { id: string; name: string },
 ): HandoffState {
   if (patch.action === "reset")
-    return { placement, owner: state.owner, note: patch.evidence!, steps: {} };
+    return { placement, owner: state.owner, note: patch.evidence || state.note, steps: {} };
   const next = structuredClone(state);
   if (state.placement !== placement) {
     // Nothing checked yet (e.g. an owner set before approval) — there's
@@ -145,8 +147,8 @@ export function applyHandoff(
     if (patch.step === "invitation") delete next.steps.access;
   }
   if (patch.action === "complete") {
-    if (!next.owner)
-      throw new Error("Claim ownership before completing checks.");
+    // Ticking a step with no owner makes you the owner (20 Oct 2026).
+    if (!next.owner) next.owner = by;
     if (patch.step !== "children" && !next.steps.children)
       throw new Error("Check the OWNA child records first.");
     if (patch.step === "access" && !next.steps.invitation)
@@ -154,9 +156,13 @@ export function applyHandoff(
     next.steps[patch.step!] = {
       at: now,
       by,
-      evidence: patch.evidence!,
+      evidence: patch.evidence ?? "",
       ...(patch.step === "invitation" ? { mode: patch.mode } : {}),
-      ...(patch.step === "sessions" ? { firstDay: patch.firstDay } : {}),
+      ...(patch.step === "sessions"
+        ? patch.casual
+          ? { casual: true }
+          : { firstDay: patch.firstDay }
+        : {}),
     };
   }
   return next;

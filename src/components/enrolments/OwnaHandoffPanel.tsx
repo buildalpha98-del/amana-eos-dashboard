@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * OWNA handoff checklist on an enrolment (redesigned 20 Oct 2026, Daniel):
+ * a real tick box per step, one Notes box, and "First sessions confirmed" as
+ * either a first booked day or "casual bookings only". Ticking the
+ * invitation or first-day step can email the family (opt-out per tick).
+ */
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -27,6 +33,26 @@ type Response = {
     details: { action: string; step?: HandoffStep; evidence?: string };
   }[];
 };
+
+const STEP_ORDER: HandoffStep[] = ["children", "invitation", "access", "sessions"];
+const ACTION_LABELS: Record<string, string> = {
+  claim: "took ownership",
+  assign: "changed owner",
+  release: "cleared owner",
+  note: "updated notes",
+  complete: "ticked",
+  reopen: "unticked",
+  reset: "reset the checklist",
+};
+
+const formatDay = (d: string) =>
+  new Date(`${d}T00:00:00Z`).toLocaleDateString("en-AU", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+
 export function OwnaHandoffPanel({
   id,
   status,
@@ -39,12 +65,15 @@ export function OwnaHandoffPanel({
   const client = useQueryClient();
   const { data: session } = useSession();
   const myId = session?.user?.id;
-  const [evidence, setEvidence] = useState("");
-  const [step, setStep] = useState<HandoffStep>("children");
+  // The step being ticked that needs a choice first (invitation / sessions).
+  const [pending, setPending] = useState<HandoffStep | null>(null);
   const [mode, setMode] = useState<"sent" | "existing">("sent");
-  const [message, setMessage] = useState("");
+  const [sessionsKind, setSessionsKind] = useState<"date" | "casual">("date");
   const [firstDay, setFirstDay] = useState("");
   const [notifyFamily, setNotifyFamily] = useState(true);
+  const [notes, setNotes] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+
   const query = useQuery({
     queryKey: ["owna-handoff", id],
     queryFn: () => fetchApi<Response>(`/api/enrolments/${id}/owna-handoff`),
@@ -56,15 +85,18 @@ export function OwnaHandoffPanel({
         method: "PATCH",
         body: { ...patch, revision: query.data!.revision },
       }),
-    onSuccess: () => {
-      setEvidence("");
+    onSuccess: (_r, patch) => {
+      setPending(null);
       setFirstDay("");
-      setMessage("Handoff saved.");
+      setNotifyFamily(true);
+      if (patch.action === "note") setNotes(null);
+      setMessage("Saved.");
       client.invalidateQueries({ queryKey: ["owna-handoff", id] });
       client.invalidateQueries({ queryKey: ["enrolments"] });
     },
     onError: (err: Error) => setMessage(err.message),
   });
+
   if (query.isPending)
     return (
       <p role="status" className="text-sm text-muted">
@@ -80,34 +112,71 @@ export function OwnaHandoffPanel({
         </Button>
       </div>
     );
+
   const { state, placement, history, assignees } = query.data;
   const stale = handoffIsStale(state, placement);
   const busy = mutation.isPending || query.isFetching;
-  // Owner and next action can be set before approval; the checklist can't.
-  const disabled = busy || status !== "processed";
+  const approved = status === "processed";
+  const steps = state?.steps ?? {};
+  const savedNotes = state?.note ?? "";
+  const notesValue = notes ?? savedNotes;
+
   const ownerId = state?.owner?.id ?? "";
-  // Keep a current owner who's no longer in the list (e.g. a coordinator
-  // who claimed it earlier) visible rather than silently showing "Unassigned".
   const ownerOptions =
     state?.owner && !assignees.some((a) => a.id === state.owner!.id)
       ? [{ id: state.owner.id, name: state.owner.name, role: "" }, ...assignees]
       : assignees;
-  const setOwner = (id: string) =>
-    id
-      ? mutation.mutate({ action: "assign", ownerId: id })
+  const setOwner = (ownerId: string) =>
+    ownerId
+      ? mutation.mutate({ action: "assign", ownerId })
       : mutation.mutate({ action: "release" });
-  // Ticking these two emails the family (unless unticked below).
-  const emailsFamily = step === "invitation" || step === "sessions";
-  const completing = !state?.steps[step];
-  const act = (action: HandoffPatch["action"]) =>
-    mutation.mutate({
-      action,
-      step,
-      evidence,
-      mode,
-      ...(action === "complete" && step === "sessions" ? { firstDay } : {}),
-      ...(action === "complete" && emailsFamily ? { notifyFamily } : {}),
-    });
+
+  /** Why a step can't be ticked yet, or null. */
+  const blockedBy = (step: HandoffStep): string | null => {
+    if (!approved) return "Approve the enrolment first";
+    if (stale) return "Reset the checklist first";
+    if (step !== "children" && !steps.children) return "Tick “All children entered” first";
+    if (step === "access" && !steps.invitation) return "Tick the invitation step first";
+    return null;
+  };
+
+  const toggle = (step: HandoffStep) => {
+    setMessage("");
+    if (steps[step]) {
+      mutation.mutate({ action: "reopen", step });
+      return;
+    }
+    // These two need a choice before they're ticked.
+    if (step === "invitation" || step === "sessions") {
+      setPending(pending === step ? null : step);
+      return;
+    }
+    mutation.mutate({ action: "complete", step });
+  };
+
+  const confirmPending = () => {
+    if (pending === "invitation")
+      mutation.mutate({ action: "complete", step: "invitation", mode, notifyFamily });
+    if (pending === "sessions")
+      mutation.mutate(
+        sessionsKind === "casual"
+          ? { action: "complete", step: "sessions", casual: true }
+          : { action: "complete", step: "sessions", firstDay, notifyFamily },
+      );
+  };
+
+  const detail = (step: HandoffStep) => {
+    const done = steps[step];
+    if (!done) return null;
+    const bits = [
+      `${new Date(done.at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })} by ${done.by.name}`,
+      done.mode === "existing" ? "Already had OWNA" : done.mode === "sent" ? "Invitation sent" : null,
+      done.firstDay ? `First day ${formatDay(done.firstDay)}` : null,
+      done.casual ? "Casual bookings only" : null,
+    ].filter(Boolean);
+    return bits.join(" · ");
+  };
+
   return (
     <section
       aria-labelledby="owna-handoff-heading"
@@ -120,23 +189,23 @@ export function OwnaHandoffPanel({
         <p className="text-sm font-medium text-brand">
           {handoffSummary(state, placement, status)}
         </p>
-        <p className="text-xs text-muted mt-2">
-          Staff checklist. It doesn&apos;t send the OWNA invitation or change OWNA.
-          Ticking the invitation or first-sessions step emails the family their
-          next step (you can untick that).
-        </p>
         <p className="text-sm mt-2">
-          Each check covers all children and their assigned services:{" "}
-          <strong>{query.data.scope || childrenLabel}</strong>.
+          For: <strong>{query.data.scope || childrenLabel}</strong>
+        </p>
+        <p className="text-xs text-muted mt-1">
+          Do each step in OWNA, then tick it here. This doesn&apos;t change
+          OWNA itself.
         </p>
       </div>
-      {status !== "processed" && (
+
+      {!approved && (
         <p className="rounded-lg bg-surface p-3 text-sm">
           This enrolment is still <strong>awaiting approval</strong>. You can
-          choose who owns the OWNA setup now. The checklist opens once the
+          choose the owner and add notes now. The tick boxes open once the
           enrolment is approved and the children are placed at their centre.
         </p>
       )}
+
       <div className="space-y-1">
         <label htmlFor="handoff-owner" className="block text-sm font-medium">
           Owner
@@ -157,200 +226,211 @@ export function OwnaHandoffPanel({
           ))}
         </select>
         <p className="text-xs text-muted">
-          The person setting this family up in OWNA. Owners, head office and
-          admins can be chosen; changes are logged.
+          The person setting this family up in OWNA. Ticking a step with no
+          owner makes you the owner.
         </p>
       </div>
-      {state?.note && (
-        <p className="text-sm rounded-lg bg-surface p-3 whitespace-pre-wrap break-words">
-          <strong>Next action:</strong> {state.note}
-        </p>
-      )}
+
       {stale && (
-        <p role="alert" className="text-sm font-medium">
-          The enrolment, children or booking preferences changed. Previous
-          checks are out of date. Add a reason and reset before checking again.
-        </p>
+        <div role="alert" className="rounded-lg bg-surface p-3 text-sm space-y-2">
+          <p className="font-medium">
+            The enrolment, children or centre changed since these were ticked,
+            so the checklist needs redoing.
+          </p>
+          <Button size="sm" disabled={busy} onClick={() => mutation.mutate({ action: "reset" })}>
+            Reset the checklist
+          </Button>
+        </div>
       )}
-      <ol className="space-y-3">
-        {Object.entries(HANDOFF_STEPS).map(([key, label]) => {
-          const done = state?.steps[key as HandoffStep];
+
+      <ul className="space-y-1">
+        {STEP_ORDER.map((step) => {
+          const done = !!steps[step] && !stale;
+          const blocked = done ? null : blockedBy(step);
+          const open = pending === step;
           return (
-            <li key={key} className="border-b border-border pb-3 text-sm">
-              <p className="font-medium">
-                {done && !stale ? "✓" : "○"} {label}
-              </p>
-              {done && (
-                <div className="text-xs text-muted mt-1">
-                  <p>
-                    {stale ? "Previous check: " : "Checked: "}
-                    {new Date(done.at).toLocaleString("en-AU")} by{" "}
-                    {done.by.name}
-                    {done.mode === "existing"
-                      ? " · Existing access"
-                      : done.mode === "sent"
-                        ? " · Invitation sent"
-                        : ""}
-                    {done.firstDay
-                      ? ` · First day ${new Date(`${done.firstDay}T00:00:00Z`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}`
-                      : ""}
-                  </p>
-                  <p className="whitespace-pre-wrap break-words">
-                    {done.evidence}
-                  </p>
+            <li key={step} className="rounded-lg border-b border-border py-2">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-5 w-5 accent-[var(--color-brand)]"
+                  checked={done || open}
+                  disabled={busy || !!blocked}
+                  onChange={() => toggle(step)}
+                />
+                <span className="min-w-0">
+                  <span className={`block text-sm font-medium ${done ? "text-foreground" : ""}`}>
+                    {HANDOFF_STEPS[step]}
+                  </span>
+                  {done && <span className="block text-xs text-muted">{detail(step)}</span>}
+                  {!done && blocked && approved && (
+                    <span className="block text-xs text-muted">{blocked}</span>
+                  )}
+                </span>
+              </label>
+
+              {open && step === "invitation" && (
+                <div className="ml-8 mt-2 space-y-2 rounded-lg bg-surface p-3 text-sm">
+                  <label className="flex items-center gap-2">
+                    <input type="radio" checked={mode === "sent"} onChange={() => setMode("sent")} />
+                    OWNA invitation sent
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" checked={mode === "existing"} onChange={() => setMode("existing")} />
+                    Family already has OWNA
+                  </label>
+                  <EmailFamily
+                    checked={notifyFamily}
+                    onChange={setNotifyFamily}
+                    hint={
+                      mode === "existing"
+                        ? "“You're all set in OWNA — sign in as usual.”"
+                        : "A step-by-step guide to getting into OWNA. If they haven't got in after 3 days, they get a nudge and you get an alert."
+                    }
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" disabled={busy} onClick={confirmPending}>
+                      Tick it
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setPending(null)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {open && step === "sessions" && (
+                <div className="ml-8 mt-2 space-y-2 rounded-lg bg-surface p-3 text-sm">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      checked={sessionsKind === "date"}
+                      onChange={() => setSessionsKind("date")}
+                    />
+                    First day booked
+                  </label>
+                  {sessionsKind === "date" && (
+                    <div className="ml-6 space-y-2">
+                      <input
+                        type="date"
+                        aria-label="First booked day"
+                        value={firstDay}
+                        onChange={(e) => setFirstDay(e.target.value)}
+                        className="rounded-lg border border-border bg-background p-2 text-sm"
+                      />
+                      <EmailFamily
+                        checked={notifyFamily}
+                        onChange={setNotifyFamily}
+                        hint="“You're booked in!” with the first day, times, where to find us and what to bring. The day-before reminder and first-week check-ins are timed from this date."
+                      />
+                    </div>
+                  )}
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      checked={sessionsKind === "casual"}
+                      onChange={() => setSessionsKind("casual")}
+                    />
+                    Casual bookings only
+                  </label>
+                  {sessionsKind === "casual" && (
+                    <p className="ml-6 text-xs text-muted">
+                      No first-day email. The family won&apos;t get the
+                      &ldquo;anything stopping you starting?&rdquo; check-in either.
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      disabled={busy || (sessionsKind === "date" && !firstDay)}
+                      onClick={confirmPending}
+                    >
+                      Tick it
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setPending(null)}>
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               )}
             </li>
           );
         })}
-      </ol>
+      </ul>
+
       <div className="space-y-2">
-        <label className="block text-sm" htmlFor="handoff-step">
-          Checklist step
-        </label>
-        <select
-          id="handoff-step"
-          value={step}
-          onChange={(e) => setStep(e.target.value as HandoffStep)}
-          className="w-full rounded-lg border border-border bg-background p-2 text-sm"
-        >
-          {Object.entries(HANDOFF_STEPS).map(([key, label]) => (
-            <option key={key} value={key}>
-              {label}
-            </option>
-          ))}
-        </select>
-        {step === "invitation" && (
-          <>
-            <label className="block text-sm" htmlFor="handoff-mode">
-              Access arrangement
-            </label>
-            <select
-              id="handoff-mode"
-              value={mode}
-              onChange={(e) => setMode(e.target.value as "sent" | "existing")}
-              className="w-full rounded-lg border border-border bg-background p-2 text-sm"
-            >
-              <option value="sent">OWNA invitation sent</option>
-              <option value="existing">Existing OWNA access confirmed</option>
-            </select>
-          </>
-        )}
-        {step === "sessions" && completing && (
-          <>
-            <label className="block text-sm" htmlFor="handoff-first-day">
-              First booked day
-            </label>
-            <input
-              id="handoff-first-day"
-              type="date"
-              value={firstDay}
-              onChange={(e) => setFirstDay(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background p-2 text-sm"
-            />
-            <p className="text-xs text-muted">
-              The day-before reminder and first-week check-ins are timed from this date.
-            </p>
-          </>
-        )}
-        {emailsFamily && completing && (
-          <label className="flex items-start gap-2 rounded-lg bg-surface p-3 text-sm">
-            <input
-              type="checkbox"
-              className="mt-0.5 h-4 w-4 accent-[var(--color-brand)]"
-              checked={notifyFamily}
-              onChange={(e) => setNotifyFamily(e.target.checked)}
-            />
-            <span>
-              Email the family
-              <span className="block text-xs text-muted">
-                {step === "invitation"
-                  ? mode === "existing"
-                    ? "“You're all set in OWNA — sign in as usual.”"
-                    : "A step-by-step guide to finding the invitation and getting into OWNA. If they haven't got in after 3 days, they get a friendly nudge and you get an alert."
-                  : "“You're booked in!” with the first day, times, where to find us and what to bring."}
-              </span>
-            </span>
-          </label>
-        )}
-        <label className="block text-sm" htmlFor="handoff-evidence">
-          Evidence, next action or reason
+        <label className="block text-sm font-medium" htmlFor="handoff-notes">
+          Notes
         </label>
         <textarea
-          id="handoff-evidence"
+          id="handoff-notes"
           maxLength={1000}
           rows={3}
-          value={evidence}
-          onChange={(e) => setEvidence(e.target.value)}
+          value={notesValue}
+          onChange={(e) => setNotes(e.target.value)}
           className="w-full rounded-lg border border-border bg-background p-2 text-sm"
-          placeholder="e.g. OWNA email log checked, invitation sent 10 Oct; or waiting for parent to confirm access"
+          placeholder="e.g. Invite sent 20 Oct, mum to check junk folder; waiting on second child's booking days"
         />
         <p className="text-xs text-muted">
-          Record the actual event date and source. No passwords, PINs, medical
-          details or copies of family documents. First-session evidence should
-          identify each child’s agreed start date.
+          No passwords, PINs or medical details.
         </p>
-        <div className="flex flex-wrap gap-2">
-          {stale ? (
-            <Button
-              disabled={disabled || !evidence.trim()}
-              onClick={() => act("reset")}
-            >
-              Reset for recheck
-            </Button>
-          ) : (
-            <>
-              <Button
-                disabled={
-                  disabled ||
-                  !evidence.trim() ||
-                  !state?.owner ||
-                  (step === "sessions" && completing && !firstDay)
-                }
-                onClick={() => act(state?.steps[step] ? "reopen" : "complete")}
-              >
-                {state?.steps[step] ? "Reopen check" : "Mark checked"}
-              </Button>
-              <Button
-                variant="outline"
-                disabled={busy}
-                onClick={() => act("note")}
-              >
-                Save next action
-              </Button>
-            </>
-          )}
+        <div className="flex flex-wrap items-center gap-2">
           <Button
-            variant="ghost"
-            disabled={mutation.isPending}
-            onClick={() => query.refetch()}
+            size="sm"
+            variant="outline"
+            disabled={busy || notesValue === savedNotes}
+            onClick={() => mutation.mutate({ action: "note", evidence: notesValue })}
           >
-            Reload
+            Save notes
           </Button>
+          <p role="status" className="text-sm">
+            {message}
+          </p>
         </div>
-        <p role="status" className="text-sm">
-          {message}
-        </p>
       </div>
+
       <details>
         <summary className="cursor-pointer text-sm font-medium">
-          Recent handoff activity
+          Recent activity
         </summary>
         <ul className="mt-2 space-y-2 text-xs text-muted">
-          {history.length === 0 && <li>No checks recorded yet.</li>}
+          {history.length === 0 && <li>Nothing recorded yet.</li>}
           {history.map((h) => (
             <li key={h.id} className="break-words">
               {new Date(h.createdAt).toLocaleString("en-AU")} ·{" "}
-              {h.user.name ?? "Staff member"} · {h.details.action}
-              {h.details.step ? `: ${HANDOFF_STEPS[h.details.step]}` : ""}
+              {h.user.name ?? "Staff member"}{" "}
+              {ACTION_LABELS[h.details.action] ?? h.details.action}
+              {h.details.step ? ` “${HANDOFF_STEPS[h.details.step]}”` : ""}
               {h.details.evidence ? ` — ${h.details.evidence}` : ""}
             </li>
           ))}
         </ul>
-        <p className="mt-2 text-xs text-muted">
-          Latest 30 changes shown. The full audit is retained.
-        </p>
       </details>
     </section>
+  );
+}
+
+function EmailFamily({
+  checked,
+  onChange,
+  hint,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  hint: string;
+}) {
+  return (
+    <label className="flex items-start gap-2">
+      <input
+        type="checkbox"
+        className="mt-0.5 h-4 w-4 accent-[var(--color-brand)]"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span>
+        Email the family
+        <span className="block text-xs text-muted">{hint}</span>
+      </span>
+    </label>
   );
 }
