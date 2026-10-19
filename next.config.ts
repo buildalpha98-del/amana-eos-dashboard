@@ -39,8 +39,10 @@ const securityHeaders = (opts: { metaPixel?: boolean } = {}) => [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      // connect.facebook.net: Meta Pixel loader (fbevents.js) — pixel routes only
-      `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://*.vercel-scripts.com https://*.sentry.io${opts.metaPixel ? " https://connect.facebook.net" : ""}`,
+      // connect.facebook.net: Meta Pixel loader (fbevents.js) — pixel routes only.
+      // www.facebook.com: Meta's Event Setup Tool loads signals/iwl.js from it
+      // (17 Oct 2026, requested by the ads team) — pixel routes only.
+      `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://*.vercel-scripts.com https://*.sentry.io${opts.metaPixel ? " https://connect.facebook.net https://www.facebook.com" : ""}`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       // www.facebook.com: Meta Pixel event beacons (/tr) — pixel routes only
