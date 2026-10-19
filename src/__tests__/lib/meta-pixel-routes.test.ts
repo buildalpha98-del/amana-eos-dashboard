@@ -34,6 +34,15 @@ describe("Meta pixel routes", () => {
     }
   });
 
+  it("lets Meta's Event Setup Tool script load on pixel pages only", async () => {
+    const entries = (await nextConfig.headers!()) as Entry[];
+    const csp = (src: string) =>
+      entries.filter((e) => e.source === src).flatMap((e) => e.headers).find((h) => h.key === "Content-Security-Policy")!.value;
+    const scriptSrc = (v: string) => v.split(";").find((d) => d.trim().startsWith("script-src"))!;
+    expect(scriptSrc(csp("/parent/signup"))).toContain("https://www.facebook.com");
+    expect(scriptSrc(csp("/(.*)"))).not.toContain("facebook");
+  });
+
   it("turns off Meta's automatic form/button collection", () => {
     const src = readFileSync(join(process.cwd(), "src/components/analytics/MetaPixel.tsx"), "utf8");
     const set = src.indexOf("fbq('set', 'autoConfig', false");
