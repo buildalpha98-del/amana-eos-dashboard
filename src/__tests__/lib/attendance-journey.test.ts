@@ -116,6 +116,21 @@ describe("Is anything stopping you?", () => {
     expect(m.html).toContain(`/api/public/start-check?e=e1&amp;r=owna_trouble&amp;t=${startCheckToken("e1")}`);
   });
 
+  it("skips families marked casual bookings only", async () => {
+    const casual = {
+      placement: "p",
+      owner: null,
+      note: "",
+      steps: { sessions: { at: "now", by: { id: "u", name: "J" }, evidence: "", casual: true } },
+    };
+    prismaMock.enrolmentSubmission.findMany.mockResolvedValue([
+      { id: "e1", serviceId: "svc", primaryParent: { email: "s@x.test" }, childRecords: [{ firstName: "Yusuf", firstAttendedAt: null }], ownaHandoff: { state: casual } },
+    ]);
+    prismaMock.service.findUnique.mockImplementation(async (a: { select: Record<string, boolean> }) => ("ownaSyncedAt" in a.select ? liveService : centreRow));
+    expect(await runNoShowChecks(NOW)).toEqual({ sent: 0 });
+    expect(prismaMock.enrolmentSubmission.updateMany).not.toHaveBeenCalled();
+  });
+
   it("is skipped where OWNA attendance isn't live (they might well be coming)", async () => {
     prismaMock.enrolmentSubmission.findMany.mockResolvedValue([
       { id: "e1", serviceId: "svc", primaryParent: { email: "s@x.test" }, childRecords: [{ firstName: "Yusuf", firstAttendedAt: null }] },
