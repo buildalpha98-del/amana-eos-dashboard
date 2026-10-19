@@ -7,6 +7,22 @@ export const HANDOFF_STEPS = {
   sessions: "First sessions confirmed for all children",
 } as const;
 export type HandoffStep = keyof typeof HANDOFF_STEPS;
+
+/**
+ * Who can own a handoff (Daniel, 20 Oct 2026): any active owner, head office
+ * or admin — picked from a dropdown, not only "assign to me".
+ */
+export const HANDOFF_OWNER_ROLES = ["owner", "head_office", "admin"] as const;
+
+/**
+ * Coordination only — who's on it and what's next. Allowed while the
+ * enrolment is still awaiting approval; the checklist ticks (which email
+ * the family) still wait for a processed, placed enrolment.
+ */
+export const COORDINATION_ACTIONS = ["claim", "release", "assign", "note"] as const;
+export function isCoordinationAction(action: string): boolean {
+  return (COORDINATION_ACTIONS as readonly string[]).includes(action);
+}
 const actor = z.object({ id: z.string(), name: z.string() });
 const completion = z.object({
   at: z.string(),
@@ -31,7 +47,9 @@ export type HandoffState = z.infer<typeof handoffStateSchema>;
 export const handoffPatchSchema = z
   .object({
     revision: z.number().int().min(0),
-    action: z.enum(["claim", "release", "note", "complete", "reopen", "reset"]),
+    action: z.enum(["claim", "release", "assign", "note", "complete", "reopen", "reset"]),
+    /** "assign": the user to make owner (validated server-side). */
+    ownerId: z.string().min(1).optional(),
     step: z.enum(["children", "invitation", "access", "sessions"]).optional(),
     evidence: z.string().trim().max(1000).optional(),
     mode: z.enum(["sent", "existing"]).optional(),
@@ -45,6 +63,8 @@ export const handoffPatchSchema = z
   })
   .strict()
   .superRefine((v, ctx) => {
+    if (v.action === "assign" && !v.ownerId)
+      ctx.addIssue({ code: "custom", message: "Choose who owns this handoff" });
     if (["complete", "reopen"].includes(v.action) && !v.step)
       ctx.addIssue({ code: "custom", message: "Choose a checklist step" });
     if (["complete", "reopen", "reset"].includes(v.action) && !v.evidence)
@@ -87,7 +107,7 @@ export function handoffSummary(
 ) {
   if (status !== "processed") return "OWNA: awaiting approval";
   if (!state) return "OWNA: not checked";
-  if (state.placement !== placement) return "OWNA: recheck placement";
+  if (handoffIsStale(state, placement)) return "OWNA: recheck placement";
   const done = Object.keys(state.steps).length;
   return done === 4 ? "OWNA: handoff complete" : `OWNA: ${done}/4 checked`;
 }
@@ -97,15 +117,25 @@ export function applyHandoff(
   by: { id: string; name: string },
   placement: string,
   now: string,
+  assignee?: { id: string; name: string },
 ): HandoffState {
   if (patch.action === "reset")
     return { placement, owner: state.owner, note: patch.evidence!, steps: {} };
-  if (state.placement !== placement)
-    throw new Error(
-      "Enrolment details changed. Reset and recheck this handoff first.",
-    );
   const next = structuredClone(state);
+  if (state.placement !== placement) {
+    // Nothing checked yet (e.g. an owner set before approval) — there's
+    // nothing to invalidate, so just follow the current placement.
+    if (Object.keys(state.steps).length > 0)
+      throw new Error(
+        "Enrolment details changed. Reset and recheck this handoff first.",
+      );
+    next.placement = placement;
+  }
   if (patch.action === "claim") next.owner = by;
+  if (patch.action === "assign") {
+    if (!assignee) throw new Error("Choose who owns this handoff.");
+    next.owner = assignee;
+  }
   if (patch.action === "release") next.owner = null;
   if (patch.action === "note") next.note = patch.evidence ?? "";
   if (patch.action === "reopen") {
@@ -130,4 +160,9 @@ export function applyHandoff(
     };
   }
   return next;
+}
+
+/** Checks were recorded against an older placement (nothing checked = never stale). */
+export function handoffIsStale(state: HandoffState | null, placement: string): boolean {
+  return !!state && state.placement !== placement && Object.keys(state.steps).length > 0;
 }

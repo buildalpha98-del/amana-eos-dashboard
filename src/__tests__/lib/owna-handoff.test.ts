@@ -86,7 +86,12 @@ describe("OWNA manual handoff", () => {
       childRecords: [{ id: "c", serviceId: "a", status: "active" }],
     };
     const key = placementKey(e);
-    const s = { ...state(), placement: key };
+    // Once something has been checked, a placement change invalidates it.
+    const s = {
+      ...state(),
+      placement: key,
+      steps: { children: { at: "now", by: actor, evidence: "Checked" } },
+    };
     for (const child of [
       { id: "c", serviceId: "b", status: "active" },
       { id: "c", serviceId: "a", status: "withdrawn" },
@@ -139,4 +144,15 @@ it("routine child timestamp updates do not invalidate manual checks", () => {
     ],
   };
   expect(placementKey(updated)).toBe(placementKey(e));
+});
+
+describe("owner set before approval", () => {
+  it("follows the new placement when nothing has been checked yet", async () => {
+    const { applyHandoff, handoffIsStale } = await import("@/lib/owna-handoff");
+    const before = { placement: "old", owner: { id: "u1", name: "Jayden" }, note: "", steps: {} };
+    expect(handoffIsStale(before, "new")).toBe(false);
+    const next = applyHandoff(before, { revision: 0, action: "note", evidence: "Call Tuesday" }, { id: "u1", name: "Jayden" }, "new", "2026-10-20T00:00:00Z");
+    expect(next.placement).toBe("new");
+    expect(next.owner?.name).toBe("Jayden");
+  });
 });

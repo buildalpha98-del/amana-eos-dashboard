@@ -144,6 +144,7 @@ describe("staff OWNA handoff API", () => {
       ).status,
     ).toBe(400);
   });
+  const tick = { revision: 0, action: "complete", step: "children", evidence: "Checked in OWNA" };
   it.each(["submitted", "archived"])(
     "does not record checks for %s",
     async (status) => {
@@ -151,18 +152,38 @@ describe("staff OWNA handoff API", () => {
         ...row(),
         status,
       });
-      expect(
-        (await PATCH(request({ revision: 0, action: "claim" }), ctx)).status,
-      ).toBe(400);
+      expect((await PATCH(request(tick), ctx)).status).toBe(400);
     },
   );
-  it("rejects withdrawn children", async () => {
+  it("rejects checks on withdrawn children", async () => {
     prismaMock.enrolmentSubmission.findUnique.mockResolvedValue({
       ...row(),
       childRecords: [{ id: "c", serviceId: "s1", status: "withdrawn" }],
     });
-    expect(
-      (await PATCH(request({ revision: 0, action: "claim" }), ctx)).status,
-    ).toBe(400);
+    expect((await PATCH(request(tick), ctx)).status).toBe(400);
+  });
+  it("lets an owner be set while the enrolment is awaiting approval", async () => {
+    prismaMock.enrolmentSubmission.findUnique.mockResolvedValue({
+      ...row(),
+      status: "submitted",
+      childRecords: [],
+    });
+    expect((await PATCH(request({ revision: 0, action: "claim" }), ctx)).status).toBe(200);
+  });
+  it("assigns a chosen owner, head office or admin — and no one else", async () => {
+    prismaMock.user.findFirst.mockResolvedValueOnce({ id: "u9", name: "Mirna" });
+    const ok = await PATCH(request({ revision: 0, action: "assign", ownerId: "u9" }), ctx);
+    expect(ok.status).toBe(200);
+    expect((await ok.json()).state.owner).toEqual({ id: "u9", name: "Mirna" });
+    const where = prismaMock.user.findFirst.mock.calls[0][0].where;
+    expect(where).toMatchObject({ id: "u9", active: true, isCentreAccount: false, role: { in: ["owner", "head_office", "admin"] } });
+
+    prismaMock.user.findFirst.mockResolvedValueOnce(null);
+    expect((await PATCH(request({ revision: 0, action: "assign", ownerId: "educator" }), ctx)).status).toBe(400);
+  });
+  it("lists who can be assigned", async () => {
+    prismaMock.user.findMany.mockResolvedValue([{ id: "u9", name: "Mirna", role: "head_office" }]);
+    const res = await GET(createRequest("GET", "/api/enrolments/e1/owna-handoff"), ctx);
+    expect((await res.json()).assignees).toEqual([{ id: "u9", name: "Mirna", role: "head_office" }]);
   });
 });
