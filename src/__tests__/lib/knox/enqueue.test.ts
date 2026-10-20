@@ -90,6 +90,9 @@ describe("enqueueTriage", () => {
     const id = await enqueueTriage(prismaMock as never, input);
 
     expect(id).toBeNull();
-    expect(logger.error).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith(
+      "Knox: failed to enqueue triage job",
+      expect.objectContaining({ subjectId: "inc-1" }),
+    );
   });
 });

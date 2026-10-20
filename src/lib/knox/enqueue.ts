@@ -17,6 +17,11 @@ export interface EnqueueTriageInput {
  * block a new one, so edits made mid-run are re-triaged). Never throws: an
  * incident save must succeed even when Knox is down. Returns the job id, or
  * null on any error (logged).
+ *
+ * Contract: call this AFTER the write's transaction commits, with the
+ * top-level client. Passing a TransactionClient is unsafe: a Postgres error
+ * inside findFirst/create aborts that transaction, so the caller's save fails
+ * even though this function swallows the error and returns null.
  */
 export async function enqueueTriage(
   db: Db,
