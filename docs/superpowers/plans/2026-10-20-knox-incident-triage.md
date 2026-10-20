@@ -511,7 +511,7 @@ Severity rank for the ratchet: `minor < moderate < serious < reportable` (string
 
 ```ts
 it("set_severity only when model says understated AND suggested > stated; never lower", …)
-it("mark_reportable when tier serious, not yet reportable, and model gives a valid category; payload { reportableToAuthority: true, seriousIncidentCategory, becameAwareAt: now ISO }", …)
+it("mark_reportable when tier serious, not yet reportable, and model gives a valid category; payload { reportableToAuthority: true, seriousIncidentCategory, becameAwareAt: (existing becameAwareAt ?? now) ISO }", …)
 it("no mark_reportable without a category", …)
 it("mark_notifiable for a complaint_sensitive hit or an understated opinion, when !notifiable; payload { notifiable: true, notifiableReason: suggestedCategory ? 'serious_incident' : 'law_contravention', becameAwareAt: existing ?? now }", …)
 it("create_followup_todos with model todos; staff_incident gets ONLY this kind", …)
