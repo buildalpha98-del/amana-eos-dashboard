@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isSelfScopedRole } from "@/lib/role-permissions";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -21,7 +22,7 @@ export const GET = withApiAuth(async (req, session) => {
   const pending = searchParams.get("pending"); // "true" to get only unsubmitted
   const aggregate = searchParams.get("aggregate"); // "true" for summary stats
 
-  const isStaff = session.user.role === "staff";
+  const isStaff = isSelfScopedRole(session.user.role);
 
   const where: Record<string, unknown> = {};
   if (isStaff) {
@@ -99,7 +100,7 @@ export const POST = withApiAuth(async (req, session) => {
     return NextResponse.json({ error: "Survey not found" }, { status: 404 });
   }
 
-  if (session.user.role === "staff" && survey.userId !== session.user.id) {
+  if (isSelfScopedRole(session.user.role) && survey.userId !== session.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

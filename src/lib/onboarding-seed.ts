@@ -91,9 +91,12 @@ export async function seedOnboardingPackage(
     // upload your WWCC" todos. Checked HERE, not at the five call sites.
     const target = await prisma.user.findUnique({
       where: { id: newUserId },
-      select: { isCentreAccount: true },
+      select: { isCentreAccount: true, role: true },
     });
     if (target?.isCentreAccount) return;
+    // Volunteers get no onboarding to-dos or welcome post (20 Oct 2026) —
+    // their compliance page says what's needed.
+    if (target?.role === "volunteer") return;
 
     const ownerId = await getOwnerUserId();
     // 2026-05-16: pull the admin-editable welcome announcement seed from

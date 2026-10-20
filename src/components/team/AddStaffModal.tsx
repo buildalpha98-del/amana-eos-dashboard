@@ -39,6 +39,7 @@ interface AddStaffModalProps {
 // are created elsewhere); head_office only when the viewer is an owner.
 const BASE_ROLES: Role[] = [
   "staff",
+  "volunteer",
   "member",
   "marketing",
   "admin",
@@ -46,7 +47,7 @@ const BASE_ROLES: Role[] = [
   "eos_implementer",
 ];
 
-const CENTRE_ROLES: Role[] = ["staff", "member"];
+const CENTRE_ROLES: Role[] = ["staff", "member", "volunteer"];
 
 export function AddStaffModal({
   open,

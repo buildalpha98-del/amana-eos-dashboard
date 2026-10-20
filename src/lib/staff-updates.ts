@@ -79,6 +79,9 @@ export async function staffRecipients(): Promise<StaffRecipient[]> {
 
 /** Does this person fall inside the update's audience? Empty lists mean "everyone". */
 export function inAudience(person: StaffRecipient, a: Audience): boolean {
+  // Volunteers only get a staff email when it's addressed to volunteers
+  // explicitly — "everyone" doesn't include them (Daniel, 20 Oct 2026).
+  if (person.role === "volunteer" && !a.audienceRoles.includes("volunteer")) return false;
   if (a.audienceRoles.length && !a.audienceRoles.includes(person.role)) return false;
   if (a.audienceServiceIds.length && !person.serviceIds.some((s) => a.audienceServiceIds.includes(s))) return false;
   return true;

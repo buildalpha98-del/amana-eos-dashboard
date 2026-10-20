@@ -4,7 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
-import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { ADMIN_ROLES, isSelfScopedRole } from "@/lib/role-permissions";
 const createCourseSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -47,7 +47,7 @@ const { searchParams } = new URL(req.url);
   }
 
   // Staff see published courses for their service + company-wide
-  if (session!.user.role === "staff") {
+  if (isSelfScopedRole(session!.user.role)) {
     where.status = "published";
     if (session!.user.serviceId) {
       where.OR = [

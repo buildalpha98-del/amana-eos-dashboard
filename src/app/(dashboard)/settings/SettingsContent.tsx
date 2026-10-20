@@ -137,7 +137,7 @@ function InviteUserModal({
     },
   });
 
-  const needsService = role === "staff" || role === "member";
+  const needsService = role === "staff" || role === "member" || role === "volunteer";
   // 2026-07-13: State picker now shown for both Admin and State Manager
   // (head_office). Owner + other roles skip the picker — no region concept
   // for them. Both default to "All states" so the leadership tiers see
@@ -259,11 +259,12 @@ function InviteUserModal({
             </label>
             <select
               value={role}
-              onChange={(e) => { setRole(e.target.value as Role); if (e.target.value !== "staff" && e.target.value !== "member") setServiceId(""); if (e.target.value !== "admin") setState(""); }}
+              onChange={(e) => { setRole(e.target.value as Role); if (e.target.value !== "staff" && e.target.value !== "member" && e.target.value !== "volunteer") setServiceId(""); if (e.target.value !== "admin") setState(""); }}
               className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="staff">{roleLabels.staff}</option>
               <option value="member">{roleLabels.member}</option>
+              <option value="volunteer">{roleLabels.volunteer}</option>
               <option value="marketing">{roleLabels.marketing}</option>
               <option value="admin">{roleLabels.admin}</option>
               <option value="eos">{roleLabels.eos}</option>

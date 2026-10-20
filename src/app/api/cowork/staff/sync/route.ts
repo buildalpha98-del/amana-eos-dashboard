@@ -128,6 +128,8 @@ export const POST = withApiHandler(async (req) => {
         const privileged =
           existing.role === "owner" ||
           existing.role === "head_office" ||
+          // Volunteers aren't on the HR/payroll registry — never re-role them.
+          existing.role === "volunteer" ||
           existing.isCentreAccount;
         const newRole = entry.role && !privileged ? role : existing.role;
 
@@ -180,7 +182,9 @@ export const POST = withApiHandler(async (req) => {
         where: {
           email: { notIn: Array.from(syncedEmails) },
           active: true,
-          role: { notIn: ["owner", "head_office"] },
+          // Volunteers aren't on the HR registry (20 Oct 2026) — missing
+          // from it is expected, not a reason to deactivate them.
+          role: { notIn: ["owner", "head_office", "volunteer"] },
           // Centre mailboxes are never on the HR registry — deactivating
           // them for that would lock a whole centre out.
           isCentreAccount: false,

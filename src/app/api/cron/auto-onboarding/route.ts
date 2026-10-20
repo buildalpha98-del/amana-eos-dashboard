@@ -37,6 +37,9 @@ export const GET = withApiHandler(async (req) => {
       where: {
         active: true,
         onboardings: { none: {} },
+        // Staff onboarding packs are employment paperwork — not for
+        // volunteers (20 Oct 2026). Required training still applies below.
+        role: { not: "volunteer" },
       },
       select: { id: true, name: true, serviceId: true },
     });

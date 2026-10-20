@@ -30,7 +30,7 @@ const createUserSchema = z.object({
   // admin's password is breach-checked as before.
   password: passwordSchema.optional(),
   role: z
-    .enum(["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer", "eos"])
+    .enum(["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer", "volunteer", "eos"])
     .default("member"),
   serviceId: z.string().optional().nullable(),
   state: z.string().optional().nullable(),
@@ -147,7 +147,9 @@ export const POST = withApiAuth(async (req, session) => {
   const centre = byCentre ? null : await findCentreForEmail(prisma, email);
 
   // Validate: staff and member roles require a serviceId
-  if ((role === "staff" || role === "member") && !serviceId && !centre) {
+  // 2026-10-20: volunteers belong to a centre too (and an unscoped
+  // non-admin would read org-wide via getServiceScope).
+  if ((role === "staff" || role === "member" || role === "volunteer") && !serviceId && !centre) {
     return NextResponse.json(
       { error: "Staff and member users must be assigned to a service/centre" },
       { status: 400 }
@@ -183,7 +185,7 @@ export const POST = withApiAuth(async (req, session) => {
       passwordHash,
       mustChangePassword: true,
       role,
-      serviceId: (role === "staff" || role === "member") ? (serviceId || null) : null,
+      serviceId: (role === "staff" || role === "member" || role === "volunteer") ? (serviceId || null) : null,
       // 2026-07-13: state is a region hint for both admin (state-scoped
       // per getStateScope) and head_office (State Manager tier). Null =
       // "all states / all regions" — no region restriction. Other roles

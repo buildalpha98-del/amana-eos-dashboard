@@ -1,6 +1,6 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
-import { canAccessPage, parseRole } from "@/lib/role-permissions";
+import { canAccessPage, getLandingPage, parseRole } from "@/lib/role-permissions";
 import { isInductionLocked, isInductionAllowedPath } from "@/lib/induction-lock";
 
 // Public API routes that bypass auth middleware (they handle their own auth or are intentionally public)
@@ -75,6 +75,14 @@ export default withAuth(
       // On an induction-allowed path — let it through WITHOUT the role-page
       // check below. The player (/learn) and other induction surfaces must be
       // reachable for a locked new starter regardless of their role's page list.
+      // Except volunteers (20 Oct 2026): the allowed list includes /my-pay,
+      // /my-leave… which they never get. Everything they need is in their list.
+      const lockedRole = parseRole(token?.role);
+      if (lockedRole === "volunteer" && !canAccessPage(lockedRole, pathname)) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/my-training";
+        return NextResponse.redirect(url);
+      }
       return NextResponse.next();
     }
 
@@ -84,9 +92,10 @@ export default withAuth(
       const overrides =
         override !== undefined ? { [role]: override } : undefined;
       if (!canAccessPage(role, pathname, overrides)) {
-        // Redirect to dashboard if user doesn't have access
+        // Redirect to dashboard if user doesn't have access — volunteers
+        // have no dashboard, so they go to their own landing page.
         const url = req.nextUrl.clone();
-        url.pathname = "/dashboard";
+        url.pathname = role === "volunteer" ? getLandingPage(role) : "/dashboard";
         return NextResponse.redirect(url);
       }
     }
