@@ -209,6 +209,25 @@ describe("acquireCronLock", () => {
     expect(guard.acquired).toBe(true);
     expect(prismaMock.cronRun.delete).toHaveBeenCalled();
   });
+
+  it("5min period floors the minute to a multiple of five", async () => {
+    vi.setSystemTime(new Date("2026-10-20T03:17:30Z"));
+    prismaMock.cronRun.findUnique.mockResolvedValue(null);
+    prismaMock.cronRun.create.mockResolvedValue({
+      id: "run-5min",
+      cronName: "knox-tick",
+      period: "2026-10-20T03:15",
+      status: "running",
+    });
+
+    await acquireCronLock("knox-tick", "5min");
+
+    expect(prismaMock.cronRun.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { cronName_period: { cronName: "knox-tick", period: "2026-10-20T03:15" } },
+      }),
+    );
+  });
 });
 
 // ── verifyCronSecret ──────────────────────────────────────
