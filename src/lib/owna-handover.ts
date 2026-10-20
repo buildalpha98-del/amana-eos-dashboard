@@ -61,6 +61,72 @@ export async function handoverData(enrolmentId: string, firstDay?: string): Prom
 const PROVEN_PROCESS_PATH = "/Amana_PP.png";
 const BASE = () => process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
 
+/**
+ * The Amana Proven Process (public/Amana_PP.png), written out for staff so
+ * the email says what to DO with this child, not just "see attached"
+ * (Daniel, 20 Oct 2026). Stages 1–2 are already done by the time a first
+ * day is confirmed; 3–7 are the centre's.
+ */
+export const PROVEN_PROCESS_STAGES: { n: number; name: string; done?: boolean; points: (child: string) => string[] }[] = [
+  { n: 1, name: "Enrol", done: true, points: () => ["Enrolment form completed, booking confirmed, record created"] },
+  { n: 2, name: "Inform — welcome email", done: true, points: () => ["Welcome email sent: drop-off & pick-up, what to pack, who they'll meet"] },
+  {
+    n: 3,
+    name: "First Day Guarantee — our promise",
+    points: () => ["Kids love it or it's free", "No lock-in bookings", "Guaranteed for every child at Amana"],
+  },
+  {
+    n: 4,
+    name: "Welcome — personal connection",
+    points: (c) => [`Personally collect ${c}`, `Hi-five and greet ${c} by name`, `Introduce ${c} to another child`],
+  },
+  {
+    n: 5,
+    name: "Reassurance — parent peace of mind",
+    points: (c) => [`Give ${c} their Amana bag tag`, "Complete the All About Me sheet", "Send a photo direct to the parent by SMS"],
+  },
+  {
+    n: 6,
+    name: "Comfort — at pick-up",
+    points: (c) => ["Hand over the Family Welcome Pack", `Tell the parent how ${c}'s day was`, "WhatsApp community invite + hi-five farewell"],
+  },
+  {
+    n: 7,
+    name: "Nurture — feedback loop",
+    points: () => ["Automated SMS the morning after", "Check in and follow up", "Review and action all feedback"],
+  },
+];
+
+function provenProcessHtml(child: string): string {
+  const GREEN = "#004E64";
+  const JONQUIL = "#FECE00";
+  const rows = PROVEN_PROCESS_STAGES.map((s) => {
+    const badge = s.done
+      ? `<div style="width:28px;height:28px;border-radius:50%;background-color:#e5e7eb;color:#6b7280;font-size:13px;font-weight:700;line-height:28px;text-align:center;">&#10003;</div>`
+      : `<div style="width:28px;height:28px;border-radius:50%;background-color:${s.n % 2 ? GREEN : JONQUIL};color:${s.n % 2 ? "#ffffff" : GREEN};font-size:14px;font-weight:700;line-height:28px;text-align:center;">${s.n}</div>`;
+    const points = s
+      .points(escapeHtml(child))
+      .map((t) => `<p style="margin:0 0 3px;color:${s.done ? "#6b7280" : "#1a1a2e"};font-size:14px;line-height:1.5;">&#8226; ${t}</p>`)
+      .join("");
+    return `<tr>
+      <td width="40" valign="top" style="padding:0 0 14px;">${badge}</td>
+      <td valign="top" style="padding:3px 0 14px;">
+        <p style="margin:0 0 4px;color:${s.done ? "#6b7280" : GREEN};font-size:15px;font-weight:700;">${escapeHtml(s.name)}${s.done ? " <span style=\"font-weight:400;\">(done)</span>" : ""}</p>
+        ${points}
+      </td>
+    </tr>`;
+  }).join("");
+  return `
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 20px;background-color:#FFFAE6;border-radius:14px;">
+    <tr><td style="padding:20px;">
+      <p style="margin:0 0 4px;color:${GREEN};font-size:17px;font-weight:700;">The Amana Proven Process</p>
+      <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.6;">Our 7-stage journey, from the moment a family enrols to a lifelong relationship built on trust, warmth and consistency. Here's what to do with ${escapeHtml(child)}:</p>
+      <table width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+      <p style="margin:4px 0 0;color:#374151;font-size:14px;line-height:1.6;"><strong style="color:${GREEN};">Then ongoing care:</strong> daily updates, the WhatsApp community, family community and the feedback loop.</p>
+    </td></tr>
+  </table>`;
+}
+
 /** The centre's "booked in" message — shared by the real alert and test sends. */
 export function firstDayCentreMessage(x: { kids: string; firstDay: string; family: string }) {
   const day = formatFirstDay(x.firstDay);
@@ -73,8 +139,9 @@ export function firstDayCentreMessage(x: { kids: string; firstDay: string; famil
       lines: [
         `Just letting you know <strong>${kids}</strong> has been booked in, and their first day is <strong>${escapeHtml(day)}</strong>.`,
         ...(x.family ? [`Family: ${escapeHtml(x.family)}.`] : []),
-        `Please make sure you follow the <strong>Amana Proven Process</strong> with ${kids}. Just in case you don't have it handy, it's attached to this email (and always in the Handbook under Proven Process).`,
+        `Please make sure you follow the <strong>Amana Proven Process</strong> with ${kids}. Here it is, step by step — it's also attached, and always in the Handbook under Proven Process.`,
       ],
+      html: provenProcessHtml(x.kids),
       button: "Open the enrolment",
       attachments: [{ filename: "Amana Proven Process.png", path: `${BASE()}${PROVEN_PROCESS_PATH}` }],
     },
