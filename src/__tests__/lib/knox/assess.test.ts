@@ -121,6 +121,23 @@ describe("redactForModel", () => {
     expect(text).not.toMatch(/Haddad|Nadia|Bloggs|Cathy/);
   });
 
+  it("drops `Reported by:` and `Witnesses:` lines the cowork route folds into free text", () => {
+    const s = incident({
+      description: "Reported by: Mariam Yousef\nChild tripped on the step.",
+      actionTaken: "Ice pack applied\nWitnesses: Sarah Lee, Tom O'Neill\nFollow-up notes: call home",
+    });
+    const r = redactForModel(s);
+    expect(r.description).toBe("Child tripped on the step.");
+    expect(r.actionTaken).toBe("Ice pack applied\nFollow-up notes: call home");
+    expect(JSON.stringify(r)).not.toMatch(/Mariam|Yousef|Sarah|Lee|O'Neill/);
+  });
+
+  it("a field that was only a name label becomes null; ordinary prose mentioning witnesses stays", () => {
+    const r = redactForModel(incident({ description: "  witness: Bob Smith ", circumstances: "No witnesses were present." }));
+    expect(r.description).toBeNull();
+    expect(r.circumstances).toBe("No witnesses were present.");
+  });
+
   it("keeps the facts the model needs to judge severity", () => {
     const s = incident({
       ambulanceCalled: true,

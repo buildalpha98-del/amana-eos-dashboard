@@ -65,9 +65,25 @@ function nameTokens(name: string | null | undefined): string[] {
 }
 
 /**
+ * Lines that are nothing but a name label. The cowork incident route folds
+ * `Witnesses: …` into `actionTaken` and prefixes `Reported by: <name>` to the
+ * description; neither name is in any field the known-name scrub knows about,
+ * so those lines are dropped whole.
+ */
+const NAME_LABEL_LINE = /^[ \t]*(?:Reported by|Witness(?:es)?)[ \t]*:.*$/gim;
+
+function stripNameLabelLines(text: string): string {
+  return text
+    .replace(NAME_LABEL_LINE, "")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
+}
+
+/**
  * Build a scrubber for the free-text fields (description, summary, …) which
  * staff routinely write the surname into. `terms` are the known identifying
- * strings for this record; matches become "[name]".
+ * strings for this record; matches become "[name]". `Reported by:` /
+ * `Witnesses:` lines are removed first (`stripNameLabelLines`).
  */
 function makeScrubber(terms: Array<string | null | undefined>): (text: string | null | undefined) => string | null {
   const parts = Array.from(
@@ -78,7 +94,9 @@ function makeScrubber(terms: Array<string | null | undefined>): (text: string | 
   const re = parts.length ? new RegExp(`(?<![\\w@.])(?:${parts.join("|")})(?![\\w@])`, "gi") : null;
   return (text) => {
     if (!text) return null;
-    return re ? text.replace(re, "[name]") : text;
+    const stripped = stripNameLabelLines(text);
+    if (!stripped) return null;
+    return re ? stripped.replace(re, "[name]") : stripped;
   };
 }
 
