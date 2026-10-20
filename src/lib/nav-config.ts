@@ -52,8 +52,7 @@ import {
   Network,
   Brain,
   Palette,
-  Bell,
-} from "lucide-react";
+  Bell, Link2 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
 import { EOS_ROLES } from "@/lib/role-enum";
@@ -343,6 +342,7 @@ export const navItems: NavItem[] = [
   // gives users a clear mental model of "where do I change config?"
   // and shrinks Admin closer to a support/tools drawer.
   { href: "/settings", label: "Settings", icon: Settings, section: "Settings" , core: true },
+  { href: "/settings/owna", label: "OWNA Integration", icon: Link2, section: "Settings", tooltip: "Link each centre to OWNA so children, attendance, enquiries and incidents sync", roles: ["owner", "admin"] },
   { href: "/settings/payroll", label: "Payroll Integration", icon: Receipt, section: "Settings", tooltip: "Employment Hero connection and employee sync", roles: ["owner", "head_office"] },
   { href: "/settings/organisation", label: "Org Settings", icon: Settings, section: "Settings", tooltip: "Runtime configuration — email sender, ratios, health score weights", roles: ["admin"] },
   { href: "/settings/permissions", label: "Role Permissions", icon: Shield, section: "Settings", tooltip: "Page-by-page access matrix — owner-only edit", roles: ["owner", "admin"] },

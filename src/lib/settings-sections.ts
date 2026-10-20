@@ -136,6 +136,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         label: "OWNA",
         description: "Childcare system sync — children, attendance, enquiries.",
         roles: ["owner", "admin"],
+        href: "/settings/owna",
         keywords: ["childcare", "sync", "attendance", "ccs", "enrolment"],
       },
       {

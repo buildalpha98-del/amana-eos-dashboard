@@ -28,6 +28,21 @@ export const PUT = withApiAuth(async (req, session) => {
 
   const { serviceId, ownaServiceId, ownaLocationId } = parsed.data;
 
+  // One OWNA centre ↔ one Amana centre — a double link would sync the same
+  // children and attendance into two centres (21 Oct 2026).
+  if (ownaServiceId) {
+    const taken = await prisma.service.findFirst({
+      where: { ownaServiceId, id: { not: serviceId } },
+      select: { name: true },
+    });
+    if (taken) {
+      return NextResponse.json(
+        { error: `That OWNA centre is already linked to ${taken.name}.` },
+        { status: 409 },
+      );
+    }
+  }
+
   const service = await prisma.service.update({
     where: { id: serviceId },
     data: {
