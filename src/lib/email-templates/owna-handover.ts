@@ -10,6 +10,7 @@
  * Same look and centre details as the welcome email. Wording editable at
  * Settings → Email Templates (keys parent.owna*, parent.firstDayConfirmed).
  */
+import { DEFAULT_FIRST_DAY_EXPECT } from "@/lib/centre-welcome-defaults";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 import { escapeHtml, parentEmailLayout } from "./base";
 import {
@@ -75,6 +76,8 @@ function baseVars(d: HandoverEmailData) {
     firstName: escapeHtml(d.parentFirstName || "there"),
     childNames: escapeHtml(child),
     childNamesPlain: child,
+    /** "is" for one child, "are" for siblings — "Aysha and Yarah are booked in". */
+    isAre: d.childNames.filter(Boolean).length > 1 ? "are" : "is",
     centreName: escapeHtml(d.centreName),
     parentEmail: escapeHtml(d.parentEmail),
     helpLine: helpLine(d),
@@ -159,7 +162,7 @@ export async function firstDayConfirmedEmail(d: HandoverEmailData) {
     defaultBody: `
 <h1 style="margin:0 0 12px;color:${GREEN};font-size:24px;font-weight:700;line-height:1.25;">See you soon, {{childNames}}!</h1>
 <p style="margin:0 0 8px;color:${BODY};font-size:15px;line-height:1.7;">
-  Assalamu alaikum {{firstName}}! It's official — {{childNames}} is booked in at <strong>{{centreName}}</strong>.
+  Assalamu alaikum {{firstName}}! It's official — {{childNames}} {{isAre}} booked in at <strong>{{centreName}}</strong>.
 </p>
 {{dateCard}}
 {{coordinatorCard}}
@@ -174,9 +177,12 @@ ${signOff}`,
       firstDayPlain: day,
       dateCard,
       coordinatorCard: coordinatorCard({ ...d, program: [], welcomeNote: null, verifyLink: null }),
-      firstSessionBlock: firstSessionBlock({ ...d, program: [], welcomeNote: null, verifyLink: null }),
+      firstSessionBlock: firstSessionBlock(
+        { ...d, program: [], welcomeNote: null, verifyLink: null },
+        { title: "What to expect", defaultTips: DEFAULT_FIRST_DAY_EXPECT },
+      ),
     },
-    wrap: (b) => parentEmailLayout(b, { transactional: true, preheader: `${day} — times, where to find us, and what to bring.` }),
+    wrap: (b) => parentEmailLayout(b, { transactional: true, preheader: `${day} — session times, where to find us and what to expect.` }),
   }).then((r) => ({ ...r, subject: plain(r.subject) }));
 }
 
