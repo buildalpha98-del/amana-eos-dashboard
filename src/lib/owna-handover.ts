@@ -5,6 +5,11 @@
  *   invitation ✓ (existing) → "You're all set in OWNA"
  *   sessions ✓ + first day  → "You're booked in! First day is …", and the
  *                              first-session emails are re-timed to that day
+ *   sessions ✓ casual only  → "You're ready to book" (how to book casually),
+ *                              welcome pack attached (20 Oct 2026)
+ *   sessions ✓ + first day  → ALSO the centre: "Booked in — first day is …"
+ *                              with the Amana Proven Process attached, whether
+ *                              or not the family is emailed (20 Oct 2026)
  *   invitation sent 3+ days, access not ticked → family nudge + centre alert
  *                              (cron owna-handover-nudge, once per invitation)
  *
@@ -18,8 +23,11 @@ import { centreWelcomeData } from "@/lib/enrolment-welcome";
 import { syncParentJourney } from "@/lib/parent-journey";
 import { alertCentreTeam, childNamesFrom } from "@/lib/centre-team-alerts";
 import { OWNA_CHECKLIST_START, readHandoff, type HandoffStep } from "@/lib/owna-handoff";
+import { escapeHtml } from "@/lib/email-templates/base";
 import {
+  casualBookingsEmail,
   firstDayConfirmedEmail,
+  formatFirstDay,
   ownaExistingEmail,
   ownaInvitationEmail,
   ownaNudgeEmail,
@@ -49,11 +57,60 @@ export async function handoverData(enrolmentId: string, firstDay?: string): Prom
   };
 }
 
+/** The Amana Proven Process one-pager (public/Amana_PP.png). */
+const PROVEN_PROCESS_PATH = "/Amana_PP.png";
+const BASE = () => process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
+
+/**
+ * Daniel, 20 Oct 2026: when a first day is confirmed, tell the centre — the
+ * child is booked in, this is their first day — and send the Proven Process
+ * so staff follow it with this child. Centre mailbox by email, centre team
+ * in-app. Swallow-and-log (alertCentreTeam).
+ */
+export async function alertCentreFirstDay(enrolmentId: string, firstDay: string): Promise<void> {
+  try {
+    const sub = await prisma.enrolmentSubmission.findUnique({
+      where: { id: enrolmentId },
+      select: { serviceId: true, children: true, primaryParent: true, childRecords: { select: { firstName: true } } },
+    });
+    if (!sub?.serviceId) return;
+    const names = sub.childRecords.map((c) => c.firstName).filter(Boolean);
+    const kids = names.length
+      ? names.length === 1
+        ? names[0]
+        : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`
+      : childNamesFrom(sub.children);
+    const day = formatFirstDay(firstDay);
+    const p = (sub.primaryParent ?? {}) as { firstName?: string; surname?: string; mobile?: string };
+    const parent = [p.firstName, p.surname].map((s) => s?.trim()).filter(Boolean).join(" ");
+    const family = [parent, p.mobile?.trim()].filter(Boolean).join(", ");
+    await alertCentreTeam({
+      serviceId: sub.serviceId,
+      type: "enrolment_first_day",
+      title: `Booked in: ${kids} starts ${day}`,
+      body: `First day confirmed. Please follow the Amana Proven Process with ${kids}.`,
+      link: `/enrolments?id=${enrolmentId}`,
+      email: {
+        subject: `Booked in: ${kids}'s first day is ${day}`,
+        lines: [
+          `Just letting you know <strong>${escapeHtml(kids)}</strong> has been booked in, and their first day is <strong>${escapeHtml(day)}</strong>.`,
+          ...(family ? [`Family: ${escapeHtml(family)}.`] : []),
+          `Please follow the <strong>Amana Proven Process</strong> with ${escapeHtml(kids)}. It's attached, and always in the Handbook under Proven Process.`,
+        ],
+        button: "Open the enrolment",
+        attachments: [{ filename: "Amana Proven Process.png", path: `${BASE()}${PROVEN_PROCESS_PATH}` }],
+      },
+    });
+  } catch (err) {
+    logger.error("First-day centre alert failed", { enrolmentId, err });
+  }
+}
+
 /** Called after a checklist step is saved as complete. */
 export async function onHandoffStepCompleted(
   enrolmentId: string,
   step: HandoffStep,
-  completion: { at: string; mode?: "sent" | "existing"; firstDay?: string },
+  completion: { at: string; mode?: "sent" | "existing"; firstDay?: string; casual?: boolean },
 ): Promise<void> {
   try {
     if (step !== "invitation" && step !== "sessions") return;
@@ -67,19 +124,28 @@ export async function onHandoffStepCompleted(
       return;
     }
 
+    // The centre's welcome pack PDF, attached to both sessions emails —
+    // every new family gets it, first day booked or casual (20 Oct 2026).
+    const welcomePack = d.welcomePackUrl
+      ? { attachments: [{ filename: `Amana OSHC welcome pack - ${d.centreName}.pdf`, path: d.welcomePackUrl }] }
+      : {};
+
+    // Casual bookings only: no first day to confirm or re-time around.
+    if (completion.casual) {
+      const { subject, html } = await casualBookingsEmail(d);
+      await sendEmail(
+        { to: d.parentEmail, subject, html, ...welcomePack },
+        { idempotencyKey: `casual-bookings-${enrolmentId}-${completion.at}` },
+      );
+      await recordMarketingSends(prisma, [{ email: d.parentEmail }], { source: "lifecycle" });
+      return;
+    }
+
     // sessions: confirm the day, then re-time the first-session series.
     if (!completion.firstDay) return;
     const { subject, html } = await firstDayConfirmedEmail(d);
     await sendEmail(
-      {
-        to: d.parentEmail,
-        subject,
-        html,
-        // The centre's welcome pack PDF, attached (Daniel, 20 Oct 2026).
-        ...(d.welcomePackUrl
-          ? { attachments: [{ filename: `Amana OSHC welcome pack - ${d.centreName}.pdf`, path: d.welcomePackUrl }] }
-          : {}),
-      },
+      { to: d.parentEmail, subject, html, ...welcomePack },
       { idempotencyKey: `first-day-${enrolmentId}-${completion.at}` },
     );
     await recordMarketingSends(prisma, [{ email: d.parentEmail }], { source: "lifecycle" });

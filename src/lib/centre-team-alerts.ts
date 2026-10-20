@@ -55,7 +55,13 @@ export interface CentreAlert {
    */
   enrolmentsTeam?: boolean;
   /** Also email the centre's mailbox (and head office, when set). */
-  email?: { subject: string; lines: string[]; button: string };
+  email?: {
+    subject: string;
+    lines: string[];
+    button: string;
+    /** Files attached to every copy of the email (fetched by URL). */
+    attachments?: { filename: string; path: string }[];
+  };
 }
 
 export async function alertCentreTeam(alert: CentreAlert): Promise<void> {
@@ -87,7 +93,12 @@ export async function alertCentreTeam(alert: CentreAlert): Promise<void> {
       "staff",
     );
     for (const address of to) {
-      await sendEmail({ to: address, subject: alert.email.subject, html }).catch((err) =>
+      await sendEmail({
+        to: address,
+        subject: alert.email.subject,
+        html,
+        ...(alert.email.attachments?.length ? { attachments: alert.email.attachments } : {}),
+      }).catch((err) =>
         logger.warn("Centre alert email failed", { to: address, err }),
       );
     }

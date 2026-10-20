@@ -12,9 +12,12 @@ import { _clearUserActiveCache } from "@/lib/server-auth";
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn(async () => ({ limited: false, remaining: 59, resetIn: 60000 })) }));
 const tasks: (() => Promise<void>)[] = [];
 vi.mock("@/lib/run-after", () => ({ runAfter: (t: () => Promise<void>) => tasks.push(t) }));
-vi.mock("@/lib/owna-handover", () => ({ onHandoffStepCompleted: vi.fn(async () => undefined) }));
+vi.mock("@/lib/owna-handover", () => ({
+  onHandoffStepCompleted: vi.fn(async () => undefined),
+  alertCentreFirstDay: vi.fn(async () => undefined),
+}));
 
-import { onHandoffStepCompleted } from "@/lib/owna-handover";
+import { alertCentreFirstDay, onHandoffStepCompleted } from "@/lib/owna-handover";
 import { PATCH } from "@/app/api/enrolments/[id]/owna-handoff/route";
 
 const ctx = { params: Promise.resolve({ id: "e1" }) } as never;
@@ -73,6 +76,22 @@ describe("OWNA checklist → family email", () => {
     expect(await res.json()).not.toHaveProperty("legacy");
     for (const t of tasks) await t();
     expect(vi.mocked(onHandoffStepCompleted)).not.toHaveBeenCalled();
+  });
+
+  // Daniel, 20 Oct 2026: the centre hears about a confirmed first day even
+  // when the family email is unticked; casual bookings don't alert it.
+  it("a confirmed first day always tells the centre", async () => {
+    await patch({ action: "complete", step: "sessions", evidence: "Booked", firstDay: "2026-10-21", notifyFamily: false });
+    for (const t of tasks) await t();
+    expect(vi.mocked(onHandoffStepCompleted)).not.toHaveBeenCalled();
+    expect(vi.mocked(alertCentreFirstDay)).toHaveBeenCalledWith("e1", "2026-10-21");
+  });
+
+  it("casual bookings: the family is emailed, the centre isn't alerted", async () => {
+    await patch({ action: "complete", step: "sessions", evidence: "Casual", casual: true });
+    for (const t of tasks) await t();
+    expect(vi.mocked(onHandoffStepCompleted)).toHaveBeenCalledWith("e1", "sessions", expect.objectContaining({ casual: true }));
+    expect(vi.mocked(alertCentreFirstDay)).not.toHaveBeenCalled();
   });
 
   it("notes and other steps don't email", async () => {
