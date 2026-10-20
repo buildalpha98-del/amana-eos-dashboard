@@ -76,6 +76,8 @@ export interface KnoxAssessment {
   service?: { name: string };
   /** Present on `awaitingAck` and the subject slice, absent on `recent`. */
   alerts?: KnoxAlert[];
+  /** `awaitingAck` only: the record's clocks recomputed from the live record. */
+  liveClocks?: KnoxClockData[];
 }
 
 export interface KnoxPendingAction {
@@ -117,7 +119,18 @@ export interface KnoxInbox {
   recent: KnoxAssessment[];
   /** Always `[]` for non-admin roles. */
   failedJobs: KnoxFailedJob[];
-  subject?: { assessments: KnoxAssessment[]; cards: KnoxPendingAction[] };
+  subject?: KnoxSubjectSlice;
+}
+
+export interface KnoxSubjectSlice {
+  assessments: KnoxAssessment[];
+  cards: KnoxPendingAction[];
+  /**
+   * The record's clocks recomputed from the record as it stands now. Render
+   * these, not the latest assessment's stored `clocks`: a stored clock keeps
+   * counting down after the family or regulator has been told.
+   */
+  liveClocks?: KnoxClockData[];
 }
 
 /** `clocks` is Json in the schema; keep only well-formed entries. */
@@ -194,7 +207,7 @@ export function useKnoxSubject(type: KnoxSubjectType, id: string) {
     queryKey: knoxKeys.subject(type, id),
     queryFn: () =>
       fetchApi<KnoxInbox>(`/api/knox/inbox?subject=${encodeURIComponent(`${type}:${id}`)}`),
-    select: (d) => d.subject ?? { assessments: [], cards: [] },
+    select: (d): KnoxSubjectSlice => d.subject ?? { assessments: [], cards: [], liveClocks: [] },
     enabled: enabled && !!id,
     retry: 2,
     staleTime: 30_000,

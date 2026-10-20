@@ -12,6 +12,14 @@ vi.mock("@/lib/ai-provider", () => ({
   generateStructured: (...args: unknown[]) => generateStructuredMock(...args),
 }));
 
+// Live clocks are recomputed per record (src/lib/knox/live-clocks.ts); routed
+// on the subject so each test says what the record looks like NOW.
+let liveBySubject: Record<string, unknown[]> = {};
+const liveClocksMock = vi.fn(async (_db: unknown, type: string, id: string) => liveBySubject[`${type}:${id}`] ?? []);
+vi.mock("@/lib/knox/live-clocks", () => ({
+  liveClocksFor: (db: unknown, type: string, id: string) => liveClocksMock(db, type, id),
+}));
+
 import {
   collectBriefingSignals,
   composeFallback,
@@ -43,6 +51,7 @@ function emptySignals(): BriefingSignals {
 
 function resetPrisma() {
   vi.clearAllMocks();
+  liveBySubject = {};
   prismaMock.todo.findMany.mockResolvedValue([]);
   prismaMock.rock.findMany.mockResolvedValue([]);
   prismaMock.issue.findMany.mockResolvedValue([]);
@@ -234,7 +243,10 @@ describe("collectBriefingSignals — knox", () => {
   function route(opts: {
     groups?: Array<{ serviceId: string; _count: { _all: number } }>;
     recent?: unknown[];
+    /** `type:id` → the record's clocks as recomputed now. */
+    live?: Record<string, unknown[]>;
   }) {
+    liveBySubject = opts.live ?? {};
     prismaMock.triageAssessment.groupBy.mockImplementation(async () => opts.groups ?? []);
     prismaMock.triageAssessment.findMany.mockImplementation(async () => opts.recent ?? []);
     prismaMock.service.findMany.mockImplementation(
@@ -287,7 +299,18 @@ describe("collectBriefingSignals — knox", () => {
 
   it("uses only the latest assessment per subject and only live clocks in the next 24h", async () => {
     const inHours = (h: number) => new Date(NOW.getTime() + h * 3600_000).toISOString();
+    const i1Clocks = [
+      { kind: "parent_24h", dueAt: inHours(5), basis: "Reg 86", overdue: false },
+      { kind: "regulator", dueAt: inHours(-2), basis: "Reg 175", overdue: true },
+      { kind: "regulator", dueAt: inHours(30), basis: "Reg 175", overdue: false },
+    ];
+    const c2Clocks = [
+      { kind: "complaint_regulator", dueAt: inHours(2), basis: "x", overdue: false },
+      { kind: "bogus", dueAt: inHours(1), basis: "x", overdue: false },
+      { kind: "regulator", dueAt: "garbage", basis: "x", overdue: false },
+    ];
     route({
+      live: { "incident:i1": i1Clocks, "complaint:c2": c2Clocks },
       recent: [
         // latest for incident:i1 — one due soon, one overdue, one too far out
         {
@@ -342,6 +365,27 @@ describe("collectBriefingSignals — knox", () => {
     const findCall = prismaMock.triageAssessment.findMany.mock.calls[0][0];
     expect(findCall.where.createdAt).toEqual({ gte: new Date(NOW.getTime() - 7 * DAY) });
     expect(findCall.orderBy).toEqual({ createdAt: "desc" });
+    // Live recomputation only for the latest row of records that stored a clock.
+    expect(liveClocksMock.mock.calls.map((c) => `${c[1]}:${c[2]}`)).toEqual(["incident:i1", "complaint:c2"]);
+  });
+
+  it("drops a clock the record has since met (parent told) even though the stored assessment still has it", async () => {
+    const inHours = (h: number) => new Date(NOW.getTime() + h * 3600_000).toISOString();
+    route({
+      recent: [
+        {
+          subjectType: "incident",
+          subjectId: "i1",
+          createdAt: new Date(NOW.getTime() - 3600_000),
+          service: { name: "Arkana" },
+          clocks: [{ kind: "parent_24h", dueAt: inHours(5), basis: "Reg 86", overdue: false }],
+        },
+      ],
+      // Recomputed from the live record: parentNotified is now true.
+      live: { "incident:i1": [] },
+    });
+    const signals = await collectBriefingSignals({ id: "owner-1", role: "owner", serviceId: null }, NOW);
+    expect(signals.knox.clocksDueWithin24h).toEqual([]);
   });
 
   it("caps clocks at the 10 soonest", async () => {
@@ -361,6 +405,7 @@ describe("collectBriefingSignals — knox", () => {
           clocks,
         },
       ],
+      live: { "incident:i1": clocks },
     });
     const signals = await collectBriefingSignals(
       { id: "owner-1", role: "owner", serviceId: null },

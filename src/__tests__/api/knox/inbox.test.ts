@@ -158,7 +158,11 @@ describe("GET /api/knox/inbox?subject=", () => {
     prismaMock.incidentRecord.findUnique.mockResolvedValue({ serviceId: "svc-1" });
     const res = await get("?subject=incident:inc-1");
     expect(res.status).toBe(200);
-    expect((await res.json()).subject).toEqual({ assessments: expect.any(Array), cards: expect.any(Array) });
+    expect((await res.json()).subject).toEqual({
+      assessments: expect.any(Array),
+      cards: expect.any(Array),
+      liveClocks: expect.any(Array),
+    });
   });
 
   it("404 for a record outside scope when no assessment exists", async () => {
@@ -185,6 +189,69 @@ describe("GET /api/knox/inbox?subject=", () => {
     expect(subjectAssessments.include?.alerts ?? subjectAssessments.select?.alerts).toBeTruthy();
     const subjectCards = pick(argsOf(prismaMock.pendingAction.findMany), (a) => a.where.subjectType === "incident" && a.where.subjectId === "inc-1");
     expect(subjectCards.where.serviceId).toEqual({ in: ["svc-1"] });
+  });
+});
+
+describe("GET /api/knox/inbox — live clocks", () => {
+  beforeEach(() => setup());
+
+  const STORED_PARENT_CLOCK = {
+    kind: "parent_24h",
+    dueAt: "2026-10-21T00:00:00.000Z",
+    basis: "Reg 86",
+    overdue: false,
+  };
+  /** The incident as it stands now; `include` = loadSubject, `select` = the scope lookup. */
+  function liveIncident(over: Record<string, unknown>) {
+    prismaMock.incidentRecord.findUnique.mockImplementation((args: { where: { id: string }; include?: unknown }) =>
+      Promise.resolve(
+        args.where.id !== "inc-1"
+          ? null
+          : {
+              id: "inc-1",
+              serviceId: "svc-1",
+              incidentDate: new Date(Date.now() - 2 * 3600_000),
+              incidentType: "injury",
+              severity: "moderate",
+              reportableToAuthority: false,
+              seriousIncidentCategory: null,
+              ambulanceCalled: false,
+              medicalPersonnelContacted: null,
+              parentNotified: false,
+              reportedToAuthorityAt: null,
+              becameAwareAt: null,
+              createdAt: new Date(Date.now() - 2 * 3600_000),
+              deleted: false,
+              childName: "Ali Smith",
+              ...over,
+              ...(args.include ? { service: { id: "svc-1", name: "Mawson Lakes", state: "SA", managerId: null } } : {}),
+            },
+      ),
+    );
+    prismaMock.triageAssessment.findMany.mockResolvedValue([{ ...ASSESSMENT, clocks: [STORED_PARENT_CLOCK] }]);
+    prismaMock.triageAssessment.findFirst.mockResolvedValue({ serviceId: "svc-1" });
+  }
+
+  it("after parentNotified is set on the record, the subject slice returns no parent_24h clock while the stored assessment still has it", async () => {
+    liveIncident({ parentNotified: true, parentNotifiedAt: new Date() });
+    const body = await (await get("?subject=incident:inc-1")).json();
+    expect(body.subject.assessments[0].clocks).toEqual([STORED_PARENT_CLOCK]);
+    expect(body.subject.liveClocks).toEqual([]);
+    // The awaiting list carries the same live view per item.
+    expect(body.awaitingAck[0].liveClocks).toEqual([]);
+  });
+
+  it("while the family has not been told, the live parent_24h clock is returned", async () => {
+    liveIncident({ parentNotified: false });
+    const body = await (await get("?subject=incident:inc-1")).json();
+    expect(body.subject.liveClocks.map((c: { kind: string }) => c.kind)).toEqual(["parent_24h"]);
+    expect(body.awaitingAck[0].liveClocks.map((c: { kind: string }) => c.kind)).toEqual(["parent_24h"]);
+  });
+
+  it("a record that is gone has no live clocks", async () => {
+    prismaMock.triageAssessment.findMany.mockResolvedValue([{ ...ASSESSMENT, clocks: [STORED_PARENT_CLOCK] }]);
+    const body = await (await get()).json();
+    expect(body.awaitingAck[0].liveClocks).toEqual([]);
   });
 });
 

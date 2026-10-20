@@ -19,6 +19,7 @@ import { z } from "zod";
 import { generateStructured } from "@/lib/ai-provider";
 import { logger } from "@/lib/logger";
 import { clockLabel } from "@/lib/knox/format";
+import { liveClocksFor } from "@/lib/knox/live-clocks";
 import type { ClockKind } from "@/lib/knox/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -176,34 +177,40 @@ async function collectKnoxSignals(
   }
 
   // Newest-first, so the first row per subject is its current assessment.
+  // Only records whose current assessment stored a clock can have one; their
+  // clocks are then recomputed from the LIVE record, because a stored clock
+  // keeps counting down after the family or regulator has been told.
   const seen = new Set<string>();
+  const withClocks: typeof recent = [];
+  for (const row of recent) {
+    const key = `${row.subjectType}:${row.subjectId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (Array.isArray(row.clocks) && row.clocks.length > 0) withClocks.push(row);
+  }
+  const live = await Promise.all(
+    withClocks.map((row) => liveClocksFor(prisma, row.subjectType, row.subjectId, now)),
+  );
   const clocksDueWithin24h: Array<{
     serviceName: string;
     kind: ClockKind;
     dueAt: string;
     dueMs: number;
   }> = [];
-  for (const row of recent) {
-    const key = `${row.subjectType}:${row.subjectId}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    if (!Array.isArray(row.clocks)) continue;
-    for (const raw of row.clocks as unknown[]) {
-      if (!raw || typeof raw !== "object") continue;
-      const c = raw as { kind?: unknown; dueAt?: unknown; overdue?: unknown };
-      if (typeof c.kind !== "string" || !CLOCK_KINDS.has(c.kind)) continue;
-      if (typeof c.dueAt !== "string" || c.overdue === true) continue;
+  withClocks.forEach((row, i) => {
+    for (const c of live[i]) {
+      if (!CLOCK_KINDS.has(c.kind) || c.overdue) continue;
       const dueMs = new Date(c.dueAt).getTime();
       if (Number.isNaN(dueMs)) continue;
       if (dueMs < now.getTime() || dueMs > in24h.getTime()) continue;
       clocksDueWithin24h.push({
         serviceName: row.service.name,
-        kind: c.kind as ClockKind,
+        kind: c.kind,
         dueAt: c.dueAt,
         dueMs,
       });
     }
-  }
+  });
   clocksDueWithin24h.sort((a, b) => a.dueMs - b.dueMs);
 
   return {

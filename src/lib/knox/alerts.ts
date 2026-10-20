@@ -8,7 +8,8 @@ import { loadSubject } from "@/lib/knox/load-subject";
 import { buildContent, type AlertContent } from "@/lib/knox/teams-card";
 import { subjectHref } from "@/lib/knox/format";
 import { coveredByAcknowledgement } from "@/lib/knox/ack";
-import type { RulesResult, TriageClock, TriageSubject } from "@/lib/knox/types";
+import { evaluateRules } from "@/lib/knox/rules";
+import type { RulesResult, TriageSubject } from "@/lib/knox/types";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 type Level = 0 | 1 | 2;
@@ -272,10 +273,6 @@ export async function dispatchLevel(
 
 // ── Escalation sweep ─────────────────────────────────────
 
-function asClocks(value: unknown): TriageClock[] {
-  return Array.isArray(value) ? (value as TriageClock[]) : [];
-}
-
 /**
  * `subjectType:subjectId` → `createdAt` (ms) of that record's newest
  * acknowledged assessment, for the records behind `candidates`.
@@ -332,7 +329,6 @@ export async function runEscalationSweep(
       subjectType: true,
       subjectId: true,
       ruleHits: true,
-      clocks: true,
       rationale: true,
       createdAt: true,
       alerts: { select: { escalationLevel: true, sentAt: true, acknowledgedAt: true } },
@@ -369,7 +365,9 @@ export async function runEscalationSweep(
       const sent = await dispatchLevel(db, {
         assessmentId: a.id,
         subject,
-        rules: { tier: a.tier, ruleHits: a.ruleHits, clocks: asClocks(a.clocks) },
+        // Clocks recomputed from the live record: a stored clock keeps counting
+        // down after the family or regulator has been told (not a trigger field).
+        rules: { tier: a.tier, ruleHits: a.ruleHits, clocks: evaluateRules(subject, now).clocks },
         recipients,
         level: (current + 1) as Level,
         rationale: a.rationale,

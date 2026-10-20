@@ -513,6 +513,35 @@ describe("runEscalationSweep", () => {
     expect(teamsMock.mock.calls[0][0].body).toContain("Head injury with vomiting.");
   });
 
+  it("escalation cards show clocks recomputed from the LIVE record, not the stored snapshot", async () => {
+    const a = assessment("a", "serious", [{ escalationLevel: 0, sentAt: minsAgo(16) }]);
+    // Stored at level 0: parent notice outstanding.
+    a.clocks = [{ kind: "parent_24h", dueAt: minsAgo(-600).toISOString(), basis: "Reg 86", overdue: false }];
+    load(a);
+    // Since then the family has been told — not a trigger field, so no re-triage.
+    prismaMock.incidentRecord.findUnique.mockImplementation((async (args: { where: { id: string } }) => ({
+      id: args.where.id,
+      serviceId: "svc-1",
+      incidentType: "injury",
+      incidentDate: minsAgo(30),
+      parentNotified: true,
+      childName: "Ali Smith",
+      deleted: false,
+      service: svc,
+    })) as never);
+    await runEscalationSweep(prismaMock as never, NOW);
+    const facts = (teamsMock.mock.calls[0][0].facts ?? []) as Array<{ title: string }>;
+    expect(facts.map((f) => f.title)).not.toContain("Parent notice");
+
+    // And a record still waiting on the family does show it.
+    teamsMock.mockClear();
+    prismaMock.triageAlert.createMany.mockClear();
+    load(assessment("b", "serious", [{ escalationLevel: 0, sentAt: minsAgo(16) }]));
+    await runEscalationSweep(prismaMock as never, NOW);
+    const facts2 = (teamsMock.mock.calls[0][0].facts ?? []) as Array<{ title: string }>;
+    expect(facts2.map((f) => f.title)).toContain("Parent notice");
+  });
+
   it("moderate at 59 min → nothing", async () => {
     load(assessment("m", "moderate", [{ escalationLevel: 0, sentAt: minsAgo(59) }]));
     expect(await runEscalationSweep(prismaMock as never, NOW)).toEqual({ escalated: 0 });

@@ -4,6 +4,7 @@ import { getCentreScope } from "@/lib/centre-scope";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/role-permissions";
 import { withApiAuth } from "@/lib/server-auth";
+import { liveClocksFor } from "@/lib/knox/live-clocks";
 import {
   KNOX_ROLES,
   assertInScope,
@@ -51,6 +52,11 @@ async function subjectServiceId(type: TriageSubjectType, id: string): Promise<st
  *
  * Everything is scoped by the caller's centres. Out-of-scope subjects are 404
  * (subject mode) or `null` (tiersFor).
+ *
+ * Clocks: each `awaitingAck` item and the `subject` slice carry `liveClocks`,
+ * recomputed from the record as it stands now (`liveClocksFor`), alongside the
+ * snapshot stored on the assessment. Render `liveClocks`: a stored clock keeps
+ * counting down after the family or regulator has been told.
  */
 export const GET = withApiAuth(
   async (req, session) => {
@@ -139,12 +145,37 @@ export const GET = withApiAuth(
         : Promise.resolve(null),
     ]);
 
+    // One live-clock evaluation per distinct record (the subject slice's
+    // record is usually among them).
+    const subjectKey = (type: TriageSubjectType, id: string) => `${type}:${id}`;
+    const records = new Map<string, { type: TriageSubjectType; id: string }>();
+    for (const a of awaitingAck) records.set(subjectKey(a.subjectType, a.subjectId), { type: a.subjectType, id: a.subjectId });
+    if (subject) records.set(subjectKey(subject.type, subject.id), subject);
+    const live = new Map(
+      await Promise.all(
+        [...records.entries()].map(
+          async ([key, r]) => [key, await liveClocksFor(prisma, r.type, r.id, now)] as const,
+        ),
+      ),
+    );
+
     return NextResponse.json({
-      awaitingAck,
+      awaitingAck: awaitingAck.map((a) => ({
+        ...a,
+        liveClocks: live.get(subjectKey(a.subjectType, a.subjectId)) ?? [],
+      })),
       openCards,
       recent,
       failedJobs,
-      ...(subject ? { subject: { assessments: subjectAssessments ?? [], cards: subjectCards ?? [] } } : {}),
+      ...(subject
+        ? {
+            subject: {
+              assessments: subjectAssessments ?? [],
+              cards: subjectCards ?? [],
+              liveClocks: live.get(subjectKey(subject.type, subject.id)) ?? [],
+            },
+          }
+        : {}),
     });
   },
   { roles: KNOX_ROLES },

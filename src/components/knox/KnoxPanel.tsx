@@ -14,6 +14,7 @@ import {
   useCanUseKnox,
   useKnoxSubject,
   type KnoxAssessment,
+  type KnoxClockData,
   type KnoxPendingAction,
 } from "@/hooks/useKnox";
 import {
@@ -102,15 +103,17 @@ function AssessmentDetail({
   childName,
   needsAck,
   ackAt,
+  clocks,
 }: {
   assessment: KnoxAssessment;
+  /** Live clocks for the record (recomputed now), not the stored snapshot. */
+  clocks: KnoxClockData[];
   childName?: string | null;
   /** Record-level: some assessment of this record still needs acknowledging. */
   needsAck: boolean;
   /** Record-level: newest acknowledgement time, if any. */
   ackAt: string | null;
 }) {
-  const clocks = assessmentClocks(assessment);
   const rationale = rationaleText(assessment);
   return (
     <div className="space-y-3">
@@ -240,6 +243,7 @@ export function KnoxPanel({ subjectType, subjectId, childName, focusAssessmentId
         childName={childName}
         needsAck={subjectNeedsAck(assessments)}
         ackAt={subjectAcknowledgedAt(assessments)}
+        clocks={data?.liveClocks ?? assessmentClocks(latest)}
       />
 
       {openCards.length > 0 && (
