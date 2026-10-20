@@ -64,7 +64,7 @@ export function KnoxCard({ card }: { card: KnoxPendingAction }) {
             loading={approve.isPending}
             disabled={busy}
             iconLeft={<Check className="h-4 w-4" />}
-            onClick={() => approve.mutate(card.id)}
+            onClick={() => approve.mutate({ id: card.id, serviceId: card.serviceId })}
           >
             Approve
           </Button>

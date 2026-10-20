@@ -8,6 +8,7 @@ import {
   canUseKnox,
   knoxKeys,
   needsAcknowledgement,
+  showAcknowledgeButton,
   type KnoxAlert,
 } from "@/hooks/useKnox";
 import { KNOX_ROLES } from "@/app/api/knox/_lib";
@@ -74,6 +75,13 @@ describe("acknowledge visibility", () => {
     // The ack route 409s with no alert rows — never offer the button then.
     expect(needsAcknowledgement({ alerted: false, alerts: [] })).toBe(false);
     expect(needsAcknowledgement({ alerted: true, alerts: [alert(null), alert("2026-10-20T01:00:00.000Z")] })).toBe(false);
+  });
+
+  it("never shows the button on a superseded (History) assessment", () => {
+    const pending = { alerted: true, alerts: [alert(null)] };
+    expect(showAcknowledgeButton(pending, false)).toBe(true);
+    expect(showAcknowledgeButton(pending, true)).toBe(false);
+    expect(showAcknowledgeButton({ alerted: false, alerts: [] }, false)).toBe(false);
   });
 
   it("reports the earliest acknowledgement time", () => {

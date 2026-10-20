@@ -136,6 +136,17 @@ export function needsAcknowledgement(a: Pick<KnoxAssessment, "alerted" | "alerts
   return a.alerted && !(a.alerts ?? []).some((al) => al.acknowledgedAt);
 }
 
+/**
+ * The Acknowledge button: only on the LATEST assessment of a record. A stale
+ * alert on a superseded assessment is acknowledged from the latest one.
+ */
+export function showAcknowledgeButton(
+  a: Pick<KnoxAssessment, "alerted" | "alerts">,
+  superseded: boolean,
+): boolean {
+  return !superseded && needsAcknowledgement(a);
+}
+
 /** Earliest acknowledgement time across the assessment's alerts, if any. */
 export function acknowledgedAt(a: Pick<KnoxAssessment, "alerts">): string | null {
   const times = (a.alerts ?? []).map((al) => al.acknowledgedAt).filter((t): t is string => !!t);
@@ -240,15 +251,34 @@ export function useAcknowledge() {
   });
 }
 
+/**
+ * Lists that show the records an approved card changes (severity, notifiable,
+ * reportable): the incidents page (list, summary, trends), the complaints
+ * register, and the service's staff-incidents register. Prefixes only.
+ */
+export function recordListKeysAfterApprove(serviceId: string | null | undefined): string[][] {
+  return [
+    ["incidents"],
+    ["incidents-summary"],
+    ["incidents-trends"],
+    ["compliance", "complaints"],
+    // StaffIncidentsPanel keys on ["service", serviceId, "staff-incidents"];
+    // a card without a service (never expected for these subjects) falls back wide.
+    serviceId ? ["service", serviceId, "staff-incidents"] : ["service"],
+  ];
+}
+
 export function useApproveAction() {
+  const qc = useQueryClient();
   const invalidate = useInvalidateKnox();
   return useMutation({
-    mutationFn: (actionId: string) =>
-      mutateApi<{ resultId: string; jobId: string | null }>(`/api/knox/actions/${actionId}/approve`, {
+    mutationFn: ({ id }: { id: string; serviceId?: string | null }) =>
+      mutateApi<{ resultId: string; jobId: string | null }>(`/api/knox/actions/${id}/approve`, {
         method: "POST",
       }),
-    onSuccess: () => {
+    onSuccess: (_data, { serviceId }) => {
       invalidate();
+      for (const queryKey of recordListKeysAfterApprove(serviceId)) qc.invalidateQueries({ queryKey });
       toast({ description: "Approved — the change has been applied" });
     },
     onError,

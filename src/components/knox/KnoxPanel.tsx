@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import {
   acknowledgedAt,
   assessmentClocks,
-  needsAcknowledgement,
+  showAcknowledgeButton,
   useAcknowledge,
   useCanUseKnox,
   useKnoxSubject,
@@ -39,9 +39,16 @@ function rationaleText(a: KnoxAssessment): string | null {
  * and nobody has acknowledged them (the API 409s otherwise). The alert rows
  * carry no acknowledger name, so the confirmation shows the time alone.
  */
-export function KnoxAckControl({ assessment }: { assessment: KnoxAssessment }) {
+export function KnoxAckControl({
+  assessment,
+  superseded = false,
+}: {
+  assessment: KnoxAssessment;
+  /** A newer assessment exists: show the acknowledgement time, never the button. */
+  superseded?: boolean;
+}) {
   const ack = useAcknowledge();
-  if (needsAcknowledgement(assessment)) {
+  if (showAcknowledgeButton(assessment, superseded)) {
     return (
       <Button
         size="sm"
@@ -240,7 +247,7 @@ export function KnoxPanel({ subjectType, subjectId, childName, focusAssessmentId
                 </div>
                 <p className="text-sm text-foreground">{flaggedHeadline(a.ruleHits, a.tier)}</p>
                 {rationaleText(a) && <p className="text-xs text-muted">{rationaleText(a)}</p>}
-                <KnoxAckControl assessment={a} />
+                <KnoxAckControl assessment={a} superseded />
               </div>
             ))}
             {resolvedCards.length > 0 && <ul className="space-y-1">{resolvedCards.map((c) => <ResolvedCardLine key={c.id} card={c} />)}</ul>}
