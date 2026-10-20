@@ -175,6 +175,18 @@ describe("training-compliance", () => {
       });
     });
 
+    // Daniel, 21 Oct 2026: no reminder emails to volunteers.
+    it("never emails a volunteer — they stay in the report", async () => {
+      prismaMock.lMSEnrollment.findMany.mockResolvedValue([
+        enrolment({ user: { id: "v1", name: "Vol Unteer", email: "vol@x.com", role: "volunteer" } }),
+      ]);
+      prismaMock.user.findMany.mockResolvedValue([{ name: "Daniel Owner", email: "daniel@x.com" }]);
+      const res = await sendTrainingReminders();
+      const recipients = sendEmail.mock.calls.map((c) => c[0].to);
+      expect(recipients).not.toContain("vol@x.com");
+      expect(res.staffReminded).toBe(0);
+    });
+
     it("sends nothing when all staff are up to date", async () => {
       prismaMock.lMSEnrollment.findMany.mockResolvedValue([]);
       const res = await sendTrainingReminders();
