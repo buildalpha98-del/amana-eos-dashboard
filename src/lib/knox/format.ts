@@ -82,6 +82,24 @@ export function fillChildName(draft: string, childName?: string | null): string 
   return draft.replace(/\{\{\s*child_name\s*\}\}/g, first);
 }
 
+/**
+ * The to-dos a `create_followup_todos` card would create, one line each —
+ * "Ring the family (due in 1 day)" — so they are seen before Approve. Reads
+ * the card's stored `payload.todos`; malformed entries are dropped.
+ */
+export function followUpTodoLines(payload: unknown): string[] {
+  if (!payload || typeof payload !== "object") return [];
+  const todos = (payload as { todos?: unknown }).todos;
+  if (!Array.isArray(todos)) return [];
+  return todos.flatMap((t): string[] => {
+    if (!t || typeof t !== "object") return [];
+    const { title, dueInDays } = t as { title?: unknown; dueInDays?: unknown };
+    if (typeof title !== "string" || !title.trim()) return [];
+    if (typeof dueInDays !== "number" || !Number.isFinite(dueInDays)) return [title.trim()];
+    return [`${title.trim()} (due in ${dueInDays} day${dueInDays === 1 ? "" : "s"})`];
+  });
+}
+
 /** `<type>:<id>` → parts, or null when malformed / unknown type. */
 export function parseSubjectRef(raw: string | null | undefined): { type: KnoxSubjectType; id: string } | null {
   if (!raw) return null;

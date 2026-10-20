@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useApproveAction, useDismissAction, type KnoxPendingAction } from "@/hooks/useKnox";
-import { formatKnoxTime } from "@/lib/knox/format";
+import { followUpTodoLines, formatKnoxTime } from "@/lib/knox/format";
 
 /**
  * One open Knox suggestion. Approving applies the change Knox stored at
@@ -18,11 +18,19 @@ export function KnoxCard({ card }: { card: KnoxPendingAction }) {
   const [reason, setReason] = useState("");
   const reasonId = useId();
   const busy = approve.isPending || dismiss.isPending;
+  const todoLines = card.kind === "create_followup_todos" ? followUpTodoLines(card.payload) : [];
 
   return (
     <div className="rounded-lg border border-border bg-card p-3 space-y-2">
       <div>
         <p className="text-sm font-medium text-foreground">Knox suggests: {card.summary}</p>
+        {todoLines.length > 0 && (
+          <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-foreground" aria-label="To-dos this creates">
+            {todoLines.map((line, i) => (
+              <li key={`${i}-${line}`}>{line}</li>
+            ))}
+          </ul>
+        )}
         {card.rationale && <p className="mt-0.5 text-sm text-muted">{card.rationale}</p>}
         <p className="mt-1 text-2xs text-muted">
           Open until {formatKnoxTime(card.expiresAt)}

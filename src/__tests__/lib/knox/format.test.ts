@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   fillChildName,
+  followUpTodoLines,
   flaggedHeadline,
   formatCountdown,
   parseSubjectRef,
@@ -60,5 +61,25 @@ describe("parseSubjectRef / subjectHref", () => {
     expect(subjectHref("incident", "i1", "a1")).toBe("/incidents?knox=a1&incident=i1");
     expect(subjectHref("complaint", "c1")).toBe("/knox?subject=complaint:c1");
     expect(subjectHref("staff_incident", "s1")).toBe("/knox?subject=staff_incident:s1");
+  });
+});
+
+describe("followUpTodoLines", () => {
+  it("lists each to-do with its due window, so the card shows what Approve creates", () => {
+    expect(
+      followUpTodoLines({
+        todos: [
+          { title: "Ring the family", dueInDays: 1 },
+          { title: " Update the risk assessment ", dueInDays: 7 },
+        ],
+      }),
+    ).toEqual(["Ring the family (due in 1 day)", "Update the risk assessment (due in 7 days)"]);
+  });
+
+  it("drops malformed entries and tolerates a missing or junk payload", () => {
+    expect(followUpTodoLines({ todos: [null, { title: "" }, { title: "Check", dueInDays: "x" }, 4] })).toEqual(["Check"]);
+    expect(followUpTodoLines({ items: [{ title: "x", dueInDays: 1 }] })).toEqual([]);
+    expect(followUpTodoLines(null)).toEqual([]);
+    expect(followUpTodoLines("nope")).toEqual([]);
   });
 });
