@@ -374,6 +374,7 @@ export const EMAIL_TEMPLATE_MANIFEST: EmailTemplateManifestEntry[] = [
       { name: "firstName", description: "Parent's first name" },
       { name: "childNames", description: "Child name(s)" },
       { name: "childNamesPlain", description: "Child name(s) for the subject line" },
+      { name: "isAre", description: "\"is\" for one child, \"are\" for siblings" },
       { name: "centreName", description: "Centre name" },
       { name: "parentEmail", description: "The parent's email (where OWNA sent the invitation)" },
       { name: "helpLine", description: "\"Stuck? call/email us\" line with the centre's contacts" },

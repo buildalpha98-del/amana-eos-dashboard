@@ -66,6 +66,19 @@ export const DEFAULT_FIRST_SESSION_TIPS = [
   "Pop your child's name on their bag, hat and drink bottle.",
 ];
 
+/**
+ * "What to expect" for the "You're booked in!" email (Daniel, 20 Oct 2026):
+ * families don't need to bring anything for Amana Afternoons, so this is
+ * about the day, not a packing list. Used when a centre hasn't written its
+ * own first-session tips.
+ */
+export const DEFAULT_FIRST_DAY_EXPECT = [
+  "When you arrive, the team will welcome your child, show them around and help them settle in with new friends.",
+  "We provide a healthy afternoon tea, so there's nothing extra to pack.",
+  "An authorised adult signs your child in and out at every session.",
+  "Any medical needs, medication or changes? Let us know before the first day.",
+];
+
 export interface CentreWelcomeDefaults {
   coordinatorName: string | null;
   coordinatorPhoto: string | null;

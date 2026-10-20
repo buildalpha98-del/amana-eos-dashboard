@@ -99,12 +99,15 @@ export function coordinatorCard(d: EnrolmentWelcomeData) {
   </table>`;
 }
 
-export function firstSessionBlock(d: EnrolmentWelcomeData) {
+export function firstSessionBlock(
+  d: EnrolmentWelcomeData,
+  opts: { title?: string; defaultTips?: string[] } = {},
+) {
   const facts: string[] = [];
   if (d.sessionTimes.length) facts.push(`<strong>Session times:</strong> ${d.sessionTimes.map(escapeHtml).join(" · ")}`);
   if (d.locationWithinSchool) facts.push(`<strong>Where to find us:</strong> ${escapeHtml(d.locationWithinSchool)}`);
   if (d.meetingPoints) facts.push(`<strong>Drop-off &amp; pick-up:</strong> ${escapeHtml(d.meetingPoints)}`);
-  const tips = d.firstSessionTips.length ? d.firstSessionTips : DEFAULT_FIRST_SESSION_TIPS;
+  const tips = d.firstSessionTips.length ? d.firstSessionTips : (opts.defaultTips ?? DEFAULT_FIRST_SESSION_TIPS);
   const rows = tips
     .map(
       (t) => `<tr>
@@ -116,7 +119,7 @@ export function firstSessionBlock(d: EnrolmentWelcomeData) {
   return `
   <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;border:1px solid ${CHIFFON};border-radius:14px;">
     <tr><td style="padding:20px;">
-      ${sectionTitle("Good to know before your first session")}
+      ${sectionTitle(opts.title ?? "Good to know before your first session")}
       ${facts.map((f) => `<p style="margin:0 0 8px;color:${BODY};font-size:14px;line-height:1.6;">${f}</p>`).join("")}
       <table cellpadding="0" cellspacing="0" width="100%" style="margin-top:${facts.length ? "8px" : "0"};">${rows}</table>
     </td></tr>

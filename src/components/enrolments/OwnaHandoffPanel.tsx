@@ -321,7 +321,7 @@ export function OwnaHandoffPanel({
                       <EmailFamily
                         checked={notifyFamily}
                         onChange={setNotifyFamily}
-                        hint="“You're booked in!” with the first day, times, where to find us and what to bring. The day-before reminder and first-week check-ins are timed from this date."
+                        hint="“You're booked in!” with the first day, session times, where to find us, the centre's phone and what to expect. The day-before reminder and first-week check-ins are timed from this date."
                       />
                     </div>
                   )}
