@@ -164,7 +164,7 @@ export const CENTRES: WelcomePackCentre[] = [
     state: "NSW",
     name: "Unity Grammar",
     address: "70 Fourth Ave, Austral NSW 2179",
-    dropOff: "G Block",
+    dropOff: "School Library",
     coordinator: "Lena",
     phone: "0466 707 771",
     email: "unitygrammar@amanaoshc.com.au",
