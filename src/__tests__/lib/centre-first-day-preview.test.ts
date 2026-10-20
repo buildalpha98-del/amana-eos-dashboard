@@ -19,7 +19,11 @@ describe("centre first-day email preview", () => {
     const out = await renderJourneyEmail("centre_first_day", null);
     expect(out?.subject).toMatch(/^Booked in: Yusuf's first day is \w+day \d+ \w+$/);
     expect(out?.html).toContain("Amana Proven Process");
-    expect(out?.html).toContain("Just in case you don't have it handy");
+    // The steps are written out, not just attached (20 Oct 2026).
+    expect(out?.html).toContain("Hi-five and greet Yusuf by name");
+    expect(out?.html).toContain("Give Yusuf their Amana bag tag");
+    expect(out?.html).toContain("WhatsApp community invite");
+    expect(out?.html).toContain("(done)");
     expect(out?.attachments?.[0]).toMatchObject({ filename: "Amana Proven Process.png" });
     expect(out?.attachments?.[0].path).toMatch(/\/Amana_PP\.png$/);
   });

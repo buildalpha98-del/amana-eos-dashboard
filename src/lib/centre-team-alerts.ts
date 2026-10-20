@@ -60,15 +60,18 @@ export interface CentreAlert {
     subject: string;
     lines: string[];
     button: string;
+    /** Extra HTML block (tables etc.) placed after the lines, before the button. */
+    html?: string;
     /** Files attached to every copy of the email (fetched by URL). */
     attachments?: { filename: string; path: string }[];
   };
 }
 
 /** The HTML of a centre alert email — shared by the sender and test sends. */
-export function centreAlertHtml(email: { lines: string[]; button: string }, link: string): string {
+export function centreAlertHtml(email: { lines: string[]; button: string; html?: string }, link: string): string {
   return baseLayout(
     `${email.lines.map((l) => `<p style="margin:0 0 14px;color:#1a1a2e;font-size:15px;line-height:1.6;">${l}</p>`).join("")}
+     ${email.html ?? ""}
      ${buttonHtml(escapeHtml(email.button), `${BASE()}${link}`)}`,
     "staff",
   );
