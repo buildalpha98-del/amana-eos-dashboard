@@ -61,6 +61,20 @@ describe("OWNA checklist → family email", () => {
     expect(vi.mocked(onHandoffStepCompleted)).not.toHaveBeenCalled();
   });
 
+  // Daniel, 20 Oct 2026: families from before the checklist are never emailed.
+  it("a family who enrolled before 19 Oct is never emailed", async () => {
+    prismaMock.enrolmentSubmission.findUnique.mockResolvedValue({
+      ...enrolment,
+      createdAt: new Date("2026-10-14T00:00:00Z"),
+      ownaHandoff: owned({ children: child }),
+    });
+    const res = await patch({ action: "complete", step: "invitation", mode: "sent", evidence: "Sent" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).not.toHaveProperty("legacy");
+    for (const t of tasks) await t();
+    expect(vi.mocked(onHandoffStepCompleted)).not.toHaveBeenCalled();
+  });
+
   it("notes and other steps don't email", async () => {
     await patch({ action: "note", evidence: "Call Friday" });
     for (const t of tasks) await t();

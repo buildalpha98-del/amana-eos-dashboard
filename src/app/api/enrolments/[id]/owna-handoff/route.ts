@@ -10,6 +10,7 @@ import {
   handoffPatchSchema,
   isCoordinationAction,
   placementKey,
+  predatesOwnaChecklist,
   readHandoff,
 } from "@/lib/owna-handoff";
 import { runAfter } from "@/lib/run-after";
@@ -66,6 +67,8 @@ export const GET = withApiAuth(async (_req, session, context) => {
     revision: e.ownaHandoff?.revision ?? 0,
     state: readHandoff(e.ownaHandoff?.state),
     placement: placementKey(e),
+    /** Submitted before the checklist started: counts as done, never emails. */
+    legacy: predatesOwnaChecklist(e.createdAt),
     history,
   });
 });
@@ -171,7 +174,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
             } as Prisma.InputJsonValue,
           },
         });
-        return { revision: parsed.data.revision + 1, state: next };
+        return { revision: parsed.data.revision + 1, state: next, legacy: predatesOwnaChecklist(e.createdAt) };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
@@ -180,10 +183,11 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     // unless staff untick "Email the family".
     const { action, step, notifyFamily } = parsed.data;
     const done = step ? result.state.steps[step] : undefined;
-    if (action === "complete" && step && done && notifyFamily !== false) {
+    // Families from before the checklist started are never emailed.
+    if (action === "complete" && step && done && notifyFamily !== false && !result.legacy) {
       runAfter(() => onHandoffStepCompleted(id, step, done));
     }
-    return NextResponse.json(result);
+    return NextResponse.json({ revision: result.revision, state: result.state });
   } catch (err) {
     if (
       err instanceof Prisma.PrismaClientKnownRequestError &&
