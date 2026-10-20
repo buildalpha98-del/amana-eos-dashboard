@@ -824,8 +824,8 @@ model User {
 
   // ── HR Relations ─────────────────────────────────────────────
   emergencyContacts         EmergencyContact[]
-  staffForms                StaffForm[]          @relation("StaffFormOwner")
-  staffFormsCountersigned   StaffForm[]          @relation("StaffFormSupervisor")
+  staffForms                StaffForm[]                     @relation("StaffFormOwner")
+  staffFormsCountersigned   StaffForm[]                     @relation("StaffFormSupervisor")
   qualifications            StaffQualification[]
   pdRecords                 ProfessionalDevelopmentRecord[] @relation("UserPdRecords")
   contracts                 EmploymentContract[]            @relation("ContractEmployee")
@@ -922,9 +922,15 @@ model User {
   checkedItems        DailyChecklistItem[] @relation("ChecklistItemCheckedBy")
 
   // ── AI Usage ───────────────────────────────────────
-  aiUsageLogs    AiUsage[]           @relation("AiUsageLogs")
-  reviewedDrafts AiTaskDraft[]       @relation("DraftReviewer")
-  aiGenerations  AiGenerationCache[] @relation("AiGenerationCacheUser")
+  aiUsageLogs AiUsage[] @relation("AiUsageLogs")
+
+  // ── Knox incident triage ───────────────────────────
+  triageAlertsReceived     TriageAlert[]       @relation("TriageAlertRecipient")
+  triageAlertsAcknowledged TriageAlert[]       @relation("TriageAlertAcknowledger")
+  pendingActionsCommitted  PendingAction[]     @relation("PendingActionCommitter")
+  pendingActionsDismissed  PendingAction[]     @relation("PendingActionDismisser")
+  reviewedDrafts           AiTaskDraft[]       @relation("DraftReviewer")
+  aiGenerations            AiGenerationCache[] @relation("AiGenerationCacheUser")
 
   // ── Email Templates ──────────────────────────────
   emailTemplates EmailTemplate[] @relation("EmailTemplateCreator")
@@ -3104,6 +3110,7 @@ model Service {
   // Purchase approval requests raised by staff working at this
   // service. Admin approves/rejects from the Finance → Approvals tab.
   purchaseApprovals PurchaseApproval[] @relation("ServicePurchaseApprovals")
+  triageAssessments TriageAssessment[] @relation("ServiceTriageAssessments")
 
   // ── Programming & Quality ──────────────────────────
   childInterests ChildInterest[] @relation("ServiceInterests")
@@ -7283,8 +7290,8 @@ model AiPromptTemplate {
 
 model AiUsage {
   id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation("AiUsageLogs", fields: [userId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?    @relation("AiUsageLogs", fields: [userId], references: [id], onDelete: Cascade)
   templateSlug String? // null for freeform assistant chat
   model        String
   inputTokens  Int
@@ -10344,6 +10351,161 @@ enum PurchaseApprovalStatus {
   approved
   rejected
   cancelled // requester withdrew before decision
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Knox incident triage (2026-10-20)
+// ─────────────────────────────────────────────────────────────────────
+
+enum TriageSubjectType {
+  incident
+  complaint
+  staff_incident
+}
+
+enum TriageJobStatus {
+  pending
+  running
+  done
+  failed
+  skipped
+}
+
+enum TriageTier {
+  minor
+  moderate
+  serious
+}
+
+model TriageJob {
+  id           String            @id @default(cuid())
+  subjectType  TriageSubjectType
+  subjectId    String
+  serviceId    String
+  /// created | updated | sweep
+  reason       String
+  status       TriageJobStatus   @default(pending)
+  attempts     Int               @default(0)
+  lastError    String?           @db.Text
+  scheduledFor DateTime          @default(now())
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  assessment TriageAssessment?
+
+  @@index([status, scheduledFor])
+  @@index([subjectType, subjectId])
+}
+
+model TriageAssessment {
+  id          String            @id @default(cuid())
+  jobId       String            @unique
+  job         TriageJob         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  subjectType TriageSubjectType
+  subjectId   String
+  serviceId   String
+  service     Service           @relation("ServiceTriageAssessments", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  // ── Rules layer (always present) ──
+  tier     TriageTier
+  /// Rule ids that fired, e.g. ["ambulance_called", "reportable_flag"].
+  ruleHits String[]
+  /// [{ kind: "parent_24h" | "regulator" | "complaint_regulator", dueAt, basis, dueDescription }]
+  clocks   Json
+  /// True when alerts were actually dispatched for this assessment
+  /// (false in shadow mode, or when suppressed as a non-raising re-triage).
+  alerted  Boolean    @default(false)
+
+  // ── Model layer (null when rules_only) ──
+  /// rules_only | rules_and_model
+  source             String
+  modelId            String?
+  /// agrees | understated | unsure
+  severityOpinion    String?
+  rationale          String?  @db.Text
+  missingFields      String[]
+  suggestedSeverity  String?
+  suggestedCategory  String?
+  parentNoticeDraft  String?  @db.Text
+  regulatorPackDraft String?  @db.Text
+  aiUsageId          String?
+  modelError         String?
+
+  alerts         TriageAlert[]
+  pendingActions PendingAction[]
+
+  createdAt DateTime @default(now())
+
+  @@index([subjectType, subjectId, createdAt])
+  @@index([serviceId, createdAt])
+  @@index([tier, createdAt])
+}
+
+model TriageAlert {
+  id               String           @id @default(cuid())
+  assessmentId     String
+  assessment       TriageAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  serviceId        String
+  tier             TriageTier
+  recipientUserId  String?
+  recipient        User?            @relation("TriageAlertRecipient", fields: [recipientUserId], references: [id], onDelete: SetNull)
+  /// push | teams
+  channel          String
+  /// 0 = initial, 1 = first escalation, 2 = second escalation
+  escalationLevel  Int              @default(0)
+  sentAt           DateTime         @default(now())
+  /// Channel-level delivery result (webhook 2xx / notifyUsers count > 0).
+  delivered        Boolean          @default(false)
+  acknowledgedAt   DateTime?
+  acknowledgedById String?
+  acknowledgedBy   User?            @relation("TriageAlertAcknowledger", fields: [acknowledgedById], references: [id], onDelete: SetNull)
+
+  @@index([assessmentId])
+  @@index([acknowledgedAt, tier, sentAt])
+  @@index([recipientUserId, acknowledgedAt])
+}
+
+/// First specified in 2026-09-26-amana-ai-second-brain-design.md §3.7 for the
+/// chat assistant (unmerged branch feat/amana-ai-second-brain-spec). Built here
+/// first. Two additions for Knox: `proposedBy` and `assessmentId`; `turnId` is
+/// optional because Knox has no chat turn. The assistant slice reuses this model
+/// unchanged.
+model PendingAction {
+  id            String             @id @default(cuid())
+  /// knox | assistant
+  proposedBy    String
+  /// The user the card is addressed to (null = anyone with scope may act).
+  userId        String?
+  serviceId     String?
+  /// set_severity | mark_reportable | mark_notifiable | create_followup_todos
+  /// (assistant kinds added later: reflection | hazard | leave | incident)
+  kind          String
+  subjectType   TriageSubjectType?
+  subjectId     String?
+  /// Already validated against the target schema at propose time.
+  payload       Json
+  /// Human-readable "from → to" shown on the card.
+  summary       String
+  rationale     String?            @db.Text
+  turnId        String?
+  assessmentId  String?
+  assessment    TriageAssessment?  @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+  expiresAt     DateTime
+  committedAt   DateTime?
+  committedById String?
+  committedBy   User?              @relation("PendingActionCommitter", fields: [committedById], references: [id], onDelete: SetNull)
+  dismissedAt   DateTime?
+  dismissedById String?
+  dismissedBy   User?              @relation("PendingActionDismisser", fields: [dismissedById], references: [id], onDelete: SetNull)
+  dismissReason String?
+  resultId      String?
+  createdAt     DateTime           @default(now())
+
+  @@index([serviceId, createdAt])
+  @@index([subjectType, subjectId])
+  @@index([expiresAt])
 }
 
 // ─────────────────────────────────────────────────────────────────────

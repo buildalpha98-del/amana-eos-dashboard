@@ -178,6 +178,7 @@ export const allPages = [
   "/assistant",
   // Operations
   "/incidents",
+  "/knox",
   "/policies",
   "/holiday-quest",
   // Engagement
@@ -428,6 +429,9 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/compliance",
     "/policies",
     "/incidents",
+    // 2026-10-20: Knox triage inbox — the API (KNOX_ROLES) grants member,
+    // centre-scoped, so a Director sees only their own centre's alerts.
+    "/knox",
     "/staff/[id]",
     "/children/[id]",
     // 2026-09-04: roster command centre — a Director of Service sees only

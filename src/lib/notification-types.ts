@@ -84,6 +84,10 @@ export const NOTIFICATION_TYPES = {
   // 2026-10-08: a checklist section passed its centre-set due time with
   // required items unticked (→ educators on shift + the Director).
   CHECKLIST_OVERDUE: "checklist_overdue",
+  // 2026-10-20: Knox incident-triage alert (moderate/serious incident,
+  // complaint or staff incident → Director, State Managers, then owners on
+  // escalation).
+  KNOX_ALERT: "knox_alert",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];

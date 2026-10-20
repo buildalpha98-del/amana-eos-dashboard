@@ -52,7 +52,10 @@ import {
   Network,
   Brain,
   Palette,
-  Bell, Link2 } from "lucide-react";
+  Bell,
+  Link2,
+  ShieldAlert,
+} from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
 import { EOS_ROLES } from "@/lib/role-enum";
@@ -225,6 +228,13 @@ export const navItems: NavItem[] = [
   // /compliance/registers removed from the sidebar — the /compliance page
   // tab bar now links out to both sub-pages instead.
   { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations", roles: ["head_office", "admin", "eos"] , core: true },
+  // 2026-10-20: Knox incident triage — alerts awaiting acknowledgement, open
+  // suggestion cards, recent assessments. Core for coordinators and leadership
+  // (the people Knox alerts). Roles mirror the API's KNOX_ROLES exactly
+  // (owner/head_office/admin/member); `eos` is deliberately absent — an EOS
+  // Member who types /knox reaches the page via allPages and is told Knox
+  // isn't available for their role.
+  { href: "/knox", label: "Knox", icon: ShieldAlert, section: "Operations", tooltip: "Incident triage: alerts, clocks and approvals", roles: ["owner", "head_office", "admin", "member"], core: ["owner", "head_office", "admin", "member"] },
   { href: "/safe-reports", label: "Safe Reports", icon: Shield, section: "Operations", tooltip: "Anonymous staff reports — harassment, safety, conduct. Owner & head office only.", roles: ["owner", "head_office"] , hidden: true }, // folded 2026-07-12 — linked from Compliance (owner/head_office tab)
   { href: "/policies", label: "Policies & Procedures", icon: Shield, section: "Operations", tooltip: "Versioned PDF library with per-version acknowledgement", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Compliance; pending-ack badge still force-shows in the sidebar
   // 2026-07-05: /incidents removed from the sidebar entirely (was

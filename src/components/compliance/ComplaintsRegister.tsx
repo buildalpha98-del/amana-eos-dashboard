@@ -29,6 +29,8 @@ import {
   NOTIFIABLE_REASONS,
 } from "@/lib/complaint-reference";
 import { describeClock, type ClockStatus } from "@/lib/compliance-clocks";
+import { KnoxBadge } from "@/components/knox/KnoxBadge";
+import { useKnoxTiers } from "@/hooks/useKnox";
 
 interface Complaint {
   id: string;
@@ -149,6 +151,10 @@ export function ComplaintsRegister({
   });
 
   const complaints = data?.complaints ?? [];
+  const knoxTiers = useKnoxTiers(
+    "complaint",
+    complaints.map((c) => c.id),
+  );
 
   /**
    * The only number that matters on load: notifiable, not yet lodged,
@@ -419,7 +425,7 @@ export function ComplaintsRegister({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left">
-                {["Reference", "Received", "Category", "Summary", "Notifiable", "Status"].map(
+                {["Reference", "Received", "Category", "Summary", "Notifiable", "Status", "Knox"].map(
                   (h) => (
                     <th
                       key={h}
@@ -489,6 +495,9 @@ export function ComplaintsRegister({
                   </td>
                   <td className="py-2 pr-3 whitespace-nowrap text-muted">
                     {c.status.replace("_", " ")}
+                  </td>
+                  <td className="py-2 pr-3 whitespace-nowrap">
+                    <KnoxBadge tier={knoxTiers[c.id]} href={`/knox?subject=complaint:${c.id}`} />
                   </td>
                 </tr>
               ))}

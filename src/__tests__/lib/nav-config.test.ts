@@ -453,6 +453,8 @@ describe("partitionNavSection", () => {
       "/billing",
       "/billing/aged-debtors",
       "/compliance",
+      // 2026-10-20: Knox triage inbox, core for leadership and coordinators.
+      "/knox",
       // 2026-08-06: moved out of Growth. "Growth" is a marketing framing;
       // asking for a poster is day-to-day operations for everyone else.
       "/requests",

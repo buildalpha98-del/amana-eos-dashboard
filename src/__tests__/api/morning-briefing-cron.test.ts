@@ -57,6 +57,12 @@ function signals(overrides: Partial<BriefingSignals> = {}): BriefingSignals {
     staleEnquiries: 0,
     meetingsToday: [],
     forecastAlerts: [],
+    knox: {
+      minorYesterday: [],
+      unacknowledgedAlerts: 0,
+      openCards: 0,
+      clocksDueWithin24h: [],
+    },
     ...overrides,
   };
 }
