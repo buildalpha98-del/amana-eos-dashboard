@@ -15,11 +15,20 @@ export const STALE_BACKLOG_MS = 24 * 60 * 60 * 1000;
 /** Window in which an earlier alert for the same subject silences a non-raising re-triage. */
 const DEDUPE_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const MAX_ATTEMPTS = 3;
+/**
+ * A job `running` longer than this was abandoned (process died, or recording
+ * its failure itself failed). The longest legitimate run is one 20 s model
+ * timeout plus I/O, so 10 minutes is far past any live job.
+ */
+export const STALE_RUNNING_MS = 10 * 60 * 1000;
+const DEFAULT_SWEEP_LIMIT = 10;
+/** Leaves headroom inside the tick's 300 s maxDuration for the escalation sweep. */
+const DEFAULT_SWEEP_BUDGET_MS = 240_000;
 
 const MIN_MS = 60_000;
 const SAFETY_NET_SEVERITIES: ReadonlySet<string> = new Set(["serious", "reportable"]);
 
-export type TriageJobOutcome = "done" | "skipped" | "failed" | "retry" | "not_claimed";
+export type TriageJobOutcome = "done" | "skipped" | "failed" | "retry" | "not_claimed" | "disabled";
 
 const SUBJECT_LABEL: Record<TriageSubjectType, string> = {
   incident: "an incident",
@@ -36,10 +45,11 @@ function clocksJson(clocks: TriageClock[]) {
 }
 
 /**
- * Highest tier alerted for this subject in the last 24 h, or null. Only
- * assessments with at least one TriageAlert row count (a marker row for an
- * empty recipient set counts), so an attempt that set `alerted` and then died
- * before anything was sent does not silence the retry.
+ * Highest tier alerted for this subject in the last 24 h, or null. The signal
+ * is the TriageAlert rows themselves (a marker row for an empty recipient set
+ * counts), NOT the `alerted` flag: an attempt that set the flag and died before
+ * sending must not silence its retry, and one that sent but died before
+ * setting the flag must not send twice.
  */
 async function priorAlertedRank(
   subjectType: TriageSubjectType,
@@ -50,7 +60,6 @@ async function priorAlertedRank(
     where: {
       subjectType,
       subjectId,
-      alerted: true,
       createdAt: { gte: new Date(now.getTime() - DEDUPE_WINDOW_MS) },
       alerts: { some: {} },
     },
@@ -67,10 +76,15 @@ async function priorAlertedRank(
  * Alerts go out BEFORE the model is called; a model failure only downgrades
  * the assessment to rules-only. Any exception after the claim puts the job
  * back to `pending` with exponential back-off (2, 4 min), and on the third
- * attempt marks it `failed` and posts an ops note. Throws only when the claim
- * itself fails (nothing has run yet).
+ * attempt marks it `failed` and posts an ops note. While Knox is disabled it
+ * returns `"disabled"` without claiming, so the job stays pending for when
+ * Knox is switched on. Throws only when the settings read or the claim fails
+ * (nothing has run yet).
  */
 export async function runTriageJob(jobId: string, now: Date = new Date()): Promise<TriageJobOutcome> {
+  const { enabled, shadowMode } = await getKnoxSettings();
+  if (!enabled) return "disabled";
+
   // 1. Claim atomically.
   const claim = await prisma.triageJob.updateMany({
     where: { id: jobId, status: "pending" },
@@ -107,7 +121,6 @@ export async function runTriageJob(jobId: string, now: Date = new Date()): Promi
     const rules = evaluateRules(subject, now);
 
     // 4. Decide whether to alert.
-    const { shadowMode } = await getKnoxSettings();
     const stale = now.getTime() - job.createdAt.getTime() > STALE_BACKLOG_MS;
     const priorRank = await priorAlertedRank(subjectType, subjectId, now);
     const mayAlert = !shadowMode && !stale;
@@ -193,7 +206,8 @@ export async function runTriageJob(jobId: string, now: Date = new Date()): Promi
     // 8. Second safety net: the rules said minor, the model says it is worse.
     // A MODERATE push to the directors — the human decides whether it is serious.
     // Silenced by any earlier alert for this subject (including an earlier
-    // attempt of this job), so a retry never re-sends it.
+    // attempt of this job), so a retry never re-sends it. `alerted` is set
+    // BEFORE the push, the same as level 0.
     if (
       mayAlert &&
       priorRank === null &&
@@ -204,6 +218,7 @@ export async function runTriageJob(jobId: string, now: Date = new Date()): Promi
     ) {
       const raised: RulesResult = { ...rules, tier: "moderate" satisfies TriageTier };
       recipients ??= await resolveRecipients(prisma, subject.service);
+      await prisma.triageAssessment.update({ where: { id: assessmentId }, data: { alerted: true } });
       await dispatchLevel(prisma, {
         assessmentId,
         subject,
@@ -212,7 +227,6 @@ export async function runTriageJob(jobId: string, now: Date = new Date()): Promi
         level: 0,
         rationale: result.data.rationale,
       });
-      await prisma.triageAssessment.update({ where: { id: assessmentId }, data: { alerted: true } });
     }
 
     // 9–10. Model fields, cards and job done land together.
@@ -283,10 +297,28 @@ async function failJob(
 }
 
 /**
- * Run up to `limit` due jobs, oldest first, one at a time. A job that throws
- * does not stop the rest. `processed` counts jobs this sweep actually claimed.
+ * Tick body: first return abandoned `running` jobs to `pending`, then run up
+ * to `limit` due jobs, oldest first, one at a time, stopping between jobs once
+ * `budgetMs` has elapsed. A job that throws does not stop the rest.
+ * `processed` counts jobs this sweep actually claimed. No-op while Knox is
+ * disabled (the tick gates on that too).
  */
-export async function sweepJobs(now: Date, limit = 25): Promise<{ processed: number }> {
+export async function sweepJobs(
+  now: Date,
+  opts: { limit?: number; budgetMs?: number } = {},
+): Promise<{ processed: number; reaped: number }> {
+  const limit = opts.limit ?? DEFAULT_SWEEP_LIMIT;
+  const budgetMs = opts.budgetMs ?? DEFAULT_SWEEP_BUDGET_MS;
+  const startedAt = Date.now();
+
+  if (!(await getKnoxSettings()).enabled) return { processed: 0, reaped: 0 };
+
+  const reap = await prisma.triageJob.updateMany({
+    where: { status: "running", startedAt: { lt: new Date(now.getTime() - STALE_RUNNING_MS) } },
+    data: { status: "pending", scheduledFor: now, lastError: "reaped: stale running" },
+  });
+  if (reap.count > 0) logger.warn("Knox: reaped stale running jobs", { count: reap.count });
+
   const due = await prisma.triageJob.findMany({
     where: { status: "pending", scheduledFor: { lte: now } },
     orderBy: { scheduledFor: "asc" },
@@ -294,13 +326,20 @@ export async function sweepJobs(now: Date, limit = 25): Promise<{ processed: num
     select: { id: true },
   });
   let processed = 0;
-  for (const { id } of due) {
+  for (const [i, { id }] of due.entries()) {
+    if (i > 0 && Date.now() - startedAt >= budgetMs) {
+      logger.info("Knox: sweep budget spent, leaving jobs for the next tick", {
+        left: due.length - i,
+        budgetMs,
+      });
+      break;
+    }
     try {
       const outcome = await runTriageJob(id);
-      if (outcome !== "not_claimed") processed++;
+      if (outcome !== "not_claimed" && outcome !== "disabled") processed++;
     } catch (err) {
       logger.error("Knox: sweep could not run job", { jobId: id, err: errorText(err) });
     }
   }
-  return { processed };
+  return { processed, reaped: reap.count };
 }

@@ -25,7 +25,7 @@ import { getKnoxSettings } from "@/lib/knox/settings";
 import { loadSubject } from "@/lib/knox/load-subject";
 import { evaluateRules } from "@/lib/knox/rules";
 import type { RulesResult, TriageSubject } from "@/lib/knox/types";
-import { MAX_ATTEMPTS, STALE_BACKLOG_MS, runTriageJob, sweepJobs } from "@/lib/knox/worker";
+import { MAX_ATTEMPTS, STALE_BACKLOG_MS, STALE_RUNNING_MS, runTriageJob, sweepJobs } from "@/lib/knox/worker";
 import * as knox from "@/lib/knox";
 
 const dispatchMock = vi.mocked(dispatchLevel);
@@ -55,9 +55,26 @@ interface JobRow {
 let jobs: Record<string, JobRow>;
 let subjects: Record<string, TriageSubject | null>;
 let tiers: Record<string, TriageTier>;
+/** Alerted assessments from OTHER jobs, seeded per test (they have alert rows). */
 let priorAlerted: Record<string, { tier: TriageTier }[]>;
-let existingForJob: Record<string, { id: string; alerted: boolean }>;
+/**
+ * Behavioural fake of TriageAssessment + its TriageAlert rows: create/update/
+ * findUnique(jobId) hit `store`; a successful dispatchLevel adds alert rows.
+ * The dedupe findMany honours `alerts.some` and (if present) `alerted`.
+ */
+interface StoredAssessment {
+  id: string;
+  jobId: string;
+  subjectId: string;
+  tier: TriageTier;
+  alerted: boolean;
+}
+let store: Record<string, StoredAssessment>;
+let alertRows: Set<string>;
+let nextAssessment: number;
+let failAlertedUpdate: boolean;
 let shadowMode: boolean;
+let enabled: boolean;
 let model: AssessmentResult;
 let recipients: Recipients;
 let throwOnLoad: Set<string>;
@@ -119,8 +136,12 @@ beforeEach(() => {
   subjects = {};
   tiers = {};
   priorAlerted = {};
-  existingForJob = {};
+  store = {};
+  alertRows = new Set();
+  nextAssessment = 1;
+  failAlertedUpdate = false;
   shadowMode = false;
+  enabled = true;
   model = modelOk();
   throwOnLoad = new Set();
   recipients = {
@@ -147,16 +168,43 @@ beforeEach(() => {
   );
   prismaMock.triageJob.findMany.mockReset().mockImplementation(async () => []);
   prismaMock.triageAssessment.findMany.mockReset().mockImplementation(
-    async (args: { where: { subjectId: string } }) => priorAlerted[args.where.subjectId] ?? [],
+    async (args: { where: { subjectId: string; alerted?: boolean; alerts?: { some: object } } }) => {
+      const w = args.where;
+      const own = Object.values(store).filter(
+        (a) =>
+          a.subjectId === w.subjectId &&
+          (w.alerts === undefined || alertRows.has(a.id)) &&
+          (w.alerted === undefined || a.alerted === w.alerted),
+      );
+      return [...(priorAlerted[w.subjectId] ?? []), ...own.map((a) => ({ tier: a.tier }))];
+    },
   );
   prismaMock.triageAssessment.findUnique.mockReset().mockImplementation(
-    async (args: { where: { jobId: string } }) => existingForJob[args.where.jobId] ?? null,
+    async (args: { where: { jobId: string } }) => {
+      const a = Object.values(store).find((x) => x.jobId === args.where.jobId);
+      return a ? { id: a.id, alerted: a.alerted } : null;
+    },
   );
   prismaMock.triageAssessment.create.mockReset().mockImplementation(
-    async (args: { data: Record<string, unknown> }) => ({ id: "asmt-1", ...args.data }),
+    async (args: { data: StoredAssessment & Record<string, unknown> }) => {
+      const id = `asmt-${nextAssessment++}`;
+      const d = args.data;
+      store[id] = { id, jobId: d.jobId, subjectId: d.subjectId, tier: d.tier, alerted: d.alerted };
+      return { id };
+    },
   );
   prismaMock.triageAssessment.update.mockReset().mockImplementation(
-    async (args: { where: { id: string }; data: Record<string, unknown> }) => ({ id: args.where.id, ...args.data }),
+    async (args: { where: { id: string }; data: Record<string, unknown> }) => {
+      if (failAlertedUpdate && args.data.alerted === true && Object.keys(args.data).length === 1) {
+        throw new Error("update lost");
+      }
+      const a = store[args.where.id];
+      if (a) {
+        if (typeof args.data.alerted === "boolean") a.alerted = args.data.alerted;
+        if (typeof args.data.tier === "string") a.tier = args.data.tier as TriageTier;
+      }
+      return { id: args.where.id };
+    },
   );
   prismaMock.triageAssessment.delete.mockReset();
   prismaMock.aiUsage.create.mockReset().mockImplementation(async () => ({ id: "usage-1" }));
@@ -165,11 +213,14 @@ beforeEach(() => {
   );
   prismaMock.$transaction.mockClear();
 
-  dispatchMock.mockReset().mockImplementation(async () => true);
+  dispatchMock.mockReset().mockImplementation(async (_db: unknown, args: { assessmentId: string }) => {
+    alertRows.add(args.assessmentId);
+    return true;
+  });
   opsNoteMock.mockReset().mockImplementation(async () => undefined);
   assessMock.mockReset().mockImplementation(async () => model);
   recipientsMock.mockReset().mockImplementation(async () => recipients);
-  settingsMock.mockReset().mockImplementation(async () => ({ enabled: true, shadowMode }));
+  settingsMock.mockReset().mockImplementation(async () => ({ enabled, shadowMode }));
   loadMock.mockReset().mockImplementation(async (_db: unknown, _type: unknown, id: string) => {
     if (throwOnLoad.has(id)) throw new Error("db blip");
     return subjects[id] ?? null;
@@ -206,6 +257,16 @@ describe("runTriageJob", () => {
     expect(dispatchMock).not.toHaveBeenCalled();
     expect(assessMock).not.toHaveBeenCalled();
     expect(prismaMock.triageJob.update).not.toHaveBeenCalled();
+  });
+
+  it("Knox disabled → 'disabled' before claiming: no claim, no load, job stays pending", async () => {
+    setup("inc-1", "serious");
+    enabled = false;
+    expect(await runTriageJob("job-1", NOW)).toBe("disabled");
+    expect(prismaMock.triageJob.updateMany).not.toHaveBeenCalled();
+    expect(loadMock).not.toHaveBeenCalled();
+    expect(dispatchMock).not.toHaveBeenCalled();
+    expect(jobs["job-1"].status).toBe("pending");
   });
 
   it("missing/deleted subject → job skipped", async () => {
@@ -316,7 +377,6 @@ describe("runTriageJob", () => {
       where: {
         subjectType: "incident",
         subjectId: "inc-1",
-        alerted: true,
         createdAt: { gte: new Date(NOW.getTime() - STALE_BACKLOG_MS) },
         alerts: { some: {} },
       },
@@ -364,6 +424,13 @@ describe("runTriageJob", () => {
 
     expect(assessmentCreates()[0]).toMatchObject({ tier: "minor", alerted: false });
     expect(assessmentUpdates()).toContainEqual({ alerted: true });
+    // `alerted` is set BEFORE the push, the same as level 0.
+    const flagCall = prismaMock.triageAssessment.update.mock.calls.findIndex(
+      (c: [{ data: Record<string, unknown> }]) => c[0].data.alerted === true,
+    );
+    expect(prismaMock.triageAssessment.update.mock.invocationCallOrder[flagCall]).toBeLessThan(
+      dispatchMock.mock.invocationCallOrder[0],
+    );
     expect(cardRows()).toContainEqual(
       expect.objectContaining({ kind: "set_severity", payload: { severity: "serious" }, assessmentId: "asmt-1" }),
     );
@@ -430,19 +497,16 @@ describe("runTriageJob", () => {
     expect(body).toContain("db blip");
   });
 
-  it("exception mid-run after the alert went out: the retry reuses this job's assessment row and does not re-alert", async () => {
+  it("exception mid-run after the alert went out: the retry reuses this job's assessment row, re-runs model + cards, and does not re-alert", async () => {
     setup("inc-1", "serious");
-    prismaMock.aiUsage.create.mockImplementation(async () => ({ id: "usage-1" }));
+    model = modelOk({ followUpTodos: [{ title: "Ring the family", dueInDays: 1 }] });
     prismaMock.pendingAction.createMany.mockImplementation(async () => {
       throw new Error("pool timeout");
     });
-    model = modelOk({ followUpTodos: [{ title: "Ring the family", dueInDays: 1 }] });
     expect(await runTriageJob("job-1", NOW)).toBe("retry");
     expect(dispatchMock).toHaveBeenCalledTimes(1);
+    expect(assessMock).toHaveBeenCalledTimes(1);
 
-    // Second attempt: the first attempt's row (alerted, with alert rows) exists.
-    existingForJob["job-1"] = { id: "asmt-1", alerted: true };
-    priorAlerted["inc-1"] = [{ tier: "serious" }];
     prismaMock.pendingAction.createMany.mockImplementation(async (a: { data: unknown[] }) => ({ count: a.data.length }));
     prismaMock.triageAssessment.create.mockClear();
     prismaMock.triageAssessment.update.mockClear();
@@ -450,6 +514,11 @@ describe("runTriageJob", () => {
 
     expect(await runTriageJob("job-1", NOW)).toBe("done");
     expect(dispatchMock).toHaveBeenCalledTimes(1);
+    expect(assessMock).toHaveBeenCalledTimes(2);
+    expect(prismaMock.pendingAction.createMany).toHaveBeenCalledTimes(2);
+    expect(prismaMock.pendingAction.createMany.mock.calls[1][0].data).toEqual([
+      expect.objectContaining({ kind: "create_followup_todos", assessmentId: "asmt-1" }),
+    ]);
     expect(prismaMock.triageAssessment.delete).not.toHaveBeenCalled();
     expect(prismaMock.triageAssessment.create).not.toHaveBeenCalled();
     // The reused row keeps alerted:true so the escalation sweep still sees it.
@@ -457,6 +526,54 @@ describe("runTriageJob", () => {
       where: { id: "asmt-1" },
       data: { tier: "serious", alerted: true, source: "rules_only", modelError: null },
     });
+    expect(store["asmt-1"].alerted).toBe(true);
+  });
+
+  it("dispatchLevel throws on attempt 1 (no alert rows) → the retry dispatches again", async () => {
+    setup("inc-1", "serious");
+    dispatchMock.mockImplementation(async () => {
+      throw new Error("could not record alert rows");
+    });
+    expect(await runTriageJob("job-1", NOW)).toBe("retry");
+    // The row says alerted, but nothing proves an alert went out.
+    expect(store["asmt-1"].alerted).toBe(true);
+    expect(alertRows.size).toBe(0);
+
+    dispatchMock.mockImplementation(async (_db: unknown, args: { assessmentId: string }) => {
+      alertRows.add(args.assessmentId);
+      return true;
+    });
+    jobs["job-1"].status = "pending";
+    expect(await runTriageJob("job-1", NOW)).toBe("done");
+    expect(dispatchMock).toHaveBeenCalledTimes(2);
+    expect(dispatchMock.mock.calls[1][1]).toMatchObject({ assessmentId: "asmt-1", level: 0 });
+  });
+
+  it("safety net is sent at most once across retries, whichever write fails", async () => {
+    setup("inc-1", "minor", {}, incident("inc-1", { severity: "minor" }));
+    model = modelOk({ severityOpinion: "understated", suggestedSeverity: "serious" });
+
+    // Attempt 1: setting `alerted` fails → nothing was pushed.
+    failAlertedUpdate = true;
+    expect(await runTriageJob("job-1", NOW)).toBe("retry");
+    expect(dispatchMock).not.toHaveBeenCalled();
+
+    // Attempt 2: the push goes out, then the final write fails.
+    failAlertedUpdate = false;
+    prismaMock.pendingAction.createMany.mockImplementation(async () => {
+      throw new Error("pool timeout");
+    });
+    jobs["job-1"].status = "pending";
+    expect(await runTriageJob("job-1", NOW)).toBe("retry");
+    expect(dispatchMock).toHaveBeenCalledTimes(1);
+
+    // Attempt 3: the alert rows exist — even with the flag forced back to
+    // false, the dedupe (keyed on alert rows) must not push again.
+    store["asmt-1"].alerted = false;
+    prismaMock.pendingAction.createMany.mockImplementation(async (a: { data: unknown[] }) => ({ count: a.data.length }));
+    jobs["job-1"].status = "pending";
+    expect(await runTriageJob("job-1", NOW)).toBe("done");
+    expect(dispatchMock).toHaveBeenCalledTimes(1);
   });
 
   it("recipients.noDirector is passed through to dispatchLevel unchanged (the ops note is dispatch's job, not the worker's)", async () => {
@@ -495,6 +612,26 @@ describe("runTriageJob", () => {
 });
 
 describe("sweepJobs", () => {
+  const due = (ids: string[]) =>
+    prismaMock.triageJob.findMany.mockImplementation(async (args: { take: number }) =>
+      ids.map((id) => ({ id })).slice(0, args.take),
+    );
+  const runningCount = (n: number) =>
+    prismaMock.triageJob.updateMany.mockImplementation(
+      async (args: { where: { id?: string; status: string }; data: { attempts?: { increment: number } } }) => {
+        if (args.where.status === "running") return { count: n };
+        const j = args.where.id ? jobs[args.where.id] : undefined;
+        if (!j || j.status !== "pending") return { count: 0 };
+        j.status = "running";
+        j.attempts += args.data.attempts?.increment ?? 0;
+        return { count: 1 };
+      },
+    );
+  const claimedIds = () =>
+    prismaMock.triageJob.updateMany.mock.calls
+      .map((c: [{ where: { id?: string } }]) => c[0].where.id)
+      .filter(Boolean);
+
   it("sweepJobs processes at most `limit` pending jobs with scheduledFor <= now, oldest first", async () => {
     jobs["job-a"] = job("job-a", "inc-a");
     jobs["job-b"] = job("job-b", "inc-b", { status: "running" }); // lost the claim race
@@ -504,23 +641,77 @@ describe("sweepJobs", () => {
     tiers["inc-a"] = "minor";
     tiers["inc-c"] = "minor";
     throwOnLoad.add("inc-c");
-    prismaMock.triageJob.findMany.mockImplementation(async (args: { take: number }) =>
-      [{ id: "job-a" }, { id: "job-b" }, { id: "job-c" }].slice(0, args.take),
-    );
+    runningCount(0);
+    due(["job-a", "job-b", "job-c"]);
 
-    expect(await sweepJobs(NOW, 3)).toEqual({ processed: 2 });
+    expect(await sweepJobs(NOW, { limit: 3 })).toEqual({ processed: 2, reaped: 0 });
     expect(prismaMock.triageJob.findMany).toHaveBeenCalledWith({
       where: { status: "pending", scheduledFor: { lte: NOW } },
       orderBy: { scheduledFor: "asc" },
       take: 3,
       select: { id: true },
     });
-    const claimed = prismaMock.triageJob.updateMany.mock.calls.map((c: [{ where: { id: string } }]) => c[0].where.id);
-    expect(claimed).toEqual(["job-a", "job-b", "job-c"]);
+    expect(claimedIds()).toEqual(["job-a", "job-b", "job-c"]);
 
     prismaMock.triageJob.findMany.mockClear();
     await sweepJobs(NOW);
-    expect(prismaMock.triageJob.findMany.mock.calls[0][0].take).toBe(25);
+    expect(prismaMock.triageJob.findMany.mock.calls[0][0].take).toBe(10);
+  });
+
+  it("reaps jobs stuck in running past STALE_RUNNING_MS back to pending before pulling due jobs", async () => {
+    runningCount(2);
+    due([]);
+    expect(STALE_RUNNING_MS).toBe(10 * 60 * 1000);
+    expect(await sweepJobs(NOW)).toEqual({ processed: 0, reaped: 2 });
+    expect(prismaMock.triageJob.updateMany).toHaveBeenCalledWith({
+      where: { status: "running", startedAt: { lt: new Date(NOW.getTime() - STALE_RUNNING_MS) } },
+      data: { status: "pending", scheduledFor: NOW, lastError: "reaped: stale running" },
+    });
+    expect(prismaMock.triageJob.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
+      prismaMock.triageJob.findMany.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("a reaped job is picked up and run in the same sweep", async () => {
+    jobs["job-a"] = job("job-a", "inc-a", { status: "running", attempts: 1 });
+    subjects["inc-a"] = incident("inc-a");
+    tiers["inc-a"] = "minor";
+    prismaMock.triageJob.updateMany.mockImplementation(
+      async (args: { where: { id?: string; status: string }; data: { attempts?: { increment: number } } }) => {
+        if (args.where.status === "running") {
+          jobs["job-a"].status = "pending";
+          return { count: 1 };
+        }
+        const j = jobs[args.where.id ?? ""];
+        if (!j || j.status !== "pending") return { count: 0 };
+        j.status = "running";
+        j.attempts += args.data.attempts?.increment ?? 0;
+        return { count: 1 };
+      },
+    );
+    due(["job-a"]);
+    expect(await sweepJobs(NOW)).toEqual({ processed: 1, reaped: 1 });
+    expect(jobUpdates()).toContainEqual({ status: "done", finishedAt: expect.any(Date) });
+  });
+
+  it("stops pulling new jobs once the time budget is spent (budget 0 → exactly one job)", async () => {
+    for (const k of ["a", "b", "c"]) {
+      jobs[`job-${k}`] = job(`job-${k}`, `inc-${k}`);
+      subjects[`inc-${k}`] = incident(`inc-${k}`);
+      tiers[`inc-${k}`] = "minor";
+    }
+    runningCount(0);
+    due(["job-a", "job-b", "job-c"]);
+    expect(await sweepJobs(NOW, { budgetMs: 0 })).toEqual({ processed: 1, reaped: 0 });
+    expect(claimedIds()).toEqual(["job-a"]);
+    expect(jobs["job-b"].status).toBe("pending");
+  });
+
+  it("returns early while Knox is disabled: no reap, no pull", async () => {
+    enabled = false;
+    expect(await sweepJobs(NOW)).toEqual({ processed: 0, reaped: 0 });
+    expect(prismaMock.triageJob.updateMany).not.toHaveBeenCalled();
+    expect(prismaMock.triageJob.findMany).not.toHaveBeenCalled();
   });
 
   it("one job throwing does not stop the rest", async () => {
@@ -528,11 +719,12 @@ describe("sweepJobs", () => {
     jobs["job-b"] = job("job-b", "inc-b");
     subjects["inc-b"] = incident("inc-b");
     tiers["inc-b"] = "minor";
-    prismaMock.triageJob.findMany.mockImplementation(async () => [{ id: "job-a" }, { id: "job-b" }]);
-    prismaMock.triageJob.updateMany.mockImplementation(async (args: { where: { id: string } }) => {
+    due(["job-a", "job-b"]);
+    prismaMock.triageJob.updateMany.mockImplementation(async (args: { where: { id?: string; status: string } }) => {
+      if (args.where.status === "running") return { count: 0 };
       if (args.where.id === "job-a") throw new Error("claim failed");
       return { count: 1 };
     });
-    expect(await sweepJobs(NOW)).toEqual({ processed: 1 });
+    expect(await sweepJobs(NOW)).toEqual({ processed: 1, reaped: 0 });
   });
 });
