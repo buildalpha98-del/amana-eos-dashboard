@@ -85,6 +85,7 @@ export const PARENT_JOURNEY: JourneyStage[] = [
       { id: "owna_existing", overrideKey: "parent.ownaExisting", usesCentreContent: true, name: "You're all set in OWNA", when: "When \"Existing OWNA access\" is ticked", status: "new" },
       { id: "owna_nudge", overrideKey: "parent.ownaNudge", usesCentreContent: true, name: "Did your OWNA invitation arrive?", when: "3 days after the invitation, if they haven't got in (centre alerted too)", status: "new" },
       { id: "first_day_confirmed", overrideKey: "parent.firstDayConfirmed", usesCentreContent: true, name: "You're booked in! First day confirmed", when: "When \"First sessions confirmed\" is ticked with the date", status: "new", note: "Also re-times the day-before reminder and check-ins to that real date." },
+      { id: "casual_bookings", overrideKey: "parent.casualBookings", usesCentreContent: true, name: "You're all set to book (casual bookings)", when: "When \"First sessions confirmed\" is ticked as casual bookings only", status: "new", note: "How to book in OWNA or by email, with the welcome pack attached." },
       { name: "OWNA setup list for staff", when: "Enrolments → Follow-ups, until the checklist is done", status: "new" },
     ],
   },

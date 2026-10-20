@@ -14,7 +14,7 @@ import {
   readHandoff,
 } from "@/lib/owna-handoff";
 import { runAfter } from "@/lib/run-after";
-import { onHandoffStepCompleted } from "@/lib/owna-handover";
+import { alertCentreFirstDay, onHandoffStepCompleted } from "@/lib/owna-handover";
 
 const include = {
   childRecords: {
@@ -186,6 +186,12 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     // Families from before the checklist started are never emailed.
     if (action === "complete" && step && done && notifyFamily !== false && !result.legacy) {
       runAfter(() => onHandoffStepCompleted(id, step, done));
+    }
+    // 2026-10-20: a confirmed first day always tells the centre (with the
+    // Proven Process), even when the family email is unticked.
+    if (action === "complete" && step === "sessions" && done?.firstDay && !result.legacy) {
+      const firstDay = done.firstDay;
+      runAfter(() => alertCentreFirstDay(id, firstDay));
     }
     return NextResponse.json({ revision: result.revision, state: result.state });
   } catch (err) {

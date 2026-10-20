@@ -21,7 +21,7 @@ vi.mock("@/lib/logger", () => ({
 import { sendEmail } from "@/lib/email";
 import { notifyUsers } from "@/lib/notify-user";
 import { syncParentJourney } from "@/lib/parent-journey";
-import { onHandoffStepCompleted, runOwnaNudges } from "@/lib/owna-handover";
+import { alertCentreFirstDay, onHandoffStepCompleted, runOwnaNudges } from "@/lib/owna-handover";
 import { rescheduleFirstSession } from "@/lib/nurture-scheduler";
 import { handoffPatchSchema } from "@/lib/owna-handoff";
 
@@ -71,6 +71,49 @@ describe("ticking the OWNA checklist emails the family", () => {
     expect(vi.mocked(syncParentJourney)).toHaveBeenCalledWith(
       expect.objectContaining({ stage: "first_session", firstSessionDate: new Date("2026-10-21T00:00:00Z"), serviceId: "svc-ga" }),
     );
+  });
+
+  // Daniel, 20 Oct 2026: casual-only families still hear from us, and get
+  // the welcome pack like everyone else.
+  it("casual bookings only → 'ready to book' email with the welcome pack, no first-day series", async () => {
+    prismaMock.service.findUnique.mockResolvedValue({
+      name: "Amana OSHC MFIS Greenacre",
+      code: "MFIS-GA",
+      phone: "0494 379 929",
+      email: "mfisgreenacre@amanaoshc.com.au",
+      sessionTimes: null,
+      content: { welcomePackUrl: "https://blob.example.test/pack.pdf" },
+      managerId: null,
+    });
+    await onHandoffStepCompleted("e1", "sessions", { at: "t", casual: true });
+    const call = vi.mocked(sendEmail).mock.calls[0];
+    const m = call[0] as { to: string; subject: string; html: string; attachments?: { path: string }[] };
+    expect(m.to).toBe("sarah@example.test");
+    expect(m.subject).toBe("You're ready to book, Sarah — Yusuf is set up in OWNA");
+    expect(m.html).toContain("Book in the OWNA app");
+    expect(m.html).toContain("mfisgreenacre@amanaoshc.com.au");
+    expect(m.html).not.toContain("{{");
+    expect(m.attachments?.[0].path).toBe("https://blob.example.test/pack.pdf");
+    expect(call[1]).toEqual({ idempotencyKey: "casual-bookings-e1-t" });
+    expect(vi.mocked(syncParentJourney)).not.toHaveBeenCalled();
+  });
+
+  it("first day confirmed → the centre is told, with the Proven Process attached", async () => {
+    prismaMock.enrolmentSubmission.findUnique.mockResolvedValue({
+      serviceId: "svc-ga",
+      children: [],
+      primaryParent: { firstName: "Sarah", surname: "Khan", mobile: "0400 000 000" },
+      childRecords: [{ firstName: "Yusuf" }],
+    });
+    await alertCentreFirstDay("e1", "2026-10-21");
+    const [m] = vi.mocked(sendEmail).mock.calls.map((c) => c[0] as { to: string; subject: string; html: string; attachments?: { filename: string; path: string }[] });
+    expect(m.to).toBe("mfisgreenacre@amanaoshc.com.au");
+    expect(m.subject).toBe("Booked in: Yusuf's first day is Wednesday 21 October");
+    expect(m.html).toContain("Sarah Khan, 0400 000 000");
+    expect(m.html).toContain("Amana Proven Process");
+    expect(m.attachments?.[0]).toMatchObject({ filename: "Amana Proven Process.png" });
+    expect(m.attachments?.[0].path).toMatch(/\/Amana_PP\.png$/);
+    expect(vi.mocked(notifyUsers).mock.calls[0][2].title).toBe("Booked in: Yusuf starts Wednesday 21 October");
   });
 
   it("other steps send nothing", async () => {

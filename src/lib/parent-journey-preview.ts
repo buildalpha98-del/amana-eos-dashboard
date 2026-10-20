@@ -11,6 +11,7 @@ import { UNSUBSCRIBE_URL_TOKEN } from "@/lib/email-templates/base";
 import { enrolmentWelcomeEmail } from "@/lib/email-templates/enrolment-welcome";
 import { centreWelcomeData } from "@/lib/enrolment-welcome";
 import {
+  casualBookingsEmail,
   firstDayConfirmedEmail,
   ownaExistingEmail,
   ownaInvitationEmail,
@@ -23,6 +24,7 @@ const HANDOVER: Record<string, typeof ownaInvitationEmail> = {
   owna_invitation: ownaInvitationEmail,
   owna_existing: ownaExistingEmail,
   first_day_confirmed: firstDayConfirmedEmail,
+  casual_bookings: casualBookingsEmail,
   owna_nudge: ownaNudgeEmail,
 };
 
@@ -57,7 +59,7 @@ export async function renderJourneyEmail(
     const d = new Date();
     d.setUTCDate(d.getUTCDate() + ((9 - d.getUTCDay()) % 7 || 7));
     // "You're booked in!" goes out with the welcome pack attached.
-    if (id === "first_day_confirmed" && centre.welcomePackUrl)
+    if ((id === "first_day_confirmed" || id === "casual_bookings") && centre.welcomePackUrl)
       attachments = [{ filename: `Amana OSHC welcome pack - ${centre.centreName}.pdf`, path: centre.welcomePackUrl }];
     out = await HANDOVER[id]({
       ...centre,

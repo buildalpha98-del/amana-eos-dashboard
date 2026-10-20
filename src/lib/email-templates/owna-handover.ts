@@ -5,6 +5,7 @@
  *   ownaInvitationEmail   — "Invitation sent": how to get into OWNA, step by step
  *   ownaExistingEmail     — "Existing access": you're all set, use your login
  *   firstDayConfirmedEmail— "First sessions confirmed": the real first day
+ *   casualBookingsEmail   — "Casual bookings only": OWNA's ready, how to book
  *   ownaNudgeEmail        — invitation sent 3+ days ago, still no access
  *
  * Same look and centre details as the welcome email. Wording editable at
@@ -188,6 +189,54 @@ ${signOff}`,
         : "",
     },
     wrap: (b) => parentEmailLayout(b, { transactional: true, preheader: `${day} — session times, where to find us and what to expect.` }),
+  }).then((r) => ({ ...r, subject: plain(r.subject) }));
+}
+
+// ── Casual bookings only ─────────────────────────────────────
+
+/**
+ * Daniel, 20 Oct 2026: a casual-only family has no first day, but still
+ * hears from us — their OWNA account is ready, here's how to book, and
+ * the welcome pack, same as everyone else.
+ */
+export async function casualBookingsEmail(d: HandoverEmailData) {
+  const v = baseVars(d);
+  const centreEmail = escapeHtml(d.centreEmail || "enrolments@amanaoshc.com.au");
+  const steps = numberedSteps([
+    {
+      title: "Book in the OWNA app",
+      body: `Open <strong>OWNA</strong>, choose the day and session you need for ${v.childNames}, and send the booking. You'll see it confirmed in the app.`,
+    },
+    {
+      title: "Or email us",
+      body: `Send <a href="mailto:${centreEmail}" style="color:${GREEN};font-weight:700;word-break:break-all;">${centreEmail}</a> your child's name, the date and the session, and we'll book it in OWNA for you.`,
+    },
+  ]);
+  return applyEmailTemplateOverride({
+    key: "parent.casualBookings",
+    defaultSubject: "You're ready to book, {{firstName}} — {{childNamesPlain}} is set up in OWNA",
+    defaultBody: `
+<h1 style="margin:0 0 12px;color:${GREEN};font-size:24px;font-weight:700;line-height:1.25;">You're all set to book</h1>
+<p style="margin:0 0 16px;color:${BODY};font-size:15px;line-height:1.7;">
+  Assalamu alaikum {{firstName}}! Just letting you know we've successfully set {{childNames}} up in your
+  <strong>OWNA</strong> account at <strong>{{centreName}}</strong>. We can see you're looking for casual bookings,
+  so there's no set first day — book whenever you need us. Here's how:
+</p>
+{{steps}}
+{{coordinatorCard}}
+{{welcomePack}}
+{{helpLine}}
+${signOff}`,
+    vars: {
+      ...v,
+      steps,
+      coordinatorCard: coordinatorCard({ ...d, program: [], welcomeNote: null, verifyLink: null }),
+      // The PDF itself is attached by the sender (onHandoffStepCompleted).
+      welcomePack: d.welcomePackUrl
+        ? `<p style="margin:0 0 16px;color:${BODY};font-size:15px;line-height:1.7;">&#128206; <strong>Your welcome pack is attached</strong> — our day, food, policies and who to call at ${escapeHtml(d.centreName)}.</p>`
+        : "",
+    },
+    wrap: (b) => parentEmailLayout(b, { transactional: true, preheader: "Book a casual session in the OWNA app, or just email us." }),
   }).then((r) => ({ ...r, subject: plain(r.subject) }));
 }
 

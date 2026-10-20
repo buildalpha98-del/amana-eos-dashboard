@@ -165,7 +165,7 @@ export function OwnaHandoffPanel({
     if (pending === "sessions")
       mutation.mutate(
         sessionsKind === "casual"
-          ? { action: "complete", step: "sessions", casual: true }
+          ? { action: "complete", step: "sessions", casual: true, notifyFamily: emailFamily }
           : { action: "complete", step: "sessions", firstDay, notifyFamily: emailFamily },
       );
   };
@@ -339,6 +339,12 @@ export function OwnaHandoffPanel({
                           hint="“You're booked in!” with the first day, session times, where to find us, the centre's phone and what to expect. The day-before reminder and first-week check-ins are timed from this date."
                         />
                       )}
+                      {!legacy && (
+                        <p className="text-xs text-muted">
+                          The centre is emailed too: the child is booked in, their first
+                          day, and the Amana Proven Process to follow.
+                        </p>
+                      )}
                     </div>
                   )}
                   <label className="flex items-center gap-2">
@@ -349,11 +355,14 @@ export function OwnaHandoffPanel({
                     />
                     Casual bookings only
                   </label>
-                  {sessionsKind === "casual" && (
-                    <p className="ml-6 text-xs text-muted">
-                      No first-day email. The family won&apos;t get the
-                      &ldquo;anything stopping you starting?&rdquo; check-in either.
-                    </p>
+                  {sessionsKind === "casual" && !legacy && (
+                    <div className="ml-6">
+                      <EmailFamily
+                        checked={notifyFamily}
+                        onChange={setNotifyFamily}
+                        hint="“You're all set to book”: their OWNA account is ready, how to book a casual session in the app or by email, the coordinator's details and the welcome pack. No first-day reminders or “anything stopping you starting?” check-in."
+                      />
+                    </div>
                   )}
                   <div className="flex gap-2">
                     <Button
