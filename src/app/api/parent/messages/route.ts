@@ -194,7 +194,7 @@ export const POST = withParentAuth(async (req, { parent }) => {
   const resolvedServiceId = serviceId ?? serviceIds[0];
   if (!resolvedServiceId) {
     throw ApiError.badRequest(
-      "We're still matching your enrolment to a centre. Please email enrolments@amanaoshc.com.au and we'll help straight away.",
+      "We're still matching your enrolment to a centre. Please email enrolment@amanaoshc.com.au and we'll help straight away.",
     );
   }
 

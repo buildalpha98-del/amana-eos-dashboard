@@ -886,7 +886,7 @@ export async function nurtureDay1CheckinEmail(
     </p>
     <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.7;">
       PS — if they're already asking to go back, you can book extra days in the
-      <strong>OWNA app</strong>, or email enrolments@amanaoshc.com.au and we'll add them for you.
+      <strong>OWNA app</strong>, email enrolment@amanaoshc.com.au or call 1300 200 262, and we'll add them for you.
     </p>
   `,
     vars: {
@@ -1425,9 +1425,10 @@ export function retentionTermTransitionEmail(
       </tr>
     </table>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      <strong>Need to change your days?</strong> Just reply to this email with what you
-      need and we'll update everything for you. If you'd like to add extra days, let us
-      know — we'll check availability.
+      <strong>Need to change your days?</strong> Email
+      <a href="mailto:enrolment@amanaoshc.com.au" style="color:#004E64;font-weight:700;">enrolment@amanaoshc.com.au</a>
+      or call <a href="tel:1300200262" style="color:#004E64;font-weight:700;">1300 200 262</a> with what you
+      need and we'll update everything for you. Extra days too — we'll check availability.
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Here's to another great term together!
@@ -1483,7 +1484,8 @@ export async function retentionWithdrawalInterceptEmail(firstName: string, centr
       to know.
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Reply to this email or call the centre — we'd love 5 minutes of your time.
+      Reply to this email or call us on
+      <a href="tel:1300200262" style="color:#004E64;font-weight:700;">1300 200 262</a> — we'd love 5 minutes of your time.
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       With care,<br/>

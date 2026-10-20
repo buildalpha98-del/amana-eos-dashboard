@@ -211,8 +211,12 @@ function ThankYouContent() {
         </>
       ) : (
         <p className="text-center text-sm text-[color:var(--color-muted)] leading-relaxed">
-          Need to change something before then? Reply to your confirmation
-          email{centre?.phone || centre?.email ? " or contact your centre above" : ""}.
+          Need to change something before then? Call{" "}
+          <a href="tel:1300200262" className="font-semibold underline">1300 200 262</a> or email{" "}
+          <a href="mailto:enrolment@amanaoshc.com.au" className="font-semibold underline">
+            enrolment@amanaoshc.com.au
+          </a>
+          .
         </p>
       )}
     </div>

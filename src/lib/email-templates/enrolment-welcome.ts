@@ -14,6 +14,8 @@
  */
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 import { buttonHtml, escapeHtml, parentEmailLayout } from "./base";
+import { FAMILY_BOOKINGS_EMAIL, FAMILY_BOOKINGS_PHONE, bookingsContactHtml } from "@/lib/family-contact";
+import { croppedCoordinatorPhoto } from "@/lib/coordinator-photo";
 import { DEFAULT_FIRST_SESSION_TIPS } from "@/lib/centre-welcome-defaults";
 
 export { DEFAULT_FIRST_SESSION_TIPS };
@@ -72,10 +74,10 @@ export function joinNames(names: string[], fallback = "your child"): string {
 }
 
 export function coordinatorCard(d: EnrolmentWelcomeData) {
-  if (!d.coordinatorName && !d.centrePhone) return "";
+  // Always shown now: it carries the bookings contact too (20 Oct 2026).
   const photo = d.coordinatorPhoto
     ? `<td width="76" valign="top" style="padding-right:14px;">
-         <img src="${escapeHtml(d.coordinatorPhoto)}" alt="${escapeHtml(d.coordinatorName ?? "Your coordinator")}" width="70" height="70"
+         <img src="${escapeHtml(croppedCoordinatorPhoto(d.coordinatorPhoto))}" alt="${escapeHtml(d.coordinatorName ?? "Your coordinator")}" width="70" height="70"
               style="display:block;width:70px;height:70px;border-radius:50%;border:3px solid ${JONQUIL};object-fit:cover;" />
        </td>`
     : "";
@@ -95,9 +97,10 @@ export function coordinatorCard(d: EnrolmentWelcomeData) {
           <p style="margin:0 0 2px;color:${GREEN};font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Your coordinator</p>
           ${d.coordinatorName ? `<p style="margin:0 0 6px;color:${GREEN};font-size:20px;font-weight:700;">${escapeHtml(d.coordinatorName)}</p>` : ""}
           <p style="margin:0 0 6px;color:${BODY};font-size:14px;line-height:1.6;">
-            ${d.coordinatorName ? `${escapeHtml(d.coordinatorName.split(" ")[0])} and the team will` : "Our team will"} be there to welcome you. Any questions, call the centre:
+            ${d.coordinatorName ? `${escapeHtml(d.coordinatorName.split(" ")[0])} and the team will` : "Our team will"} be there to welcome you.${contact ? " On the day — drop-off, pick-up or checking on your child — call the centre:" : ""}
           </p>
-          ${contact ? `<p style="margin:0;font-size:14px;line-height:1.7;">${contact}</p>` : ""}
+          ${contact ? `<p style="margin:0 0 8px;font-size:14px;line-height:1.7;">${contact}</p>` : ""}
+          <p style="margin:0;color:${BODY};font-size:13px;line-height:1.6;">Bookings, changes or fees: ${bookingsContactHtml(GREEN)}.</p>
         </td>
       </tr></table>
     </td></tr>
@@ -176,15 +179,15 @@ function programBlock(d: EnrolmentWelcomeData) {
 }
 
 function extraDaysBlock(d: EnrolmentWelcomeData) {
-  const email = d.centreEmail || "enrolments@amanaoshc.com.au";
+  const email = FAMILY_BOOKINGS_EMAIL;
   return `
   <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;border-left:4px solid ${JONQUIL};">
     <tr><td style="padding:4px 0 4px 16px;">
       <p style="margin:0 0 4px;color:${GREEN};font-size:16px;font-weight:700;">Like the look of something? Add an extra day.</p>
       <p style="margin:0;color:${BODY};font-size:14px;line-height:1.6;">
-        Book it in the <strong>OWNA app</strong>, or email
+        Book it in the <strong>OWNA app</strong>, email
         <a href="mailto:${escapeHtml(email)}" style="color:${GREEN};font-weight:700;word-break:break-all;">${escapeHtml(email)}</a>
-        and we'll add it for you.
+        or call <strong>${FAMILY_BOOKINGS_PHONE}</strong>, and we'll add it for you.
       </p>
     </td></tr>
   </table>`;

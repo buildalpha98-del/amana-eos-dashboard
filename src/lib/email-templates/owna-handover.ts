@@ -14,6 +14,7 @@
 import { DEFAULT_FIRST_DAY_EXPECT } from "@/lib/centre-welcome-defaults";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 import { escapeHtml, parentEmailLayout } from "./base";
+import { FAMILY_BOOKINGS_EMAIL, bookingsContactHtml } from "@/lib/family-contact";
 import {
   BODY,
   CHIFFON,
@@ -61,12 +62,10 @@ function numberedSteps(steps: { title: string; body: string }[]) {
   </table>`;
 }
 
-function helpLine(d: HandoverEmailData) {
-  const bits = [
-    d.centrePhone ? `call us on <strong>${escapeHtml(d.centrePhone)}</strong>` : "",
-    `email <a href="mailto:${escapeHtml(d.centreEmail || "enrolments@amanaoshc.com.au")}" style="color:${GREEN};font-weight:700;word-break:break-all;">${escapeHtml(d.centreEmail || "enrolments@amanaoshc.com.au")}</a>`,
-  ].filter(Boolean);
-  return p(`Stuck at any step? ${bits.join(" or ")} and we'll sort it out with you.`);
+// OWNA, bookings and fees always go to the enrolments team, never the
+// centre (Daniel, 20 Oct 2026 — see family-contact.ts).
+function helpLine(_d: HandoverEmailData) {
+  return p(`Stuck at any step, or need to change a booking? ${bookingsContactHtml(GREEN)} and we'll sort it out with you.`);
 }
 
 const signOff = `<p style="margin:16px 0 0;color:${BODY};font-size:15px;line-height:1.7;">Jazak Allahu Khairan,<br/><strong>The {{centreName}} team</strong></p>`;
@@ -170,13 +169,14 @@ export async function firstDayConfirmedEmail(d: HandoverEmailData) {
 {{firstSessionBlock}}
 {{welcomePack}}
 <p style="margin:0 0 16px;color:${BODY};font-size:15px;line-height:1.7;">
-  We'll send a quick reminder the day before. Need to change the date? Let us know and we'll sort it out in OWNA.
+  We'll send a quick reminder the day before. Need to change the date or your days? {{bookingsContact}} and we'll sort it out in OWNA.
 </p>
 ${signOff}`,
     vars: {
       ...baseVars(d),
       firstDay: escapeHtml(day),
       firstDayPlain: day,
+      bookingsContact: bookingsContactHtml(GREEN).replace(/^call/, "Call"),
       dateCard,
       coordinatorCard: coordinatorCard({ ...d, program: [], welcomeNote: null, verifyLink: null }),
       firstSessionBlock: firstSessionBlock(
@@ -201,7 +201,7 @@ ${signOff}`,
  */
 export async function casualBookingsEmail(d: HandoverEmailData) {
   const v = baseVars(d);
-  const centreEmail = escapeHtml(d.centreEmail || "enrolments@amanaoshc.com.au");
+  const bookingsEmail = escapeHtml(FAMILY_BOOKINGS_EMAIL);
   const steps = numberedSteps([
     {
       title: "Book in the OWNA app",
@@ -209,7 +209,7 @@ export async function casualBookingsEmail(d: HandoverEmailData) {
     },
     {
       title: "Or email us",
-      body: `Send <a href="mailto:${centreEmail}" style="color:${GREEN};font-weight:700;word-break:break-all;">${centreEmail}</a> your child's name, the date and the session, and we'll book it in OWNA for you.`,
+      body: `Send <a href="mailto:${bookingsEmail}" style="color:${GREEN};font-weight:700;word-break:break-all;">${bookingsEmail}</a> your child's name, the date and the session, and we'll book it in OWNA for you. Or call <strong>1300 200 262</strong>.`,
     },
   ]);
   return applyEmailTemplateOverride({

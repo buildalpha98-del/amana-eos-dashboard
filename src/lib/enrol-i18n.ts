@@ -45,7 +45,7 @@ export const ENROL_STRINGS_EN = {
   "wizard.button.resume": "Resume",
   "wizard.button.discard": "Discard and start fresh",
   "wizard.banner.translationPreview":
-    "translation coming soon. The form is showing in English for now. If anything is unclear, contact us on enrolments@amanaoshc.com.au.",
+    "translation coming soon. The form is showing in English for now. If anything is unclear, contact us on enrolment@amanaoshc.com.au.",
   "wizard.banner.savedProgress":
     "We saved your progress in this browser. Continue where you left off?",
   "wizard.error.title": "Please fix the following before continuing:",
@@ -62,7 +62,7 @@ export const ENROL_STRINGS_EN = {
   "intro.language.label": "Preferred language",
   "intro.language.preview": "Preview",
   "intro.language.disclaimer":
-    "Preview language. The form will show in English while we finalise the {language} translation. If anything is unclear, contact us on enrolments@amanaoshc.com.au.",
+    "Preview language. The form will show in English while we finalise the {language} translation. If anything is unclear, contact us on enrolment@amanaoshc.com.au.",
   "intro.button.continue": "Continue",
   "intro.footer.saveHint":
     "Your progress is saved in this browser as you go — you can close this tab and finish later.",

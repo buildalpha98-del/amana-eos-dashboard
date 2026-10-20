@@ -92,7 +92,7 @@ export async function enrolmentReceivedEmail(params: {
       soon as you see it — your fees can't be subsidised until you do.</p>
       <p style="font-size:13px;color:#6b7280;">Any questions in the
       meantime, contact us at
-      enrolments@amanaoshc.com.au.</p>
+      enrolment@amanaoshc.com.au.</p>
     `,
       { transactional: true },
     ),
@@ -145,7 +145,7 @@ export async function cardExpiryEmail(params: {
       <p style="font-size:13px;color:#6b7280;">It takes a minute in the
       Family Portal. If you've already updated it, please ignore this —
       and if anything looks wrong, contact us at
-      enrolments@amanaoshc.com.au.</p>
+      enrolment@amanaoshc.com.au.</p>
     `,
       "family",
     ),
@@ -235,7 +235,7 @@ export async function enrolmentApprovedEmail(params: {
       <p>Already using OWNA? Keep using your existing access for bookings,
       fees and daily updates. If your invitation hasn’t arrived, check your
       junk folder or contact our team.</p>
-      <p style="font-size:13px;color:#6b7280;">Any questions? Contact us at enrolments@amanaoshc.com.au.</p>
+      <p style="font-size:13px;color:#6b7280;">Any questions? Contact us at enrolment@amanaoshc.com.au.</p>
     `,
       { transactional: true },
     ),
@@ -290,7 +290,7 @@ export async function secondaryCarerInviteEmail(params: {
       — we never send one by email.</p>
       <p style="font-size:13px;color:#6b7280;">If you weren't expecting this,
       or you don't think you should be listed as a carer, please contact us at
-      enrolments@amanaoshc.com.au and we'll sort it out.</p>
+      enrolment@amanaoshc.com.au and we'll sort it out.</p>
     `,
       "family",
     ),

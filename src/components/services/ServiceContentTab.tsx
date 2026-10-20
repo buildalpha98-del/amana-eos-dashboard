@@ -11,6 +11,7 @@
  * 2026-05-16: introduced as part of the per-service-content rollout.
  */
 
+import { croppedCoordinatorPhoto } from "@/lib/coordinator-photo";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -701,7 +702,8 @@ export function ServiceContentTab({ serviceId }: Props) {
               {(content.welcomeCoordinatorPhoto || welcomeDefaults?.coordinatorPhoto) && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={content.welcomeCoordinatorPhoto || welcomeDefaults?.coordinatorPhoto || ""}
+                  // Same square crop the parent emails use (20 Oct 2026).
+                  src={croppedCoordinatorPhoto(content.welcomeCoordinatorPhoto || welcomeDefaults?.coordinatorPhoto || "", "")}
                   alt=""
                   className="h-12 w-12 shrink-0 rounded-full border-2 border-accent object-cover"
                 />

@@ -34,7 +34,7 @@ export const metadata: Metadata = {
 };
 
 const UPDATED = "1 August 2026";
-const CONTACT = "enrolments@amanaoshc.com.au";
+const CONTACT = "enrolment@amanaoshc.com.au";
 
 function Section({
   title,

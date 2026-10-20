@@ -7,6 +7,7 @@
  */
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 import { buttonHtml, escapeHtml, parentEmailLayout } from "./base";
+import { FAMILY_BOOKINGS_EMAIL, bookingsContactHtml } from "@/lib/family-contact";
 import { BODY, CHIFFON, GREEN, JONQUIL, joinNames, sectionTitle, type EnrolmentWelcomeData, type WelcomeProgramWeek } from "./enrolment-welcome";
 
 type Centre = Omit<EnrolmentWelcomeData, "verifyLink" | "program" | "welcomeNote">;
@@ -33,9 +34,8 @@ export async function noShowEmail(d: Centre & { links: Record<string, string> })
       </a></td></tr>`,
   ).join("");
   const answers = `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">${buttons}</table>`;
-  const contact = d.centrePhone
-    ? `Or call us any time on <strong>${escapeHtml(d.centrePhone)}</strong>.`
-    : `Or email <a href="mailto:${escapeHtml(d.centreEmail || "enrolments@amanaoshc.com.au")}" style="color:${GREEN};font-weight:700;">${escapeHtml(d.centreEmail || "enrolments@amanaoshc.com.au")}</a>.`;
+  // Starting, days and bookings: the enrolments team (20 Oct 2026).
+  const contact = `Or ${bookingsContactHtml(GREEN)}.`;
   return applyEmailTemplateOverride({
     key: "parent.noShow",
     defaultSubject: "Is anything stopping {{childNamesPlain}} starting, {{firstName}}?",
@@ -62,7 +62,7 @@ ${signOff}`,
 
 export async function extraDayEmail(d: Centre & { nextWeek: WelcomeProgramWeek | null }) {
   const child = joinNames(d.childNames);
-  const email = d.centreEmail || "enrolments@amanaoshc.com.au";
+  const email = FAMILY_BOOKINGS_EMAIL;
   const week = d.nextWeek?.activities.length
     ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background-color:${CHIFFON};border-radius:14px;">
         <tr><td style="padding:20px;">

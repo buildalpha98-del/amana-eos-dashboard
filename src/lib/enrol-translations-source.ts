@@ -34,7 +34,7 @@ export const ENROL_TRANSLATIONS_SOURCE: Record<string, LocaleDict> = {
     "wizard.button.resume": "متابعة",
     "wizard.button.discard": "تجاهل والبدء من جديد",
     "wizard.banner.translationPreview":
-      "الترجمة قادمة قريبًا. يعرض النموذج حاليًا باللغة الإنجليزية. إذا كان هناك أي شيء غير واضح، تواصلوا معنا عبر enrolments@amanaoshc.com.au.",
+      "الترجمة قادمة قريبًا. يعرض النموذج حاليًا باللغة الإنجليزية. إذا كان هناك أي شيء غير واضح، تواصلوا معنا عبر enrolment@amanaoshc.com.au.",
     "wizard.banner.savedProgress":
       "لقد حفظنا تقدمك في هذا المتصفح. هل تريد المتابعة من حيث توقفت؟",
     "wizard.error.title": "الرجاء تصحيح ما يلي قبل المتابعة:",
@@ -49,7 +49,7 @@ export const ENROL_TRANSLATIONS_SOURCE: Record<string, LocaleDict> = {
     "intro.language.label": "اللغة المفضلة",
     "intro.language.preview": "معاينة",
     "intro.language.disclaimer":
-      "لغة معاينة. سيظهر النموذج باللغة الإنجليزية بينما ننهي ترجمة {language}. إذا كان هناك أي شيء غير واضح، تواصلوا معنا عبر enrolments@amanaoshc.com.au.",
+      "لغة معاينة. سيظهر النموذج باللغة الإنجليزية بينما ننهي ترجمة {language}. إذا كان هناك أي شيء غير واضح، تواصلوا معنا عبر enrolment@amanaoshc.com.au.",
     "intro.button.continue": "متابعة",
     "intro.footer.saveHint":
       "يتم حفظ تقدمك في هذا المتصفح أثناء التنقل — يمكنك إغلاق هذا التبويب والإكمال لاحقًا.",
@@ -88,7 +88,7 @@ export const ENROL_TRANSLATIONS_SOURCE: Record<string, LocaleDict> = {
     "wizard.button.resume": "جاری رکھیں",
     "wizard.button.discard": "مسترد کریں اور نئے سرے سے شروع کریں",
     "wizard.banner.translationPreview":
-      "ترجمہ جلد آ رہا ہے۔ فارم فی الحال انگریزی میں دکھایا جا رہا ہے۔ اگر کچھ واضح نہ ہو تو ہم سے enrolments@amanaoshc.com.au پر رابطہ کریں۔",
+      "ترجمہ جلد آ رہا ہے۔ فارم فی الحال انگریزی میں دکھایا جا رہا ہے۔ اگر کچھ واضح نہ ہو تو ہم سے enrolment@amanaoshc.com.au پر رابطہ کریں۔",
     "wizard.banner.savedProgress":
       "ہم نے اس براؤزر میں آپ کی پیش رفت محفوظ کر لی ہے۔ کیا آپ جہاں چھوڑا تھا وہاں سے جاری رکھنا چاہتے ہیں؟",
     "wizard.error.title": "براہ کرم جاری رکھنے سے پہلے درج ذیل کو درست کریں:",
@@ -103,7 +103,7 @@ export const ENROL_TRANSLATIONS_SOURCE: Record<string, LocaleDict> = {
     "intro.language.label": "ترجیحی زبان",
     "intro.language.preview": "پیش نظارہ",
     "intro.language.disclaimer":
-      "پیش نظارہ زبان۔ جب تک ہم {language} کا ترجمہ مکمل کرتے ہیں، فارم انگریزی میں دکھایا جائے گا۔ اگر کچھ واضح نہ ہو تو ہم سے enrolments@amanaoshc.com.au پر رابطہ کریں۔",
+      "پیش نظارہ زبان۔ جب تک ہم {language} کا ترجمہ مکمل کرتے ہیں، فارم انگریزی میں دکھایا جائے گا۔ اگر کچھ واضح نہ ہو تو ہم سے enrolment@amanaoshc.com.au پر رابطہ کریں۔",
     "intro.button.continue": "جاری رکھیں",
     "intro.footer.saveHint":
       "آپ کی پیش رفت اس براؤزر میں محفوظ ہوتی رہتی ہے — آپ یہ ٹیب بند کر کے بعد میں مکمل کر سکتے ہیں۔",
@@ -142,7 +142,7 @@ export const ENROL_TRANSLATIONS_SOURCE: Record<string, LocaleDict> = {
     "wizard.button.resume": "Sii wad",
     "wizard.button.discard": "Iska tuur oo ku bilow cusub",
     "wizard.banner.translationPreview":
-      "turjumaad soo socota. Foomka wuxuu hadda ku muuqanayaa Ingiriisi. Haddii ay wax kula muuqato oo aan cad ahayn, nagala soo xiriir enrolments@amanaoshc.com.au.",
+      "turjumaad soo socota. Foomka wuxuu hadda ku muuqanayaa Ingiriisi. Haddii ay wax kula muuqato oo aan cad ahayn, nagala soo xiriir enrolment@amanaoshc.com.au.",
     "wizard.banner.savedProgress":
       "Waxaan ku kaydinnay horumarkaaga browser-kan. Ma rabtaa inaad ka sii wado meeshaad joogsatay?",
     "wizard.error.title": "Fadlan sax kuwan soo socda ka hor intaadan sii wadin:",
@@ -157,7 +157,7 @@ export const ENROL_TRANSLATIONS_SOURCE: Record<string, LocaleDict> = {
     "intro.language.label": "Luqadda aad doorbidayso",
     "intro.language.preview": "Muuqaal hore",
     "intro.language.disclaimer":
-      "Luqad muuqaal hore. Foomku wuxuu ku muuqan doonaa Ingiriisi inta aynu dhamaystirayno turjumaadda {language}. Haddii ay wax kula muuqato oo aan cad ahayn, nagala soo xiriir enrolments@amanaoshc.com.au.",
+      "Luqad muuqaal hore. Foomku wuxuu ku muuqan doonaa Ingiriisi inta aynu dhamaystirayno turjumaadda {language}. Haddii ay wax kula muuqato oo aan cad ahayn, nagala soo xiriir enrolment@amanaoshc.com.au.",
     "intro.button.continue": "Sii wad",
     "intro.footer.saveHint":
       "Horumarkaaga waa lagu keydiyaa browser-kan inta aad wado — waad xidhi kartaa taabkan oo dib u soo laaban kartaa.",
@@ -196,7 +196,7 @@ export const ENROL_TRANSLATIONS_SOURCE: Record<string, LocaleDict> = {
     "wizard.button.resume": "دوام",
     "wizard.button.discard": "لغوه او نوی پیل کول",
     "wizard.banner.translationPreview":
-      "ژباړه ژر راځي. فورمه اوس په انګلیسي کې ښکاري. که چیرې کوم شی روښانه نه وي، له مونږ سره د enrolments@amanaoshc.com.au له لارې اړیکه ونیسئ.",
+      "ژباړه ژر راځي. فورمه اوس په انګلیسي کې ښکاري. که چیرې کوم شی روښانه نه وي، له مونږ سره د enrolment@amanaoshc.com.au له لارې اړیکه ونیسئ.",
     "wizard.banner.savedProgress":
       "مونږ ستاسو پرمختګ په دې براوزر کې خوندي کړی. آیا غواړئ له هغه ځایه چې پرېښود دوام ورکړئ؟",
     "wizard.error.title": "مهرباني وکړئ د دوام لپاره لاندې تصحیح کړئ:",
@@ -211,7 +211,7 @@ export const ENROL_TRANSLATIONS_SOURCE: Record<string, LocaleDict> = {
     "intro.language.label": "غوره ژبه",
     "intro.language.preview": "مخکتنه",
     "intro.language.disclaimer":
-      "د مخکتنې ژبه. تر څو مونږ د {language} ژباړه بشپړوو، فورمه به په انګلیسي کې ښکاري. که چیرې کوم شی روښانه نه وي، له مونږ سره د enrolments@amanaoshc.com.au له لارې اړیکه ونیسئ.",
+      "د مخکتنې ژبه. تر څو مونږ د {language} ژباړه بشپړوو، فورمه به په انګلیسي کې ښکاري. که چیرې کوم شی روښانه نه وي، له مونږ سره د enrolment@amanaoshc.com.au له لارې اړیکه ونیسئ.",
     "intro.button.continue": "دوام ورکړئ",
     "intro.footer.saveHint":
       "ستاسو پرمختګ په دې براوزر کې خوندي کیږي — تاسو کولی شئ دا ټب وتړئ او وروسته یې بشپړ کړئ.",
@@ -250,7 +250,7 @@ export const ENROL_TRANSLATIONS_SOURCE: Record<string, LocaleDict> = {
     "wizard.button.resume": "Devam et",
     "wizard.button.discard": "İptal edip baştan başla",
     "wizard.banner.translationPreview":
-      "çevirisi yakında geliyor. Form şu anda İngilizce olarak gösteriliyor. Bir şey anlaşılır değilse, bize enrolments@amanaoshc.com.au adresinden ulaşın.",
+      "çevirisi yakında geliyor. Form şu anda İngilizce olarak gösteriliyor. Bir şey anlaşılır değilse, bize enrolment@amanaoshc.com.au adresinden ulaşın.",
     "wizard.banner.savedProgress":
       "İlerlemenizi bu tarayıcıda kaydettik. Kaldığınız yerden devam etmek ister misiniz?",
     "wizard.error.title": "Devam etmeden önce lütfen aşağıdakileri düzeltin:",
@@ -265,7 +265,7 @@ export const ENROL_TRANSLATIONS_SOURCE: Record<string, LocaleDict> = {
     "intro.language.label": "Tercih edilen dil",
     "intro.language.preview": "Önizleme",
     "intro.language.disclaimer":
-      "Önizleme dili. {language} çevirisini tamamlayana kadar form İngilizce olarak gösterilecek. Bir şey anlaşılır değilse, bize enrolments@amanaoshc.com.au adresinden ulaşın.",
+      "Önizleme dili. {language} çevirisini tamamlayana kadar form İngilizce olarak gösterilecek. Bir şey anlaşılır değilse, bize enrolment@amanaoshc.com.au adresinden ulaşın.",
     "intro.button.continue": "Devam et",
     "intro.footer.saveHint":
       "İlerlemeniz bu tarayıcıda otomatik olarak kaydedilir — bu sekmeyi kapatabilir ve daha sonra devam edebilirsiniz.",
