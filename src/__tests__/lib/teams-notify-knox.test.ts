@@ -4,7 +4,7 @@ vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-import { sendTeamsNotification } from "@/lib/teams-notify";
+import { TEAMS_WEBHOOK_TIMEOUT_MS, sendTeamsNotification } from "@/lib/teams-notify";
 
 const fetchMock = vi.fn();
 const ENV_KEYS = ["TEAMS_WEBHOOK_URL"] as const;
@@ -90,5 +90,36 @@ describe("sendTeamsNotification — Knox extensions", () => {
     const content = sentCard().attachments[0].content;
     expect(content.msteams).toEqual({ width: "Full" });
     expect(content.body).toHaveLength(2);
+  });
+});
+
+describe("sendTeamsNotification — timeout", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("aborts a webhook that never answers after 10 s and reports false", async () => {
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    fetchMock.mockImplementation(
+      (_url: string, init: { signal: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          signal = init.signal;
+          init.signal.addEventListener("abort", () => reject(init.signal.reason));
+        }),
+    );
+    const sent = sendTeamsNotification({ title: "t", body: "b", webhookUrl: "https://knox.example/hook" });
+    await vi.advanceTimersByTimeAsync(TEAMS_WEBHOOK_TIMEOUT_MS - 1);
+    expect(signal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await sent).toBe(false);
+    expect(signal?.aborted).toBe(true);
+    expect(TEAMS_WEBHOOK_TIMEOUT_MS).toBe(10_000);
+  });
+
+  it("a prompt answer clears the timer", async () => {
+    vi.useFakeTimers();
+    expect(await sendTeamsNotification({ title: "t", body: "b", webhookUrl: "https://knox.example/hook" })).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

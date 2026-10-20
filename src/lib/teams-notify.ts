@@ -98,6 +98,13 @@ function buildAdaptiveCard(opts: TeamsNotifyOptions) {
 
 // ── Core send function ───────────────────────────────────
 
+/**
+ * A hung webhook must not hold its caller (Knox sends a Teams card between a
+ * push and the alert-row write). Past this the request is aborted and the
+ * send reports `false`.
+ */
+export const TEAMS_WEBHOOK_TIMEOUT_MS = 10_000;
+
 export async function sendTeamsNotification(
   opts: TeamsNotifyOptions
 ): Promise<boolean> {
@@ -107,12 +114,20 @@ export async function sendTeamsNotification(
     return false;
   }
 
+  // An AbortController on the global timer (not AbortSignal.timeout, whose
+  // internal timer fake timers cannot drive) so the timeout is testable.
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(new Error(`Teams webhook timed out after ${TEAMS_WEBHOOK_TIMEOUT_MS}ms`)),
+    TEAMS_WEBHOOK_TIMEOUT_MS,
+  );
   try {
     const payload = buildAdaptiveCard(opts);
     const res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
 
     if (!res.ok) {
@@ -123,8 +138,10 @@ export async function sendTeamsNotification(
 
     return true;
   } catch (err) {
-    logger.error("TEAMS webhook error", { err });
+    logger.error("TEAMS webhook error", { err, timedOut: controller.signal.aborted });
     return false;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
