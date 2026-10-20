@@ -30,6 +30,12 @@ const SENSITIVE_SERVER_VARS = [
   "FIELD_ENCRYPTION_KEY",
 ] as const;
 
+/**
+ * Optional (never validated, never required): TEAMS_WEBHOOK_URL (general Teams
+ * alerts) and TEAMS_KNOX_WEBHOOK_URL (Knox incident-triage channel; falls back
+ * to TEAMS_WEBHOOK_URL, and with neither set Knox records its Teams row as
+ * undelivered and carries on with push alerts).
+ */
 export function validateEnv() {
   const missing: string[] = [];
 
