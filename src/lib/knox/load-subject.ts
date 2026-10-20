@@ -1,18 +1,10 @@
 import type { Prisma, PrismaClient, TriageSubjectType } from "@prisma/client";
+import { firstNameOf } from "@/lib/knox/names";
 import type { TriageSubject } from "@/lib/knox/types";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
 const SERVICE_SELECT = { id: true, name: true, state: true, managerId: true } as const;
-
-/**
- * First whitespace token of a child's name, or null. The model redactor
- * (`redactForModel`) trusts this to hold the first name ONLY, so a surname
- * must never get through here.
- */
-function firstToken(name: string | null): string | null {
-  return name?.trim().split(/\s+/)[0] || null;
-}
 
 /**
  * Load an incident-register record and its service for Knox. Returns null
@@ -31,7 +23,7 @@ export async function loadSubject(
       });
       if (!row || row.deleted) return null;
       const { service, ...record } = row;
-      return { type: "incident", record, service, childFirstName: firstToken(row.childName) };
+      return { type: "incident", record, service, childFirstName: firstNameOf(row.childName) };
     }
     case "complaint": {
       const row = await db.complaintRecord.findUnique({

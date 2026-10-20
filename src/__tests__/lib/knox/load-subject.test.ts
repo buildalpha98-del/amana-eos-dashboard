@@ -30,6 +30,17 @@ describe("loadSubject", () => {
     });
   });
 
+  it("incident: a 'Surname, First' childName yields the FIRST name, not the surname", async () => {
+    prismaMock.incidentRecord.findUnique.mockImplementation(async () => ({
+      id: "inc-3",
+      childName: "Hassan, Omar",
+      deleted: false,
+      service,
+    }));
+    const s = await loadSubject(prismaMock, "incident", "inc-3");
+    expect(s && s.type === "incident" ? s.childFirstName : "x").toBe("Omar");
+  });
+
   it("incident: blank or missing childName → childFirstName null", async () => {
     prismaMock.incidentRecord.findUnique.mockImplementation(async () => ({
       id: "inc-2",

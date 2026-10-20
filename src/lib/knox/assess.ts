@@ -2,6 +2,7 @@ import { z } from "zod";
 import { generateStructured } from "@/lib/ai-provider";
 import { SERIOUS_INCIDENT_CATEGORIES } from "@/lib/compliance-clocks";
 import { logger } from "@/lib/logger";
+import { firstNameOf, nameTokensOf, otherNameTokensOf } from "@/lib/knox/names";
 import { buildAssessmentPrompt, KNOX_SYSTEM_PROMPT } from "@/lib/knox/prompt";
 import type { RulesResult, TriageSubject } from "@/lib/knox/types";
 
@@ -60,10 +61,6 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function nameTokens(name: string | null | undefined): string[] {
-  return (name ?? "").split(/\s+/).filter(Boolean);
-}
-
 /**
  * Lines that are nothing but a name label. The cowork incident route folds
  * `Witnesses: …` into `actionTaken` and prefixes `Reported by: <name>` to the
@@ -118,7 +115,7 @@ export function redactForModel(subject: TriageSubject): Record<string, unknown> 
 
   if (subject.type === "incident") {
     const r = subject.record;
-    const scrub = makeScrubber(nameTokens(r.childName).slice(1).concat(nameTokens(r.parentNotifiedName)));
+    const scrub = makeScrubber([...otherNameTokensOf(r.childName), ...nameTokensOf(r.parentNotifiedName)]);
     return {
       type: "incident",
       service,
@@ -151,10 +148,10 @@ export function redactForModel(subject: TriageSubject): Record<string, unknown> 
   if (subject.type === "complaint") {
     const r = subject.record;
     const scrub = makeScrubber([
-      ...nameTokens(r.complainantName),
+      ...nameTokensOf(r.complainantName),
       r.complainantEmail,
       r.complainantPhone,
-      ...nameTokens(r.childName).slice(1),
+      ...otherNameTokensOf(r.childName),
     ]);
     return {
       type: "complaint",
@@ -162,7 +159,7 @@ export function redactForModel(subject: TriageSubject): Record<string, unknown> 
       receivedAt: iso(r.receivedAt),
       source: r.source ?? null,
       anonymous: r.anonymous ?? false,
-      childFirstName: nameTokens(r.childName)[0] ?? null,
+      childFirstName: firstNameOf(r.childName),
       category: r.category,
       summary: scrub(r.summary),
       details: scrub(r.details),
@@ -174,11 +171,11 @@ export function redactForModel(subject: TriageSubject): Record<string, unknown> 
   }
 
   const r = subject.record;
-  const scrub = makeScrubber([...nameTokens(r.staffName).slice(1), ...nameTokens(r.witnessNames)]);
+  const scrub = makeScrubber([...otherNameTokensOf(r.staffName), ...nameTokensOf(r.witnessNames)]);
   return {
     type: "staff_incident",
     service,
-    staffFirstName: nameTokens(r.staffName)[0] ?? null,
+    staffFirstName: firstNameOf(r.staffName),
     occurredAt: iso(r.occurredAt),
     incidentType: r.incidentType,
     severity: r.severity,

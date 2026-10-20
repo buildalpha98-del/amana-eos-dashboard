@@ -34,6 +34,7 @@ describe("fillChildName", () => {
       .toBe("Dear family of Aisha, Aisha is fine.");
   });
   it("leaves the placeholder when no name is known", () => {
+    expect(fillChildName("Hi {{child_name}}", "Hassan, Omar")).toBe("Hi Omar");
     expect(fillChildName("Hi {{child_name}}", null)).toBe("Hi {{child_name}}");
     expect(fillChildName("Hi {{child_name}}", "  ")).toBe("Hi {{child_name}}");
   });

@@ -138,6 +138,19 @@ describe("redactForModel", () => {
     expect(r.circumstances).toBe("No witnesses were present.");
   });
 
+  it("a 'Surname, First' child name: the surname is scrubbed and the first name kept", () => {
+    const s = incident({ childName: "Hassan, Omar", description: "Hassan fell. Omar was upset." });
+    // loadSubject derives this with firstNameOf; the fixture mirrors it.
+    (s as { childFirstName: string | null }).childFirstName = "Omar";
+    const r = redactForModel(s);
+    expect(r.childFirstName).toBe("Omar");
+    expect(r.description).toBe("[name] fell. Omar was upset.");
+  });
+
+  it("complaint and staff first names come from firstNameOf ('Surname, First' safe)", () => {
+    expect(redactForModel(complaint({ childName: "Khan, Omar" })).childFirstName).toBe("Omar");
+  });
+
   it("keeps the facts the model needs to judge severity", () => {
     const s = incident({
       ambulanceCalled: true,

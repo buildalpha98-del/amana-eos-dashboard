@@ -5,6 +5,8 @@
  * "Knox flagged …" / "Knox suggests …", in plain words.
  */
 
+import { firstNameOf } from "@/lib/knox/names";
+
 export type KnoxTier = "minor" | "moderate" | "serious";
 export type KnoxSubjectType = "incident" | "complaint" | "staff_incident";
 
@@ -75,9 +77,9 @@ export function formatCountdown(
   return { text: `due in ${duration(diff)}`, overdue: false };
 }
 
-/** Replace `{{child_name}}` with the first token of the child's name, when known. */
+/** Replace `{{child_name}}` with the child's first name (`firstNameOf`), when known. */
 export function fillChildName(draft: string, childName?: string | null): string {
-  const first = childName?.trim().split(/\s+/)[0];
+  const first = firstNameOf(childName);
   if (!first) return draft;
   return draft.replace(/\{\{\s*child_name\s*\}\}/g, first);
 }
