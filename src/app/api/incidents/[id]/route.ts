@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { hasStaffPermission } from "@/lib/staff-permissions";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { incidentTriggerChanged, triggerTriage } from "@/lib/knox/trigger";
 import {
   incidentPatchSchema,
   softDeleteIncidentRecord,
@@ -21,7 +22,19 @@ type RouteCtx = { params: Promise<{ id: string }> };
 async function loadIncident(incidentId: string) {
   const ref = await prisma.incidentRecord.findUnique({
     where: { id: incidentId },
-    select: { id: true, serviceId: true, createdById: true, deleted: true },
+    select: {
+      id: true,
+      serviceId: true,
+      createdById: true,
+      deleted: true,
+      // The fields Knox's rules read; compared against the patch below.
+      severity: true,
+      incidentType: true,
+      reportableToAuthority: true,
+      seriousIncidentCategory: true,
+      ambulanceCalled: true,
+      medicalPersonnelContacted: true,
+    },
   });
   if (!ref || ref.deleted) {
     throw ApiError.notFound("Incident not found");
@@ -83,7 +96,17 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     }
   }
 
+  const knoxRelevant = incidentTriggerChanged(ref, patch);
+
   const updated = await updateIncidentRecord(prisma, id, patch, { id: session.user.id });
+
+  // After the write has committed; never throws.
+  if (knoxRelevant) {
+    triggerTriage(
+      { subjectType: "incident", subjectId: id, serviceId: ref.serviceId, reason: "updated" },
+      { immediate: true },
+    );
+  }
 
   return NextResponse.json(updated);
 });

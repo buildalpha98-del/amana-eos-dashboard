@@ -17,6 +17,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { assertServiceAccess } from "@/lib/authz-scope";
 import { logger } from "@/lib/logger";
+import { triggerTriage } from "@/lib/knox/trigger";
 
 const createSchema = z.object({
   staffName: z.string().trim().min(1).max(120),
@@ -129,6 +130,12 @@ export const POST = withApiAuth(
       severity: d.severity,
       userId: session!.user.id,
     });
+
+    // After the create has committed; never throws.
+    triggerTriage(
+      { subjectType: "staff_incident", subjectId: created.id, serviceId: id, reason: "created" },
+      { immediate: true },
+    );
 
     return NextResponse.json(created, { status: 201 });
   },

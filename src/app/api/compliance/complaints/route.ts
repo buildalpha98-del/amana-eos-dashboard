@@ -32,6 +32,7 @@ import {
   generateComplaintReference,
 } from "@/lib/complaint-reference";
 import { clockStatus, notificationDueAt } from "@/lib/compliance-clocks";
+import { triggerTriage } from "@/lib/knox/trigger";
 
 const categories = COMPLAINT_CATEGORIES.map((c) => c.value) as [
   string,
@@ -213,6 +214,12 @@ export const POST = withApiAuth(
         },
       },
     });
+
+    // After the create and its audit row have committed; never throws.
+    triggerTriage(
+      { subjectType: "complaint", subjectId: created.id, serviceId: d.serviceId, reason: "created" },
+      { immediate: true },
+    );
 
     return NextResponse.json({ complaint: created }, { status: 201 });
   },

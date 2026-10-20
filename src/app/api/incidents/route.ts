@@ -5,6 +5,7 @@ import { getCentreScope, applyCentreFilter } from "@/lib/centre-scope";
 import { withApiAuth } from "@/lib/server-auth";
 import { assertServiceAccess } from "@/lib/authz-scope";
 import { logger } from "@/lib/logger";
+import { triggerTriage } from "@/lib/knox/trigger";
 import { z } from "zod";
 
 import { ApiError, parseJsonBody } from "@/lib/api-error";
@@ -141,6 +142,12 @@ try {
         service: { select: { id: true, name: true } },
       },
     });
+
+    // After the create has committed; never throws.
+    triggerTriage(
+      { subjectType: "incident", subjectId: record.id, serviceId, reason: "created" },
+      { immediate: true },
+    );
 
     return NextResponse.json(record, { status: 201 });
   } catch (err) {

@@ -16,6 +16,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { getCentreScope } from "@/lib/centre-scope";
 import { clockStatus } from "@/lib/compliance-clocks";
+import { complaintTriggerChanged, triggerTriage } from "@/lib/knox/trigger";
 import {
   complaintPatchSchema,
   updateComplaintRecord,
@@ -24,7 +25,16 @@ import {
 async function loadScoped(id: string, session: Parameters<typeof getCentreScope>[0]) {
   const row = await prisma.complaintRecord.findUnique({
     where: { id },
-    select: { id: true, serviceId: true, notifiable: true, becameAwareAt: true },
+    select: {
+      id: true,
+      serviceId: true,
+      notifiable: true,
+      becameAwareAt: true,
+      // The fields Knox's rules read; compared against the patch in PATCH.
+      notifiableReason: true,
+      category: true,
+      status: true,
+    },
   });
   if (!row) throw ApiError.notFound("Complaint not found");
 
@@ -73,6 +83,8 @@ export const PATCH = withApiAuth(
       throw ApiError.badRequest("Invalid change", parsed.error.flatten());
     }
 
+    const knoxRelevant = complaintTriggerChanged(existing, parsed.data);
+
     const updated = await updateComplaintRecord(
       prisma,
       id,
@@ -80,6 +92,14 @@ export const PATCH = withApiAuth(
       { id: session!.user.id },
       existing,
     );
+
+    // After the write has committed; never throws.
+    if (knoxRelevant) {
+      triggerTriage(
+        { subjectType: "complaint", subjectId: id, serviceId: existing.serviceId, reason: "updated" },
+        { immediate: true },
+      );
+    }
 
     return NextResponse.json({
       complaint: {

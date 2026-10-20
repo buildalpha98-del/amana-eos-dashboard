@@ -4,6 +4,7 @@ import { authenticateCowork } from "@/app/api/_lib/auth";
 import { z } from "zod";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { triggerTriage } from "@/lib/knox/trigger";
 
 import { parseJsonBody } from "@/lib/api-error";
 const createIncidentSchema = z.object({
@@ -217,6 +218,12 @@ export const POST = withApiHandler(async (req) => {
       deleted: false,
     },
   });
+
+  // After the create has committed; never throws.
+  triggerTriage(
+    { subjectType: "incident", subjectId: incident.id, serviceId: service.id, reason: "created" },
+    { immediate: true },
+  );
 
   return NextResponse.json(
     {

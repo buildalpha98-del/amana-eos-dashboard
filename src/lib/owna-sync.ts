@@ -14,6 +14,8 @@ import { logger } from "@/lib/logger";
 import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 import { requireFromMap, resolveRoomIds } from "@/lib/room-resolver";
+import { severityRank } from "@/lib/knox/cards";
+import { triggerTriage } from "@/lib/knox/trigger";
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -623,14 +625,23 @@ export async function syncOwnaService(
       const ownaIncIds = incidents.map((i) => i.id);
       const existingIncidents = await prisma.incidentRecord.findMany({
         where: { ownaIncidentId: { in: ownaIncIds } },
-        select: { id: true, ownaIncidentId: true },
+        // severity / type / reportable feed the ratchet below and the Knox trigger.
+        select: {
+          id: true,
+          ownaIncidentId: true,
+          severity: true,
+          incidentType: true,
+          reportableToAuthority: true,
+        },
       });
       const existingIncMap = new Map(
-        existingIncidents.map((i) => [i.ownaIncidentId, i.id])
+        existingIncidents.map((i) => [i.ownaIncidentId, i])
       );
 
       const creates: Prisma.IncidentRecordCreateManyInput[] = [];
       const updates: Prisma.PrismaPromise<unknown>[] = [];
+      // Existing rows OWNA moved UP (or re-typed): Knox should look again.
+      const escalatedIds: string[] = [];
 
       for (const inc of incidents) {
         const incidentDate = parseIncidentDate(inc.incidentDate);
@@ -638,22 +649,32 @@ export async function syncOwnaService(
         const severity = mapSeverity(inc);
         const description = buildIncidentDescription(inc);
         const parentNotified = !!inc.parentNotifiedDatetime;
-        const existingId = existingIncMap.get(inc.id);
+        const existing = existingIncMap.get(inc.id);
 
-        if (existingId) {
+        if (existing) {
+          // Severity ratchet: OWNA can raise an incident's severity but never
+          // undo a rise. Knox cards and staff edits move severity up and set
+          // reportableToAuthority; the next sync used to overwrite both with
+          // OWNA's coarser mapping (emergencyServices -> serious, else
+          // moderate/minor), silently un-reporting an approved incident.
+          const rose = severityRank(severity) > severityRank(existing.severity);
+          if (rose || incidentType !== existing.incidentType) {
+            escalatedIds.push(existing.id);
+          }
           updates.push(
             prisma.incidentRecord.update({
-              where: { id: existingId },
+              where: { id: existing.id },
               data: {
                 incidentDate,
                 childName: inc.child || null,
                 incidentType,
-                severity,
+                severity: rose ? severity : existing.severity,
                 location: inc.location || null,
                 description,
                 actionTaken: inc.actionTaken || null,
                 parentNotified,
-                reportableToAuthority: inc.emergencyServices,
+                reportableToAuthority:
+                  existing.reportableToAuthority || inc.emergencyServices,
               },
             })
           );
@@ -680,6 +701,28 @@ export async function syncOwnaService(
           data: creates,
           skipDuplicates: true,
         });
+
+        // createMany returns no ids, so re-read the new rows to queue triage.
+        // No `immediate`: the Knox sweep drains OWNA rows at its own pace.
+        const createdOwnaIds = creates
+          .map((c) => c.ownaIncidentId)
+          .filter((v): v is string => typeof v === "string");
+        try {
+          const created = await prisma.incidentRecord.findMany({
+            where: { ownaIncidentId: { in: createdOwnaIds } },
+            select: { id: true, serviceId: true },
+          });
+          for (const row of created) {
+            triggerTriage({
+              subjectType: "incident",
+              subjectId: row.id,
+              serviceId: row.serviceId,
+              reason: "created",
+            });
+          }
+        } catch (err) {
+          logger.error("OWNA sync: Knox trigger lookup failed", { serviceCode, err });
+        }
       }
 
       // Batch updates in transaction chunks
@@ -687,6 +730,10 @@ export async function syncOwnaService(
         const updateBatches = chunk(updates, BATCH_SIZE);
         for (const batch of updateBatches) {
           await prisma.$transaction(batch);
+        }
+        // After the updates have committed.
+        for (const id of escalatedIds) {
+          triggerTriage({ subjectType: "incident", subjectId: id, serviceId, reason: "updated" });
         }
       }
 

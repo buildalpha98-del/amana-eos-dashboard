@@ -39,8 +39,19 @@ vi.mock("@/lib/logger", () => ({
   generateRequestId: () => "test-req-id",
 }));
 
+// Knox: the REAL triggerTriage runs; only its collaborators are faked, so the
+// "must never throw" contract is exercised end to end.
+vi.mock("@/lib/knox/enqueue", () => ({ enqueueTriage: vi.fn() }));
+vi.mock("@/lib/knox/worker", () => ({ runTriageJob: vi.fn() }));
+vi.mock("@/lib/run-after", () => ({ runAfter: vi.fn() }));
+
 // Import AFTER mocks are set up
 import { GET, POST } from "@/app/api/incidents/route";
+import { PATCH } from "@/app/api/incidents/[id]/route";
+import { _clearUserActiveCache } from "@/lib/server-auth";
+import { enqueueTriage } from "@/lib/knox/enqueue";
+import { runTriageJob } from "@/lib/knox/worker";
+import { runAfter } from "@/lib/run-after";
 
 describe("GET /api/incidents", () => {
   beforeEach(() => {
@@ -163,7 +174,9 @@ describe("GET /api/incidents", () => {
 describe("POST /api/incidents", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _clearUserActiveCache();
     prismaMock.user.findUnique.mockResolvedValue({ active: true });
+    vi.mocked(enqueueTriage).mockResolvedValue("job-1");
   });
 
   it("returns 400 with missing required fields", async () => {
@@ -235,5 +248,163 @@ describe("POST /api/incidents", () => {
       body: { serviceId: "svc-1", incidentDate: "2026-10-08", childName: "Alice", incidentType: "injury", severity: "minor", description: "Fell", parentNotified: true },
     }));
     expect(res.status).toBe(403);
+  });
+});
+
+describe("POST /api/incidents — Knox trigger", () => {
+  const body = {
+    serviceId: "svc-1", incidentDate: "2026-10-20", childName: "Alice",
+    incidentType: "injury", severity: "minor", description: "Fell", parentNotified: true,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
+    prismaMock.incidentRecord.create.mockResolvedValue({
+      id: "inc-new", serviceId: "svc-1", service: { id: "svc-1", name: "S" },
+    });
+    vi.mocked(enqueueTriage).mockResolvedValue("job-1");
+  });
+
+  it("enqueues triage after the create and runs the job after the response", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+
+    const res = await POST(createRequest("POST", "/api/incidents", { body }));
+
+    expect(res.status).toBe(201);
+    // Nothing runs until the response is out: the whole job sits in runAfter.
+    expect(runAfter).toHaveBeenCalledOnce();
+    expect(enqueueTriage).not.toHaveBeenCalled();
+    const task = vi.mocked(runAfter).mock.calls[0][0];
+    await task();
+    expect(enqueueTriage).toHaveBeenCalledWith(
+      expect.anything(),
+      { subjectType: "incident", subjectId: "inc-new", serviceId: "svc-1", reason: "created" },
+    );
+    expect(runTriageJob).toHaveBeenCalledWith("job-1");
+  });
+
+  it("POST returns 201 even when enqueueTriage rejects", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+    vi.mocked(enqueueTriage).mockRejectedValue(new Error("db down"));
+
+    const res = await POST(createRequest("POST", "/api/incidents", { body }));
+
+    expect(res.status).toBe(201);
+    expect((await res.json()).id).toBe("inc-new");
+    // The deferred task swallows the failure too and never starts a job.
+    await vi.mocked(runAfter).mock.calls[0][0]();
+    expect(runTriageJob).not.toHaveBeenCalled();
+  });
+
+  it("POST returns 201 even when enqueueTriage throws synchronously", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+    vi.mocked(enqueueTriage).mockImplementation(() => {
+      throw new Error("sync boom");
+    });
+
+    const res = await POST(createRequest("POST", "/api/incidents", { body }));
+
+    expect(res.status).toBe(201);
+    await expect(vi.mocked(runAfter).mock.calls[0][0]()).resolves.toBeUndefined();
+  });
+
+  it("POST returns 201 even when runAfter itself throws synchronously", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+    vi.mocked(runAfter).mockImplementation(() => {
+      throw new Error("no request scope");
+    });
+
+    const res = await POST(createRequest("POST", "/api/incidents", { body }));
+
+    expect(res.status).toBe(201);
+    vi.mocked(runAfter).mockReset();
+  });
+});
+
+describe("PATCH /api/incidents/[id] — Knox trigger", () => {
+  const ctx = (id: string) => ({ params: Promise.resolve({ id }) }) as never;
+  const before = {
+    id: "inc-1", serviceId: "svc-1", createdById: "user-1", deleted: false,
+    severity: "minor", incidentType: "injury", reportableToAuthority: false,
+    seriousIncidentCategory: null, ambulanceCalled: false, medicalPersonnelContacted: null,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
+    prismaMock.incidentRecord.findUnique.mockResolvedValue(before);
+    prismaMock.incidentRecord.update.mockResolvedValue({ ...before });
+    vi.mocked(enqueueTriage).mockResolvedValue("job-9");
+  });
+
+  it("a description-only patch does not trigger Knox", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+
+    const res = await PATCH(
+      createRequest("PATCH", "/api/incidents/inc-1", { body: { description: "More detail" } }),
+      ctx("inc-1"),
+    );
+
+    expect(res.status).toBe(200);
+    expect(prismaMock.incidentRecord.update).toHaveBeenCalledOnce();
+    expect(runAfter).not.toHaveBeenCalled();
+  });
+
+  it("re-sending the same severity does not trigger Knox", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+
+    await PATCH(
+      createRequest("PATCH", "/api/incidents/inc-1", { body: { severity: "minor" } }),
+      ctx("inc-1"),
+    );
+
+    expect(runAfter).not.toHaveBeenCalled();
+  });
+
+  it("a severity change enqueues an 'updated' triage and runs it immediately, after the write", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+
+    const res = await PATCH(
+      createRequest("PATCH", "/api/incidents/inc-1", { body: { severity: "serious" } }),
+      ctx("inc-1"),
+    );
+
+    expect(res.status).toBe(200);
+    expect(runAfter).toHaveBeenCalledOnce();
+    await vi.mocked(runAfter).mock.calls[0][0]();
+    expect(enqueueTriage).toHaveBeenCalledWith(
+      expect.anything(),
+      { subjectType: "incident", subjectId: "inc-1", serviceId: "svc-1", reason: "updated" },
+    );
+    expect(runTriageJob).toHaveBeenCalledWith("job-9");
+    const updateOrder = prismaMock.incidentRecord.update.mock.invocationCallOrder[0];
+    const runAfterOrder = vi.mocked(runAfter).mock.invocationCallOrder[0];
+    expect(runAfterOrder).toBeGreaterThan(updateOrder);
+  });
+
+  it("a medical contact going from empty to set triggers Knox", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+
+    await PATCH(
+      createRequest("PATCH", "/api/incidents/inc-1", { body: { medicalPersonnelContacted: "Dr Lee" } }),
+      ctx("inc-1"),
+    );
+
+    expect(runAfter).toHaveBeenCalledOnce();
+  });
+
+  it("a patch that fails validation does not trigger Knox", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+
+    const res = await PATCH(
+      createRequest("PATCH", "/api/incidents/inc-1", { body: { severity: "" } }),
+      ctx("inc-1"),
+    );
+
+    expect(res.status).toBe(400);
+    expect(runAfter).not.toHaveBeenCalled();
   });
 });
