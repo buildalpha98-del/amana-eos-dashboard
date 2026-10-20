@@ -6,6 +6,9 @@ import type { NextConfig } from "next";
 // headers() entries below — the authenticated dashboard keeps the stricter
 // policy, so an XSS on a staff page never gets a pre-approved facebook
 // script host or exfiltration endpoint.
+/** Meta Pixel + Event Setup Tool hosts (pixel routes only). */
+const META_HOSTS = "https://connect.facebook.net https://*.facebook.net https://www.facebook.com https://*.facebook.com";
+
 const securityHeaders = (opts: { metaPixel?: boolean } = {}) => [
   // Prevent clickjacking from OTHER origins. SAMEORIGIN (was DENY)
   // lets the dashboard iframe its own PDF proxies — the staff payslip
@@ -42,17 +45,22 @@ const securityHeaders = (opts: { metaPixel?: boolean } = {}) => [
       // connect.facebook.net: Meta Pixel loader (fbevents.js) — pixel routes only.
       // www.facebook.com: Meta's Event Setup Tool loads signals/iwl.js from it
       // (17 Oct 2026, requested by the ads team) — pixel routes only.
-      `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://*.vercel-scripts.com https://*.sentry.io${opts.metaPixel ? " https://connect.facebook.net https://www.facebook.com" : ""}`,
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' https://fonts.gstatic.com",
+      // 20 Oct 2026: the Event Setup Tool also opens a facebook.com panel in
+      // an iframe and pulls config/assets from *.facebook.net / *.fbcdn.net
+      // ("Unable to complete request" otherwise). All Meta hosts below are
+      // pixel routes only — staff pages keep the strict policy.
+      `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://*.vercel-scripts.com https://*.sentry.io${opts.metaPixel ? ` ${META_HOSTS}` : ""}`,
+      `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com${opts.metaPixel ? " https://*.facebook.net https://*.fbcdn.net" : ""}`,
+      `font-src 'self' https://fonts.gstatic.com${opts.metaPixel ? " https://*.fbcdn.net" : ""}`,
       // www.facebook.com: Meta Pixel event beacons (/tr) — pixel routes only
       // amanaoshc.com.au: our own website — coordinator photos in parent-email previews.
-      `img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.vercel-storage.com https://amanaoshc.com.au${opts.metaPixel ? " https://www.facebook.com" : ""}`,
+      `img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.vercel-storage.com https://amanaoshc.com.au${opts.metaPixel ? ` ${META_HOSTS} https://*.fbcdn.net` : ""}`,
       // 2026-06-15: added vercel.com + blob.vercel-storage.com so the
       // @vercel/blob client can call its token-mint endpoint and upload
       // file bytes directly to Blob storage. AI Knowledge bulk-upload
       // was hanging at 0% because CSP blocked the connect.
-      `connect-src 'self' https://vercel.com https://*.public.blob.vercel-storage.com https://*.blob.vercel-storage.com https://*.vercel-storage.com https://*.vercel-analytics.com https://*.sentry.io https://*.upstash.io wss://ws-us3-e.pusher.com${opts.metaPixel ? " https://www.facebook.com" : ""}`,
+      `connect-src 'self' https://vercel.com https://*.public.blob.vercel-storage.com https://*.blob.vercel-storage.com https://*.vercel-storage.com https://*.vercel-analytics.com https://*.sentry.io https://*.upstash.io wss://ws-us3-e.pusher.com${opts.metaPixel ? ` ${META_HOSTS}` : ""}`,
+      ...(opts.metaPixel ? ["frame-src 'self' https://*.facebook.com"] : []),
       // frame-ancestors 'self' (was 'none'): pairs with the
       // X-Frame-Options change above. Allows /my-portal and /contracts
       // to iframe /api/my-portal/payslips/.../download and similar
