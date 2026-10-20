@@ -65,6 +65,15 @@ export interface CentreAlert {
   };
 }
 
+/** The HTML of a centre alert email — shared by the sender and test sends. */
+export function centreAlertHtml(email: { lines: string[]; button: string }, link: string): string {
+  return baseLayout(
+    `${email.lines.map((l) => `<p style="margin:0 0 14px;color:#1a1a2e;font-size:15px;line-height:1.6;">${l}</p>`).join("")}
+     ${buttonHtml(escapeHtml(email.button), `${BASE()}${link}`)}`,
+    "staff",
+  );
+}
+
 export async function alertCentreTeam(alert: CentreAlert): Promise<void> {
   try {
     const ids = alert.enrolmentsTeam
@@ -88,11 +97,7 @@ export async function alertCentreTeam(alert: CentreAlert): Promise<void> {
       ho.forEach((u) => u.email && to.add(u.email.toLowerCase()));
     }
     if (to.size === 0) return;
-    const html = baseLayout(
-      `${alert.email.lines.map((l) => `<p style="margin:0 0 14px;color:#1a1a2e;font-size:15px;line-height:1.6;">${l}</p>`).join("")}
-       ${buttonHtml(escapeHtml(alert.email.button), `${BASE()}${alert.link}`)}`,
-      "staff",
-    );
+    const html = centreAlertHtml(alert.email, alert.link);
     for (const address of to) {
       await sendEmail({
         to: address,

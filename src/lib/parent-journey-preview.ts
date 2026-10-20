@@ -19,6 +19,8 @@ import {
 } from "@/lib/email-templates/owna-handover";
 import { extraDayEmail, missedSessionsEmail, noShowEmail } from "@/lib/email-templates/attendance-journey";
 import { upcomingProgram } from "@/lib/enrolment-welcome";
+import { firstDayCentreMessage } from "@/lib/owna-handover";
+import { centreAlertHtml } from "@/lib/centre-team-alerts";
 
 const HANDOVER: Record<string, typeof ownaInvitationEmail> = {
   owna_invitation: ownaInvitationEmail,
@@ -67,6 +69,16 @@ export async function renderJourneyEmail(
       parentEmail: "sarah@example.com",
       firstDay: d.toISOString().slice(0, 10),
     });
+  } else if (id === "centre_first_day") {
+    // To the CENTRE, not the family: booked in + the Proven Process.
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + ((9 - d.getUTCDay()) % 7 || 7));
+    const m = firstDayCentreMessage({ kids: childNames[0], firstDay: d.toISOString().slice(0, 10), family: `${first} Khan, 0400 000 000` });
+    return {
+      subject: m.email.subject,
+      html: centreAlertHtml(m.email, "/enrolments"),
+      attachments: m.email.attachments,
+    };
   } else if (id === "missed_sessions") {
     if (!service) return null;
     const centre = await centreWelcomeData(service.id);
