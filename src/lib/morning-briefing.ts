@@ -18,6 +18,8 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { generateStructured } from "@/lib/ai-provider";
 import { logger } from "@/lib/logger";
+import { clockLabel } from "@/lib/knox/format";
+import type { ClockKind } from "@/lib/knox/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -49,6 +51,30 @@ export interface BriefingSignals {
   /** Admin-tier only: occupancy projections needing action (computed
    *  once per cron run and passed in — see the cron). */
   forecastAlerts: Array<{ serviceName: string; kind: string; detail: string }>;
+  /** Admin-tier (org-wide) + member (service-scoped): Knox incident triage. */
+  knox: {
+    /** Minor-tier assessments in the last 24h, per service (never pinged live). */
+    minorYesterday: Array<{ serviceName: string; count: number }>;
+    /** Alerted assessments nobody has acknowledged. */
+    unacknowledgedAlerts: number;
+    /** Knox proposals (pending action cards) still awaiting a decision. */
+    openCards: number;
+    /** Not-yet-overdue notification clocks falling due in the next 24h. */
+    clocksDueWithin24h: Array<{
+      serviceName: string;
+      kind: ClockKind;
+      dueAt: string;
+    }>;
+  };
+}
+
+function emptyKnoxSignals(): BriefingSignals["knox"] {
+  return {
+    minorYesterday: [],
+    unacknowledgedAlerts: 0,
+    openCards: 0,
+    clocksDueWithin24h: [],
+  };
 }
 
 export function totalSignalCount(s: BriefingSignals): number {
@@ -60,7 +86,10 @@ export function totalSignalCount(s: BriefingSignals): number {
     (s.incompleteClockOuts > 0 ? 1 : 0) +
     (s.staleEnquiries > 0 ? 1 : 0) +
     s.meetingsToday.length +
-    s.forecastAlerts.length
+    s.forecastAlerts.length +
+    s.knox.unacknowledgedAlerts +
+    s.knox.openCards +
+    s.knox.clocksDueWithin24h.length
   );
 }
 
@@ -72,6 +101,135 @@ const ACTIVE_ENQUIRY_STAGES = [
 ];
 
 const ADMIN_TIER = new Set(["owner", "head_office", "admin"]);
+
+const CLOCK_KINDS: ReadonlySet<string> = new Set<ClockKind>([
+  "parent_24h",
+  "regulator",
+  "complaint_regulator",
+]);
+const MAX_KNOX_CLOCKS = 10;
+
+/**
+ * Knox signal. `serviceId` undefined = org-wide (admin tier); otherwise
+ * limited to that service (member). Callers skip other roles entirely.
+ */
+async function collectKnoxSignals(
+  serviceId: string | undefined,
+  now: Date,
+): Promise<BriefingSignals["knox"]> {
+  const scope = serviceId ? { serviceId } : {};
+  const ago24h = new Date(now.getTime() - DAY_MS);
+  const ago7d = new Date(now.getTime() - 7 * DAY_MS);
+  const in24h = new Date(now.getTime() + DAY_MS);
+
+  const [minorGroups, unacknowledgedAlerts, openCards, recent] =
+    await Promise.all([
+      prisma.triageAssessment.groupBy({
+        by: ["serviceId"],
+        where: { tier: "minor", createdAt: { gte: ago24h, lt: now }, ...scope },
+        _count: { _all: true },
+      }),
+      prisma.triageAssessment.count({
+        where: {
+          alerted: true,
+          alerts: { none: { acknowledgedAt: { not: null } } },
+          ...scope,
+        },
+      }),
+      prisma.pendingAction.count({
+        where: {
+          committedAt: null,
+          dismissedAt: null,
+          expiresAt: { gt: now },
+          ...scope,
+        },
+      }),
+      prisma.triageAssessment.findMany({
+        where: { createdAt: { gte: ago7d }, ...scope },
+        select: {
+          subjectType: true,
+          subjectId: true,
+          clocks: true,
+          createdAt: true,
+          service: { select: { name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+  const nonZero = minorGroups.filter((g) => g._count._all > 0);
+  let minorYesterday: BriefingSignals["knox"]["minorYesterday"] = [];
+  if (nonZero.length > 0) {
+    const services = await prisma.service.findMany({
+      where: { id: { in: nonZero.map((g) => g.serviceId) } },
+      select: { id: true, name: true },
+    });
+    const names = new Map(services.map((sv) => [sv.id, sv.name]));
+    minorYesterday = nonZero
+      .map((g) => ({
+        serviceName: names.get(g.serviceId) ?? "Unknown service",
+        count: g._count._all,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  // Newest-first, so the first row per subject is its current assessment.
+  const seen = new Set<string>();
+  const clocksDueWithin24h: Array<{
+    serviceName: string;
+    kind: ClockKind;
+    dueAt: string;
+    dueMs: number;
+  }> = [];
+  for (const row of recent) {
+    const key = `${row.subjectType}:${row.subjectId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (!Array.isArray(row.clocks)) continue;
+    for (const raw of row.clocks as unknown[]) {
+      if (!raw || typeof raw !== "object") continue;
+      const c = raw as { kind?: unknown; dueAt?: unknown; overdue?: unknown };
+      if (typeof c.kind !== "string" || !CLOCK_KINDS.has(c.kind)) continue;
+      if (typeof c.dueAt !== "string" || c.overdue === true) continue;
+      const dueMs = new Date(c.dueAt).getTime();
+      if (Number.isNaN(dueMs)) continue;
+      if (dueMs < now.getTime() || dueMs > in24h.getTime()) continue;
+      clocksDueWithin24h.push({
+        serviceName: row.service.name,
+        kind: c.kind as ClockKind,
+        dueAt: c.dueAt,
+        dueMs,
+      });
+    }
+  }
+  clocksDueWithin24h.sort((a, b) => a.dueMs - b.dueMs);
+
+  return {
+    minorYesterday,
+    unacknowledgedAlerts,
+    openCards,
+    clocksDueWithin24h: clocksDueWithin24h
+      .slice(0, MAX_KNOX_CLOCKS)
+      .map(({ serviceName, kind, dueAt }) => ({ serviceName, kind, dueAt })),
+  };
+}
+
+const SYDNEY_DUE_FMT = new Intl.DateTimeFormat("en-AU", {
+  timeZone: "Australia/Sydney",
+  hourCycle: "h23",
+  hour: "2-digit",
+  minute: "2-digit",
+  day: "numeric",
+  month: "short",
+});
+
+/** "14:30 21 Oct" in Sydney time. */
+function formatDueSydney(iso: string): string {
+  const parts = Object.fromEntries(
+    SYDNEY_DUE_FMT.formatToParts(new Date(iso)).map((p) => [p.type, p.value]),
+  );
+  return `${parts.hour}:${parts.minute} ${parts.day} ${parts.month}`;
+}
 
 export async function collectBriefingSignals(
   user: { id: string; role: string; serviceId: string | null },
@@ -195,6 +353,15 @@ export async function collectBriefingSignals(
     take: 3,
   });
 
+  // Knox: org-wide for admin tier, scoped to their centre for a member.
+  // Every other role (marketing, staff…) gets the empty signal.
+  let knox = emptyKnoxSignals();
+  if (isAdminTier) {
+    knox = await collectKnoxSignals(undefined, now);
+  } else if (serviceScope) {
+    knox = await collectKnoxSignals(serviceScope, now);
+  }
+
   return {
     overdueTodos: overdueTodos.map((t) => ({
       id: t.id,
@@ -212,6 +379,7 @@ export async function collectBriefingSignals(
       prepared: m.aiAgendaDraft !== null,
     })),
     forecastAlerts: ADMIN_TIER.has(user.role) ? orgForecastAlerts : [],
+    knox,
   };
 }
 
@@ -251,6 +419,27 @@ export function composeFallback(signals: BriefingSignals): string {
   }
   for (const a of signals.forecastAlerts) {
     lines.push(`- **${a.serviceName}** ${a.detail}.`);
+  }
+  const k = signals.knox;
+  if (k.unacknowledgedAlerts > 0) {
+    lines.push(
+      `- Knox: **${k.unacknowledgedAlerts}** alert${k.unacknowledgedAlerts === 1 ? "" : "s"} awaiting acknowledgement.`,
+    );
+  }
+  if (k.openCards > 0) {
+    lines.push(
+      `- Knox: **${k.openCards}** proposed change${k.openCards === 1 ? "" : "s"} waiting for approval.`,
+    );
+  }
+  for (const c of k.clocksDueWithin24h) {
+    lines.push(
+      `- Knox: **${c.serviceName}** ${clockLabel(c.kind)} due ${formatDueSydney(c.dueAt)} (Sydney).`,
+    );
+  }
+  for (const m of k.minorYesterday) {
+    lines.push(
+      `- Knox: ${m.count} minor incident${m.count === 1 ? "" : "s"} at **${m.serviceName}** yesterday.`,
+    );
   }
   if (lines.length === 0) {
     return "Nothing needs you this morning — all clear.";

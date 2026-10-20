@@ -32,6 +32,12 @@ function emptySignals(): BriefingSignals {
     staleEnquiries: 0,
     meetingsToday: [],
     forecastAlerts: [],
+    knox: {
+      minorYesterday: [],
+      unacknowledgedAlerts: 0,
+      openCards: 0,
+      clocksDueWithin24h: [],
+    },
   };
 }
 
@@ -45,6 +51,11 @@ function resetPrisma() {
   prismaMock.rosterShift.count.mockResolvedValue(0);
   prismaMock.parentEnquiry.count.mockResolvedValue(0);
   prismaMock.meeting.findMany.mockResolvedValue([]);
+  prismaMock.triageAssessment.groupBy.mockResolvedValue([]);
+  prismaMock.triageAssessment.count.mockResolvedValue(0);
+  prismaMock.triageAssessment.findMany.mockResolvedValue([]);
+  prismaMock.pendingAction.count.mockResolvedValue(0);
+  prismaMock.service.findMany.mockResolvedValue([]);
 }
 
 describe("composeFallback", () => {
@@ -71,7 +82,65 @@ describe("composeFallback", () => {
   });
 });
 
+describe("composeFallback — knox", () => {
+  it("renders one line per non-empty knox field", () => {
+    const out = composeFallback({
+      ...emptySignals(),
+      knox: {
+        minorYesterday: [
+          { serviceName: "Arkana", count: 3 },
+          { serviceName: "Greenacre", count: 1 },
+        ],
+        unacknowledgedAlerts: 2,
+        openCards: 1,
+        clocksDueWithin24h: [
+          // 2026-10-21T03:30Z = 14:30 AEDT on 21 Oct (Sydney)
+          { serviceName: "Arkana", kind: "parent_24h", dueAt: "2026-10-21T03:30:00.000Z" },
+        ],
+      },
+    });
+    expect(out).toContain("- Knox: **2** alerts awaiting acknowledgement.");
+    expect(out).toContain("- Knox: **1** proposed change waiting for approval.");
+    expect(out).toContain("- Knox: **Arkana** Parent notice due 14:30 21 Oct (Sydney).");
+    expect(out).toContain("- Knox: 3 minor incidents at **Arkana** yesterday.");
+    expect(out).toContain("- Knox: 1 minor incident at **Greenacre** yesterday.");
+  });
+
+  it("uses singular wording for one alert and omits empty knox fields", () => {
+    const out = composeFallback({
+      ...emptySignals(),
+      knox: { ...emptySignals().knox, unacknowledgedAlerts: 1 },
+    });
+    expect(out).toContain("- Knox: **1** alert awaiting acknowledgement.");
+    expect(out).not.toContain("proposed change");
+    expect(out).not.toContain("minor incident");
+  });
+
+  it("does not render the all-clear line when only minors exist", () => {
+    const out = composeFallback({
+      ...emptySignals(),
+      knox: { ...emptySignals().knox, minorYesterday: [{ serviceName: "Arkana", count: 2 }] },
+    });
+    expect(out).not.toContain("all clear");
+  });
+});
+
 describe("totalSignalCount", () => {
+  it("adds knox alerts + cards + clocks but ignores minorYesterday", () => {
+    const s = {
+      ...emptySignals(),
+      knox: {
+        minorYesterday: [{ serviceName: "Arkana", count: 9 }],
+        unacknowledgedAlerts: 2,
+        openCards: 3,
+        clocksDueWithin24h: [
+          { serviceName: "Arkana", kind: "regulator" as const, dueAt: "2026-07-07T01:00:00.000Z" },
+        ],
+      },
+    };
+    expect(totalSignalCount(s)).toBe(6);
+  });
+
   it("counts scalar signals as one each and lists by length", () => {
     const s = {
       ...emptySignals(),
@@ -154,6 +223,189 @@ describe("collectBriefingSignals", () => {
       { id: "m1", title: "L10", prepared: true },
       { id: "m2", title: "Check-in", prepared: false },
     ]);
+  });
+});
+
+describe("collectBriefingSignals — knox", () => {
+  beforeEach(resetPrisma);
+
+  const DAY = 24 * 60 * 60 * 1000;
+
+  function route(opts: {
+    groups?: Array<{ serviceId: string; _count: { _all: number } }>;
+    recent?: unknown[];
+  }) {
+    prismaMock.triageAssessment.groupBy.mockImplementation(async () => opts.groups ?? []);
+    prismaMock.triageAssessment.findMany.mockImplementation(async () => opts.recent ?? []);
+    prismaMock.service.findMany.mockImplementation(
+      async (args: { where: { id: { in: string[] } } }) =>
+        args.where.id.in.map((id) => ({ id, name: `Name ${id}` })),
+    );
+    prismaMock.triageAssessment.count.mockImplementation(async () => 4);
+    prismaMock.pendingAction.count.mockImplementation(async () => 2);
+  }
+
+  it("collects minors (desc, names resolved), alerts and cards", async () => {
+    route({
+      groups: [
+        { serviceId: "s1", _count: { _all: 1 } },
+        { serviceId: "s2", _count: { _all: 5 } },
+        { serviceId: "s3", _count: { _all: 0 } },
+      ],
+    });
+    const signals = await collectBriefingSignals(
+      { id: "admin-1", role: "admin", serviceId: null },
+      NOW,
+    );
+    expect(signals.knox.minorYesterday).toEqual([
+      { serviceName: "Name s2", count: 5 },
+      { serviceName: "Name s1", count: 1 },
+    ]);
+    expect(signals.knox.unacknowledgedAlerts).toBe(4);
+    expect(signals.knox.openCards).toBe(2);
+
+    const groupCall = prismaMock.triageAssessment.groupBy.mock.calls[0][0];
+    expect(groupCall.where.tier).toBe("minor");
+    expect(groupCall.where.createdAt).toEqual({
+      gte: new Date(NOW.getTime() - DAY),
+      lt: NOW,
+    });
+    expect(groupCall.where.serviceId).toBeUndefined();
+    const alertCall = prismaMock.triageAssessment.count.mock.calls[0][0];
+    expect(alertCall.where).toMatchObject({
+      alerted: true,
+      alerts: { none: { acknowledgedAt: { not: null } } },
+    });
+    const cardCall = prismaMock.pendingAction.count.mock.calls[0][0];
+    expect(cardCall.where).toMatchObject({
+      committedAt: null,
+      dismissedAt: null,
+      expiresAt: { gt: NOW },
+    });
+  });
+
+  it("uses only the latest assessment per subject and only live clocks in the next 24h", async () => {
+    const inHours = (h: number) => new Date(NOW.getTime() + h * 3600_000).toISOString();
+    route({
+      recent: [
+        // latest for incident:i1 — one due soon, one overdue, one too far out
+        {
+          subjectType: "incident",
+          subjectId: "i1",
+          createdAt: new Date(NOW.getTime() - 3600_000),
+          service: { name: "Arkana" },
+          clocks: [
+            { kind: "parent_24h", dueAt: inHours(5), basis: "Reg 86", overdue: false },
+            { kind: "regulator", dueAt: inHours(-2), basis: "Reg 175", overdue: true },
+            { kind: "regulator", dueAt: inHours(30), basis: "Reg 175", overdue: false },
+          ],
+        },
+        // OLDER assessment for same subject — must be ignored
+        {
+          subjectType: "incident",
+          subjectId: "i1",
+          createdAt: new Date(NOW.getTime() - 7200_000),
+          service: { name: "Arkana" },
+          clocks: [{ kind: "parent_24h", dueAt: inHours(1), basis: "Reg 86", overdue: false }],
+        },
+        // another subject, malformed clocks blob
+        {
+          subjectType: "complaint",
+          subjectId: "c1",
+          createdAt: new Date(NOW.getTime() - 3600_000),
+          service: { name: "Greenacre" },
+          clocks: "not-an-array",
+        },
+        // another subject with a valid soon clock
+        {
+          subjectType: "complaint",
+          subjectId: "c2",
+          createdAt: new Date(NOW.getTime() - 3600_000),
+          service: { name: "Greenacre" },
+          clocks: [
+            { kind: "complaint_regulator", dueAt: inHours(2), basis: "x", overdue: false },
+            { kind: "bogus", dueAt: inHours(1), basis: "x", overdue: false },
+            { kind: "regulator", dueAt: "garbage", basis: "x", overdue: false },
+          ],
+        },
+      ],
+    });
+    const signals = await collectBriefingSignals(
+      { id: "owner-1", role: "owner", serviceId: null },
+      NOW,
+    );
+    expect(signals.knox.clocksDueWithin24h).toEqual([
+      { serviceName: "Greenacre", kind: "complaint_regulator", dueAt: inHours(2) },
+      { serviceName: "Arkana", kind: "parent_24h", dueAt: inHours(5) },
+    ]);
+    const findCall = prismaMock.triageAssessment.findMany.mock.calls[0][0];
+    expect(findCall.where.createdAt).toEqual({ gte: new Date(NOW.getTime() - 7 * DAY) });
+    expect(findCall.orderBy).toEqual({ createdAt: "desc" });
+  });
+
+  it("caps clocks at the 10 soonest", async () => {
+    const clocks = Array.from({ length: 14 }, (_, i) => ({
+      kind: "regulator",
+      dueAt: new Date(NOW.getTime() + (i + 1) * 3600_000).toISOString(),
+      basis: "x",
+      overdue: false,
+    }));
+    route({
+      recent: [
+        {
+          subjectType: "incident",
+          subjectId: "i1",
+          createdAt: NOW,
+          service: { name: "Arkana" },
+          clocks,
+        },
+      ],
+    });
+    const signals = await collectBriefingSignals(
+      { id: "owner-1", role: "owner", serviceId: null },
+      NOW,
+    );
+    expect(signals.knox.clocksDueWithin24h).toHaveLength(10);
+    expect(signals.knox.clocksDueWithin24h[0].dueAt).toBe(clocks[0].dueAt);
+  });
+
+  it("scopes member knox queries to their service", async () => {
+    route({});
+    await collectBriefingSignals(
+      { id: "member-1", role: "member", serviceId: "svc-9" },
+      NOW,
+    );
+    expect(prismaMock.triageAssessment.groupBy.mock.calls[0][0].where.serviceId).toBe("svc-9");
+    expect(prismaMock.triageAssessment.count.mock.calls[0][0].where.serviceId).toBe("svc-9");
+    expect(prismaMock.triageAssessment.findMany.mock.calls[0][0].where.serviceId).toBe("svc-9");
+    expect(prismaMock.pendingAction.count.mock.calls[0][0].where.serviceId).toBe("svc-9");
+  });
+
+  it("returns the empty knox signal and runs no knox queries for marketing", async () => {
+    route({});
+    const signals = await collectBriefingSignals(
+      { id: "u-1", role: "marketing", serviceId: null },
+      NOW,
+    );
+    expect(signals.knox).toEqual({
+      minorYesterday: [],
+      unacknowledgedAlerts: 0,
+      openCards: 0,
+      clocksDueWithin24h: [],
+    });
+    expect(prismaMock.triageAssessment.groupBy).not.toHaveBeenCalled();
+    expect(prismaMock.triageAssessment.count).not.toHaveBeenCalled();
+    expect(prismaMock.pendingAction.count).not.toHaveBeenCalled();
+  });
+
+  it("returns the empty knox signal for a member with no service", async () => {
+    route({});
+    const signals = await collectBriefingSignals(
+      { id: "m-1", role: "member", serviceId: null },
+      NOW,
+    );
+    expect(signals.knox.unacknowledgedAlerts).toBe(0);
+    expect(prismaMock.triageAssessment.count).not.toHaveBeenCalled();
   });
 });
 
