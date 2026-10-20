@@ -179,6 +179,18 @@ describe("buildCards", () => {
     expect(kinds(notSerious)).not.toContain("mark_reportable");
   });
 
+  it("mark_reportable keeps an existing becameAwareAt", () => {
+    const earlier = new Date("2026-10-19T22:00:00.000Z");
+    const cards = buildCards({
+      subject: incident({ becameAwareAt: earlier }),
+      rules: rules({ tier: "serious" }),
+      model: model({ suggestedCategory: "serious_injury" }),
+      now: NOW,
+    });
+    const card = cards.find((c) => c.kind === "mark_reportable");
+    expect(card!.payload.becameAwareAt).toBe(earlier.toISOString());
+  });
+
   it("no mark_reportable without a category", () => {
     const none = buildCards({
       subject: incident(),

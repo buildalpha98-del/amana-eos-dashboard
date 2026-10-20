@@ -67,7 +67,9 @@ export function buildCards(args: {
         payload: {
           reportableToAuthority: true,
           seriousIncidentCategory: category,
-          becameAwareAt: now.toISOString(),
+          // Keep an earlier recorded awareness time: overwriting it would push
+          // out the regulator notification clock.
+          becameAwareAt: (record.becameAwareAt ?? now).toISOString(),
         },
         summary: `Mark reportable to the regulator (${category.replace(/_/g, " ")})`,
         rationale,
