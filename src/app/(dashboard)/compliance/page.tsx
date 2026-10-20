@@ -46,6 +46,7 @@ import { AuditCalendarTab } from "@/components/compliance/AuditCalendarTab";
 import { AuditResultsTab } from "@/components/compliance/AuditResultsTab";
 import { QualificationRatiosTab } from "@/components/compliance/QualificationRatiosTab";
 import { StaffCertUploadModal } from "@/components/compliance/StaffCertUploadModal";
+import { StaffFormsSection } from "@/components/compliance/StaffFormsSection";
 import { uploadFileSmart } from "@/lib/upload-client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useOrgConfig } from "@/hooks/useOrgConfig";
@@ -565,6 +566,13 @@ function StaffComplianceView() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {certTypes.filter((t) => t !== "other").map((type) => renderCertCard(type))}
+        </div>
+      )}
+
+      {/* Staff Record + Responsible Person forms (20 Oct 2026). */}
+      {viewerId && (
+        <div className="mt-8">
+          <StaffFormsSection userId={viewerId} heading="Forms to fill in" />
         </div>
       )}
 

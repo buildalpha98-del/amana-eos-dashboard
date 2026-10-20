@@ -7,14 +7,16 @@
  *
  * Policies / Induction / Forms are read-only lists fed entirely by the
  * server loader (`/staff/[id]/page.tsx`) — no client queries here.
- * "Forms" = staff survey submissions (SurveyResponse); there is no
- * dedicated FormSubmission model.
+ * "Forms" = the compliance forms (Staff Record / Responsible Person, own
+ * client query — StaffFormsSection) plus staff survey submissions
+ * (SurveyResponse).
  *
  * 2026-05-04: introduced (spec PR #77, PR 3).
  * 2026-09-04: Policies / Induction / Forms stubs wired (staff portal
  *             v2 Phase 8).
  */
 
+import { StaffFormsSection } from "@/components/compliance/StaffFormsSection";
 import { ShieldCheck, GraduationCap, ClipboardList, CheckCircle2 } from "lucide-react";
 import { ComplianceTab } from "@/components/staff/tabs/ComplianceTab";
 import { DocumentsTab } from "@/components/staff/tabs/DocumentsTab";
@@ -125,7 +127,13 @@ export function DocumentsSection({
             />
           );
         }
-        return <FormsList submissions={data.formSubmissions} />;
+        return (
+          <div className="space-y-6">
+            {/* Staff Record + Responsible Person (20 Oct 2026): view, countersign. */}
+            <StaffFormsSection userId={data.targetUser.id} heading="Compliance forms" />
+            <FormsList submissions={data.formSubmissions} />
+          </div>
+        );
       }}
     </SectionShell>
   );

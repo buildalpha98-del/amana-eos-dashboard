@@ -23,6 +23,7 @@ import { ApiError } from "@/lib/api-error";
 import { canViewPrivateStaffFiles, canViewServiceRecords } from "@/lib/staff-access";
 import { getOrgSettings } from "@/lib/org-settings";
 import { getRequiredCertTypes } from "@/lib/cert-requirements";
+import { formStatus, formsFor } from "@/lib/staff-forms";
 
 const CERT_LABELS: Record<string, string> = {
   wwcc: "WWCC",
@@ -56,13 +57,13 @@ export const GET = withApiAuth(async (_req, session, context) => {
         { serviceMemberships: { some: { serviceId, status: "active" } } },
       ],
     },
-    select: { id: true, name: true, role: true, avatar: true },
+    select: { id: true, name: true, role: true, avatar: true, positions: true },
     orderBy: { name: "asc" },
   });
   const ids = staff.map((s) => s.id);
   const now = new Date();
   const showPrivate = canViewPrivateStaffFiles(session!.user.role);
-  const [certs, docs, orgSettings] = await Promise.all([
+  const [certs, docs, orgSettings, staffForms] = await Promise.all([
     prisma.complianceCertificate.findMany({
       where: { userId: { in: ids }, supersededAt: null },
       select: { id: true, userId: true, type: true, label: true, fileUrl: true, expiryDate: true },
@@ -76,6 +77,10 @@ export const GET = withApiAuth(async (_req, session, context) => {
         })
       : Promise.resolve([]),
     getOrgSettings().catch(() => null),
+    prisma.staffForm.findMany({
+      where: { userId: { in: ids } },
+      select: { userId: true, type: true, submittedAt: true, supervisorSignedAt: true },
+    }),
   ]);
 
   return NextResponse.json({
@@ -89,7 +94,13 @@ export const GET = withApiAuth(async (_req, session, context) => {
         userId: s.id,
         name: s.name,
         role: s.role,
-        missing: required.filter((t) => !current.has(t)).map(label),
+        missing: [
+          ...required.filter((t) => !current.has(t)).map(label),
+          // Staff Record / Responsible Person forms not complete (20 Oct 2026).
+          ...formsFor(s.positions)
+            .filter((type) => formStatus(staffForms.find((f) => f.userId === s.id && f.type === type) ?? null) !== "complete")
+            .map((type) => (type === "staff_record" ? "Staff Record form" : "Responsible Person form")),
+        ],
         files: [
           ...mine
             .filter((c) => c.fileUrl)
