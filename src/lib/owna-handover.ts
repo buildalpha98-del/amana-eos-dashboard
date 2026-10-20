@@ -61,6 +61,26 @@ export async function handoverData(enrolmentId: string, firstDay?: string): Prom
 const PROVEN_PROCESS_PATH = "/Amana_PP.png";
 const BASE = () => process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
 
+/** The centre's "booked in" message — shared by the real alert and test sends. */
+export function firstDayCentreMessage(x: { kids: string; firstDay: string; family: string }) {
+  const day = formatFirstDay(x.firstDay);
+  const kids = escapeHtml(x.kids);
+  return {
+    title: `Booked in: ${x.kids} starts ${day}`,
+    body: `First day confirmed. Please follow the Amana Proven Process with ${x.kids}.`,
+    email: {
+      subject: `Booked in: ${x.kids}'s first day is ${day}`,
+      lines: [
+        `Just letting you know <strong>${kids}</strong> has been booked in, and their first day is <strong>${escapeHtml(day)}</strong>.`,
+        ...(x.family ? [`Family: ${escapeHtml(x.family)}.`] : []),
+        `Please make sure you follow the <strong>Amana Proven Process</strong> with ${kids}. Just in case you don't have it handy, it's attached to this email (and always in the Handbook under Proven Process).`,
+      ],
+      button: "Open the enrolment",
+      attachments: [{ filename: "Amana Proven Process.png", path: `${BASE()}${PROVEN_PROCESS_PATH}` }],
+    },
+  };
+}
+
 /**
  * Daniel, 20 Oct 2026: when a first day is confirmed, tell the centre — the
  * child is booked in, this is their first day — and send the Proven Process
@@ -80,26 +100,17 @@ export async function alertCentreFirstDay(enrolmentId: string, firstDay: string)
         ? names[0]
         : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`
       : childNamesFrom(sub.children);
-    const day = formatFirstDay(firstDay);
     const p = (sub.primaryParent ?? {}) as { firstName?: string; surname?: string; mobile?: string };
     const parent = [p.firstName, p.surname].map((s) => s?.trim()).filter(Boolean).join(" ");
     const family = [parent, p.mobile?.trim()].filter(Boolean).join(", ");
+    const m = firstDayCentreMessage({ kids, firstDay, family });
     await alertCentreTeam({
       serviceId: sub.serviceId,
       type: "enrolment_first_day",
-      title: `Booked in: ${kids} starts ${day}`,
-      body: `First day confirmed. Please follow the Amana Proven Process with ${kids}.`,
+      title: m.title,
+      body: m.body,
       link: `/enrolments?id=${enrolmentId}`,
-      email: {
-        subject: `Booked in: ${kids}'s first day is ${day}`,
-        lines: [
-          `Just letting you know <strong>${escapeHtml(kids)}</strong> has been booked in, and their first day is <strong>${escapeHtml(day)}</strong>.`,
-          ...(family ? [`Family: ${escapeHtml(family)}.`] : []),
-          `Please follow the <strong>Amana Proven Process</strong> with ${escapeHtml(kids)}. It's attached, and always in the Handbook under Proven Process.`,
-        ],
-        button: "Open the enrolment",
-        attachments: [{ filename: "Amana Proven Process.png", path: `${BASE()}${PROVEN_PROCESS_PATH}` }],
-      },
+      email: m.email,
     });
   } catch (err) {
     logger.error("First-day centre alert failed", { enrolmentId, err });
