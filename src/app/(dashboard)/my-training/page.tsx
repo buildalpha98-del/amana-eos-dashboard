@@ -23,7 +23,7 @@ function TrainingHub() {
   const { data: session } = useSession();
   const role = session?.user?.role ?? "";
   // Only roles whose /compliance view is their OWN documents get the tab.
-  const withCompliance = role === "staff" || role === "member";
+  const withCompliance = role === "staff" || role === "member" || role === "volunteer";
   const tab = useHubTab(TABS);
   const showCompliance = withCompliance && tab === "compliance";
 

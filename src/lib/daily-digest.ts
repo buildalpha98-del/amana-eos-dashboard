@@ -33,9 +33,9 @@ export async function buildAndSendDailyDigest(): Promise<DigestResult> {
   const currentQuarter = quarterLabel(now);
   const twentyHoursAgo = new Date(now.getTime() - 20 * 60 * 60 * 1000);
 
-  // Get all active users
+  // Get all active users — not volunteers, who get no digest (20 Oct 2026).
   const users = await prisma.user.findMany({
-    where: { active: true },
+    where: { active: true, role: { not: "volunteer" } },
     select: {
       id: true,
       name: true,

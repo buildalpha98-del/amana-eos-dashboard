@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { privateTodoWhere } from "@/lib/todos/private-filter";
-import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { ADMIN_ROLES, isSelfScopedRole } from "@/lib/role-permissions";
 
 /**
  * GET /api/search?q= — global ⌘K search.
@@ -34,7 +34,7 @@ export const GET = withApiAuth(async (req, session) => {
 
   const isAdmin = ADMIN_TIER.has(role);
   const isMember = role === "member";
-  const isStaff = role === "staff";
+  const isStaff = isSelfScopedRole(role);
   const canSeeEos = isAdmin || isMember || EOS_ROLES.has(role);
   const canSeeChildren = isAdmin || (isMember && !!serviceId);
   const canSeeCrm = isAdmin || role === "marketing";

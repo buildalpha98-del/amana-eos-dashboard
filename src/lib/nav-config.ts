@@ -442,6 +442,30 @@ function centreAccountNavItems(items: readonly NavItem[], serviceId: string | nu
 }
 
 /**
+ * 2026-10-20, Daniel: volunteers get "my profile, the basic stuff" — their
+ * compliance (WWCC + Staff Record form), training, policies, notifications
+ * and the handbook. Nothing about pay, shifts or the centre's operations.
+ */
+export const VOLUNTEER_NAV_HREFS: readonly string[] = [
+  "/compliance",
+  "/my-training",
+  "/policies",
+  "/notifications",
+  "/handbook",
+];
+
+function volunteerNavItems(items: readonly NavItem[]): NavItem[] {
+  // First entry per href wins — /compliance's first is "My Compliance".
+  const byHref = new Map<string, NavItem>();
+  for (const item of items) if (!byHref.has(item.href)) byHref.set(item.href, item);
+  return VOLUNTEER_NAV_HREFS.flatMap((href) => {
+    const item = byHref.get(href);
+    if (!item || !canAccessPage("volunteer", href)) return [];
+    return [{ ...item, section: "My Portal", core: true, hidden: false }];
+  });
+}
+
+/**
  * Filter nav items by role: must pass `canAccessPage` AND (if tagged) the
  * `hasFeature` gate AND (if tagged) the `roles` allowlist. Keeps role logic
  * in one place so Sidebar stays declarative.
@@ -460,6 +484,7 @@ export function filterNavItems(
 ): NavItem[] {
   if (opts.isCentreAccount) return centreAccountNavItems(items, opts.serviceId ?? null);
   if (role === "staff") return staffNavItems(items, opts.serviceId ?? null);
+  if (role === "volunteer") return volunteerNavItems(items);
   return items.filter((item) => {
     if (!canAccessPage(role, item.href)) return false;
     if (item.feature && !hasFeature(role, item.feature)) return false;

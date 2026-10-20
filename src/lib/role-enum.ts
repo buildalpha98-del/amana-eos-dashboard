@@ -29,6 +29,7 @@ export const ROLES: readonly Role[] = [
   "staff",
   "eos_viewer",
   "eos_implementer",
+  "volunteer",
   "eos",
 ] as const;
 

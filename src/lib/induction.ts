@@ -149,9 +149,16 @@ export async function assertUserCleared(userId: string): Promise<void> {
       inductionGraceUntil: true,
       inductionOverrideUntil: true,
       isCentreAccount: true,
+      role: true,
     },
   });
   if (!user) throw ApiError.notFound("User not found");
+
+  // Volunteers are never rostered and never clock in (Daniel, 20 Oct 2026):
+  // they don't count in ratios and have no timesheets or pay.
+  if (user.role === "volunteer") {
+    throw ApiError.forbidden("Volunteers can't be rostered or clock in.");
+  }
 
   // A shared centre mailbox isn't a person: rostering it or clocking it in
   // would put a phantom educator into ratios, timesheets and payroll. It is

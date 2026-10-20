@@ -48,7 +48,11 @@ export const GET = withApiAuth(async (req, session, context) => {
   // don't pass this flag: a mailbox isn't an educator to roster or count.
   const includeCentreAccounts =
     new URL(req.url).searchParams.get("centreAccounts") === "1";
-  const accountFilter = includeCentreAccounts ? {} : { isCentreAccount: false };
+  // Volunteers (20 Oct 2026) aren't rostered either: on the Staff tab, not
+  // in roster pickers or staffing counts.
+  const accountFilter = includeCentreAccounts
+    ? {}
+    : { isCentreAccount: false, role: { not: "volunteer" as const } };
 
   const [primaryUsers, memberships] = await Promise.all([
     prisma.user.findMany({

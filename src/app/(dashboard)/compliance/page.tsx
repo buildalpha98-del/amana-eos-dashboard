@@ -604,7 +604,8 @@ type ComplianceTabKey = (typeof complianceTabs)[number]["key"];
 export default function CompliancePage() {
   const { data: session, status } = useSession();
   const role = (session?.user?.role as string) || "";
-  const isServiceScoped = role === "staff" || role === "member";
+  // Volunteers (20 Oct 2026) get the personal view too: their own WWCC + forms.
+  const isServiceScoped = role === "staff" || role === "member" || role === "volunteer";
   const [activeTab, setActiveTab] = useState<ComplianceTabKey>("certificates");
   const [view, setView] = useState<"list" | "matrix">("list");
   const [serviceFilter, setServiceFilter] = useState("");

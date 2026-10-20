@@ -73,6 +73,21 @@ export function getDefaultNotificationPrefs(role: string): NotificationPrefs {
         emailDigest: true,
       };
 
+    // 2026-10-20 (Daniel): don't bombard volunteers — in-app only for what
+    // concerns them (compliance, assignments, announcements), no email.
+    case "volunteer":
+      return {
+        overdueTodos: false,
+        newAssignments: true,
+        complianceAlerts: true,
+        announcements: true,
+        leaveUpdates: false,
+        meetingReminders: false,
+        rockUpdates: false,
+        emailNotifications: false,
+        emailDigest: false,
+      };
+
     case "staff":
     default:
       return {

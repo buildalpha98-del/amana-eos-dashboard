@@ -423,6 +423,7 @@ const ROLE_OPTIONS: { value: string; label: string; ownerOnly?: boolean }[] = [
   { value: "marketing", label: "Marketing" },
   { value: "member", label: "Member" },
   { value: "staff", label: "Staff" },
+  { value: "volunteer", label: "Volunteer" },
 ];
 
 function AccountPanel({

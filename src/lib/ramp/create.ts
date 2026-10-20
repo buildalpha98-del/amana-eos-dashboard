@@ -36,9 +36,12 @@ export async function createStaffRamp(
     // emails to a shared inbox, no probation review for a mailbox.
     const who = await db.user.findUnique({
       where: { id: userId },
-      select: { isCentreAccount: true },
+      select: { isCentreAccount: true, role: true },
     });
     if (who?.isCentreAccount) return { created: false, rampId: null };
+    // Volunteers aren't employees on probation — no weekly check-in emails
+    // or 30/60/90 reviews (Daniel, 20 Oct 2026).
+    if (who?.role === "volunteer") return { created: false, rampId: null };
 
     const start = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
     const skipBefore = addDays(now, -RAMP_SKIP_PAST_DAYS);

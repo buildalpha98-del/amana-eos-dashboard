@@ -11,7 +11,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { uploadFile } from "@/lib/storage";
 import { notifyUsers } from "@/lib/notify-user";
 import { logger } from "@/lib/logger";
-import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { ADMIN_ROLES, isSelfScopedRole } from "@/lib/role-permissions";
 import { refreshInductionAfterBlockerChange } from "@/lib/induction";
 // Reject expiry dates that fall before today — uploading an already-expired
 // cert is a UX trap (the row would immediately read "expired"). Today itself
@@ -73,7 +73,7 @@ export const GET = withApiAuth(async (req, session) => {
     where.userId = session!.user.id;
   } else if (scope) {
     // Staff only see their own certs; member sees their service's certs
-    if (role === "staff") {
+    if (isSelfScopedRole(role)) {
       where.userId = session!.user.id;
     } else {
       where.serviceId = scope;
@@ -159,7 +159,7 @@ export const POST = withApiAuth(async (req, session) => {
   }
 
   const role = session!.user.role as string;
-  const isServiceScoped = role === "staff" || role === "member";
+  const isServiceScoped = isSelfScopedRole(role) || role === "member";
 
   // Staff/member: force userId to themselves. serviceId is taken from
   // their session if present; if the user has no service assigned

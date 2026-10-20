@@ -34,6 +34,7 @@ type Role =
   | "staff"
   | "eos_viewer"
   | "eos_implementer"
+  | "volunteer"
   | "eos";
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
@@ -85,6 +86,7 @@ export const REQUIRED_CERTS_BY_ROLE_DEFAULTS: RequiredCertsByRole = {
   staff: [...CORE_CHILD_FACING_CERT_TYPES],
   eos_viewer: [],
   eos_implementer: [],
+  volunteer: ["wwcc"],
   eos: [],
 };
 
@@ -106,6 +108,7 @@ const requiredCertsByRoleSchema = z
     staff: requiredCertListSchema.default([...CORE_CHILD_FACING_CERT_TYPES]),
     eos_viewer: requiredCertListSchema.default([]),
     eos_implementer: requiredCertListSchema.default([]),
+    volunteer: requiredCertListSchema.default(["wwcc"]),
     eos: requiredCertListSchema.default([]),
   })
   .strict();
@@ -156,6 +159,7 @@ const roleLabelsSchema = z.object({
   // in once and persists when the row is next written.
   eos_viewer: z.string().min(1).max(60).default("EOS Viewer"),
   eos_implementer: z.string().min(1).max(60).default("EOS Implementer"),
+  volunteer: z.string().min(1).max(60).default("Volunteer"),
   eos: z.string().min(1).max(60).default("EOS Member"),
 });
 
@@ -173,6 +177,7 @@ const rolePageOverridesSchema = z.object({
   staff: z.array(z.string()).nullable(),
   eos_viewer: z.array(z.string()).nullable().default(null),
   eos_implementer: z.array(z.string()).nullable().default(null),
+  volunteer: z.array(z.string()).nullable().default(null),
   eos: z.array(z.string()).nullable().default(null),
 });
 
@@ -191,6 +196,9 @@ const roleGuidesSchema = z.object({
     .object({ welcomeMessage: z.string().max(2_000) })
     .default({ welcomeMessage: "" }),
   eos_implementer: z
+    .object({ welcomeMessage: z.string().max(2_000) })
+    .default({ welcomeMessage: "" }),
+  volunteer: z
     .object({ welcomeMessage: z.string().max(2_000) })
     .default({ welcomeMessage: "" }),
   eos: z
@@ -217,6 +225,7 @@ const checklistOverridesSchema = z.object({
   staff: z.record(z.string(), checklistOverrideEntrySchema),
   eos_viewer: z.record(z.string(), checklistOverrideEntrySchema).default({}),
   eos_implementer: z.record(z.string(), checklistOverrideEntrySchema).default({}),
+  volunteer: z.record(z.string(), checklistOverrideEntrySchema).default({}),
   eos: z.record(z.string(), checklistOverrideEntrySchema).default({}),
 });
 
@@ -386,6 +395,7 @@ export const ROLE_LABEL_DEFAULTS: RoleLabels = {
   staff: "OSHC Educator",
   eos_viewer: "EOS Viewer",
   eos_implementer: "EOS Implementer",
+  volunteer: "Volunteer",
   eos: "EOS Member",
 };
 
@@ -450,6 +460,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     staff: null,
     eos_viewer: null,
     eos_implementer: null,
+    volunteer: null,
     eos: null,
   },
   roleGuides: {
@@ -461,6 +472,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     staff: { welcomeMessage: "" },
     eos_viewer: { welcomeMessage: "" },
     eos_implementer: { welcomeMessage: "" },
+    volunteer: { welcomeMessage: "" },
     eos: { welcomeMessage: "" },
   },
   checklistOverrides: {
@@ -472,6 +484,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     staff: {},
     eos_viewer: {},
     eos_implementer: {},
+    volunteer: {},
     eos: {},
   },
   welcomePack: {
@@ -674,6 +687,7 @@ export function mergeOrgSettings(
       staff: pickLabel("staff"),
       eos_viewer: pickLabel("eos_viewer"),
       eos_implementer: pickLabel("eos_implementer"),
+      volunteer: pickLabel("volunteer"),
       eos: pickLabel("eos"),
     },
     rolePageOverrides: mergeRolePageOverrides(
@@ -743,6 +757,7 @@ function mergeCompliance(
       staff: pick("staff"),
       eos_viewer: pick("eos_viewer"),
       eos_implementer: pick("eos_implementer"),
+      volunteer: pick("volunteer"),
       eos: pick("eos"),
     },
   };
@@ -832,6 +847,7 @@ function mergeRolePageOverrides(
     staff: pick("staff"),
     eos_viewer: pick("eos_viewer"),
     eos_implementer: pick("eos_implementer"),
+    volunteer: pick("volunteer"),
     eos: pick("eos"),
   };
 }
@@ -865,6 +881,7 @@ function mergeRoleGuides(
     staff: pick("staff"),
     eos_viewer: pick("eos_viewer"),
     eos_implementer: pick("eos_implementer"),
+    volunteer: pick("volunteer"),
     eos: pick("eos"),
   };
 }
@@ -904,6 +921,7 @@ function mergeChecklistOverrides(
     staff: pickRole("staff"),
     eos_viewer: pickRole("eos_viewer"),
     eos_implementer: pickRole("eos_implementer"),
+    volunteer: pickRole("volunteer"),
     eos: pickRole("eos"),
   };
 }

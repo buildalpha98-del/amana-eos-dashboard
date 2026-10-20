@@ -28,6 +28,8 @@ export const GET = withApiHandler(async (req) => {
       where: {
         active: true,
         serviceId: { not: null },
+        // No pulse survey email to volunteers (20 Oct 2026).
+        role: { not: "volunteer" },
       },
       select: {
         id: true,

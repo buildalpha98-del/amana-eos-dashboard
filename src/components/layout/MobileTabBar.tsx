@@ -15,6 +15,8 @@ import {
   Bell,
   BookOpen,
   GraduationCap,
+  ShieldCheck,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotificationCount } from "@/hooks/useNotifications";
@@ -66,6 +68,14 @@ export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
         { href: "/notifications", label: "Alerts", icon: Bell },
         { href: "/handbook", label: "Handbook", icon: BookOpen },
       ]
+    : role === "volunteer"
+      ? // Volunteers (2026-10-20): just their own compliance, training and policies.
+        [
+          { href: "/compliance", label: "Compliance", icon: ShieldCheck },
+          { href: "/my-training", label: "Training", icon: GraduationCap },
+          { href: "/policies", label: "Policies", icon: Shield },
+          { href: "/notifications", label: "Alerts", icon: Bell },
+        ]
     : role === "staff" && session?.user?.serviceId
       ? // Educators (2026-10-08): their centre is a tab, not a hunt.
         // Shifts = My Day (clock + week ahead); Pay & Leave holds expenses.

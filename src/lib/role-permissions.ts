@@ -30,6 +30,16 @@ export const ADMIN_ROLES_WITH_EOS = [...ADMIN_ROLES, "eos"] as const;
  * Check whether a role string is an admin role (owner, head_office, or admin).
  * Safe narrowing — accepts any string and returns whether it matches ADMIN_ROLES.
  */
+/**
+ * Roles that only ever see their OWN records (certs, balances, surveys…)
+ * where an API branches on role: educators and volunteers (20 Oct 2026 —
+ * a volunteer falling through a `role === "staff"` check landed in the
+ * broader, centre-wide branch).
+ */
+export function isSelfScopedRole(role: string | null | undefined): boolean {
+  return role === "staff" || role === "volunteer";
+}
+
 export function isAdminRole(role: string | null | undefined): boolean {
   if (!role) return false;
   return (ADMIN_ROLES as readonly string[]).includes(role);
@@ -520,6 +530,27 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     // can only call read-only tools.
     "/assistant",
   ],
+  // 2026-10-20 (Daniel): unpaid centre volunteers — "my profile, the basic
+  // stuff". Compliance (WWCC + the Staff Record form), policies, the
+  // handbook and training. NO pay, leave, expenses, contracts, timesheets,
+  // roster/shifts, services or ambassadors. Denied pages send them to
+  // their landing page (/compliance), never /dashboard.
+  volunteer: [
+    "/compliance",
+    "/profile",
+    "/policies",
+    "/my-training",
+    "/learn/[enrollmentId]",
+    "/notifications",
+    "/handbook",
+    "/tools/the-amana-way",
+    "/tools/handbook",
+    "/tools/amana-way-one-pager",
+    "/tools/employee-handbook",
+    "/guides",
+    "/help",
+    "/directory",
+  ],
   // 2026-06-22: view-only access to the EOS surface for coaches /
   // board observers / advisors. Write APIs across V/TO, Rocks,
   // Scorecard, Todos, Issues, Meetings, Accountability Chart are all
@@ -901,6 +932,16 @@ const staffFeatures: readonly Feature[] = [
   "timesheets.create",
 ];
 
+// 2026-10-20: Volunteer — read their policies, do their training, keep
+// their own compliance current. Nothing paid (leave, contracts,
+// timesheets) and no portal/pay surfaces.
+const volunteerFeatures: readonly Feature[] = [
+  "lms.view",
+  "compliance.view",
+  "policies.view",
+  "policies.acknowledge",
+];
+
 // 2026-06-22: EOS Viewer — view-only coach/advisor role. No write
 // features at all. Page access (rolePageAccess['eos_viewer']) is
 // what carries the actual capability; feature flags are reserved
@@ -943,6 +984,7 @@ export const roleFeatures: Record<Role, readonly Feature[]> = {
   staff: staffFeatures,
   eos_viewer: eosViewerFeatures,
   eos_implementer: eosImplementerFeatures,
+  volunteer: volunteerFeatures,
   // 2026-07-13: EOS Member gets the admin feature set — Services /
   // Operations / Growth / People, plus everything admin can do.
   eos: adminFeatures,
@@ -1030,6 +1072,8 @@ const rolePriority: Record<Role, number> = {
   // staff level so it never clears a `minRole` gate above plain operational
   // access.
   eos_implementer: 1,
+  // Volunteers never clear a `minRole` gate (same floor as eos_viewer).
+  volunteer: 0,
   // 2026-07-13: EOS Member has admin-equivalent access to Services / Ops /
   // Growth / People plus full EOS. Ranked at admin so `minRole("admin")`
   // gates pass; owner-only paths still guarded by explicit role checks.
@@ -1054,6 +1098,8 @@ export function getLandingPage(role: string | null | undefined): string {
   // 2026-10-07: Educators land on their own portal — it is their home,
   // and the command-centre /dashboard is not a page they work from.
   if (role === "staff") return "/my-portal";
+  // 2026-10-20: volunteers have no portal/dashboard — compliance is home.
+  if (role === "volunteer") return "/compliance";
   return isEosRole(role) ? "/rocks" : "/dashboard";
 }
 
@@ -1078,6 +1124,7 @@ export interface PermissionRow {
   // eos_implementer lives in `rolePageAccess[...]`, not here.
   eos_viewer?: boolean;
   eos_implementer?: boolean;
+  volunteer?: boolean;
 }
 
 /** Informational table data for the Settings > Permissions panel */

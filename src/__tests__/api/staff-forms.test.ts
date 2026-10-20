@@ -147,7 +147,7 @@ describe("GET — same visibility as certificates", () => {
 });
 
 describe("PUT — only the staff member fills in their own", () => {
-  const put = (userId: string, type: string, body: unknown) =>
+  const put = (userId: string, type: string, body: Record<string, unknown>) =>
     PUT(createRequest("PUT", `/api/staff-forms/${userId}/${type}`, { body }), ctx(userId, type));
 
   it("saves a draft with no checks", async () => {
@@ -177,7 +177,7 @@ describe("PUT — only the staff member fills in their own", () => {
 });
 
 describe("countersign — the centre's coordinator or a State Manager", () => {
-  const sign = (body: unknown = { signature: SIG, documentsViewed: ["passport", "criminalHistory"] }) =>
+  const sign = (body: Record<string, unknown> = { signature: SIG, documentsViewed: ["passport", "criminalHistory"] }) =>
     COUNTERSIGN(createRequest("POST", "/api/staff-forms/s1/responsible_person/countersign", { body }), ctx("s1", "responsible_person"));
 
   beforeEach(() => {

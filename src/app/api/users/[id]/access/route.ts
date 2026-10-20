@@ -16,7 +16,7 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-import { isAdminRole } from "@/lib/role-permissions";
+import { isAdminRole, isSelfScopedRole } from "@/lib/role-permissions";
 import { STAFF_PERMISSION_KEYS, STAFF_POSITION_KEYS } from "@/lib/staff-permissions";
 import type { Session } from "next-auth";
 
@@ -39,7 +39,7 @@ function canEditAccess(
   if (isAdminRole(role)) return true;
   if (role !== "member") return false;
   const own = (session.user as { serviceId?: string | null }).serviceId ?? null;
-  return target.role === "staff" && own !== null && target.serviceId === own;
+  return isSelfScopedRole(target.role) && own !== null && target.serviceId === own;
 }
 
 async function loadTarget(id: string) {

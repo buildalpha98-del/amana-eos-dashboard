@@ -58,6 +58,7 @@ const ROLE_LABEL: Record<Role, string> = {
   staff: "OSHC Educator",
   eos_viewer: "EOS Viewer",
   eos_implementer: "EOS Implementer",
+  volunteer: "Volunteer",
   eos: "EOS Member",
 };
 

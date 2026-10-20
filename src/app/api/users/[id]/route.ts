@@ -15,8 +15,8 @@ import { ADMIN_ROLES } from "@/lib/role-permissions";
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
   role: z.enum(
-    ["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer", "eos"],
-    { error: "Invalid role. Must be one of: owner, head_office, admin, marketing, member, staff, eos_viewer, eos_implementer, eos" },
+    ["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer", "volunteer", "eos"],
+    { error: "Invalid role. Must be one of: owner, head_office, admin, marketing, member, staff, eos_viewer, eos_implementer, volunteer, eos" },
   ).optional(),
   active: z.boolean().optional(),
   newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),

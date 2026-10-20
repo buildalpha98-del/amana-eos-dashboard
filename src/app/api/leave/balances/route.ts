@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isSelfScopedRole } from "@/lib/role-permissions";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -9,7 +10,7 @@ const { searchParams } = new URL(req.url);
 
   // Staff can only see their own balances
   let targetUserId: string;
-  if (session!.user.role === "staff") {
+  if (isSelfScopedRole(session!.user.role)) {
     targetUserId = session!.user.id;
   } else {
     targetUserId = userId || "";

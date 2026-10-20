@@ -92,11 +92,16 @@ export async function setUpInEmploymentHero(
       phone: true,
       active: true,
       isCentreAccount: true,
+      role: true,
       employmentHeroEmployeeId: true,
     },
   });
   if (!user || !user.active || user.isCentreAccount) {
     return { status: "skipped", ehEmployeeId: null, message: "Not a staff member" };
+  }
+  // Volunteers aren't paid — no Employment Hero record, no EH setup email.
+  if (user.role === "volunteer") {
+    return { status: "skipped", ehEmployeeId: null, message: "Volunteers aren't set up in Employment Hero" };
   }
 
   const { firstName, surname } = splitName(user.name);
