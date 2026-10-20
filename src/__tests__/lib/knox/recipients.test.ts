@@ -11,6 +11,7 @@ interface FakeUser {
   active: boolean;
   state: string | null;
   serviceId: string | null;
+  isCentreAccount: boolean;
 }
 
 interface FakeMembership {
@@ -18,6 +19,7 @@ interface FakeMembership {
   serviceId: string;
   roleAtService: string;
   status: "active" | "inactive";
+  endDate?: Date | null;
   user: FakeUser;
 }
 
@@ -36,6 +38,7 @@ function user(over: Partial<FakeUser> & { id: string }): FakeUser {
     active: true,
     state: null,
     serviceId: null,
+    isCentreAccount: false,
     ...over,
   };
 }
@@ -47,6 +50,7 @@ type RoleFilter = string | { in: string[] };
 interface UserWhere {
   id?: string;
   active?: boolean;
+  isCentreAccount?: boolean;
   role?: RoleFilter;
   serviceId?: string;
 }
@@ -60,8 +64,36 @@ function matchesRole(role: string, filter: RoleFilter | undefined): boolean {
 function matchesUser(u: FakeUser, where: UserWhere): boolean {
   if (where.id !== undefined && u.id !== where.id) return false;
   if (where.active !== undefined && u.active !== where.active) return false;
+  if (where.isCentreAccount !== undefined && u.isCentreAccount !== where.isCentreAccount) {
+    return false;
+  }
   if (where.serviceId !== undefined && u.serviceId !== where.serviceId) return false;
   return matchesRole(u.role, where.role);
+}
+
+interface MembershipWhere {
+  serviceId?: string;
+  status?: string;
+  OR?: Array<{ endDate: null | { gt: Date } }>;
+  roleAtService?: { contains: string; mode?: "insensitive" };
+  user?: UserWhere;
+}
+
+function matchesMembership(m: FakeMembership, where: MembershipWhere): boolean {
+  if (where.serviceId !== undefined && m.serviceId !== where.serviceId) return false;
+  if (where.status !== undefined && m.status !== where.status) return false;
+  if (where.OR) {
+    const end = m.endDate ?? null;
+    const ok = where.OR.some((c) => (c.endDate === null ? end === null : end !== null && end > c.endDate.gt));
+    if (!ok) return false;
+  }
+  if (where.roleAtService) {
+    const hay = where.roleAtService.mode === "insensitive" ? m.roleAtService.toLowerCase() : m.roleAtService;
+    const needle = where.roleAtService.mode === "insensitive" ? where.roleAtService.contains.toLowerCase() : where.roleAtService.contains;
+    if (!hay.includes(needle)) return false;
+  }
+  if (where.user && !matchesUser(m.user, where.user)) return false;
+  return true;
 }
 
 const pick = ({ id, name, email }: FakeUser) => ({ id, name, email });
@@ -76,17 +108,9 @@ beforeEach(() => {
   prismaMock.user.findMany.mockImplementation((async (args: { where: UserWhere }) =>
     users.filter((u) => matchesUser(u, args.where)).map((u) => ({ ...pick(u), role: u.role, state: u.state }))) as never);
   prismaMock.userServiceMembership.findMany.mockImplementation((async (args: {
-    where: { serviceId: string; status: string; user?: { active?: boolean } };
+    where: MembershipWhere;
   }) =>
-    memberships
-      .filter(
-        (m) =>
-          m.serviceId === args.where.serviceId &&
-          m.status === args.where.status &&
-          (args.where.user?.active === undefined || m.user.active === args.where.user.active) &&
-          /director/i.test(m.roleAtService),
-      )
-      .map((m) => ({ user: pick(m.user) }))) as never);
+    memberships.filter((m) => matchesMembership(m, args.where)).map((m) => ({ user: pick(m.user) }))) as never);
 });
 
 describe("resolveRecipients", () => {
@@ -181,5 +205,56 @@ describe("resolveRecipients", () => {
     expect(r.owners.map((o) => o.id)).toEqual(["own1"]);
     expect(r.stateManagers.map((s) => s.id)).toEqual(["ho-on"]);
     expect(r.directors.map((x) => x.id)).toEqual(["dup"]);
+  });
+
+  it("never resolves a centre mailbox as director via any path", async () => {
+    users = [
+      user({ id: "mgr-box", role: "member", isCentreAccount: true, serviceId: "svc-1" }),
+      user({ id: "home-box", role: "member", isCentreAccount: true, serviceId: "svc-1" }),
+    ];
+    memberships = [
+      { userId: "mb", serviceId: "svc-1", roleAtService: "Director", status: "active", user: user({ id: "mb", isCentreAccount: true }) },
+    ];
+
+    const r = await resolveRecipients(prismaMock as never, { ...service, managerId: "mgr-box" });
+
+    expect(r.directors).toEqual([]);
+    expect(r.noDirector).toBe(true);
+  });
+
+  it("a real member is still found when a centre mailbox shares the service", async () => {
+    users = [
+      user({ id: "box", role: "member", isCentreAccount: true, serviceId: "svc-1" }),
+      user({ id: "person", role: "member", serviceId: "svc-1" }),
+    ];
+
+    const r = await resolveRecipients(prismaMock as never, service);
+
+    expect(r.directors.map((d) => d.id)).toEqual(["person"]);
+    expect(r.noDirector).toBe(false);
+  });
+
+  it("excludes an ended membership but keeps one that ends in the future", async () => {
+    const past = new Date(Date.now() - 86_400_000);
+    const future = new Date(Date.now() + 86_400_000);
+    memberships = [
+      { userId: "gone", serviceId: "svc-1", roleAtService: "Director", status: "active", endDate: past, user: user({ id: "gone" }) },
+      { userId: "soon", serviceId: "svc-1", roleAtService: "Director", status: "active", endDate: future, user: user({ id: "soon" }) },
+    ];
+
+    const r = await resolveRecipients(prismaMock as never, service);
+
+    expect(r.directors.map((d) => d.id)).toEqual(["soon"]);
+  });
+
+  it("a membership director takes precedence over the home-service member fallback", async () => {
+    users = [user({ id: "home", role: "member", serviceId: "svc-1" })];
+    memberships = [
+      { userId: "dir", serviceId: "svc-1", roleAtService: "Director", status: "active", user: user({ id: "dir" }) },
+    ];
+
+    const r = await resolveRecipients(prismaMock as never, service);
+
+    expect(r.directors.map((d) => d.id)).toEqual(["dir"]);
   });
 });

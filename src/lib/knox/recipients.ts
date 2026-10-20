@@ -34,7 +34,10 @@ function dedupe(rows: Recipient[]): Recipient[] {
  * Director of Service, in priority order: Service.managerId (if that user is
  * active), then active memberships labelled /director/i at this service, then
  * active users with role `member` whose home service is this one. First
- * non-empty step wins. Read-only: at most three queries.
+ * non-empty step wins. Shared centre mailboxes (`isCentreAccount`) are never
+ * people, so every step excludes them; otherwise the mailbox would be returned
+ * as the "director" and hide the no-director escalation. Read-only: at most
+ * three queries.
  */
 async function resolveDirectors(
   db: PrismaClient,
@@ -42,7 +45,7 @@ async function resolveDirectors(
 ): Promise<Recipient[]> {
   if (service.managerId) {
     const manager = await db.user.findUnique({
-      where: { id: service.managerId, active: true },
+      where: { id: service.managerId, active: true, isCentreAccount: false },
       select: RECIPIENT_SELECT,
     });
     if (manager) return dedupe([manager]);
@@ -54,7 +57,7 @@ async function resolveDirectors(
       status: "active",
       OR: [{ endDate: null }, { endDate: { gt: new Date() } }],
       roleAtService: { contains: "director", mode: "insensitive" },
-      user: { active: true },
+      user: { active: true, isCentreAccount: false },
     },
     select: { user: { select: RECIPIENT_SELECT } },
   });
@@ -62,7 +65,12 @@ async function resolveDirectors(
   if (fromMemberships.length > 0) return fromMemberships;
 
   const members = await db.user.findMany({
-    where: { role: "member", serviceId: service.id, active: true },
+    where: {
+      role: "member",
+      serviceId: service.id,
+      active: true,
+      isCentreAccount: false,
+    },
     select: RECIPIENT_SELECT,
   });
   return dedupe(members);
