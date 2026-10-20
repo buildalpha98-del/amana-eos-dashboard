@@ -22,7 +22,7 @@ import { _clearOrgSettingsCache } from "@/lib/org-settings";
 import { runTriageJob, runEscalationSweep } from "@/lib/knox";
 import { POST as createIncident } from "@/app/api/incidents/route";
 import { POST as acknowledge } from "@/app/api/knox/assessments/[id]/ack/route";
-import type { Service, User } from "@prisma/client";
+import { Prisma, type Service, type User } from "@prisma/client";
 
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn(async () => ({ limited: false })) }));
 vi.mock("@/lib/run-after", () => ({ runAfter: vi.fn() }));
@@ -35,15 +35,22 @@ vi.mock("@/lib/ai-provider", () => ({
 let service: Service;
 let director: User;
 let stateManager: User;
-let hadOrgSettings = false;
+// The org-settings row as found before the test touched it (restored in afterAll).
+let prevOrg: { config: Prisma.JsonValue | null; updatedById: string | null } | null | undefined;
 const savedEnv = {
   knox: process.env.TEAMS_KNOX_WEBHOOK_URL,
   teams: process.env.TEAMS_WEBHOOK_URL,
 };
+let guardPassed = false;
 let incidentId = "";
 let assessmentId = "";
 
 beforeAll(async () => {
+  // Guard first: this test writes users, a service and the org config.
+  const db = new URL(process.env.DATABASE_URL!);
+  if (!["localhost", "127.0.0.1"].includes(db.hostname) || !db.pathname.endsWith("_test")) throw new Error("Requires an isolated local test database");
+  guardPassed = true;
+
   // No webhook anywhere: the Teams row must record delivered:false.
   delete process.env.TEAMS_KNOX_WEBHOOK_URL;
   delete process.env.TEAMS_WEBHOOK_URL;
@@ -56,7 +63,10 @@ beforeAll(async () => {
   await prisma.service.update({ where: { id: service.id }, data: { managerId: director.id } });
 
   // Knox live (not shadow) for this test.
-  hadOrgSettings = (await prisma.orgSettings.findUnique({ where: { id: "singleton" } })) !== null;
+  prevOrg = await prisma.orgSettings.findUnique({
+    where: { id: "singleton" },
+    select: { config: true, updatedById: true },
+  });
   await prisma.orgSettings.upsert({
     where: { id: "singleton" },
     create: { id: "singleton", config: { knox: { enabled: true, shadowMode: false } } },
@@ -66,6 +76,8 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // Never write (not even empty deletes) to a database the guard rejected.
+  if (!guardPassed) return;
   if (savedEnv.knox !== undefined) process.env.TEAMS_KNOX_WEBHOOK_URL = savedEnv.knox;
   if (savedEnv.teams !== undefined) process.env.TEAMS_WEBHOOK_URL = savedEnv.teams;
 
@@ -82,7 +94,18 @@ afterAll(async () => {
   await prisma.userNotification.deleteMany({ where: { userId: { in: ids } } });
   await prisma.user.deleteMany({ where: { id: { in: ids } } });
   if (service) await prisma.service.delete({ where: { id: service.id } });
-  if (!hadOrgSettings) await prisma.orgSettings.deleteMany({ where: { id: "singleton" } });
+  // Only touch org settings if beforeAll got as far as reading them.
+  if (prevOrg === null) {
+    await prisma.orgSettings.deleteMany({ where: { id: "singleton" } });
+  } else if (prevOrg) {
+    await prisma.orgSettings.update({
+      where: { id: "singleton" },
+      data: {
+        config: prevOrg.config ?? Prisma.JsonNull,
+        updatedById: prevOrg.updatedById,
+      },
+    });
+  }
   _clearOrgSettingsCache();
   await prisma.$disconnect();
 });
