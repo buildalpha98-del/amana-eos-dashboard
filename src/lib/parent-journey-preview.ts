@@ -32,7 +32,7 @@ const BASE = () => process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
 export async function renderJourneyEmail(
   id: string,
   serviceId: string | null,
-): Promise<{ subject: string; html: string } | null> {
+): Promise<{ subject: string; html: string; attachments?: { filename: string; path: string }[] } | null> {
   const service = serviceId
     ? await prisma.service.findUnique({
         where: { id: serviceId },
@@ -43,6 +43,7 @@ export async function renderJourneyEmail(
   const { parentFirstName: first, childNames } = SAMPLE_FAMILY;
 
   let out: { subject: string; html: string } | null = null;
+  let attachments: { filename: string; path: string }[] | undefined;
   if (id === "enrolment_welcome") {
     if (!service) return null;
     const centre = await centreWelcomeData(service.id);
@@ -55,6 +56,9 @@ export async function renderJourneyEmail(
     // A sample first day: next Tuesday.
     const d = new Date();
     d.setUTCDate(d.getUTCDate() + ((9 - d.getUTCDay()) % 7 || 7));
+    // "You're booked in!" goes out with the welcome pack attached.
+    if (id === "first_day_confirmed" && centre.welcomePackUrl)
+      attachments = [{ filename: `Amana OSHC welcome pack - ${centre.centreName}.pdf`, path: centre.welcomePackUrl }];
     out = await HANDOVER[id]({
       ...centre,
       ...SAMPLE_FAMILY,
@@ -88,5 +92,9 @@ export async function renderJourneyEmail(
   }
   if (!out) return null;
   // The real sender fills in each family's own unsubscribe link.
-  return { subject: out.subject, html: out.html.split(UNSUBSCRIBE_URL_TOKEN).join("#unsubscribe-preview") };
+  return {
+    subject: out.subject,
+    html: out.html.split(UNSUBSCRIBE_URL_TOKEN).join("#unsubscribe-preview"),
+    ...(attachments ? { attachments } : {}),
+  };
 }
