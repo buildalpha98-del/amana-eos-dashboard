@@ -41,6 +41,10 @@ describe("Meta pixel routes", () => {
     const scriptSrc = (v: string) => v.split(";").find((d) => d.trim().startsWith("script-src"))!;
     expect(scriptSrc(csp("/parent/signup"))).toContain("https://www.facebook.com");
     expect(scriptSrc(csp("/(.*)"))).not.toContain("facebook");
+    const dir = (v: string, name: string) => v.split(";").find((d) => d.trim().startsWith(name)) ?? "";
+    expect(dir(csp("/parent/signup"), "frame-src")).toContain("https://*.facebook.com");
+    expect(dir(csp("/(.*)"), "frame-src")).toBe("");
+    expect(dir(csp("/(.*)"), "connect-src")).not.toContain("facebook");
   });
 
   it("turns off Meta's automatic form/button collection", () => {
