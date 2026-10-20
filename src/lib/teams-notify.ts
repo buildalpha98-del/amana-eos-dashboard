@@ -26,13 +26,17 @@ interface AdaptiveCardFact {
   value: string;
 }
 
-interface TeamsNotifyOptions {
+export interface TeamsNotifyOptions {
   title: string;
   body: string;
   /** Hex colour for the accent strip (default: Amana brand #004E64) */
   accentColor?: string;
   facts?: AdaptiveCardFact[];
   actions?: AdaptiveCardAction[];
+  /** Post here instead of `TEAMS_WEBHOOK_URL` (e.g. a dedicated channel). */
+  webhookUrl?: string;
+  /** People to @mention. Each adds an `<at>Name</at>` block and a msteams entity. */
+  mentions?: { email: string; name: string }[];
 }
 
 // ── Helpers ──────────────────────────────────────────────
@@ -61,6 +65,18 @@ function buildAdaptiveCard(opts: TeamsNotifyOptions) {
     });
   }
 
+  const msteams: Record<string, unknown> = { width: "Full" };
+  if (opts.mentions?.length) {
+    for (const m of opts.mentions) {
+      items.push({ type: "TextBlock", text: `<at>${m.name}</at>`, wrap: true });
+    }
+    msteams.entities = opts.mentions.map((m) => ({
+      type: "mention",
+      text: `<at>${m.name}</at>`,
+      mentioned: { id: m.email, name: m.name },
+    }));
+  }
+
   return {
     type: "message",
     attachments: [
@@ -71,9 +87,7 @@ function buildAdaptiveCard(opts: TeamsNotifyOptions) {
           $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
           type: "AdaptiveCard",
           version: "1.4",
-          msteams: {
-            width: "Full",
-          },
+          msteams,
           body: items,
           actions: opts.actions || [],
         },
@@ -87,9 +101,9 @@ function buildAdaptiveCard(opts: TeamsNotifyOptions) {
 export async function sendTeamsNotification(
   opts: TeamsNotifyOptions
 ): Promise<boolean> {
-  const webhookUrl = process.env.TEAMS_WEBHOOK_URL;
+  const webhookUrl = opts.webhookUrl || process.env.TEAMS_WEBHOOK_URL;
   if (!webhookUrl) {
-    if (process.env.NODE_ENV !== "production") logger.info("TEAMS notification skipped — no TEAMS_WEBHOOK_URL set", { title: opts.title });
+    if (process.env.NODE_ENV !== "production") logger.info("TEAMS notification skipped — no webhook URL set", { title: opts.title });
     return false;
   }
 
