@@ -7703,6 +7703,16 @@ model EnrolmentSubmission {
   slaOverdueSentAt    DateTime?
   /// "Is anything stopping you?" — approved 14+ days, no attendance yet.
   noShowSentAt        DateTime?
+  /// First-day check (Daniel, 21 Oct 2026): staff confirm the child came on
+  /// their first day — "attended" releases the "how did it go?" email;
+  /// "absent" holds it. Either way the family goes on the call list.
+  firstDayAttendance     String?
+  firstDayAttendanceAt   DateTime?
+  firstDayAttendanceById String?
+  /// The morning-after "did they come?" alert (claimed once).
+  firstDayPromptedAt     DateTime?
+  /// Staff called the family after their first day.
+  firstDayCalledAt       DateTime?
   /// The family's one-tap answer: not_booked | owna_trouble | next_term | changed_plans | other
   noShowReason        String?
   noShowReasonAt      DateTime?

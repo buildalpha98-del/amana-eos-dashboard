@@ -841,21 +841,27 @@ export async function nurtureDay1CheckinEmail(
   centreName: string,
   _enrolUrl?: string,
   feedbackUrl?: string,
+  /** The child's first name (Daniel, 21 Oct 2026); "your child" if unknown. */
+  childName?: string | null,
 ) {
   const surveyUrl = feedbackUrl || fallbackFeedbackUrl();
+  const child = childName?.trim().split(/\s+/)[0] || "";
   return applyEmailTemplateOverride({
     key: "nurture.day1Checkin",
-    defaultSubject: "How did it go? We want to hear all about day one!",
+    // Daniel, 21 Oct 2026: sent the day after the first session — only once
+    // staff confirm the child came (or OWNA records the sign-in).
+    defaultSubject: "How did {{childNamePlain}}'s first session go, {{firstName}}?",
     defaultBody: `
     <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
-      Day one is done!
+      How did {{childName}} go?
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi {{firstName}},
+      Assalamu alaikum {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Your child just had their first day at {{centreName}} — that's a big milestone for
-      the whole family! We hope it went smoothly (and that you got a moment to breathe too).
+      We noticed {{childName}} just had their first session at {{centreName}} — and we'd love
+      to know how it went! Did {{childName}} love it? Is there anything at all you'd like to
+      share with us? Inshallah, we want to make this the best experience possible for your family.
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
       <tr>
@@ -892,13 +898,15 @@ export async function nurtureDay1CheckinEmail(
     vars: {
       firstName: escapeHtml(firstName),
       centreName: escapeHtml(centreName),
+      childName: escapeHtml(child || "your child"),
+      childNamePlain: child || "your child",
       feedbackUrl: escapeHtml(surveyUrl),
-      feedbackButton: buttonHtml("Tell Us How Day One Went (30 sec)", surveyUrl),
+      feedbackButton: buttonHtml(child ? `Tell Us How ${child} Went (30 sec)` : "Tell Us How Day One Went (30 sec)", surveyUrl),
     },
     wrap: (content: string) =>
       parentEmailLayout(content, {
         preheader:
-          "Three things that are totally normal after day one — and one question for you.",
+          "We'd love to hear how the first session went.",
       }),
   });
 }

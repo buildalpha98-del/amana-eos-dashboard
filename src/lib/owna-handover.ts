@@ -1,8 +1,8 @@
 /**
  * What the OWNA checklist does for the family (Daniel, 16 Oct 2026).
  *
- *   invitation ✓ (sent)     → "Your OWNA invitation is on its way" guide
- *   invitation ✓ (existing) → "You're all set in OWNA"
+ *   invitation ✓            → nothing (21 Oct 2026, Daniel: OWNA sends its
+ *                              own invitation; ours was a duplicate)
  *   sessions ✓ + first day  → "You're booked in! First day is …", and the
  *                              first-session emails are re-timed to that day
  *   sessions ✓ casual only  → "You're ready to book" (how to book casually),
@@ -28,8 +28,6 @@ import {
   casualBookingsEmail,
   firstDayConfirmedEmail,
   formatFirstDay,
-  ownaExistingEmail,
-  ownaInvitationEmail,
   ownaNudgeEmail,
   type HandoverEmailData,
 } from "@/lib/email-templates/owna-handover";
@@ -201,8 +199,6 @@ export async function sendHeldHandoverEmails(enrolmentId: string): Promise<void>
     if (!row || predatesOwnaChecklist(row.enrolment.createdAt)) return;
     const steps = readHandoff(row.state)?.steps;
     if (!steps) return;
-    if (steps.invitation && steps.invitation.notify !== false)
-      await onHandoffStepCompleted(enrolmentId, "invitation", steps.invitation);
     if (steps.sessions && steps.sessions.notify !== false)
       await onHandoffStepCompleted(enrolmentId, "sessions", steps.sessions);
     if (steps.sessions?.firstDay) await alertCentreFirstDay(enrolmentId, steps.sessions.firstDay);
@@ -226,16 +222,12 @@ export async function onHandoffStepCompleted(
   completion: { at: string; mode?: "sent" | "existing"; firstDay?: string; casual?: boolean },
 ): Promise<void> {
   try {
-    if (step !== "invitation" && step !== "sessions") return;
+    // Only "First sessions confirmed" emails the family (21 Oct 2026: the
+    // invitation email was dropped — OWNA sends its own).
+    if (step !== "sessions") return;
     const d = await handoverData(enrolmentId, completion.firstDay);
     if (!d) return;
 
-    if (step === "invitation") {
-      const { subject, html } = completion.mode === "existing" ? await ownaExistingEmail(d) : await ownaInvitationEmail(d);
-      await sendEmail({ to: d.parentEmail, subject, html }, { idempotencyKey: `owna-invitation-${enrolmentId}-${completion.at}` });
-      await recordMarketingSends(prisma, [{ email: d.parentEmail }], { source: "lifecycle" });
-      return;
-    }
 
     // The centre's welcome pack PDF, attached to both sessions emails —
     // every new family gets it, first day booked or casual (20 Oct 2026).

@@ -50,19 +50,11 @@ beforeEach(() => {
 });
 
 describe("ticking the OWNA checklist emails the family", () => {
-  it("invitation sent → the step-by-step guide, with their own email filled in", async () => {
-    await onHandoffStepCompleted("e1", "invitation", { at: "2026-10-16T01:00:00Z", mode: "sent" });
-    const [m] = sent();
-    expect(m.to).toBe("sarah@example.test");
-    expect(m.subject).toBe("Your OWNA invitation is on its way, Sarah");
-    expect(m.html).toContain("sarah@example.test");
-    expect(m.html).not.toContain("{{");
-    expect(vi.mocked(sendEmail).mock.calls[0][1]).toEqual({ idempotencyKey: "owna-invitation-e1-2026-10-16T01:00:00Z" });
-  });
-
-  it("existing access → you're all set", async () => {
+  // Daniel, 21 Oct 2026: OWNA sends its own invitation — ours was a duplicate.
+  it("invitation sent / existing access → no email from us", async () => {
+    await onHandoffStepCompleted("e1", "invitation", { at: "t", mode: "sent" });
     await onHandoffStepCompleted("e1", "invitation", { at: "t", mode: "existing" });
-    expect(sent()[0].subject).toBe("Yusuf is now in your OWNA account");
+    expect(vi.mocked(sendEmail)).not.toHaveBeenCalled();
   });
 
   it("first sessions confirmed → the date, and the first-session emails re-timed to it", async () => {
@@ -151,7 +143,6 @@ describe("ticked before Confirm: held emails go out at Confirm", () => {
     await sendHeldHandoverEmails("e1");
     const subjects = vi.mocked(sendEmail).mock.calls.map((c) => (c[0] as { subject: string }).subject);
     expect(subjects).toEqual([
-      "Your OWNA invitation is on its way, Sarah",
       "You're booked in! Yusuf's first day is Tuesday 27 October",
       "Booked in: Yusuf's first day is Tuesday 27 October",
     ]);

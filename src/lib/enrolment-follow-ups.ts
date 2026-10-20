@@ -16,6 +16,7 @@ import { ENROL_STEPS } from "@/app/parent/enrol/steps";
 import type { EnrolDraft } from "@/lib/enrol-draft";
 import { REPLY_HOURS, notBeforeFollowUpsStart } from "@/lib/enrolment-reply-clock";
 import { OWNA_CHECKLIST_START, readHandoff, type HandoffStep } from "@/lib/owna-handoff";
+import { firstDayFollowUps, type FirstDayRow } from "@/lib/first-day-check";
 
 const H = 3_600_000;
 const DAY = 24 * H;
@@ -86,7 +87,13 @@ function names(children: unknown): string {
 export async function getFollowUps(
   serviceIds: string[] | null,
   now = new Date(),
-): Promise<{ awaiting: AwaitingReply[]; unfinished: UnfinishedForm[]; ownaSetup: OwnaSetup[] }> {
+): Promise<{
+  awaiting: AwaitingReply[];
+  unfinished: UnfinishedForm[];
+  ownaSetup: OwnaSetup[];
+  firstDayCheck: FirstDayRow[];
+  firstDayCalls: FirstDayRow[];
+}> {
   const services = await prisma.service.findMany({
     where: { status: "active" },
     select: { id: true, name: true },
@@ -199,7 +206,9 @@ export async function getFollowUps(
       owner: state?.owner?.name ?? null,
     });
   }
-  return { awaiting, unfinished, ownaSetup };
+  // First day: did they come? then call them (21 Oct 2026).
+  const { firstDayCheck, firstDayCalls } = await firstDayFollowUps(serviceIds, serviceName, now);
+  return { awaiting, unfinished, ownaSetup, firstDayCheck, firstDayCalls };
 }
 
 /** Which centre an unfinished form is for (its first child's school), or null. */
