@@ -332,6 +332,7 @@ describe("runEscalationSweep", () => {
       serviceId: "svc-1",
       ruleHits: ["ambulance_called"],
       clocks: [],
+      rationale: null as string | null,
       alerts: alerts.map((a) => ({ acknowledgedAt: null, ...a })),
     };
   }
@@ -438,6 +439,43 @@ describe("runEscalationSweep", () => {
     );
     expect(await runEscalationSweep(prismaMock as never, NOW)).toEqual({ escalated: 0 });
     expect(notifyMock).not.toHaveBeenCalled();
+  });
+
+  it("an empty recipient set writes one marker row and the next sweep does not repeat the level", async () => {
+    load(assessment("m", "moderate", [{ escalationLevel: 0, sentAt: minsAgo(61) }]));
+    resolveMock.mockResolvedValue(recipients({ stateManagers: [] }));
+
+    expect(await runEscalationSweep(prismaMock as never, NOW)).toEqual({ escalated: 0 });
+    expect(notifyMock).not.toHaveBeenCalled();
+    const rows = rowsWritten();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      assessmentId: "m",
+      channel: "push",
+      recipientUserId: null,
+      delivered: false,
+      escalationLevel: 1,
+    });
+
+    // Second sweep: the marker row is now part of the assessment's alerts.
+    prismaMock.triageAlert.createMany.mockClear();
+    load(
+      assessment("m", "moderate", [
+        { escalationLevel: 0, sentAt: minsAgo(61) },
+        { escalationLevel: 1, sentAt: NOW },
+      ]),
+    );
+    resolveMock.mockResolvedValue(recipients({ stateManagers: [] }));
+    expect(await runEscalationSweep(prismaMock as never, NOW)).toEqual({ escalated: 0 });
+    expect(rowsWritten()).toEqual([]);
+  });
+
+  it("carries the assessment rationale onto escalation cards", async () => {
+    const a = assessment("a", "serious", [{ escalationLevel: 0, sentAt: minsAgo(16) }]);
+    a.rationale = "Head injury with vomiting.";
+    load(a);
+    await runEscalationSweep(prismaMock as never, NOW);
+    expect(teamsMock.mock.calls[0][0].body).toContain("Head injury with vomiting.");
   });
 
   it("moderate at 59 min → nothing", async () => {

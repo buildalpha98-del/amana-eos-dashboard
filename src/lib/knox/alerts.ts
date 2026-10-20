@@ -184,7 +184,9 @@ export async function postOpsNote(title: string, body: string): Promise<void> {
  *            serious:  Teams card mentioning owners + push to owners
  *   level 2  serious:  Teams card mentioning owners again
  *
- * Minor never alerts. Does not set `TriageAssessment.alerted`; the caller owns
+ * Minor never alerts. Returns true when at least one real alert went out;
+ * false when the level had nobody to notify (a marker row is recorded so the
+ * sweep does not repeat it). Does not set `TriageAssessment.alerted`; the caller owns
  * that flag (the sweep only considers assessments where it is true).
  */
 export async function dispatchLevel(
@@ -197,9 +199,9 @@ export async function dispatchLevel(
     level: Level;
     rationale?: string | null;
   },
-): Promise<void> {
+): Promise<boolean> {
   const { assessmentId, subject, rules, recipients, level, rationale } = args;
-  if (rules.tier === "minor") return;
+  if (rules.tier === "minor") return false;
 
   const d: Dispatch = {
     db,
@@ -237,7 +239,23 @@ export async function dispatchLevel(
     await sendCard(d, recipients.owners);
   }
 
-  if (d.rows.length === 0) return;
+  // A level that found nobody to tell still counts as attempted: record a
+  // marker row so the sweep advances past it instead of re-dispatching the
+  // same level on every run. Levels the tier doesn't have (moderate 2) are
+  // not attempts.
+  const sent = d.rows.length > 0;
+  if (!sent) {
+    if (level > ESCALATION[rules.tier].length) return false;
+    d.rows.push({
+      assessmentId,
+      serviceId: subject.service.id,
+      tier: rules.tier,
+      recipientUserId: null,
+      channel: "push",
+      escalationLevel: level,
+      delivered: false,
+    });
+  }
   try {
     await db.triageAlert.createMany({ data: d.rows });
   } catch (err) {
@@ -250,6 +268,7 @@ export async function dispatchLevel(
     });
     throw err;
   }
+  return sent;
 }
 
 // ── Escalation sweep ─────────────────────────────────────
@@ -323,6 +342,7 @@ export async function runEscalationSweep(
       subjectId: true,
       ruleHits: true,
       clocks: true,
+      rationale: true,
       alerts: { select: { escalationLevel: true, sentAt: true, acknowledgedAt: true } },
     },
   });
@@ -351,14 +371,15 @@ export async function runEscalationSweep(
         continue;
       }
       const recipients = await resolveRecipients(db, subject.service);
-      await dispatchLevel(db, {
+      const sent = await dispatchLevel(db, {
         assessmentId: a.id,
         subject,
         rules: { tier: a.tier, ruleHits: a.ruleHits, clocks: asClocks(a.clocks) },
         recipients,
         level: (current + 1) as Level,
+        rationale: a.rationale,
       });
-      escalated++;
+      if (sent) escalated++;
     } catch (err) {
       logger.error("Knox: escalation failed", {
         assessmentId: a.id,
