@@ -12,7 +12,7 @@ import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { OwnaHandoffPanel } from "@/components/enrolments/OwnaHandoffPanel";
 
 const by = { id: "me", name: "Jayden" };
-function setup(steps: Record<string, unknown> = {}, status = "processed") {
+function setup(steps: Record<string, unknown> = {}, status = "processed", placed?: boolean) {
   vi.mocked(fetchApi).mockResolvedValue({
     assignees: [
       { id: "me", name: "Jayden", role: "owner" },
@@ -23,6 +23,7 @@ function setup(steps: Record<string, unknown> = {}, status = "processed") {
     placement: "p",
     state: { placement: "p", owner: by, note: "", steps },
     history: [],
+    ...(placed === undefined ? {} : { placed }),
   });
   vi.mocked(mutateApi).mockResolvedValue({});
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -79,10 +80,16 @@ describe("OwnaHandoffPanel", () => {
     expect(screen.getByRole("option", { name: "Jayden (me)" })).toBeInTheDocument();
   });
 
-  it("before approval: owner and notes yes, tick boxes no", async () => {
-    setup({}, "submitted");
-    expect(await screen.findByText(/awaiting approval/, { selector: "strong" })).toBeInTheDocument();
+  // 2026-10-21: the OWNA handoff can be done BEFORE Confirm.
+  it("before approval, children not placed yet: owner yes, tick boxes no", async () => {
+    setup({}, "submitted", false);
+    expect(await screen.findByText(/tick boxes open once the children are assigned/)).toBeInTheDocument();
     expect(screen.getByLabelText(/^All children entered/)).toBeDisabled();
     expect(screen.getByLabelText("Owner")).not.toBeDisabled();
+  });
+  it("before approval, children placed: tick away, then press Confirm", async () => {
+    setup({}, "submitted", true);
+    expect(await screen.findByText(/then press/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^All children entered/)).not.toBeDisabled();
   });
 });

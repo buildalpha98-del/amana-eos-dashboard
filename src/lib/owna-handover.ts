@@ -22,7 +22,7 @@ import { logger } from "@/lib/logger";
 import { centreWelcomeData } from "@/lib/enrolment-welcome";
 import { syncParentJourney } from "@/lib/parent-journey";
 import { alertCentreTeam, childNamesFrom } from "@/lib/centre-team-alerts";
-import { OWNA_CHECKLIST_START, readHandoff, type HandoffStep } from "@/lib/owna-handoff";
+import { OWNA_CHECKLIST_START, predatesOwnaChecklist, readHandoff, type HandoffStep } from "@/lib/owna-handoff";
 import { escapeHtml } from "@/lib/email-templates/base";
 import {
   casualBookingsEmail,
@@ -182,6 +182,41 @@ export async function alertCentreFirstDay(enrolmentId: string, firstDay: string)
   } catch (err) {
     logger.error("First-day centre alert failed", { enrolmentId, err });
   }
+}
+
+/**
+ * Daniel, 21 Oct 2026: the OWNA checklist can be ticked BEFORE Confirm.
+ * The family emails those ticks would send are held, and go out here —
+ * called when the enrolment is confirmed, right after the welcome email —
+ * in step order, honouring each step's "Email the family" choice. The
+ * centre's "Booked in" email goes too. Idempotency keys match the direct
+ * sends, so nothing is sent twice. Swallow-and-log.
+ */
+export async function sendHeldHandoverEmails(enrolmentId: string): Promise<void> {
+  try {
+    const row = await prisma.enrolmentOwnaHandoff.findUnique({
+      where: { enrolmentId },
+      select: { state: true, enrolment: { select: { createdAt: true } } },
+    });
+    if (!row || predatesOwnaChecklist(row.enrolment.createdAt)) return;
+    const steps = readHandoff(row.state)?.steps;
+    if (!steps) return;
+    if (steps.invitation && steps.invitation.notify !== false)
+      await onHandoffStepCompleted(enrolmentId, "invitation", steps.invitation);
+    if (steps.sessions && steps.sessions.notify !== false)
+      await onHandoffStepCompleted(enrolmentId, "sessions", steps.sessions);
+    if (steps.sessions?.firstDay) await alertCentreFirstDay(enrolmentId, steps.sessions.firstDay);
+  } catch (err) {
+    logger.error("Held OWNA handover emails failed", { enrolmentId, err });
+  }
+}
+
+/** The first-session details staff confirmed on the checklist, if any. */
+export async function confirmedSessions(
+  enrolmentId: string,
+): Promise<{ firstDay?: string; casual?: boolean; notify?: boolean } | null> {
+  const row = await prisma.enrolmentOwnaHandoff.findUnique({ where: { enrolmentId }, select: { state: true } });
+  return readHandoff(row?.state)?.steps.sessions ?? null;
 }
 
 /** Called after a checklist step is saved as complete. */

@@ -15,9 +15,11 @@ export type HandoffStep = keyof typeof HANDOFF_STEPS;
 export const HANDOFF_OWNER_ROLES = ["owner", "head_office", "admin"] as const;
 
 /**
- * Coordination only — who's on it and what's next. Allowed while the
- * enrolment is still awaiting approval; the checklist ticks (which email
- * the family) still wait for a processed, placed enrolment.
+ * Coordination only — who's on it and what's next. Allowed whatever the
+ * enrolment's state. Since 21 Oct 2026 the checklist ticks are allowed
+ * before approval too (Daniel: do the OWNA handoff, THEN press Confirm) —
+ * they need the children placed at a centre, and any family email they'd
+ * send waits until the enrolment is confirmed (sendHeldHandoverEmails).
  */
 export const COORDINATION_ACTIONS = ["claim", "release", "assign", "note"] as const;
 export function isCoordinationAction(action: string): boolean {
@@ -33,6 +35,8 @@ const completion = z.object({
   firstDay: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   /** "First sessions confirmed": the family books casually — no first day. */
   casual: z.boolean().optional(),
+  /** false when staff unticked "Email the family" (so a held email stays unsent). */
+  notify: z.boolean().optional(),
 });
 export const handoffStateSchema = z.object({
   placement: z.string(),
@@ -89,7 +93,25 @@ export type HandoffPlacement = {
     status: string;
   }[];
 };
+/**
+ * Where the family is placed: the centre and each child's centre + status.
+ * Approval (processedAt, pending → active children) is deliberately NOT part of it
+ * since 21 Oct 2026 — ticks made before Confirm must survive Confirm.
+ */
 export function placementKey(e: HandoffPlacement) {
+  // pending (before Confirm) and active (after) are the same placement;
+  // a withdrawn or otherwise changed child still invalidates the checks.
+  const placedAs = (status: string) => (status === "pending" || status === "active" ? "placed" : status);
+  return JSON.stringify([
+    e.serviceId,
+    e.childRecords
+      .map((c) => [c.id, c.serviceId, placedAs(c.status)])
+      .sort((a, b) => a[0]!.localeCompare(b[0]!)),
+  ]);
+}
+
+/** The pre-21-Oct key format (approval + child status included). */
+function legacyPlacementKey(e: HandoffPlacement) {
   return JSON.stringify([
     e.serviceId,
     e.processedAt ? new Date(e.processedAt).toISOString() : null,
@@ -97,6 +119,27 @@ export function placementKey(e: HandoffPlacement) {
       .map((c) => [c.id, c.serviceId, c.status])
       .sort((a, b) => a[0]!.localeCompare(b[0]!)),
   ]);
+}
+
+/**
+ * A handoff saved under the old key format for the SAME placement reads as
+ * current — so existing checklists don't all suddenly say "recheck".
+ */
+export function normaliseHandoff(state: HandoffState | null, e: HandoffPlacement): HandoffState | null {
+  if (!state) return state;
+  const current = placementKey(e);
+  if (state.placement !== current && state.placement === legacyPlacementKey(e)) return { ...state, placement: current };
+  return state;
+}
+
+/** Children placed at a centre (pending before Confirm, active after) — ticks allowed. */
+export function handoffPlaced(e: { serviceId: string | null; status: string; childRecords: { serviceId: string | null; status: string }[] }): boolean {
+  return (
+    ["submitted", "under_review", "processed"].includes(e.status) &&
+    !!e.serviceId &&
+    e.childRecords.length > 0 &&
+    e.childRecords.every((c) => !!c.serviceId && (c.status === "pending" || c.status === "active"))
+  );
 }
 export function readHandoff(value: unknown): HandoffState | null {
   const parsed = handoffStateSchema.safeParse(value);
@@ -120,8 +163,13 @@ export function handoffSummary(
   /** The enrolment's createdAt — before OWNA_CHECKLIST_START reads as done. */
   submittedAt?: Date | string | null,
 ) {
-  if (status !== "processed") return "OWNA: awaiting approval";
-  if (predatesOwnaChecklist(submittedAt)) return "OWNA: handoff complete";
+  if (status === "processed" && predatesOwnaChecklist(submittedAt)) return "OWNA: handoff complete";
+  if (status !== "processed") {
+    // Ticks can start before approval (21 Oct 2026).
+    const done = state ? Object.keys(state.steps).length : 0;
+    if (!done) return "OWNA: awaiting approval";
+    return done === 4 ? "OWNA: ready — press Confirm" : `OWNA: ${done}/4 checked`;
+  }
   if (!state) return "OWNA: not checked";
   if (handoffIsStale(state, placement)) return "OWNA: recheck placement";
   const done = Object.keys(state.steps).length;
@@ -177,6 +225,7 @@ export function applyHandoff(
           ? { casual: true }
           : { firstDay: patch.firstDay }
         : {}),
+      ...(patch.notifyFamily === false ? { notify: false } : {}),
     };
   }
   return next;

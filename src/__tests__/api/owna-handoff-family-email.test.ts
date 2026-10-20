@@ -94,6 +94,20 @@ describe("OWNA checklist → family email", () => {
     expect(vi.mocked(alertCentreFirstDay)).not.toHaveBeenCalled();
   });
 
+  // Daniel, 21 Oct 2026: tick before Confirm — the family email waits.
+  it("before Confirm, ticking saves but emails no one yet", async () => {
+    const pending = { ...enrolment, status: "under_review", childRecords: [{ id: "c1", serviceId: "s1", status: "pending" }] };
+    prismaMock.enrolmentSubmission.findUnique.mockResolvedValue({
+      ...pending,
+      ownaHandoff: { enrolmentId: "e1", revision: 2, state: { placement: placementKey(pending), owner: { id: "u1", name: "Reviewer" }, note: "", steps: { children: child } } },
+    });
+    const res = await patch({ action: "complete", step: "sessions", evidence: "Booked", firstDay: "2026-10-27" });
+    expect(res.status).toBe(200);
+    for (const t of tasks) await t();
+    expect(vi.mocked(onHandoffStepCompleted)).not.toHaveBeenCalled();
+    expect(vi.mocked(alertCentreFirstDay)).not.toHaveBeenCalled();
+  });
+
   it("notes and other steps don't email", async () => {
     await patch({ action: "note", evidence: "Call Friday" });
     for (const t of tasks) await t();
