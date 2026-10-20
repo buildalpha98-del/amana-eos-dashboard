@@ -5,7 +5,10 @@
  * runTriageJob → serious assessment, alerted, push alerts to the director and
  * the state manager, a Teams row recorded as undelivered (no webhook) →
  * acknowledge route stamps every row → the escalation sweep, 20 minutes on,
- * has nothing left to escalate.
+ * has nothing left to escalate. Then a re-triage (the director records the
+ * ambulance) writes a silenced second assessment, and acknowledging via that
+ * LATEST assessment stamps the first assessment's alerts too. Finally the
+ * tick's reconciliation pass queues a job for a record that never got one.
  *
  * Mocked: only the model provider (rejects, so the assessment is rules-only
  * with no network call), the rate limiter, and `runAfter` (the job is started
@@ -19,8 +22,9 @@ import { mockSession } from "../../src/__tests__/helpers/auth-mock";
 import { createRequest } from "../../src/__tests__/helpers/request";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 import { _clearOrgSettingsCache } from "@/lib/org-settings";
-import { runTriageJob, runEscalationSweep } from "@/lib/knox";
+import { reconcileMissingJobs, runTriageJob, runEscalationSweep } from "@/lib/knox";
 import { POST as createIncident } from "@/app/api/incidents/route";
+import { PATCH as patchIncident } from "@/app/api/incidents/[id]/route";
 import { POST as acknowledge } from "@/app/api/knox/assessments/[id]/ack/route";
 import { Prisma, type Service, type User } from "@prisma/client";
 
@@ -175,5 +179,83 @@ describe("Knox triage flow", () => {
 
     const sweep = await runEscalationSweep(prisma, new Date(Date.now() + 20 * 60_000));
     expect(sweep).toEqual({ escalated: 0 });
+  });
+
+  it("re-triage then acknowledge via the LATEST assessment: both assessments' rows stamped, nothing escalates", async () => {
+    _clearUserActiveCache();
+    mockSession(director);
+
+    const created = await createIncident(
+      createRequest("POST", "/api/incidents", {
+        body: {
+          serviceId: service.id,
+          incidentDate: new Date().toISOString(),
+          childName: "Hassan, Omar",
+          incidentType: "injury",
+          severity: "serious",
+          description: "Head knock in the playground.",
+        },
+      }),
+    );
+    expect(created.status).toBe(201);
+    const id = (await created.json()).id as string;
+    const jobA = await prisma.triageJob.findFirstOrThrow({ where: { subjectType: "incident", subjectId: id } });
+    expect(await runTriageJob(jobA.id)).toBe("done");
+    const a = await prisma.triageAssessment.findUniqueOrThrow({ where: { jobId: jobA.id } });
+    expect(a.alerted).toBe(true);
+
+    // The director records the ambulance: a trigger field, so Knox re-triages.
+    const patched = await patchIncident(
+      createRequest("PATCH", `/api/incidents/${id}`, { body: { ambulanceCalled: true } }),
+      { params: Promise.resolve({ id }) },
+    );
+    expect(patched.status).toBe(200);
+    const jobB = await prisma.triageJob.findFirstOrThrow({
+      where: { subjectType: "incident", subjectId: id, id: { not: jobA.id } },
+    });
+    expect(await runTriageJob(jobB.id)).toBe("done");
+    const b = await prisma.triageAssessment.findUniqueOrThrow({ where: { jobId: jobB.id } });
+    // Same tier within 24 h: silenced, no alert rows of its own.
+    expect(b.alerted).toBe(false);
+    expect(await prisma.triageAlert.count({ where: { assessmentId: b.id } })).toBe(0);
+
+    const ack = await acknowledge(createRequest("POST", `/api/knox/assessments/${b.id}/ack`), {
+      params: Promise.resolve({ id: b.id }),
+    });
+    expect(ack.status).toBe(200);
+
+    const rowsA = await prisma.triageAlert.findMany({ where: { assessmentId: a.id } });
+    expect(rowsA.length).toBeGreaterThan(0);
+    expect(rowsA.every((r) => r.acknowledgedAt !== null && r.acknowledgedById === director.id)).toBe(true);
+
+    const sweep = await runEscalationSweep(prisma, new Date(Date.now() + 20 * 60_000));
+    expect(sweep).toEqual({ escalated: 0 });
+    expect(await prisma.triageAlert.count({ where: { assessmentId: a.id, escalationLevel: { gt: 0 } } })).toBe(0);
+  });
+
+  it("reconciliation queues a `sweep` job for a record that never got one, and leaves triaged records alone", async () => {
+    // Written behind Knox's back: no triggerTriage, so no job.
+    const lost = await prisma.incidentRecord.create({
+      data: {
+        serviceId: service.id,
+        incidentDate: new Date(),
+        childName: "Lost Record",
+        incidentType: "injury",
+        severity: "serious",
+        description: "Enqueue failed after the insert.",
+        createdById: director.id,
+      },
+    });
+    const before = await prisma.triageJob.count({ where: { subjectType: "incident", subjectId: incidentId } });
+
+    const { reconciled } = await reconcileMissingJobs(prisma, new Date());
+    expect(reconciled).toBeGreaterThanOrEqual(1);
+
+    const jobs = await prisma.triageJob.findMany({ where: { subjectType: "incident", subjectId: lost.id } });
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].reason).toBe("sweep");
+    expect(jobs[0].status).toBe("pending");
+    // The incident from the first test already had a job: untouched.
+    expect(await prisma.triageJob.count({ where: { subjectType: "incident", subjectId: incidentId } })).toBe(before);
   });
 });
