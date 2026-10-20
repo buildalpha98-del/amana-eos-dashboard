@@ -79,10 +79,8 @@ export const PARENT_JOURNEY: JourneyStage[] = [
   {
     key: "owna",
     title: "5. Getting into OWNA",
-    description: "Sent when staff tick the OWNA checklist on the enrolment — so the family always knows the next step. Staff can untick \"Email the family\".",
+    description: "Sent when staff tick the OWNA checklist on the enrolment. The invitation itself comes from OWNA, so we don't email for that step (21 Oct 2026). Staff can untick \"Email the family\".",
     emails: [
-      { id: "owna_invitation", overrideKey: "parent.ownaInvitation", usesCentreContent: true, name: "Your OWNA invitation is on its way (4-step guide)", when: "When \"Invitation sent\" is ticked", status: "new" },
-      { id: "owna_existing", overrideKey: "parent.ownaExisting", usesCentreContent: true, name: "You're all set in OWNA", when: "When \"Existing OWNA access\" is ticked", status: "new" },
       { id: "owna_nudge", overrideKey: "parent.ownaNudge", usesCentreContent: true, name: "Did your OWNA invitation arrive?", when: "3 days after the invitation, if they haven't got in (centre alerted too)", status: "new" },
       { id: "first_day_confirmed", overrideKey: "parent.firstDayConfirmed", usesCentreContent: true, name: "You're booked in! First day confirmed", when: "When \"First sessions confirmed\" is ticked with the date", status: "new", note: "Also re-times the day-before reminder and check-ins to that real date." },
       { id: "casual_bookings", overrideKey: "parent.casualBookings", usesCentreContent: true, name: "You're all set to book (casual bookings)", when: "When \"First sessions confirmed\" is ticked as casual bookings only", status: "new", note: "How to book in OWNA or by email, with the welcome pack attached." },
@@ -96,7 +94,8 @@ export const PARENT_JOURNEY: JourneyStage[] = [
     description: "Timed from the day the child actually first attends (OWNA sign-ins), else the first day staff confirm, else the form's start date. \"How did day one go?\" and the later check-ins wait until the child has really attended.",
     emails: [
       { id: "session_reminder", templateKey: "session_reminder", name: "Tomorrow's the big day!", when: "Day before the start date", status: "live" },
-      { id: "day1_checkin", templateKey: "day1_checkin", overrideKey: "nurture.day1Checkin", name: "How did day one go? (+ SMS)", when: "Day after the start date", status: "live" },
+      { id: "day1_checkin", templateKey: "day1_checkin", overrideKey: "nurture.day1Checkin", name: "How did your child's first session go? (+ SMS)", when: "Day after the first day — once staff tap Attended (or OWNA records the sign-in)", status: "live" },
+      { name: "First day — did they come? + call the family (staff)", when: "Morning after the first day: head office alert + Follow-ups, then the call list", status: "new" },
       { id: "day3_checkin", templateKey: "day3_checkin", overrideKey: "nurture.day3Checkin", name: "Getting into the groove", when: "3 days after", status: "live" },
       { id: "week2_feedback", templateKey: "week2_feedback", overrideKey: "nurture.week2Feedback", name: "Two weeks in — feedback", when: "2 weeks after", status: "live" },
       { id: "no_show", overrideKey: "parent.noShow", usesCentreContent: true, name: "Is anything stopping you? (one-tap answers)", when: "14 days after approval with no sessions attended", status: "new", note: "Their answer goes straight to the centre. Only at centres whose OWNA sync is running." },

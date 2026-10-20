@@ -165,7 +165,7 @@ export function OwnaHandoffPanel({
 
   const confirmPending = () => {
     if (pending === "invitation")
-      mutation.mutate({ action: "complete", step: "invitation", mode, notifyFamily: emailFamily });
+      mutation.mutate({ action: "complete", step: "invitation", mode, notifyFamily: false });
     if (pending === "sessions")
       mutation.mutate(
         sessionsKind === "casual"
@@ -303,18 +303,9 @@ export function OwnaHandoffPanel({
                     <input type="radio" checked={mode === "existing"} onChange={() => setMode("existing")} />
                     Family already has OWNA
                   </label>
-                  {!legacy && (
-                    <EmailFamily
-                      held={!approved}
-                      checked={notifyFamily}
-                      onChange={setNotifyFamily}
-                      hint={
-                        mode === "existing"
-                          ? "“You're all set in OWNA — sign in as usual.”"
-                          : "A step-by-step guide to getting into OWNA. If they haven't got in after 3 days, they get a nudge and you get an alert."
-                      }
-                    />
-                  )}
+                  <p className="text-xs text-muted">
+                    No email from us — OWNA sends the family its own invitation.
+                  </p>
                   <div className="flex gap-2">
                     <Button size="sm" disabled={busy} onClick={confirmPending}>
                       Tick it

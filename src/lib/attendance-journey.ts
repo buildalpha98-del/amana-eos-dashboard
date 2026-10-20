@@ -149,8 +149,14 @@ export async function attendanceGate(
   now = new Date(),
 ): Promise<"send" | "hold" | "cancel"> {
   if (!ATTENDANCE_GATED.has(templateKey) || !serviceId) return "send";
-  if (!(await attendanceDataLive(serviceId, now))) return "send"; // no data → today's behaviour
   if (await familyHasAttended(email, serviceId)) return "send";
+  if (!(await attendanceDataLive(serviceId, now))) {
+    // No OWNA sign-ins here (21 Oct 2026): staff confirm the first day by
+    // hand (first-day-check.ts). Hold for families who'll be asked; older
+    // families keep the original send-on-schedule behaviour.
+    const { awaitingFirstDayConfirmation } = await import("@/lib/first-day-check");
+    if (!(await awaitingFirstDayConfirmation(email, serviceId))) return "send";
+  }
   if (anchorDate && now.getTime() - anchorDate.getTime() > GATE_GIVE_UP_DAYS * DAY) return "cancel";
   return "hold";
 }

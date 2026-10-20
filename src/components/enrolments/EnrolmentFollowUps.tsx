@@ -1,8 +1,9 @@
 "use client";
 
 /**
- * Enrolments → Follow-ups (Daniel, 16 Oct 2026). Two lists so no family
- * falls through the cracks:
+ * Enrolments → Follow-ups (Daniel, 16 Oct 2026). Lists so no family
+ * falls through the cracks (+ OWNA setup, and since 21 Oct the first-day
+ * check and call):
  *   - "Reply within 24 hours": submitted enrolments still waiting on us,
  *     with the time left on the thank-you page's promise;
  *   - "Unfinished forms": families who started and stopped — call them,
@@ -11,12 +12,18 @@
  */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ChevronDown, Clock, KeyRound, Mail, Phone, PhoneCall } from "lucide-react";
+import { CalendarCheck, CheckCircle2, ChevronDown, Clock, KeyRound, Mail, Phone, PhoneCall } from "lucide-react";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import type { AwaitingReply, OwnaSetup, UnfinishedForm } from "@/lib/enrolment-follow-ups";
+import type { FirstDayRow } from "@/lib/first-day-check";
+
+/** "Tuesday 21 October" from "2026-10-21". */
+function dayLabel(iso: string) {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
+}
 
 function ago(iso: string) {
   const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000);
@@ -36,7 +43,13 @@ function clockChip(hoursLeft: number) {
 export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) => void }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(true);
-  const { data } = useQuery<{ awaiting: AwaitingReply[]; unfinished: UnfinishedForm[]; ownaSetup: OwnaSetup[] }>({
+  const { data } = useQuery<{
+    awaiting: AwaitingReply[];
+    unfinished: UnfinishedForm[];
+    ownaSetup: OwnaSetup[];
+    firstDayCheck?: FirstDayRow[];
+    firstDayCalls?: FirstDayRow[];
+  }>({
     queryKey: ["enrolment-follow-ups"],
     queryFn: () => fetchApi("/api/enrolments/follow-ups"),
     retry: 2,
@@ -64,6 +77,23 @@ export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) =
     },
     onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
   });
+  // First day (21 Oct 2026): did they come? → then call them.
+  const firstDay = useMutation({
+    mutationFn: (v: { id: string; action: "attended" | "absent" | "called" }) =>
+      mutateApi(`/api/enrolments/${v.id}/first-day`, { method: "POST", body: { action: v.action } }),
+    onSuccess: (_r, v) => {
+      toast({
+        description:
+          v.action === "attended"
+            ? "Thanks — the \"how did it go?\" email is on its way. Now give them a call."
+            : v.action === "absent"
+              ? "Noted — no \"how did it go?\" email. Give them a call to see what happened."
+              : "Noted — call done.",
+      });
+      refresh();
+    },
+    onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
+  });
   const remind = useMutation({
     mutationFn: (accountId: string) => mutateApi<{ email: string }>(`/api/families/${accountId}/remind`, { method: "POST" }),
     onSuccess: (r) => {
@@ -76,7 +106,13 @@ export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) =
   const awaiting = data?.awaiting ?? [];
   const unfinished = data?.unfinished ?? [];
   const ownaSetup = data?.ownaSetup ?? [];
-  if (!data || (awaiting.length === 0 && unfinished.length === 0 && ownaSetup.length === 0)) return null;
+  const firstDayCheck = data?.firstDayCheck ?? [];
+  const firstDayCalls = data?.firstDayCalls ?? [];
+  if (
+    !data ||
+    (awaiting.length === 0 && unfinished.length === 0 && ownaSetup.length === 0 && firstDayCheck.length === 0 && firstDayCalls.length === 0)
+  )
+    return null;
   const overdue = awaiting.filter((a) => a.hoursLeft <= 0).length;
 
   return (
@@ -101,6 +137,16 @@ export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) =
         {ownaSetup.length > 0 && (
           <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-muted">
             {ownaSetup.length} OWNA setup{ownaSetup.length === 1 ? "" : "s"} to finish
+          </span>
+        )}
+        {firstDayCheck.length > 0 && (
+          <span className="rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">
+            {firstDayCheck.length} first day{firstDayCheck.length === 1 ? "" : "s"} to confirm
+          </span>
+        )}
+        {firstDayCalls.length > 0 && (
+          <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-muted">
+            {firstDayCalls.length} first-day call{firstDayCalls.length === 1 ? "" : "s"}
           </span>
         )}
         <ChevronDown className={cn("ml-auto h-4 w-4 text-muted transition-transform", open && "rotate-180")} aria-hidden />
@@ -228,8 +274,7 @@ export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) =
               <KeyRound className="h-4 w-4 text-brand" aria-hidden /> OWNA setup
             </h3>
             <p className="text-xs text-muted">
-              Approved families whose OWNA handover isn&apos;t finished. Open one to tick the next step — the family is
-              emailed what to do.
+              Approved families whose OWNA handover isn&apos;t finished. Open one to tick the next step.
             </p>
             {ownaSetup.length === 0 ? (
               <p className="flex items-center gap-1.5 py-2 text-sm text-muted">
@@ -276,6 +321,102 @@ export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) =
               </ul>
             )}
           </div>
+
+          {(firstDayCheck.length > 0 || firstDayCalls.length > 0) && (
+            <div className="min-w-0 space-y-2">
+              <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                <CalendarCheck className="h-4 w-4 text-brand" aria-hidden /> First day — did they come?
+              </h3>
+              <p className="text-xs text-muted">
+                Tap <strong>Attended</strong> and the family gets our &ldquo;how did it go?&rdquo; email. Didn&apos;t
+                attend: no email. Either way, give them a call.
+              </p>
+              {firstDayCheck.length === 0 ? (
+                <p className="flex items-center gap-1.5 py-2 text-sm text-muted">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden /> Every first day is confirmed.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {firstDayCheck.map((f) => (
+                    <li key={f.id} className="rounded-lg border border-border p-3">
+                      <p className="truncate text-sm font-medium text-foreground">{f.childNames}</p>
+                      <p className="text-xs text-muted">
+                        {f.parentName}
+                        {f.serviceName ? ` · ${f.serviceName}` : ""} · first day {dayLabel(f.firstDay)}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Button size="sm" disabled={firstDay.isPending} onClick={() => firstDay.mutate({ id: f.id, action: "attended" })}>
+                          Attended
+                        </Button>
+                        <Button size="sm" variant="outline" disabled={firstDay.isPending} onClick={() => firstDay.mutate({ id: f.id, action: "absent" })}>
+                          Didn&apos;t attend
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => onOpen(f.id)}>
+                          Open
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {firstDayCalls.length > 0 && (
+                <>
+                  <h3 className="flex items-center gap-1.5 pt-2 text-sm font-semibold text-foreground">
+                    <PhoneCall className="h-4 w-4 text-brand" aria-hidden /> Call after the first day
+                  </h3>
+                  <ul className="space-y-2">
+                    {firstDayCalls.map((f) => (
+                      <li key={f.id} className="rounded-lg border border-border p-3">
+                        <div className="flex flex-wrap items-start gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-foreground">{f.childNames}</p>
+                            <p className="text-xs text-muted">
+                              {f.parentName}
+                              {f.serviceName ? ` · ${f.serviceName}` : ""} · first day {dayLabel(f.firstDay)}
+                            </p>
+                          </div>
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full px-2 py-0.5 text-2xs font-semibold",
+                              f.attendance === "absent"
+                                ? "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
+                                : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200",
+                            )}
+                          >
+                            {f.attendance === "absent" ? "Didn't attend" : "Attended"}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-muted">
+                          {f.attendance === "absent"
+                            ? "Find out what happened and help them rebook."
+                            : "Ask how the first day went and if there's anything we can do better."}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {f.phone && (
+                            <a
+                              href={`tel:${f.phone.replace(/\s+/g, "")}`}
+                              className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs font-medium text-foreground hover:bg-surface"
+                            >
+                              <Phone className="h-3.5 w-3.5" aria-hidden /> {f.phone}
+                            </a>
+                          )}
+                          <Button size="sm" disabled={firstDay.isPending} onClick={() => firstDay.mutate({ id: f.id, action: "called" })}>
+                            We called them
+                          </Button>
+                          {f.attendance === "absent" && (
+                            <Button size="sm" variant="outline" disabled={firstDay.isPending} onClick={() => firstDay.mutate({ id: f.id, action: "attended" })}>
+                              They&apos;ve started now
+                            </Button>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
     </section>

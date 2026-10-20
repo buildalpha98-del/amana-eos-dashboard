@@ -4,6 +4,7 @@ import { verifyCronSecret } from "@/lib/cron-guard";
 import { getResend, sendEmail } from "@/lib/email";
 import { nurtureSessionReminderEmail, centreWebsiteUrl } from "@/lib/email-templates";
 import { NURTURE_TEMPLATE_MAP } from "@/lib/nurture-template-map";
+import { nurtureDay1CheckinEmail } from "@/lib/email-templates/nurture";
 import { attendanceGate } from "@/lib/attendance-journey";
 import { paceNurtureSend } from "@/lib/journey-pacing";
 import { appendUnsubscribeFooter } from "@/lib/email-templates/base";
@@ -261,7 +262,15 @@ async function processSequenceExecutions(now: Date) {
         const feedbackUrl = isParent && svc?.id
           ? `${BASE_URL}/survey/feedback/${svc.id}?${feedbackParams.toString()}`
           : `${BASE_URL}/survey/feedback`;
-        ({ subject, html } = await templateFn(name, centreName, enrolUrl, feedbackUrl));
+        if (exec.step.templateKey === "day1_checkin") {
+          // The child's name, from the family's enquiry (21 Oct 2026).
+          const enquiry = exec.enrolment.enquiryId
+            ? await prisma.parentEnquiry.findUnique({ where: { id: exec.enrolment.enquiryId }, select: { childName: true } })
+            : null;
+          ({ subject, html } = await nurtureDay1CheckinEmail(name, centreName, enrolUrl, feedbackUrl, enquiry?.childName));
+        } else {
+          ({ subject, html } = await templateFn(name, centreName, enrolUrl, feedbackUrl));
+        }
       }
     }
 
