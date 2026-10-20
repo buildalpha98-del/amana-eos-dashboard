@@ -102,7 +102,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   // After the write has committed; never throws.
   if (knoxRelevant) {
-    triggerTriage(
+    await triggerTriage(
       { subjectType: "incident", subjectId: id, serviceId: ref.serviceId, reason: "updated" },
       { immediate: true },
     );

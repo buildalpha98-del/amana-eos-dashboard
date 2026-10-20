@@ -713,7 +713,9 @@ export async function syncOwnaService(
             select: { id: true, serviceId: true },
           });
           for (const row of created) {
-            triggerTriage({
+            // Awaited: this runs in a cron, so an un-awaited enqueue could be
+            // cut off when the function returns. No model call here, so cheap.
+            await triggerTriage({
               subjectType: "incident",
               subjectId: row.id,
               serviceId: row.serviceId,
@@ -733,7 +735,7 @@ export async function syncOwnaService(
         }
         // After the updates have committed.
         for (const id of escalatedIds) {
-          triggerTriage({ subjectType: "incident", subjectId: id, serviceId, reason: "updated" });
+          await triggerTriage({ subjectType: "incident", subjectId: id, serviceId, reason: "updated" });
         }
       }
 

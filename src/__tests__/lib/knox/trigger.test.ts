@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/logger", () => ({
   logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -51,7 +51,7 @@ describe("incidentTriggerChanged", () => {
 });
 
 describe("complaintTriggerChanged", () => {
-  const before = { notifiable: false, notifiableReason: null as string | null, category: "fees", status: "new" };
+  const before = { notifiable: false, notifiableReason: null as string | null, status: "new" };
 
   it("is false for notes, assignment and a same-value resend", () => {
     expect(complaintTriggerChanged(before, { investigationNotes: "x", assignedToId: "u1" })).toBe(false);
@@ -73,32 +73,65 @@ describe("complaintTriggerChanged", () => {
 describe("triggerTriage", () => {
   const input = { subjectType: "incident", subjectId: "i1", serviceId: "s1", reason: "created" } as const;
 
-  it("never throws when enqueueTriage throws synchronously", () => {
+  beforeEach(() => {
+    vi.mocked(enqueueTriage).mockReset();
+    vi.mocked(runTriageJob).mockReset();
+    vi.mocked(runAfter).mockReset();
+  });
+
+  it("resolves (never rejects) when enqueueTriage throws synchronously", async () => {
     vi.mocked(enqueueTriage).mockImplementation(() => {
       throw new Error("boom");
     });
-    expect(() => triggerTriage(input)).not.toThrow();
+    await expect(triggerTriage(input, { immediate: true })).resolves.toBeUndefined();
+    expect(runAfter).not.toHaveBeenCalled();
   });
 
-  it("without immediate it queues and does not run the job", async () => {
+  it("resolves when enqueueTriage rejects", async () => {
+    vi.mocked(enqueueTriage).mockRejectedValue(new Error("db down"));
+    await expect(triggerTriage(input, { immediate: true })).resolves.toBeUndefined();
+    expect(runAfter).not.toHaveBeenCalled();
+  });
+
+  it("resolves when runAfter throws", async () => {
     vi.mocked(enqueueTriage).mockResolvedValue("job-1");
-    vi.mocked(runTriageJob).mockClear();
-    vi.mocked(runAfter).mockClear();
-    triggerTriage(input);
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(enqueueTriage).toHaveBeenCalled();
+    vi.mocked(runAfter).mockImplementation(() => {
+      throw new Error("no request scope");
+    });
+    await expect(triggerTriage(input, { immediate: true })).resolves.toBeUndefined();
+  });
+
+  it("without immediate it queues, awaited, and never registers a run", async () => {
+    vi.mocked(enqueueTriage).mockResolvedValue("job-1");
+    await triggerTriage(input);
+    expect(enqueueTriage).toHaveBeenCalledWith(expect.anything(), input);
     expect(runAfter).not.toHaveBeenCalled();
     expect(runTriageJob).not.toHaveBeenCalled();
   });
 
-  it("with immediate it defers queue + run to runAfter and swallows a worker failure", async () => {
+  it("with immediate it enqueues first, then registers runAfter with a task that runs the job", async () => {
     vi.mocked(enqueueTriage).mockResolvedValue("job-2");
-    vi.mocked(runTriageJob).mockRejectedValue(new Error("model down"));
-    vi.mocked(runAfter).mockClear();
-    triggerTriage(input, { immediate: true });
+    await triggerTriage(input, { immediate: true });
+
     expect(runAfter).toHaveBeenCalledOnce();
-    await expect(vi.mocked(runAfter).mock.calls[0][0]()).resolves.toBeUndefined();
+    expect(vi.mocked(enqueueTriage).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(runAfter).mock.invocationCallOrder[0],
+    );
+    expect(runTriageJob).not.toHaveBeenCalled();
+    await vi.mocked(runAfter).mock.calls[0][0]();
     expect(runTriageJob).toHaveBeenCalledWith("job-2");
+  });
+
+  it("with immediate it does not call runAfter when enqueue returned null", async () => {
+    vi.mocked(enqueueTriage).mockResolvedValue(null);
+    await triggerTriage(input, { immediate: true });
+    expect(runAfter).not.toHaveBeenCalled();
+  });
+
+  it("swallows a worker failure inside the deferred task", async () => {
+    vi.mocked(enqueueTriage).mockResolvedValue("job-3");
+    vi.mocked(runTriageJob).mockRejectedValue(new Error("model down"));
+    await triggerTriage(input, { immediate: true });
+    await expect(vi.mocked(runAfter).mock.calls[0][0]()).resolves.toBeUndefined();
   });
 });

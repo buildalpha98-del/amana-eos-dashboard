@@ -220,7 +220,7 @@ export const POST = withApiHandler(async (req) => {
   });
 
   // After the create has committed; never throws.
-  triggerTriage(
+  await triggerTriage(
     { subjectType: "incident", subjectId: incident.id, serviceId: service.id, reason: "created" },
     { immediate: true },
   );

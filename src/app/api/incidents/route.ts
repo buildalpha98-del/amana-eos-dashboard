@@ -144,7 +144,7 @@ try {
     });
 
     // After the create has committed; never throws.
-    triggerTriage(
+    await triggerTriage(
       { subjectType: "incident", subjectId: record.id, serviceId, reason: "created" },
       { immediate: true },
     );

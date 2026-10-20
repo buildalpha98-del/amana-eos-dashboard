@@ -9,37 +9,35 @@ import type { ComplaintPatch } from "@/lib/complaints/update-complaint-record";
 /**
  * Hand a register record to Knox after its write has committed.
  *
- * Fire-and-forget and NEVER throws, not even synchronously: an incident or
- * complaint save must succeed whether or not Knox is healthy. A failed
- * enqueue is logged and the sweep cron picks the record up later.
+ * Callers `await` this BEFORE responding: the job row is then durable before
+ * the 201/200 goes out, and `after()` is registered inside the request scope.
+ * It never rejects: any failure (enqueue, `runAfter`) is logged and swallowed,
+ * because an incident or complaint save must succeed whether or not Knox is
+ * healthy. A failed enqueue leaves the record for the sweep cron.
  *
  * Contract: call this AFTER the write (and any transaction around it) has
  * resolved. It uses the top-level `prisma` client on purpose; a transaction
  * client would let a failed enqueue abort the caller's save.
  *
- * `immediate` (the dashboard routes) queues the job and runs it once the
- * response has gone out. Both steps sit inside `runAfter` so neither is cut
- * off when a serverless response returns; registering `after()` only after an
- * awaited enqueue could land past the point the platform stops listening.
- * Leave it off for bulk writers such as the OWNA sync: the job is queued
- * here and the sweep drains the queue at its own pace.
+ * `immediate` (the dashboard routes) also starts the job once the response has
+ * gone out, via `runAfter`. Leave it off for bulk writers such as the OWNA
+ * sync: the sweep drains the queue at its own pace.
  */
-export function triggerTriage(
+export async function triggerTriage(
   input: EnqueueTriageInput,
   opts: { immediate?: boolean } = {},
-): void {
-  const run = async (): Promise<void> => {
-    try {
-      const jobId = await enqueueTriage(prisma, input);
-      if (jobId && opts.immediate) await runTriageJob(jobId);
-    } catch (err) {
-      logger.error("Knox: triggerTriage failed", { err, ...input });
-    }
-  };
-
+): Promise<void> {
   try {
-    if (opts.immediate) runAfter(run);
-    else void run();
+    const jobId = await enqueueTriage(prisma, input);
+    if (jobId && opts.immediate) {
+      runAfter(async () => {
+        try {
+          await runTriageJob(jobId);
+        } catch (err) {
+          logger.error("Knox: immediate triage run failed", { err, jobId, ...input });
+        }
+      });
+    }
   } catch (err) {
     logger.error("Knox: triggerTriage failed", { err, ...input });
   }
@@ -94,11 +92,13 @@ export function incidentTriggerChanged(
 export interface ComplaintTriggerFields {
   notifiable: boolean;
   notifiableReason: string | null;
-  category: string;
   status: string;
 }
 
-/** Notifiability, its reason, the category, or the complaint being escalated. */
+/**
+ * Notifiability, its reason, or the complaint being escalated. (Category cannot
+ * change via PATCH, so it is not compared.)
+ */
 export function complaintTriggerChanged(
   before: ComplaintTriggerFields,
   patch: ComplaintPatch,
@@ -110,9 +110,6 @@ export function complaintTriggerChanged(
   ) {
     return true;
   }
-  // category is not editable through ComplaintPatch today; honoured if it ever is.
-  const category = (patch as { category?: string }).category;
-  if (category !== undefined && category !== before.category) return true;
   if (patch.status === "escalated" && before.status !== "escalated") return true;
   return false;
 }

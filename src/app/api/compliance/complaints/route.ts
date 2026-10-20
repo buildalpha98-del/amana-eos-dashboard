@@ -216,7 +216,7 @@ export const POST = withApiAuth(
     });
 
     // After the create and its audit row have committed; never throws.
-    triggerTriage(
+    await triggerTriage(
       { subjectType: "complaint", subjectId: created.id, serviceId: d.serviceId, reason: "created" },
       { immediate: true },
     );

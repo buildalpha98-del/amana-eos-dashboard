@@ -23,6 +23,9 @@ const WRITERS = [
   "lib/owna-sync.ts",
 ];
 
+const KNOX_TABLE_WRITE =
+  /(triageAssessment|pendingAction)\s*\.\s*(create|createMany|update|updateMany|upsert|delete|deleteMany)\s*\(/;
+
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     if (entry === "node_modules" || entry === "__tests__") continue;
@@ -55,14 +58,27 @@ describe("Knox wiring guards", () => {
   });
 
   it("no file outside src/lib/knox writes triageAssessment or pendingAction rows", () => {
-    const WRITE = /(triageAssessment|pendingAction)\s*\.\s*(create|createMany|update|updateMany|upsert|delete|deleteMany)\s*\(/;
     const offenders = walk(SRC_ROOT)
       .map((f) => relative(SRC_ROOT, f))
       .filter((rel) => !rel.startsWith("lib/knox/"))
-      .filter((rel) => WRITE.test(readFileSync(join(SRC_ROOT, rel), "utf8")));
+      .filter((rel) => KNOX_TABLE_WRITE.test(readFileSync(join(SRC_ROOT, rel), "utf8")));
     expect(
       offenders,
       "Only src/lib/knox may write triage assessments or pending actions.",
     ).toEqual([]);
+  });
+
+  it("the table-write pattern is not vacuous: it matches real write shapes and ignores reads", () => {
+    for (const src of [
+      "prisma.pendingAction.create({",
+      "tx.triageAssessment.upsert (",
+      "db.pendingAction\n  .updateMany(",
+      "prisma.triageAssessment.deleteMany({",
+    ]) {
+      expect(KNOX_TABLE_WRITE.test(src), src).toBe(true);
+    }
+    for (const src of ["prisma.pendingAction.findMany({", "prisma.triageAssessment.count("]) {
+      expect(KNOX_TABLE_WRITE.test(src), src).toBe(false);
+    }
   });
 });

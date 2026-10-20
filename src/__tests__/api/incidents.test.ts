@@ -273,15 +273,17 @@ describe("POST /api/incidents — Knox trigger", () => {
     const res = await POST(createRequest("POST", "/api/incidents", { body }));
 
     expect(res.status).toBe(201);
-    // Nothing runs until the response is out: the whole job sits in runAfter.
-    expect(runAfter).toHaveBeenCalledOnce();
-    expect(enqueueTriage).not.toHaveBeenCalled();
-    const task = vi.mocked(runAfter).mock.calls[0][0];
-    await task();
+    // The job row is queued before the response; only the worker run is deferred.
     expect(enqueueTriage).toHaveBeenCalledWith(
       expect.anything(),
       { subjectType: "incident", subjectId: "inc-new", serviceId: "svc-1", reason: "created" },
     );
+    expect(runAfter).toHaveBeenCalledOnce();
+    expect(vi.mocked(enqueueTriage).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(runAfter).mock.invocationCallOrder[0],
+    );
+    expect(runTriageJob).not.toHaveBeenCalled();
+    await vi.mocked(runAfter).mock.calls[0][0]();
     expect(runTriageJob).toHaveBeenCalledWith("job-1");
   });
 
@@ -293,8 +295,7 @@ describe("POST /api/incidents — Knox trigger", () => {
 
     expect(res.status).toBe(201);
     expect((await res.json()).id).toBe("inc-new");
-    // The deferred task swallows the failure too and never starts a job.
-    await vi.mocked(runAfter).mock.calls[0][0]();
+    expect(runAfter).not.toHaveBeenCalled();
     expect(runTriageJob).not.toHaveBeenCalled();
   });
 
@@ -307,7 +308,7 @@ describe("POST /api/incidents — Knox trigger", () => {
     const res = await POST(createRequest("POST", "/api/incidents", { body }));
 
     expect(res.status).toBe(201);
-    await expect(vi.mocked(runAfter).mock.calls[0][0]()).resolves.toBeUndefined();
+    expect(runAfter).not.toHaveBeenCalled();
   });
 
   it("POST returns 201 even when runAfter itself throws synchronously", async () => {
