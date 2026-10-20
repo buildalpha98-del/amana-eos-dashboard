@@ -48,7 +48,7 @@ export function isParentApiAllowedWhileAppClosed(pathname: string): boolean {
 }
 
 export const APP_CLOSED_MESSAGE =
-  "The Amana family app isn't open yet. Bookings and fees are in OWNA, and your centre can help with anything else.";
+  "The Amana family app isn't open yet. Bookings and fees are in OWNA — for help with either, call 1300 200 262 or email enrolment@amanaoshc.com.au.";
 
 /** What staff see if they try to (re)send a portal invite while the app is closed. */
 export const APP_CLOSED_INVITE_MESSAGE =
@@ -66,7 +66,7 @@ export function isAllowedWhileAppClosed(pathname: string | null | undefined): bo
 
 /** What parents are told whenever they reach something that's switched off. */
 export const OWNA_BOOKING_MESSAGE =
-  "Bookings and fees are managed in OWNA. If you need your invitation or help signing in, message the Amana team.";
+  "Bookings and fees are managed in OWNA. For your invitation, help signing in or a booking change, call 1300 200 262 or email enrolment@amanaoshc.com.au.";
 
 /** Parent pages that stay usable while the portal is locked. */
 export function isAllowedWhileLocked(pathname: string | null | undefined): boolean {

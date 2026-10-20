@@ -204,7 +204,7 @@ describe("DELETE /api/parent/bookings/[bookingId] — cancellation windows", () 
     const error = (await res.json()).error;
     // Both doors named: keep the place, or change the pattern.
     expect(error).toMatch(/not attending/i);
-    expect(error).toMatch(/enrolments@amanaoshc\.com\.au/i);
+    expect(error).toMatch(/enrolment@amanaoshc\.com\.au/i);
     expect(mockPrisma.booking.update).not.toHaveBeenCalled();
   });
 
@@ -224,6 +224,6 @@ describe("DELETE /api/parent/bookings/[bookingId] — cancellation windows", () 
     );
     const res = await del();
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/enrolments@amanaoshc\.com\.au/i);
+    expect((await res.json()).error).toMatch(/enrolment@amanaoshc\.com\.au/i);
   });
 });

@@ -30,7 +30,7 @@ export default async function StartCheckThanks({ searchParams }: { searchParams:
           {message ? "Thank you — we've got your answer" : "This link has expired"}
         </h1>
         <p className="mt-2 text-sm text-muted">
-          {message ?? "Please call your centre or email enrolments@amanaoshc.com.au and we'll help straight away."}
+          {message ?? "Please call 1300 200 262 or email enrolment@amanaoshc.com.au and we'll help straight away."}
         </p>
         <p className="mt-6 text-sm font-semibold text-brand">Amana OSHC · Beyond The Bell</p>
       </div>

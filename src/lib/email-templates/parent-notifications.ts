@@ -86,7 +86,7 @@ const BOOKING_CANCELLED_DEFAULT_BODY = `
     <h2 style="color: #004E64; margin: 0 0 16px;">Booking Cancelled</h2>
     <p>Hi {{parentName}},</p>
     <p>{{childName}}'s {{sessionShort}} session on <strong>{{formattedDate}}</strong> at {{serviceName}} has been cancelled by the centre.</p>
-    <p style="color: #6b6b78; font-size: 14px;">If you have questions, please contact the centre or send a message through the parent portal.</p>
+    <p style="color: #6b6b78; font-size: 14px;">Questions, or want to rebook? Call 1300 200 262 or email enrolment@amanaoshc.com.au.</p>
     {{viewBookingsButton}}
   `;
 

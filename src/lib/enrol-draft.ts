@@ -19,7 +19,8 @@
 import { ccsAnswered, type CcsApplied, type CcsApproved } from "@/lib/enrol-ccs";
 
 /** Where enrolment questions go. Never the director's personal address. */
-export const ENROLMENTS_EMAIL = "enrolments@amanaoshc.com.au";
+// 2026-10-20: the inbox is enrolment@ (singular) — enrolments@ was wrong.
+export { FAMILY_BOOKINGS_EMAIL as ENROLMENTS_EMAIL } from "@/lib/family-contact";
 
 // ---------------------------------------------------------------------------
 // Shapes

@@ -91,7 +91,10 @@ describe("ticking the OWNA checklist emails the family", () => {
     expect(m.to).toBe("sarah@example.test");
     expect(m.subject).toBe("You're ready to book, Sarah — Yusuf is set up in OWNA");
     expect(m.html).toContain("Book in the OWNA app");
-    expect(m.html).toContain("mfisgreenacre@amanaoshc.com.au");
+    // Bookings go to the enrolments team, never the centre (20 Oct 2026).
+    expect(m.html).toContain("enrolment@amanaoshc.com.au");
+    expect(m.html).toContain("1300 200 262");
+    expect(m.html).not.toContain("mfisgreenacre@amanaoshc.com.au");
     expect(m.html).not.toContain("{{");
     expect(m.attachments?.[0].path).toBe("https://blob.example.test/pack.pdf");
     expect(call[1]).toEqual({ idempotencyKey: "casual-bookings-e1-t" });

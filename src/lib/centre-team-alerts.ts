@@ -21,7 +21,8 @@ import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 import { baseLayout, buttonHtml, escapeHtml } from "@/lib/email-templates/base";
 
-export const ENROLMENTS_INBOX = "enrolment@amanaoshc.com.au";
+export { FAMILY_BOOKINGS_EMAIL as ENROLMENTS_INBOX } from "@/lib/family-contact";
+import { FAMILY_BOOKINGS_EMAIL as ENROLMENTS_INBOX } from "@/lib/family-contact";
 
 const BASE = () => process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
 
