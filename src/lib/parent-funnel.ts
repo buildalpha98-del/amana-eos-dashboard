@@ -14,7 +14,8 @@
  * there, "ready" includes families who may well be attending.
  */
 import { prisma } from "@/lib/prisma";
-import { readHandoff } from "@/lib/owna-handoff";
+import { predatesOwnaChecklist, readHandoff } from "@/lib/owna-handoff";
+import { FOLLOW_UPS_START } from "@/lib/enrolment-reply-clock";
 
 const DAY = 24 * 3_600_000;
 
@@ -71,6 +72,7 @@ export async function getParentFunnel(serviceIds: string[] | null, days = 90, no
     const approved = mine.filter((x) => x.status === "processed");
     const attended = approved.filter((x) => x.childRecords.some((c) => c.firstAttendedAt));
     const handoverDone = (x: (typeof approved)[number]) => {
+      if (predatesOwnaChecklist(x.createdAt)) return true;
       const st = readHandoff(x.ownaHandoff?.state);
       return !!st && Object.keys(st.steps).length === 4;
     };
@@ -81,7 +83,9 @@ export async function getParentFunnel(serviceIds: string[] | null, days = 90, no
       enquired: count(PRE_FORM),
       formStarted: count(["form_started"]),
       waiting: waitingSubs.length,
-      overdue: waitingSubs.filter((x) => x.status === "submitted" && now.getTime() - x.createdAt.getTime() > DAY).length,
+      overdue: waitingSubs.filter(
+        (x) => x.status === "submitted" && x.createdAt >= FOLLOW_UPS_START && now.getTime() - x.createdAt.getTime() > DAY,
+      ).length,
       ownaSetup: notAttended.filter((x) => !handoverDone(x)).length,
       ready: notAttended.filter(handoverDone).length,
       attending: attended.length,

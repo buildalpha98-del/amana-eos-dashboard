@@ -14,10 +14,12 @@ vi.mock("@/lib/logger", () => ({
 import { sendEmail } from "@/lib/email";
 import { notifyUsers } from "@/lib/notify-user";
 import { alertNewEnrolment, alertNewEnquiry, centreTeamUserIds } from "@/lib/centre-team-alerts";
-import { runEnrolmentReplyClock } from "@/lib/enrolment-reply-clock";
+import { FOLLOW_UPS_START, runEnrolmentReplyClock } from "@/lib/enrolment-reply-clock";
+import { OWNA_CHECKLIST_START } from "@/lib/owna-handoff";
 import { getFollowUps } from "@/lib/enrolment-follow-ups";
 
-const NOW = new Date("2026-10-16T02:00:00Z");
+// After FOLLOW_UPS_START plus the 72-hour lookback, so neither cutoff bites.
+const NOW = new Date("2026-10-24T02:00:00Z");
 const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 3_600_000);
 const daysAgo = (d: number) => hoursAgo(d * 24);
 
@@ -116,6 +118,24 @@ describe("Follow-ups lists", () => {
     const draftWhere = prismaMock.enrolmentDraft.findMany.mock.calls[0][0].where;
     expect(draftWhere.submittedAt).toBeNull();
     expect(draftWhere.updatedAt.lte).toEqual(daysAgo(4));
+  });
+
+  // Daniel, 20 Oct 2026: follow-ups start with families from 20 Oct; the
+  // OWNA checklist with families from Monday 19 Oct.
+  it("only counts enrolments and forms from the start dates", async () => {
+    const early = new Date("2026-10-20T10:00:00Z");
+    await getFollowUps(null, early);
+    const [awaitingCall, approvedCall] = prismaMock.enrolmentSubmission.findMany.mock.calls;
+    expect(awaitingCall[0].where.createdAt.gte).toEqual(FOLLOW_UPS_START);
+    expect(prismaMock.enrolmentDraft.findMany.mock.calls[0][0].where.createdAt.gte).toEqual(FOLLOW_UPS_START);
+    expect(approvedCall[0].where.createdAt.gte).toEqual(OWNA_CHECKLIST_START);
+  });
+
+  it("the reply clock never reaches back before the start date", async () => {
+    prismaMock.enrolmentSubmission.findMany.mockResolvedValue([]);
+    await runEnrolmentReplyClock(new Date("2026-10-20T10:00:00Z"));
+    for (const call of prismaMock.enrolmentSubmission.findMany.mock.calls)
+      expect(call[0].where.createdAt.gte).toEqual(FOLLOW_UPS_START);
   });
 
   it("a coordinator only sees their own centre", async () => {

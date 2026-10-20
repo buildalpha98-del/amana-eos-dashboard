@@ -14,8 +14,8 @@ import { prisma } from "@/lib/prisma";
 import { matchSchoolToService } from "@/lib/school-service-match";
 import { ENROL_STEPS } from "@/app/parent/enrol/steps";
 import type { EnrolDraft } from "@/lib/enrol-draft";
-import { REPLY_HOURS } from "@/lib/enrolment-reply-clock";
-import { readHandoff, type HandoffStep } from "@/lib/owna-handoff";
+import { REPLY_HOURS, notBeforeFollowUpsStart } from "@/lib/enrolment-reply-clock";
+import { OWNA_CHECKLIST_START, readHandoff, type HandoffStep } from "@/lib/owna-handoff";
 
 const H = 3_600_000;
 const DAY = 24 * H;
@@ -97,7 +97,7 @@ export async function getFollowUps(
   const subs = await prisma.enrolmentSubmission.findMany({
     where: {
       status: "submitted",
-      createdAt: { gte: new Date(now.getTime() - 30 * DAY) },
+      createdAt: { gte: notBeforeFollowUpsStart(new Date(now.getTime() - 30 * DAY)) },
       ...(serviceIds === null ? {} : { serviceId: { in: serviceIds } }),
     },
     select: { id: true, createdAt: true, serviceId: true, children: true, primaryParent: true },
@@ -122,7 +122,8 @@ export async function getFollowUps(
   const drafts = await prisma.enrolmentDraft.findMany({
     where: {
       submittedAt: null,
-      createdAt: { gte: new Date(now.getTime() - UNFINISHED_LOOKBACK_DAYS * DAY) },
+      // Only forms started from FOLLOW_UPS_START (20 Oct 2026).
+      createdAt: { gte: notBeforeFollowUpsStart(new Date(now.getTime() - UNFINISHED_LOOKBACK_DAYS * DAY)) },
       updatedAt: { lte: new Date(now.getTime() - IDLE_DAYS * DAY) },
       account: {
         deactivatedAt: null,
@@ -169,6 +170,8 @@ export async function getFollowUps(
       status: "processed",
       // 30 days: older approvals were set up in OWNA before this list existed.
       processedAt: { gte: new Date(now.getTime() - 30 * DAY) },
+      // Enrolments from before the checklist started count as set up.
+      createdAt: { gte: OWNA_CHECKLIST_START },
       ...(serviceIds === null ? {} : { serviceId: { in: serviceIds } }),
     },
     select: { id: true, processedAt: true, serviceId: true, children: true, primaryParent: true, ownaHandoff: { select: { state: true } } },

@@ -42,6 +42,12 @@ describe("OWNA manual handoff", () => {
   });
   it("does not infer readiness from approval", () =>
     expect(handoffSummary(null, "p", "processed")).toBe("OWNA: not checked"));
+  // Daniel, 20 Oct 2026: families from before the checklist count as done.
+  it("enrolments from before 19 Oct read as complete; this week's don't", () => {
+    expect(handoffSummary(null, "p", "processed", "2026-10-18T12:59:00Z")).toBe("OWNA: handoff complete");
+    expect(handoffSummary(null, "p", "processed", "2026-10-18T13:00:00Z")).toBe("OWNA: not checked");
+    expect(handoffSummary(null, "p", "submitted", "2026-10-01T00:00:00Z")).toBe("OWNA: awaiting approval");
+  });
   it("ticking with no owner makes you the owner; prerequisites still apply", () => {
     const s = applyHandoff({ ...state(), owner: null }, patch("children"), actor, "p", "now");
     expect(s.owner).toEqual(actor);

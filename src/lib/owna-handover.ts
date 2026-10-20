@@ -17,7 +17,7 @@ import { logger } from "@/lib/logger";
 import { centreWelcomeData } from "@/lib/enrolment-welcome";
 import { syncParentJourney } from "@/lib/parent-journey";
 import { alertCentreTeam, childNamesFrom } from "@/lib/centre-team-alerts";
-import { readHandoff, type HandoffStep } from "@/lib/owna-handoff";
+import { OWNA_CHECKLIST_START, readHandoff, type HandoffStep } from "@/lib/owna-handoff";
 import {
   firstDayConfirmedEmail,
   ownaExistingEmail,
@@ -105,7 +105,14 @@ export async function onHandoffStepCompleted(
  */
 export async function runOwnaNudges(now = new Date()): Promise<{ nudged: number }> {
   const rows = await prisma.enrolmentOwnaHandoff.findMany({
-    where: { enrolment: { status: "processed", processedAt: { gte: new Date(now.getTime() - 90 * DAY) } } },
+    where: {
+      enrolment: {
+        status: "processed",
+        processedAt: { gte: new Date(now.getTime() - 90 * DAY) },
+        // Families from before the checklist started are never nudged.
+        createdAt: { gte: OWNA_CHECKLIST_START },
+      },
+    },
     select: { enrolmentId: true, state: true, inviteNudgedAt: true, enrolment: { select: { serviceId: true, children: true } } },
   });
   let nudged = 0;

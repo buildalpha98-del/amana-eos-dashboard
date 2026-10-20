@@ -17,8 +17,20 @@ export const REPLY_HOURS = 24;
 const REMIND_AT_HOURS = 20;
 const LOOKBACK_HOURS = 72;
 
+/**
+ * Follow-ups start with families from 20 Oct 2026 (Daniel): the 24-hour
+ * reply clock and the Unfinished forms list only count enrolments and forms
+ * from Sydney midnight that day (AEDT). Older ones are left alone.
+ */
+export const FOLLOW_UPS_START = new Date("2026-10-19T13:00:00.000Z");
+
+/** The later of `d` and FOLLOW_UPS_START. */
+export function notBeforeFollowUpsStart(d: Date): Date {
+  return d.getTime() < FOLLOW_UPS_START.getTime() ? FOLLOW_UPS_START : d;
+}
+
 export async function runEnrolmentReplyClock(now = new Date()): Promise<{ reminded: number; overdue: number }> {
-  const oldest = new Date(now.getTime() - LOOKBACK_HOURS * H);
+  const oldest = notBeforeFollowUpsStart(new Date(now.getTime() - LOOKBACK_HOURS * H));
   let reminded = 0;
   let overdue = 0;
 

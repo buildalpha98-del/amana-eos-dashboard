@@ -102,12 +102,26 @@ export function readHandoff(value: unknown): HandoffState | null {
   const parsed = handoffStateSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
 }
+/**
+ * The OWNA checklist starts with this week's families (Daniel, 20 Oct 2026):
+ * enrolments submitted from Monday 19 Oct 2026 (Sydney midnight, AEDT).
+ * Anything earlier was set up in OWNA before the checklist existed — it
+ * counts as done everywhere, and its family is never emailed or nudged.
+ */
+export const OWNA_CHECKLIST_START = new Date("2026-10-18T13:00:00.000Z");
+export function predatesOwnaChecklist(submittedAt: Date | string | null | undefined): boolean {
+  return !!submittedAt && new Date(submittedAt).getTime() < OWNA_CHECKLIST_START.getTime();
+}
+
 export function handoffSummary(
   state: HandoffState | null,
   placement: string,
   status: string,
+  /** The enrolment's createdAt — before OWNA_CHECKLIST_START reads as done. */
+  submittedAt?: Date | string | null,
 ) {
   if (status !== "processed") return "OWNA: awaiting approval";
+  if (predatesOwnaChecklist(submittedAt)) return "OWNA: handoff complete";
   if (!state) return "OWNA: not checked";
   if (handoffIsStale(state, placement)) return "OWNA: recheck placement";
   const done = Object.keys(state.steps).length;

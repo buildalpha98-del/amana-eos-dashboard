@@ -118,6 +118,13 @@ describe("invitation not accepted after 3 days", () => {
     expect(await runOwnaNudges(NOW)).toEqual({ nudged: 0 });
     expect(vi.mocked(sendEmail)).not.toHaveBeenCalled();
   });
+
+  it("never nudges families from before the checklist started", async () => {
+    prismaMock.enrolmentOwnaHandoff.findMany.mockResolvedValue([]);
+    await runOwnaNudges(NOW);
+    const where = prismaMock.enrolmentOwnaHandoff.findMany.mock.calls[0][0].where;
+    expect(where.enrolment.createdAt).toEqual({ gte: new Date("2026-10-18T13:00:00.000Z") });
+  });
 });
 
 describe("re-timing first-session emails to the real first day", () => {

@@ -26,6 +26,8 @@ type Response = {
   revision: number;
   state: HandoffState | null;
   placement: string;
+  /** Submitted before the checklist started (19 Oct 2026): counts as done. */
+  legacy?: boolean;
   history: {
     id: string;
     createdAt: string;
@@ -114,6 +116,9 @@ export function OwnaHandoffPanel({
     );
 
   const { state, placement, history, assignees } = query.data;
+  // Families from before the checklist started: counted as done, never emailed.
+  const legacy = !!query.data.legacy;
+  const emailFamily = notifyFamily && !legacy;
   const stale = handoffIsStale(state, placement);
   const busy = mutation.isPending || query.isFetching;
   const approved = status === "processed";
@@ -156,12 +161,12 @@ export function OwnaHandoffPanel({
 
   const confirmPending = () => {
     if (pending === "invitation")
-      mutation.mutate({ action: "complete", step: "invitation", mode, notifyFamily });
+      mutation.mutate({ action: "complete", step: "invitation", mode, notifyFamily: emailFamily });
     if (pending === "sessions")
       mutation.mutate(
         sessionsKind === "casual"
           ? { action: "complete", step: "sessions", casual: true }
-          : { action: "complete", step: "sessions", firstDay, notifyFamily },
+          : { action: "complete", step: "sessions", firstDay, notifyFamily: emailFamily },
       );
   };
 
@@ -196,6 +201,13 @@ export function OwnaHandoffPanel({
           Do each step in OWNA, then tick it here. This doesn&apos;t change
           OWNA itself.
         </p>
+        {legacy && approved && (
+          <p className="mt-2 rounded-lg bg-surface p-2 text-xs text-foreground">
+            This family enrolled before the checklist started on 19 October, so
+            their OWNA setup counts as done. Ticking steps here is optional and
+            never emails the family.
+          </p>
+        )}
       </div>
 
       {!approved && (
@@ -279,15 +291,17 @@ export function OwnaHandoffPanel({
                     <input type="radio" checked={mode === "existing"} onChange={() => setMode("existing")} />
                     Family already has OWNA
                   </label>
-                  <EmailFamily
-                    checked={notifyFamily}
-                    onChange={setNotifyFamily}
-                    hint={
-                      mode === "existing"
-                        ? "“You're all set in OWNA — sign in as usual.”"
-                        : "A step-by-step guide to getting into OWNA. If they haven't got in after 3 days, they get a nudge and you get an alert."
-                    }
-                  />
+                  {!legacy && (
+                    <EmailFamily
+                      checked={notifyFamily}
+                      onChange={setNotifyFamily}
+                      hint={
+                        mode === "existing"
+                          ? "“You're all set in OWNA — sign in as usual.”"
+                          : "A step-by-step guide to getting into OWNA. If they haven't got in after 3 days, they get a nudge and you get an alert."
+                      }
+                    />
+                  )}
                   <div className="flex gap-2">
                     <Button size="sm" disabled={busy} onClick={confirmPending}>
                       Tick it
@@ -318,11 +332,13 @@ export function OwnaHandoffPanel({
                         onChange={(e) => setFirstDay(e.target.value)}
                         className="rounded-lg border border-border bg-background p-2 text-sm"
                       />
-                      <EmailFamily
-                        checked={notifyFamily}
-                        onChange={setNotifyFamily}
-                        hint="“You're booked in!” with the first day, session times, where to find us, the centre's phone and what to expect. The day-before reminder and first-week check-ins are timed from this date."
-                      />
+                      {!legacy && (
+                        <EmailFamily
+                          checked={notifyFamily}
+                          onChange={setNotifyFamily}
+                          hint="“You're booked in!” with the first day, session times, where to find us, the centre's phone and what to expect. The day-before reminder and first-week check-ins are timed from this date."
+                        />
+                      )}
                     </div>
                   )}
                   <label className="flex items-center gap-2">

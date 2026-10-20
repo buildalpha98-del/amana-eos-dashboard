@@ -129,6 +129,7 @@ export const GET = withApiAuth(async (req, session) => {
               readHandoff(ownaHandoff?.state),
               placementKey({ ...s, childRecords: childRecords ?? [] }),
               s.status,
+              s.createdAt,
             ),
           }
         : {}),
