@@ -1,8 +1,9 @@
-import type { Prisma, TriageSubjectType, TriageTier } from "@prisma/client";
+import type { Prisma, PrismaClient, TriageSubjectType, TriageTier } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { dispatchLevel, postOpsNote } from "@/lib/knox/alerts";
 import { assessWithModel } from "@/lib/knox/assess";
+import { enqueueTriage } from "@/lib/knox/enqueue";
 import { buildCards, toPendingActionCreate } from "@/lib/knox/cards";
 import { loadSubject } from "@/lib/knox/load-subject";
 import { resolveRecipients } from "@/lib/knox/recipients";
@@ -22,7 +23,7 @@ export const MAX_ATTEMPTS = 3;
  */
 export const STALE_RUNNING_MS = 10 * 60 * 1000;
 const DEFAULT_SWEEP_LIMIT = 10;
-/** Leaves headroom inside the tick's 300 s maxDuration for the escalation sweep. */
+/** Leaves headroom inside the tick's 300 s maxDuration (escalation and reconciliation run before it). */
 const DEFAULT_SWEEP_BUDGET_MS = 240_000;
 
 const MIN_MS = 60_000;
@@ -376,4 +377,67 @@ export async function sweepJobs(
     }
   }
   return { processed, reaped: reap.count };
+}
+
+// ── Reconciliation ───────────────────────────────────────
+
+/** How far back the reconciliation pass looks for register rows with no job. */
+export const RECONCILE_WINDOW_MS = 6 * 60 * 60 * 1000;
+/**
+ * Rows whose EVENT (incident date, complaint received, staff incident
+ * occurred) is older than this are not reconciled. The pass exists to catch a
+ * lost enqueue for a fresh record; without this bound a CSV import of last
+ * year's incidents (`/api/incidents/import`, deliberately not a Knox writer)
+ * would be queued — as new jobs, so past the backlog guard — and alert.
+ */
+export const RECONCILE_EVENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+const RECONCILE_TAKE = 200;
+
+/**
+ * Safety net for a lost enqueue: queue a `sweep` job for every register row
+ * created in the last `RECONCILE_WINDOW_MS` that has NO `TriageJob` at all.
+ * A job insert can fail after the record committed (`triggerTriage` swallows
+ * it), the OWNA sync's post-`createMany` re-read can throw, and its update
+ * batches can throw before their triggers run; without this pass those
+ * records are never triaged. Bounded to `RECONCILE_TAKE` rows per register,
+ * newest first. Runs from the tick BEFORE `sweepJobs`, so a reconciled job is
+ * picked up in the same tick. Soft-deleted incidents are skipped.
+ */
+export async function reconcileMissingJobs(db: PrismaClient, now: Date): Promise<{ reconciled: number }> {
+  const createdAt = { gte: new Date(now.getTime() - RECONCILE_WINDOW_MS) };
+  const eventSince = { gte: new Date(now.getTime() - RECONCILE_EVENT_WINDOW_MS) };
+  const page = { select: { id: true, serviceId: true }, orderBy: { createdAt: "desc" }, take: RECONCILE_TAKE } as const;
+
+  const [incidents, complaints, staffIncidents] = await Promise.all([
+    db.incidentRecord.findMany({ where: { createdAt, deleted: false, incidentDate: eventSince }, ...page }),
+    db.complaintRecord.findMany({ where: { createdAt, receivedAt: eventSince }, ...page }),
+    db.staffIncidentReport.findMany({ where: { createdAt, occurredAt: eventSince }, ...page }),
+  ]);
+  const registers: Array<[TriageSubjectType, Array<{ id: string; serviceId: string }>]> = [
+    ["incident", incidents],
+    ["complaint", complaints],
+    ["staff_incident", staffIncidents],
+  ];
+
+  let reconciled = 0;
+  for (const [subjectType, rows] of registers) {
+    if (rows.length === 0) continue;
+    const jobs = await db.triageJob.findMany({
+      where: { subjectType, subjectId: { in: rows.map((r) => r.id) } },
+      select: { subjectId: true },
+    });
+    const hasJob = new Set(jobs.map((j) => j.subjectId));
+    for (const row of rows) {
+      if (hasJob.has(row.id)) continue;
+      const jobId = await enqueueTriage(db, {
+        subjectType,
+        subjectId: row.id,
+        serviceId: row.serviceId,
+        reason: "sweep",
+      });
+      if (jobId) reconciled++;
+    }
+  }
+  if (reconciled > 0) logger.warn("Knox: reconciled register rows that had no triage job", { reconciled });
+  return { reconciled };
 }

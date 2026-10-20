@@ -13,7 +13,9 @@ import type { ComplaintPatch } from "@/lib/complaints/update-complaint-record";
  * the 201/200 goes out, and `after()` is registered inside the request scope.
  * It never rejects: any failure (enqueue, `runAfter`) is logged and swallowed,
  * because an incident or complaint save must succeed whether or not Knox is
- * healthy. A failed enqueue leaves the record for the sweep cron.
+ * healthy. A failed enqueue is caught by the knox-tick reconciliation pass
+ * (`reconcileMissingJobs`), which queues a `sweep` job for any register row
+ * created in the last 6 hours that has no triage job at all.
  *
  * Contract: call this AFTER the write (and any transaction around it) has
  * resolved. It uses the top-level `prisma` client on purpose; a transaction

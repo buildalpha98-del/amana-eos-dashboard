@@ -25,7 +25,16 @@ import { getKnoxSettings } from "@/lib/knox/settings";
 import { loadSubject } from "@/lib/knox/load-subject";
 import { evaluateRules } from "@/lib/knox/rules";
 import type { RulesResult, TriageSubject } from "@/lib/knox/types";
-import { MAX_ATTEMPTS, STALE_BACKLOG_MS, STALE_RUNNING_MS, runTriageJob, sweepJobs } from "@/lib/knox/worker";
+import {
+  MAX_ATTEMPTS,
+  RECONCILE_EVENT_WINDOW_MS,
+  RECONCILE_WINDOW_MS,
+  STALE_BACKLOG_MS,
+  STALE_RUNNING_MS,
+  reconcileMissingJobs,
+  runTriageJob,
+  sweepJobs,
+} from "@/lib/knox/worker";
 import * as knox from "@/lib/knox";
 
 const dispatchMock = vi.mocked(dispatchLevel);
@@ -254,6 +263,7 @@ describe("constants", () => {
     expect(typeof knox.enqueueTriage).toBe("function");
     expect(typeof knox.runTriageJob).toBe("function");
     expect(typeof knox.sweepJobs).toBe("function");
+    expect(typeof knox.reconcileMissingJobs).toBe("function");
     expect(typeof knox.runEscalationSweep).toBe("function");
   });
 });
@@ -792,5 +802,83 @@ describe("sweepJobs", () => {
       return { count: 1 };
     });
     expect(await sweepJobs(NOW)).toEqual({ processed: 1, reaped: 0 });
+  });
+});
+
+describe("reconcileMissingJobs", () => {
+  /** Register rows created in the window, per register; and subjects that already have ANY job. */
+  let rows: Record<"incident" | "complaint" | "staff_incident", Array<{ id: string; serviceId: string }>>;
+  let withJob: Set<string>;
+  let created: Array<Record<string, unknown>>;
+
+  beforeEach(() => {
+    rows = { incident: [], complaint: [], staff_incident: [] };
+    withJob = new Set();
+    created = [];
+    prismaMock.incidentRecord.findMany.mockReset().mockImplementation(async () => rows.incident);
+    prismaMock.complaintRecord.findMany.mockReset().mockImplementation(async () => rows.complaint);
+    prismaMock.staffIncidentReport.findMany.mockReset().mockImplementation(async () => rows.staff_incident);
+    prismaMock.triageJob.findMany.mockReset().mockImplementation(
+      async (args: { where: { subjectType: string; subjectId: { in: string[] } } }) =>
+        args.where.subjectId.in.filter((id) => withJob.has(`${args.where.subjectType}:${id}`)).map((subjectId) => ({ subjectId })),
+    );
+    prismaMock.triageJob.findFirst.mockReset().mockImplementation(async () => null);
+    prismaMock.triageJob.create.mockReset().mockImplementation(async (args: { data: Record<string, unknown> }) => {
+      created.push(args.data);
+      return { id: `job-new-${created.length}` };
+    });
+  });
+
+  it("queues a `sweep` job for a register row that has no TriageJob at all", async () => {
+    rows.incident = [{ id: "inc-lost", serviceId: "svc-1" }];
+    rows.complaint = [{ id: "c-lost", serviceId: "svc-2" }];
+    rows.staff_incident = [{ id: "s-lost", serviceId: "svc-3" }];
+    expect(await reconcileMissingJobs(prismaMock as never, NOW)).toEqual({ reconciled: 3 });
+    expect(created).toEqual([
+      { subjectType: "incident", subjectId: "inc-lost", serviceId: "svc-1", reason: "sweep" },
+      { subjectType: "complaint", subjectId: "c-lost", serviceId: "svc-2", reason: "sweep" },
+      { subjectType: "staff_incident", subjectId: "s-lost", serviceId: "svc-3", reason: "sweep" },
+    ]);
+  });
+
+  it("leaves a row alone when it has any job (whatever its status)", async () => {
+    rows.incident = [
+      { id: "inc-ok", serviceId: "svc-1" },
+      { id: "inc-lost", serviceId: "svc-1" },
+    ];
+    withJob.add("incident:inc-ok");
+    // Same id in another register is a different subject.
+    withJob.add("complaint:inc-lost");
+    expect(await reconcileMissingJobs(prismaMock as never, NOW)).toEqual({ reconciled: 1 });
+    expect(created.map((c) => c.subjectId)).toEqual(["inc-lost"]);
+  });
+
+  it("looks back 6 hours by createdAt, bounds each register at 200, skips deleted incidents and old events", async () => {
+    await reconcileMissingJobs(prismaMock as never, NOW);
+    const since = new Date(NOW.getTime() - RECONCILE_WINDOW_MS);
+    const eventSince = new Date(NOW.getTime() - RECONCILE_EVENT_WINDOW_MS);
+    expect(RECONCILE_WINDOW_MS).toBe(6 * 60 * 60 * 1000);
+    const inc = prismaMock.incidentRecord.findMany.mock.calls[0][0];
+    expect(inc.where).toEqual({ createdAt: { gte: since }, deleted: false, incidentDate: { gte: eventSince } });
+    expect(inc.take).toBe(200);
+    expect(prismaMock.complaintRecord.findMany.mock.calls[0][0].where).toEqual({
+      createdAt: { gte: since },
+      receivedAt: { gte: eventSince },
+    });
+    expect(prismaMock.staffIncidentReport.findMany.mock.calls[0][0].where).toEqual({
+      createdAt: { gte: since },
+      occurredAt: { gte: eventSince },
+    });
+    // Nothing to reconcile → no job lookups, no inserts.
+    expect(prismaMock.triageJob.findMany).not.toHaveBeenCalled();
+    expect(created).toEqual([]);
+  });
+
+  it("a failed enqueue is not counted", async () => {
+    rows.incident = [{ id: "inc-lost", serviceId: "svc-1" }];
+    prismaMock.triageJob.create.mockImplementation(async () => {
+      throw new Error("insert failed");
+    });
+    expect(await reconcileMissingJobs(prismaMock as never, NOW)).toEqual({ reconciled: 0 });
   });
 });
