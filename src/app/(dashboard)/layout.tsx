@@ -144,7 +144,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           id="main-content"
           className={cn(
             "p-4 lg:p-8 animate-slide-up",
-            recorderStatus !== "idle" ? "pb-48 lg:pb-24" : "pb-24",
+            // Desktop: room under the last row so it can scroll clear of
+            // the AI + feedback bubbles stacked bottom-right (20 Oct 2026).
+            recorderStatus !== "idle" ? "pb-48 lg:pb-36" : "pb-24 lg:pb-36",
           )}
         >
           <SystemBannerBar />

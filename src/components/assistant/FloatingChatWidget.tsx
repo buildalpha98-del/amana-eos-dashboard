@@ -70,6 +70,7 @@ export function FloatingChatWidget() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open AI assistant"
+          title="Ask Amana AI"
           className={cn(
             "fixed z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-brand text-white shadow-lg hover:bg-brand/90 transition-colors",
             // Phones (tab bar visible below lg): bottom-RIGHT, clear of the
@@ -83,10 +84,14 @@ export function FloatingChatWidget() {
             // bottom of the service page's own menu — Daniel couldn't see
             // the Documents section under it (2026-10-08).
             "lg:right-6 lg:bottom-20",
+            // Desktop: a small round icon the same size as the feedback
+            // bubble — the full "Ask Amana AI" pill covered the View links
+            // at the end of table rows (Daniel, 20 Oct 2026).
+            "lg:h-11 lg:w-11 lg:justify-center lg:p-0",
           )}
         >
           <Bot className="w-5 h-5" />
-          <span className="text-sm font-medium hidden sm:inline">
+          <span className="text-sm font-medium hidden sm:inline lg:hidden">
             Ask Amana AI
           </span>
         </button>

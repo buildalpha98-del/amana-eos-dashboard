@@ -18,7 +18,8 @@ import { alertCentreTeam } from "@/lib/centre-team-alerts";
 import { POST as quickFeedback } from "@/app/api/feedback/quick/route";
 import { createRequest } from "../helpers/request";
 
-const NOW = new Date("2026-10-16T02:00:00Z");
+// After the follow-up and OWNA checklist start dates (20 / 19 Oct 2026).
+const NOW = new Date("2026-10-24T02:00:00Z");
 const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 3_600_000);
 
 beforeEach(() => {
