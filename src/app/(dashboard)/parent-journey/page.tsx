@@ -71,10 +71,10 @@ function ParentJourney() {
   });
 
   const test = useMutation({
-    mutationFn: (ids: string[]) =>
+    mutationFn: ({ ids, to = "me" }: { ids: string[]; to?: "me" | "enrolments" }) =>
       mutateApi<{ sentTo: string; sent: number; failed: string[] }>("/api/parent-journey/test", {
         method: "POST",
-        body: { ids, serviceId },
+        body: { ids, serviceId, to },
       }),
     onSuccess: (r) =>
       toast({
@@ -113,10 +113,10 @@ function ParentJourney() {
             ))}
           </select>
         </label>
-        <Button variant="outline" onClick={() => test.mutate(allIds)} loading={test.isPending && test.variables?.length !== 1} disabled={!serviceId}>
+        <Button variant="outline" onClick={() => test.mutate({ ids: allIds })} loading={test.isPending && test.variables?.ids.length !== 1} disabled={!serviceId}>
           <Mail className="h-4 w-4" aria-hidden /> Send me every email ({allIds.length})
         </Button>
-        <p className="text-xs text-muted">Tests go to your own inbox only, marked [Test]. Sample family: Sarah, child Yusuf.</p>
+        <p className="text-xs text-muted">Tests go to your own inbox (or the enrolments inbox) only, marked [Test]. Sample family: Sarah, child Yusuf.</p>
         <p className="basis-full text-xs text-muted">
           <strong className="font-semibold text-foreground">Never too many emails:</strong> a scheduled email waits a day if the
           family heard from us in the last 20 hours (except the day-before reminder). Emails only go out in the daytime.
@@ -199,8 +199,11 @@ function ParentJourney() {
                 {preview.data?.subject ?? (preview.isLoading ? "…" : "")}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => current?.id && test.mutate([current.id])} loading={test.isPending && test.variables?.length === 1} disabled={!current?.id || !serviceId}>
+                <Button size="sm" onClick={() => current?.id && test.mutate({ ids: [current.id] })} loading={test.isPending && test.variables?.ids.length === 1 && test.variables.to !== "enrolments"} disabled={!current?.id || !serviceId}>
                   <Send className="h-3.5 w-3.5" aria-hidden /> Send me a test
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => current?.id && test.mutate({ ids: [current.id], to: "enrolments" })} loading={test.isPending && test.variables?.to === "enrolments"} disabled={!current?.id || !serviceId}>
+                  <Send className="h-3.5 w-3.5" aria-hidden /> Test to enrolments inbox
                 </Button>
                 {current?.overrideKey && (
                   <Button size="sm" variant="secondary" onClick={() => window.open(`/settings/email-templates/${current.overrideKey}`, "_blank")}>
