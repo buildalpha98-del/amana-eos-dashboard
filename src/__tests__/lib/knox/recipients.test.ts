@@ -222,6 +222,24 @@ describe("resolveRecipients", () => {
     expect(r.noDirector).toBe(true);
   });
 
+  it("never resolves a centre mailbox as an owner or State Manager", async () => {
+    users = [
+      user({ id: "own-box", role: "owner", isCentreAccount: true }),
+      user({ id: "ho-box", role: "head_office", state: "NSW", isCentreAccount: true }),
+      user({ id: "own1", role: "owner" }),
+      user({ id: "ho1", role: "head_office", state: "NSW" }),
+    ];
+
+    const r = await resolveRecipients(prismaMock as never, service);
+
+    expect(r.owners.map((o) => o.id)).toEqual(["own1"]);
+    expect(r.stateManagers.map((s) => s.id)).toEqual(["ho1"]);
+    const leadership = prismaMock.user.findMany.mock.calls
+      .map((c: unknown[]) => (c[0] as { where: UserWhere }).where)
+      .find((w: UserWhere) => typeof w.role === "object");
+    expect(leadership?.isCentreAccount).toBe(false);
+  });
+
   it("a real member is still found when a centre mailbox shares the service", async () => {
     users = [
       user({ id: "box", role: "member", isCentreAccount: true, serviceId: "svc-1" }),

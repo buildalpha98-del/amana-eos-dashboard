@@ -80,7 +80,8 @@ async function resolveDirectors(
  * Resolve who Knox alerts for one service: its Director(s) of Service, the
  * State Manager(s) for its state, and the owners. Buckets are independent
  * (a person can appear in more than one); each is deduped by user id. Every
- * query filters `active: true`. Read-only, at most four round trips.
+ * query filters `active: true` and excludes centre mailboxes
+ * (`isCentreAccount`). Read-only, at most four round trips.
  */
 export async function resolveRecipients(
   db: PrismaClient,
@@ -89,7 +90,8 @@ export async function resolveRecipients(
   const [directors, leadership] = await Promise.all([
     resolveDirectors(db, service),
     db.user.findMany({
-      where: { role: { in: ["owner", "head_office"] }, active: true },
+      // A centre mailbox is never a person, even with a leadership role.
+      where: { role: { in: ["owner", "head_office"] }, active: true, isCentreAccount: false },
       select: { ...RECIPIENT_SELECT, role: true, state: true },
     }),
   ]);
