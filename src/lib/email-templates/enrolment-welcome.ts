@@ -44,6 +44,8 @@ export interface EnrolmentWelcomeData {
   locationWithinSchool: string | null;
   /** Google Maps link to the school, from the centre's address. */
   directionsUrl?: string | null;
+  /** The centre's map from the website (where we are within the school). */
+  mapImageUrl?: string | null;
   meetingPoints: string | null;
   firstSessionTips: string[];
   welcomeNote: string | null;
@@ -70,16 +72,17 @@ export function joinNames(names: string[], fallback = "your child"): string {
 }
 
 export function coordinatorCard(d: EnrolmentWelcomeData) {
-  if (!d.coordinatorName && !d.centrePhone && !d.centreEmail) return "";
+  if (!d.coordinatorName && !d.centrePhone) return "";
   const photo = d.coordinatorPhoto
     ? `<td width="76" valign="top" style="padding-right:14px;">
          <img src="${escapeHtml(d.coordinatorPhoto)}" alt="${escapeHtml(d.coordinatorName ?? "Your coordinator")}" width="70" height="70"
               style="display:block;width:70px;height:70px;border-radius:50%;border:3px solid ${JONQUIL};object-fit:cover;" />
        </td>`
     : "";
+  // The centre's own phone is the contact (Daniel, 20 Oct 2026 — no inbox
+  // address here; replies to the email still reach us).
   const contact = [
     d.centrePhone ? `<a href="tel:${escapeHtml(d.centrePhone.replace(/\s+/g, ""))}" style="color:${GREEN};font-weight:700;text-decoration:none;">${escapeHtml(d.centrePhone)}</a>` : "",
-    d.centreEmail ? `<a href="mailto:${escapeHtml(d.centreEmail)}" style="color:${GREEN};text-decoration:underline;word-break:break-all;">${escapeHtml(d.centreEmail)}</a>` : "",
   ]
     .filter(Boolean)
     .join("<br/>");
@@ -92,7 +95,7 @@ export function coordinatorCard(d: EnrolmentWelcomeData) {
           <p style="margin:0 0 2px;color:${GREEN};font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Your coordinator</p>
           ${d.coordinatorName ? `<p style="margin:0 0 6px;color:${GREEN};font-size:20px;font-weight:700;">${escapeHtml(d.coordinatorName)}</p>` : ""}
           <p style="margin:0 0 6px;color:${BODY};font-size:14px;line-height:1.6;">
-            ${d.coordinatorName ? `${escapeHtml(d.coordinatorName.split(" ")[0])} and the team will` : "Our team will"} be there to welcome you. Any questions, just get in touch:
+            ${d.coordinatorName ? `${escapeHtml(d.coordinatorName.split(" ")[0])} and the team will` : "Our team will"} be there to welcome you. Any questions, call the centre:
           </p>
           ${contact ? `<p style="margin:0;font-size:14px;line-height:1.7;">${contact}</p>` : ""}
         </td>
@@ -115,6 +118,10 @@ export function firstSessionBlock(
       `<strong>Where to find us:</strong> ${[d.locationWithinSchool ? escapeHtml(d.locationWithinSchool) : "", directions].filter(Boolean).join(" · ")}`,
     );
   if (d.meetingPoints) facts.push(`<strong>Drop-off &amp; pick-up:</strong> ${escapeHtml(d.meetingPoints)}`);
+  const map = d.mapImageUrl
+    ? `<img src="${escapeHtml(d.mapImageUrl)}" alt="Map showing where to find us at ${escapeHtml(d.centreName)}" width="100%"
+            style="display:block;width:100%;max-width:360px;height:auto;margin:4px auto 12px;border-radius:10px;border:1px solid ${CHIFFON};" />`
+    : "";
   const tips = d.firstSessionTips.length ? d.firstSessionTips : (opts.defaultTips ?? DEFAULT_FIRST_SESSION_TIPS);
   const rows = tips
     .map(
@@ -129,6 +136,7 @@ export function firstSessionBlock(
     <tr><td style="padding:20px;">
       ${sectionTitle(opts.title ?? "Good to know before your first session")}
       ${facts.map((f) => `<p style="margin:0 0 8px;color:${BODY};font-size:14px;line-height:1.6;">${f}</p>`).join("")}
+      ${map}
       <table cellpadding="0" cellspacing="0" width="100%" style="margin-top:${facts.length ? "8px" : "0"};">${rows}</table>
     </td></tr>
   </table>`;

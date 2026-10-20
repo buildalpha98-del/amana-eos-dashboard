@@ -25,6 +25,11 @@ export interface SendEmailParams {
   subject: string;
   html: string;
   replyTo?: string;
+  /**
+   * Files to attach. `path` is a public URL Resend fetches itself (e.g. a
+   * centre's welcome pack PDF on the website) — nothing is downloaded here.
+   */
+  attachments?: { filename: string; path: string }[];
 }
 
 export interface SendEmailResult {
@@ -85,6 +90,7 @@ export async function sendEmail(params: SendEmailParams, options?: { idempotency
     subject: params.subject,
     html: params.html,
     replyTo: params.replyTo,
+    ...(params.attachments?.length ? { attachments: params.attachments } : {}),
   };
   // The locked SDK forwards request options through to fetch. The abort signal
   // bounds recoverable invoice sends; existing callers retain their SDK path.

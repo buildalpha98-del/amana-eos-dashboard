@@ -70,7 +70,18 @@ export async function onHandoffStepCompleted(
     // sessions: confirm the day, then re-time the first-session series.
     if (!completion.firstDay) return;
     const { subject, html } = await firstDayConfirmedEmail(d);
-    await sendEmail({ to: d.parentEmail, subject, html }, { idempotencyKey: `first-day-${enrolmentId}-${completion.at}` });
+    await sendEmail(
+      {
+        to: d.parentEmail,
+        subject,
+        html,
+        // The centre's welcome pack PDF, attached (Daniel, 20 Oct 2026).
+        ...(d.welcomePackUrl
+          ? { attachments: [{ filename: `Amana OSHC welcome pack - ${d.centreName}.pdf`, path: d.welcomePackUrl }] }
+          : {}),
+      },
+      { idempotencyKey: `first-day-${enrolmentId}-${completion.at}` },
+    );
     await recordMarketingSends(prisma, [{ email: d.parentEmail }], { source: "lifecycle" });
     const sub = await prisma.enrolmentSubmission.findUnique({ where: { id: enrolmentId }, select: { serviceId: true } });
     await syncParentJourney({
