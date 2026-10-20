@@ -298,6 +298,15 @@ export const orgSettingsConfigSchema = z.object({
       coworkStaffEmailsAutoApprove: z.boolean().default(false),
     })
     .default({ serviceAlertsPaused: true, coworkStaffEmailsAutoApprove: false }),
+  // 2026-10-20: Knox incident-triage agent runtime toggles. Ships OFF and in
+  // SHADOW mode (assessments are recorded but nothing is sent). Object-level
+  // .default() for the same full-replace-PATCH reason as `notifications`.
+  knox: z
+    .object({
+      enabled: z.boolean().default(false),
+      shadowMode: z.boolean().default(true),
+    })
+    .default({ enabled: false, shadowMode: true }),
   ratios: z.object({
     federalDefaultMinRatio: ratioStringSchema,
   }),
@@ -425,6 +434,10 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
   notifications: {
     serviceAlertsPaused: true,
     coworkStaffEmailsAutoApprove: false,
+  },
+  knox: {
+    enabled: false,
+    shadowMode: true,
   },
   ratios: {
     federalDefaultMinRatio: "1:15",
@@ -564,6 +577,10 @@ export function mergeOrgSettings(
   const notif = (safe.notifications && typeof safe.notifications === "object"
     ? safe.notifications
     : {}) as Record<string, unknown>;
+  const knox = (safe.knox && typeof safe.knox === "object" ? safe.knox : {}) as Record<
+    string,
+    unknown
+  >;
   const gr = (safe.groceryRates && typeof safe.groceryRates === "object"
     ? safe.groceryRates
     : {}) as Record<string, unknown>;
@@ -622,6 +639,16 @@ export function mergeOrgSettings(
         typeof notif.coworkStaffEmailsAutoApprove === "boolean"
           ? (notif.coworkStaffEmailsAutoApprove as boolean)
           : defaults.notifications.coworkStaffEmailsAutoApprove,
+    },
+    knox: {
+      enabled:
+        typeof knox.enabled === "boolean"
+          ? (knox.enabled as boolean)
+          : defaults.knox.enabled,
+      shadowMode:
+        typeof knox.shadowMode === "boolean"
+          ? (knox.shadowMode as boolean)
+          : defaults.knox.shadowMode,
     },
     ratios: {
       federalDefaultMinRatio:

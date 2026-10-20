@@ -620,6 +620,58 @@ export function OrganisationSettingsClient({ initialConfig, adminUsers }: Props)
         </label>
       </Section>
 
+      {/* Knox incident triage */}
+      <Section
+        title="Knox incident triage"
+        description="Knox assesses new incidents and complaints, alerts the right people and proposes record changes for approval. Shadow mode records assessments but sends nothing."
+        onReset={() => resetSection("knox")}
+      >
+        <div className="space-y-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={config.knox.enabled}
+              onChange={(e) =>
+                setConfig((c) => ({
+                  ...c,
+                  knox: { ...c.knox, enabled: e.target.checked },
+                }))
+              }
+              className="mt-0.5 h-4 w-4 rounded border-border accent-brand"
+            />
+            <span>
+              <span className="block text-sm font-medium text-foreground">
+                Enable Knox
+              </span>
+              <span className="block text-xs text-muted mt-0.5">
+                When off, Knox does not assess new incidents or complaints at all.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={config.knox.shadowMode}
+              onChange={(e) =>
+                setConfig((c) => ({
+                  ...c,
+                  knox: { ...c.knox, shadowMode: e.target.checked },
+                }))
+              }
+              className="mt-0.5 h-4 w-4 rounded border-border accent-brand"
+            />
+            <span>
+              <span className="block text-sm font-medium text-foreground">
+                Shadow mode
+              </span>
+              <span className="block text-xs text-muted mt-0.5">
+                While on, Knox records its assessments but sends no alerts and proposes no record changes. Untick once you are happy with what it records.
+              </span>
+            </span>
+          </label>
+        </div>
+      </Section>
+
       {/* Ratios */}
       {/* Onboarding owner */}
       <Section
