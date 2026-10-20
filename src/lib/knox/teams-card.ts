@@ -1,5 +1,6 @@
 import type { TriageTier } from "@prisma/client";
 import type { RulesResult, TriageClock, TriageSubject } from "@/lib/knox/types";
+import { CLOCK_LABELS, ruleHitPhrase } from "@/lib/knox/format";
 
 /** Knox alert content: what the push and the Teams card say. Pure, no I/O. */
 
@@ -9,27 +10,6 @@ const ACCENT: Record<"moderate" | "serious", string> = {
 };
 
 const SERVICE_TZ = "Australia/Sydney";
-
-const RULE_LABELS: Record<string, string> = {
-  ambulance_called: "Ambulance called",
-  missing_child: "Missing child",
-  stated_serious: "Marked serious by the educator",
-  reportable_flag: "Flagged as reportable to the regulator",
-  medical_contacted: "Medical personnel contacted",
-  medication_error: "Medication error",
-  stated_moderate: "Marked moderate by the educator",
-  complaint_notifiable: "Complaint alleges a serious incident or a breach of the Law",
-  complaint_escalated: "Complaint escalated",
-  complaint_sensitive: "Child safety, supervision or staff conduct complaint",
-  staff_notifiable: "Serious or notifiable staff incident",
-  staff_moderate: "Moderate staff incident",
-};
-
-const CLOCK_LABELS: Record<TriageClock["kind"], string> = {
-  parent_24h: "Parent notice",
-  regulator: "Regulator notice",
-  complaint_regulator: "Complaint to regulator",
-};
 
 // ── Card content ─────────────────────────────────────────
 
@@ -112,7 +92,7 @@ export function buildContent(
 ): AlertContent {
   const now = Date.now();
   const type = subjectLabel(subject);
-  const why = rules.ruleHits.map((h) => RULE_LABELS[h] ?? humanise(h)).join("; ");
+  const why = rules.ruleHits.map((h) => humanise(ruleHitPhrase(h))).join("; ");
   const prefix =
     level === 0
       ? `Knox ${tierWord(rules.tier)}`

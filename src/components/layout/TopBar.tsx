@@ -98,6 +98,7 @@ const pageTitles: Record<string, string> = {
   "/directory": "Staff Directory",
   "/queue": "My Queue",
   "/incidents": "Incidents",
+  "/knox": "Knox",
   "/queue/all": "All Queues",
   "/marketing/email/compose": "Compose Email",
   "/policies": "Policies",

@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { KnoxBadge } from "@/components/knox/KnoxBadge";
+import { useKnoxTiers } from "@/hooks/useKnox";
 
 const field =
   "w-full px-3 py-2.5 border border-border rounded-lg text-base sm:text-sm bg-card focus:outline-none focus:ring-2 focus:ring-brand/30";
@@ -323,9 +325,13 @@ function StaffIncidentsPanel({ serviceId }: { serviceId: string }) {
     onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
   });
 
-  if (isLoading) return <Skeleton className="h-48 w-full rounded-lg" />;
-
   const rows = data?.incidents ?? [];
+  const knoxTiers = useKnoxTiers(
+    "staff_incident",
+    rows.map((r) => r.id),
+  );
+
+  if (isLoading) return <Skeleton className="h-48 w-full rounded-lg" />;
 
   return (
     <div className="space-y-3">
@@ -451,8 +457,11 @@ function StaffIncidentsPanel({ serviceId }: { serviceId: string }) {
             <li key={r.id} className="p-3 space-y-1">
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm font-medium text-foreground">{r.staffName}</p>
-                <span className="text-2xs uppercase tracking-wide text-muted">
-                  {r.severity}
+                <span className="flex shrink-0 items-center gap-2">
+                  <KnoxBadge tier={knoxTiers[r.id]} href={`/knox?subject=staff_incident:${r.id}`} />
+                  <span className="text-2xs uppercase tracking-wide text-muted">
+                    {r.severity}
+                  </span>
                 </span>
               </div>
               <p className="text-xs text-muted">

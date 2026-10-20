@@ -1,7 +1,7 @@
 "use client";
 
 import { serviceTodayISO } from "@/lib/timezone";
-import { useState, useMemo, useCallback, Suspense } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   AlertTriangle,
@@ -38,6 +38,7 @@ import { toast } from "@/hooks/useToast";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { FilterPresets } from "@/components/ui/FilterPresets";
 import { AiButton } from "@/components/ui/AiButton";
+import { KnoxPanel } from "@/components/knox/KnoxPanel";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -136,6 +137,10 @@ function IncidentsPageContent() {
   const filterSeverity = searchParams.get("severity") || "";
   const filterFrom = searchParams.get("from") || "";
   const filterTo = searchParams.get("to") || "";
+  // Knox alert deep links (src/lib/knox/alerts.ts recordLink):
+  // /incidents?knox=<assessmentId>&incident=<incidentId>
+  const focusIncidentId = searchParams.get("incident") || "";
+  const focusAssessmentId = searchParams.get("knox") || "";
 
   const setParam = useCallback(
     (key: string, value: string) => {
@@ -303,6 +308,8 @@ function IncidentsPageContent() {
           setFilterFrom={setFilterFrom}
           filterTo={filterTo}
           setFilterTo={setFilterTo}
+          focusIncidentId={focusIncidentId}
+          focusAssessmentId={focusAssessmentId}
         />
       ) : (
         <TrendsTab />
@@ -380,6 +387,8 @@ function OverviewTab({
   setFilterFrom,
   filterTo,
   setFilterTo,
+  focusIncidentId,
+  focusAssessmentId,
 }: {
   filters: IncidentFilters;
   filterService: string;
@@ -392,10 +401,15 @@ function OverviewTab({
   setFilterFrom: (v: string) => void;
   filterTo: string;
   setFilterTo: (v: string) => void;
+  focusIncidentId: string;
+  focusAssessmentId: string;
 }) {
   const { data: servicesList } = useServices();
   const { data, isLoading } = useIncidents(filters);
   const incidents = data?.incidents ?? [];
+  // A deep-linked incident outside the current filters still gets its Knox panel.
+  const focusMissing =
+    !!focusIncidentId && !isLoading && !incidents.some((i) => i.id === focusIncidentId);
 
   const selectClass =
     "px-3 py-1.5 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-brand/30";
@@ -466,6 +480,15 @@ function OverviewTab({
         </button>
       </div>
 
+      {focusMissing && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted">
+            The incident this Knox alert is about isn&apos;t in the list below (check the filters). Its triage:
+          </p>
+          <KnoxPanel subjectType="incident" subjectId={focusIncidentId} focusAssessmentId={focusAssessmentId} />
+        </div>
+      )}
+
       {/* Table */}
       {isLoading ? (
         <div className="space-y-3">
@@ -499,7 +522,12 @@ function OverviewTab({
               </thead>
               <tbody>
                 {incidents.map((inc) => (
-                  <IncidentRow key={inc.id} incident={inc} />
+                  <IncidentRow
+                    key={inc.id}
+                    incident={inc}
+                    defaultExpanded={inc.id === focusIncidentId}
+                    focusAssessmentId={focusAssessmentId}
+                  />
                 ))}
               </tbody>
             </table>
@@ -508,7 +536,12 @@ function OverviewTab({
           {/* Mobile cards */}
           <div className="sm:hidden divide-y divide-border">
             {incidents.map((inc) => (
-              <IncidentCard key={inc.id} incident={inc} />
+              <IncidentCard
+                key={inc.id}
+                incident={inc}
+                defaultExpanded={inc.id === focusIncidentId}
+                focusAssessmentId={focusAssessmentId}
+              />
             ))}
           </div>
         </div>
@@ -521,12 +554,35 @@ function OverviewTab({
 // Incident Row (desktop)
 // ---------------------------------------------------------------------------
 
-function IncidentRow({ incident }: { incident: IncidentRecord }) {
-  const [expanded, setExpanded] = useState(false);
+interface IncidentRowProps {
+  incident: IncidentRecord;
+  /** Open on mount and scroll into view (Knox alert deep link). */
+  defaultExpanded?: boolean;
+  focusAssessmentId?: string;
+}
+
+/** Scrolls the element to the middle of the viewport once, if it is actually rendered. */
+function useScrollIntoViewOnce<T extends HTMLElement>(enabled: boolean) {
+  const ref = useRef<T>(null);
+  const done = useRef(false);
+  useEffect(() => {
+    const el = ref.current;
+    // offsetParent is null under display:none (the desktop table on mobile and vice versa).
+    if (!enabled || done.current || !el || el.offsetParent === null) return;
+    done.current = true;
+    el.scrollIntoView({ block: "center" });
+  }, [enabled]);
+  return ref;
+}
+
+function IncidentRow({ incident, defaultExpanded = false, focusAssessmentId }: IncidentRowProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const rowRef = useScrollIntoViewOnce<HTMLTableRowElement>(defaultExpanded);
 
   return (
     <>
       <tr
+        ref={rowRef}
         onClick={() => setExpanded(!expanded)}
         className="border-b border-border hover:bg-surface/30 cursor-pointer transition-colors"
       >
@@ -595,6 +651,15 @@ function IncidentRow({ incident }: { incident: IncidentRecord }) {
                 {incident.timeOfDay && <span>Time: {formatLabel(incident.timeOfDay)}</span>}
               </div>
             </div>
+            {/* Capped so it stays readable when the table itself scrolls sideways. */}
+            <div className="mt-4 max-w-xl">
+              <KnoxPanel
+                subjectType="incident"
+                subjectId={incident.id}
+                childName={incident.childName}
+                focusAssessmentId={focusAssessmentId}
+              />
+            </div>
           </td>
         </tr>
       )}
@@ -606,11 +671,12 @@ function IncidentRow({ incident }: { incident: IncidentRecord }) {
 // Incident Card (mobile)
 // ---------------------------------------------------------------------------
 
-function IncidentCard({ incident }: { incident: IncidentRecord }) {
-  const [expanded, setExpanded] = useState(false);
+function IncidentCard({ incident, defaultExpanded = false, focusAssessmentId }: IncidentRowProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const cardRef = useScrollIntoViewOnce<HTMLDivElement>(defaultExpanded);
 
   return (
-    <div className="p-4" onClick={() => setExpanded(!expanded)}>
+    <div ref={cardRef} className="p-4" onClick={() => setExpanded(!expanded)}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -655,6 +721,15 @@ function IncidentCard({ incident }: { incident: IncidentRecord }) {
             {incident.parentNotified && <span>Parent notified</span>}
             {incident.location && <span>{formatLabel(incident.location)}</span>}
             {incident.timeOfDay && <span>{formatLabel(incident.timeOfDay)}</span>}
+          </div>
+          {/* Taps inside the panel must not collapse the card. */}
+          <div className="pt-2" onClick={(e) => e.stopPropagation()}>
+            <KnoxPanel
+              subjectType="incident"
+              subjectId={incident.id}
+              childName={incident.childName}
+              focusAssessmentId={focusAssessmentId}
+            />
           </div>
         </div>
       )}

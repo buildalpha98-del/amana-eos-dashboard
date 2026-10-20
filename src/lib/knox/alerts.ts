@@ -6,6 +6,7 @@ import { sendTeamsNotification } from "@/lib/teams-notify";
 import { resolveRecipients, type Recipient, type Recipients } from "@/lib/knox/recipients";
 import { loadSubject } from "@/lib/knox/load-subject";
 import { buildContent, type AlertContent } from "@/lib/knox/teams-card";
+import { subjectHref } from "@/lib/knox/format";
 import type { RulesResult, TriageClock, TriageSubject } from "@/lib/knox/types";
 
 type Db = PrismaClient | Prisma.TransactionClient;
@@ -29,16 +30,12 @@ export function recordLink(
   subjectId: string,
   assessmentId: string,
 ): string {
-  if (subjectType === "incident") {
-    return `/incidents?knox=${assessmentId}&incident=${subjectId}`;
-  }
-  return `/knox?subject=${subjectType}:${subjectId}`;
+  return subjectHref(subjectType, subjectId, assessmentId);
 }
 
 /** Same page as `recordLink` without the Knox acknowledge context. */
 function openRecordLink(subjectType: TriageSubjectType, subjectId: string): string {
-  if (subjectType === "incident") return `/incidents?incident=${subjectId}`;
-  return `/knox?subject=${subjectType}:${subjectId}`;
+  return subjectHref(subjectType, subjectId);
 }
 
 function absolute(path: string): string {
