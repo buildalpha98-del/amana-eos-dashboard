@@ -5,7 +5,7 @@ import { serviceScopeFilter } from "@/lib/authz-scope";
 import { searchEnrolmentIds } from "@/lib/enrolment-search";
 
 import { canAccessEnrolment } from "@/lib/enrolment-access";
-import { handoffSummary, placementKey, readHandoff } from "@/lib/owna-handoff";
+import { handoffSummary, normaliseHandoff, placementKey, readHandoff } from "@/lib/owna-handoff";
 
 const DEFAULT_LIMIT = 50;
 
@@ -126,7 +126,7 @@ export const GET = withApiAuth(async (req, session) => {
       )
         ? {
             ownaHandoffSummary: handoffSummary(
-              readHandoff(ownaHandoff?.state),
+              normaliseHandoff(readHandoff(ownaHandoff?.state), { ...s, childRecords: childRecords ?? [] }),
               placementKey({ ...s, childRecords: childRecords ?? [] }),
               s.status,
               s.createdAt,

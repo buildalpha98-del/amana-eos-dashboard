@@ -145,7 +145,25 @@ describe("staff OWNA handoff API", () => {
     ).toBe(400);
   });
   const tick = { revision: 0, action: "complete", step: "children", evidence: "Checked in OWNA" };
-  it.each(["submitted", "archived"])(
+  // 2026-10-21: ticks are allowed BEFORE Confirm (submitted / reviewing) once
+  // the children are placed; archived and rejected enrolments stay closed.
+  it.each(["submitted", "under_review"])("records checks before Confirm (%s) once the children are placed", async (status) => {
+    prismaMock.enrolmentSubmission.findUnique.mockResolvedValue({
+      ...row(),
+      status,
+      childRecords: [{ id: "c1", serviceId: "s1", status: "pending" }],
+    });
+    expect((await PATCH(request(tick), ctx)).status).toBe(200);
+  });
+  it("before Confirm, children with no centre can't be ticked yet", async () => {
+    prismaMock.enrolmentSubmission.findUnique.mockResolvedValue({
+      ...row(),
+      status: "submitted",
+      childRecords: [{ id: "c1", serviceId: null, status: "pending" }],
+    });
+    expect((await PATCH(request(tick), ctx)).status).toBe(400);
+  });
+  it.each(["archived", "rejected"])(
     "does not record checks for %s",
     async (status) => {
       prismaMock.enrolmentSubmission.findUnique.mockResolvedValue({

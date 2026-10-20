@@ -28,6 +28,8 @@ type Response = {
   placement: string;
   /** Submitted before the checklist started (19 Oct 2026): counts as done. */
   legacy?: boolean;
+  /** Children placed at a centre — tick boxes open, before or after Confirm. */
+  placed?: boolean;
   history: {
     id: string;
     createdAt: string;
@@ -122,6 +124,8 @@ export function OwnaHandoffPanel({
   const stale = handoffIsStale(state, placement);
   const busy = mutation.isPending || query.isFetching;
   const approved = status === "processed";
+  // 21 Oct 2026: ticks open once the children are placed — before Confirm too.
+  const placed = query.data.placed ?? approved;
   const steps = state?.steps ?? {};
   const savedNotes = state?.note ?? "";
   const notesValue = notes ?? savedNotes;
@@ -138,7 +142,7 @@ export function OwnaHandoffPanel({
 
   /** Why a step can't be ticked yet, or null. */
   const blockedBy = (step: HandoffStep): string | null => {
-    if (!approved) return "Approve the enrolment first";
+    if (!placed) return "Assign the children to a centre first";
     if (stale) return "Reset the checklist first";
     if (step !== "children" && !steps.children) return "Tick “All children entered” first";
     if (step === "access" && !steps.invitation) return "Tick the invitation step first";
@@ -212,9 +216,17 @@ export function OwnaHandoffPanel({
 
       {!approved && (
         <p className="rounded-lg bg-surface p-3 text-sm">
-          This enrolment is still <strong>awaiting approval</strong>. You can
-          choose the owner and add notes now. The tick boxes open once the
-          enrolment is approved and the children are placed at their centre.
+          {placed ? (
+            <>
+              Do the OWNA handoff now, then press <strong>Confirm</strong>. Emails to the
+              family wait until you confirm, then go out straight after the welcome email.
+            </>
+          ) : (
+            <>
+              Choose the owner and add notes now. The tick boxes open once the
+              children are assigned to their centre.
+            </>
+          )}
         </p>
       )}
 
@@ -275,7 +287,7 @@ export function OwnaHandoffPanel({
                     {HANDOFF_STEPS[step]}
                   </span>
                   {done && <span className="block text-xs text-muted">{detail(step)}</span>}
-                  {!done && blocked && approved && (
+                  {!done && blocked && (
                     <span className="block text-xs text-muted">{blocked}</span>
                   )}
                 </span>
@@ -293,6 +305,7 @@ export function OwnaHandoffPanel({
                   </label>
                   {!legacy && (
                     <EmailFamily
+                      held={!approved}
                       checked={notifyFamily}
                       onChange={setNotifyFamily}
                       hint={
@@ -334,6 +347,7 @@ export function OwnaHandoffPanel({
                       />
                       {!legacy && (
                         <EmailFamily
+                      held={!approved}
                           checked={notifyFamily}
                           onChange={setNotifyFamily}
                           hint="“You're booked in!” with the first day, session times, where to find us, the centre's phone and what to expect. The day-before reminder and first-week check-ins are timed from this date."
@@ -358,6 +372,7 @@ export function OwnaHandoffPanel({
                   {sessionsKind === "casual" && !legacy && (
                     <div className="ml-6">
                       <EmailFamily
+                      held={!approved}
                         checked={notifyFamily}
                         onChange={setNotifyFamily}
                         hint="“You're all set to book”: their OWNA account is ready, how to book a casual session in the app or by email, the coordinator's details and the welcome pack. No first-day reminders or “anything stopping you starting?” check-in."
@@ -439,10 +454,13 @@ function EmailFamily({
   checked,
   onChange,
   hint,
+  held,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   hint: string;
+  /** Before Confirm: the email waits until the enrolment is confirmed. */
+  held?: boolean;
 }) {
   return (
     <label className="flex items-start gap-2">
@@ -454,7 +472,10 @@ function EmailFamily({
       />
       <span>
         Email the family
-        <span className="block text-xs text-muted">{hint}</span>
+        <span className="block text-xs text-muted">
+          {hint}
+          {held && " Sent when you press Confirm, after the welcome email."}
+        </span>
       </span>
     </label>
   );

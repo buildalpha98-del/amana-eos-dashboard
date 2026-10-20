@@ -5,8 +5,7 @@ import {
   handoffSummary,
   placementKey,
   type HandoffState,
-  type HandoffPatch,
-} from "@/lib/owna-handoff";
+  type HandoffPatch, normaliseHandoff } from "@/lib/owna-handoff";
 const actor = { id: "u1", name: "Reviewer" };
 const state = (): HandoffState => ({
   placement: "p",
@@ -84,6 +83,22 @@ describe("OWNA manual handoff", () => {
     );
     expect(s.steps).toEqual({});
   });
+  // 2026-10-21: ticks made before Confirm survive Confirm.
+  it("confirming (pending → active, processedAt set) keeps the checks current", () => {
+    const before = { serviceId: "a", processedAt: null, childRecords: [{ id: "c", serviceId: "a", status: "pending" }] };
+    const after = { serviceId: "a", processedAt: new Date("2026-10-21T01:00:00Z"), childRecords: [{ id: "c", serviceId: "a", status: "active" }] };
+    expect(placementKey(before)).toBe(placementKey(after));
+  });
+
+  it("checklists saved under the old key still read as current", () => {
+    const e = { serviceId: "a", processedAt: new Date("2026-10-18T01:00:00Z"), childRecords: [{ id: "c", serviceId: "a", status: "active" }] };
+    const oldKey = JSON.stringify(["a", "2026-10-18T01:00:00.000Z", [["c", "a", "active"]]]);
+    const saved = { ...state(), placement: oldKey, steps: { children: { at: "now", by: actor, evidence: "" } } };
+    const current = normaliseHandoff(saved, e);
+    expect(current?.placement).toBe(placementKey(e));
+    expect(handoffSummary(current, placementKey(e), "processed")).toBe("OWNA: 1/4 checked");
+  });
+
   it("invalidates moves, withdrawals and changed children", () => {
     const e = {
       serviceId: "a",
