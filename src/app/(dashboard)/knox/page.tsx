@@ -11,7 +11,13 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { KnoxPanel, KnoxAckControl } from "@/components/knox/KnoxPanel";
 import { KnoxCard } from "@/components/knox/KnoxCard";
 import { KnoxTierChip, tierTint } from "@/components/knox/KnoxBadge";
-import { useKnoxAccess, useKnoxInbox, type KnoxAssessment } from "@/hooks/useKnox";
+import {
+  acknowledgedAt,
+  needsAcknowledgement,
+  useKnoxAccess,
+  useKnoxInbox,
+  type KnoxAssessment,
+} from "@/hooks/useKnox";
 import { ApiResponseError } from "@/lib/fetch-api";
 import {
   SUBJECT_LABELS,
@@ -67,7 +73,13 @@ function AssessmentItem({ assessment, showAck }: { assessment: KnoxAssessment; s
       </div>
       <p className="text-sm text-foreground">{flaggedHeadline(assessment.ruleHits, assessment.tier)}</p>
       <div className="flex flex-wrap items-center gap-3">
-        {showAck && <KnoxAckControl assessment={assessment} />}
+        {showAck && (
+          <KnoxAckControl
+            assessmentId={assessment.id}
+            showButton={needsAcknowledgement(assessment)}
+            acknowledgedAt={acknowledgedAt(assessment)}
+          />
+        )}
         <SubjectLink type={assessment.subjectType} id={assessment.subjectId} assessmentId={assessment.id} />
       </div>
     </li>

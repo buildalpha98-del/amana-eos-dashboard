@@ -7,6 +7,7 @@ import { resolveRecipients, type Recipient, type Recipients } from "@/lib/knox/r
 import { loadSubject } from "@/lib/knox/load-subject";
 import { buildContent, type AlertContent } from "@/lib/knox/teams-card";
 import { subjectHref } from "@/lib/knox/format";
+import { coveredByAcknowledgement } from "@/lib/knox/ack";
 import type { RulesResult, TriageClock, TriageSubject } from "@/lib/knox/types";
 
 type Db = PrismaClient | Prisma.TransactionClient;
@@ -276,11 +277,43 @@ function asClocks(value: unknown): TriageClock[] {
 }
 
 /**
+ * `subjectType:subjectId` → `createdAt` (ms) of that record's newest
+ * acknowledged assessment, for the records behind `candidates`.
+ */
+async function latestAcknowledgedBySubject(
+  db: PrismaClient,
+  candidates: ReadonlyArray<{ subjectType: TriageSubjectType; subjectId: string }>,
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (candidates.length === 0) return out;
+  const subjects = new Map<string, { subjectType: TriageSubjectType; subjectId: string }>();
+  for (const c of candidates) subjects.set(`${c.subjectType}:${c.subjectId}`, { subjectType: c.subjectType, subjectId: c.subjectId });
+  const acked = await db.triageAssessment.findMany({
+    where: {
+      OR: [...subjects.values()],
+      alerts: { some: { acknowledgedAt: { not: null } } },
+    },
+    select: { subjectType: true, subjectId: true, createdAt: true },
+  });
+  for (const row of acked) {
+    const key = `${row.subjectType}:${row.subjectId}`;
+    const ms = row.createdAt.getTime();
+    if (!out.has(key) || ms > out.get(key)!) out.set(key, ms);
+  }
+  return out;
+}
+
+/**
  * Escalate alerted, unacknowledged assessments. For each one the next level
  * is `highest existing level + 1`, sent once `ESCALATION[tier][highest]`
  * minutes have passed since the level-0 alert. Because it only ever creates
  * the next integer level, a repeated or overlapping run cannot double-send
  * once the first run's rows are written.
+ *
+ * Acknowledgement is per record: an assessment is skipped when ANY assessment
+ * of the same record that is the same age or newer has been acknowledged (see
+ * `src/lib/knox/ack.ts`). So acknowledging a later serious re-triage stops an
+ * earlier moderate assessment's 60-minute ladder too.
  */
 export async function runEscalationSweep(
   db: PrismaClient,
@@ -301,15 +334,19 @@ export async function runEscalationSweep(
       ruleHits: true,
       clocks: true,
       rationale: true,
+      createdAt: true,
       alerts: { select: { escalationLevel: true, sentAt: true, acknowledgedAt: true } },
     },
   });
+  const ackedBySubject = await latestAcknowledgedBySubject(db, candidates);
 
   let escalated = 0;
   for (const a of candidates) {
     try {
       if (a.tier === "minor") continue;
       if (a.alerts.some((x) => x.acknowledgedAt)) continue;
+      const latestAck = ackedBySubject.get(`${a.subjectType}:${a.subjectId}`) ?? null;
+      if (coveredByAcknowledgement(a.createdAt.getTime(), latestAck)) continue;
       const steps = ESCALATION[a.tier];
 
       const current = Math.max(...a.alerts.map((x) => x.escalationLevel));

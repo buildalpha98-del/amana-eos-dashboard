@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils";
 import {
   acknowledgedAt,
   assessmentClocks,
-  showAcknowledgeButton,
+  subjectAcknowledgedAt,
+  subjectNeedsAck,
   useAcknowledge,
   useCanUseKnox,
   useKnoxSubject,
@@ -35,32 +36,33 @@ function rationaleText(a: KnoxAssessment): string | null {
 }
 
 /**
- * Acknowledge control. The button shows ONLY when alerts actually went out
- * and nobody has acknowledged them (the API 409s otherwise). The alert rows
- * carry no acknowledger name, so the confirmation shows the time alone.
+ * Acknowledge control. The button shows ONLY when the caller says the record
+ * still needs acknowledging (alerts went out and nothing covers them — the API
+ * 409s otherwise); acknowledging stamps every alert of the record. The alert
+ * rows carry no acknowledger name, so the confirmation shows the time alone.
  */
 export function KnoxAckControl({
-  assessment,
-  superseded = false,
+  assessmentId,
+  showButton,
+  acknowledgedAt: at,
 }: {
-  assessment: KnoxAssessment;
-  /** A newer assessment exists: show the acknowledgement time, never the button. */
-  superseded?: boolean;
+  assessmentId: string;
+  showButton: boolean;
+  acknowledgedAt: string | null;
 }) {
   const ack = useAcknowledge();
-  if (showAcknowledgeButton(assessment, superseded)) {
+  if (showButton) {
     return (
       <Button
         size="sm"
         loading={ack.isPending}
         iconLeft={<Check className="h-4 w-4" />}
-        onClick={() => ack.mutate(assessment.id)}
+        onClick={() => ack.mutate(assessmentId)}
       >
         Acknowledge
       </Button>
     );
   }
-  const at = acknowledgedAt(assessment);
   if (!at) return null;
   return (
     <p className="inline-flex items-center gap-1 text-xs text-muted">
@@ -95,7 +97,19 @@ function DraftBlock({ title, text, childName }: { title: string; text: string; c
   );
 }
 
-function AssessmentDetail({ assessment, childName }: { assessment: KnoxAssessment; childName?: string | null }) {
+function AssessmentDetail({
+  assessment,
+  childName,
+  needsAck,
+  ackAt,
+}: {
+  assessment: KnoxAssessment;
+  childName?: string | null;
+  /** Record-level: some assessment of this record still needs acknowledging. */
+  needsAck: boolean;
+  /** Record-level: newest acknowledgement time, if any. */
+  ackAt: string | null;
+}) {
   const clocks = assessmentClocks(assessment);
   const rationale = rationaleText(assessment);
   return (
@@ -126,7 +140,7 @@ function AssessmentDetail({ assessment, childName }: { assessment: KnoxAssessmen
         </div>
       )}
 
-      <KnoxAckControl assessment={assessment} />
+      <KnoxAckControl assessmentId={assessment.id} showButton={needsAck} acknowledgedAt={ackAt} />
 
       {(assessment.parentNoticeDraft || assessment.regulatorPackDraft) && (
         <div className="space-y-3">
@@ -221,7 +235,12 @@ export function KnoxPanel({ subjectType, subjectId, childName, focusAssessmentId
         <span className="text-2xs text-muted">Assessed {formatKnoxTime(latest.createdAt)}</span>
       </div>
 
-      <AssessmentDetail assessment={latest} childName={childName} />
+      <AssessmentDetail
+        assessment={latest}
+        childName={childName}
+        needsAck={subjectNeedsAck(assessments)}
+        ackAt={subjectAcknowledgedAt(assessments)}
+      />
 
       {openCards.length > 0 && (
         <div className="space-y-2">
@@ -247,7 +266,7 @@ export function KnoxPanel({ subjectType, subjectId, childName, focusAssessmentId
                 </div>
                 <p className="text-sm text-foreground">{flaggedHeadline(a.ruleHits, a.tier)}</p>
                 {rationaleText(a) && <p className="text-xs text-muted">{rationaleText(a)}</p>}
-                <KnoxAckControl assessment={a} superseded />
+                <KnoxAckControl assessmentId={a.id} showButton={false} acknowledgedAt={acknowledgedAt(a)} />
               </div>
             ))}
             {resolvedCards.length > 0 && <ul className="space-y-1">{resolvedCards.map((c) => <ResolvedCardLine key={c.id} card={c} />)}</ul>}

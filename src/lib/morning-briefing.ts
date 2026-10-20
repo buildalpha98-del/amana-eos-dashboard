@@ -130,8 +130,10 @@ async function collectKnoxSignals(
         _count: { _all: true },
       }),
       prisma.triageAssessment.count({
+        // Same 7-day lookback as the Knox inbox's awaiting list.
         where: {
           alerted: true,
+          createdAt: { gte: ago7d },
           alerts: { none: { acknowledgedAt: { not: null } } },
           ...scope,
         },

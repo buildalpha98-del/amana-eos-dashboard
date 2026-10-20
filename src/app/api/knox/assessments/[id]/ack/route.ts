@@ -8,10 +8,16 @@ import { KNOX_ROLES, assertInScope } from "../../../_lib";
 /**
  * POST /api/knox/assessments/[id]/ack
  *
- * Acknowledges EVERY outstanding alert row of the assessment (not just the
- * caller's own): assessments whose only rows are null-recipient marker rows
- * must still be acknowledgeable by anyone with the centre in scope. Repeats
- * are idempotent and return the earliest existing acknowledgement.
+ * Acknowledges the RECORD, not just this assessment: every outstanding alert
+ * row across ALL assessments of the assessment's subject is stamped (not just
+ * the caller's own rows — null-recipient marker rows must be acknowledgeable
+ * by anyone with the centre in scope). A re-triage writes a new assessment
+ * while the alert people were pinged about sits on an older one, so
+ * acknowledging from the latest assessment (or from an old alert's deep link)
+ * must stop every ladder for that record.
+ *
+ * Repeats are idempotent: they return the newest existing acknowledgement on
+ * the record, which is the one the first call made.
  */
 export const POST = withApiAuth(
   async (_req, session, context) => {
@@ -25,13 +31,16 @@ export const POST = withApiAuth(
     const { serviceIds } = await getCentreScope(session);
     assertInScope(serviceIds, assessment.serviceId);
 
+    const subjectAlerts = {
+      assessment: { subjectType: assessment.subjectType, subjectId: assessment.subjectId },
+    };
     const now = new Date();
     await prisma.$transaction(async (tx) => {
       const claim = await tx.triageAlert.updateMany({
-        where: { assessmentId: id, acknowledgedAt: null },
+        where: { ...subjectAlerts, acknowledgedAt: null },
         data: { acknowledgedAt: now, acknowledgedById: session.user.id },
       });
-      // Only the first acknowledgement is an event worth logging.
+      // Only an acknowledgement that stamped something is an event worth logging.
       if (claim.count > 0) {
         await tx.activityLog.create({
           data: {
@@ -43,21 +52,22 @@ export const POST = withApiAuth(
               tier: assessment.tier,
               subjectType: assessment.subjectType,
               subjectId: assessment.subjectId,
+              alertsAcknowledged: claim.count,
             },
           },
         });
       }
     });
 
-    const earliest = await prisma.triageAlert.findFirst({
-      where: { assessmentId: id, acknowledgedAt: { not: null } },
-      orderBy: { acknowledgedAt: "asc" },
+    const latest = await prisma.triageAlert.findFirst({
+      where: { ...subjectAlerts, acknowledgedAt: { not: null } },
+      orderBy: { acknowledgedAt: "desc" },
       select: { acknowledgedAt: true },
     });
-    if (!earliest?.acknowledgedAt) {
-      throw ApiError.conflict("This assessment has no alerts to acknowledge");
+    if (!latest?.acknowledgedAt) {
+      throw ApiError.conflict("This record has no alerts to acknowledge");
     }
-    return NextResponse.json({ acknowledgedAt: earliest.acknowledgedAt });
+    return NextResponse.json({ acknowledgedAt: latest.acknowledgedAt });
   },
   { roles: KNOX_ROLES },
 );

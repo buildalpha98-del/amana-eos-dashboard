@@ -274,6 +274,7 @@ describe("collectBriefingSignals — knox", () => {
     const alertCall = prismaMock.triageAssessment.count.mock.calls[0][0];
     expect(alertCall.where).toMatchObject({
       alerted: true,
+      createdAt: { gte: new Date(NOW.getTime() - 7 * DAY) },
       alerts: { none: { acknowledgedAt: { not: null } } },
     });
     const cardCall = prismaMock.pendingAction.count.mock.calls[0][0];

@@ -131,21 +131,21 @@ export function assessmentClocks(a: Pick<KnoxAssessment, "clocks">): KnoxClockDa
   });
 }
 
-/** True when alerts went out and nobody has acknowledged any of them yet. */
+/**
+ * True when alerts went out on THIS assessment and nobody has acknowledged any
+ * of them yet. For a record's panel use `subjectNeedsAck` instead: a re-triage
+ * leaves the alert on an older assessment.
+ */
 export function needsAcknowledgement(a: Pick<KnoxAssessment, "alerted" | "alerts">): boolean {
   return a.alerted && !(a.alerts ?? []).some((al) => al.acknowledgedAt);
 }
 
 /**
- * The Acknowledge button: only on the LATEST assessment of a record. A stale
- * alert on a superseded assessment is acknowledged from the latest one.
+ * Record-level acknowledgement (shared with the escalation sweep): the panel
+ * shows Acknowledge on the LATEST assessment whenever any assessment of the
+ * record still needs it; History items never show the button.
  */
-export function showAcknowledgeButton(
-  a: Pick<KnoxAssessment, "alerted" | "alerts">,
-  superseded: boolean,
-): boolean {
-  return !superseded && needsAcknowledgement(a);
-}
+export { subjectNeedsAck, subjectAcknowledgedAt } from "@/lib/knox/ack";
 
 /** Earliest acknowledgement time across the assessment's alerts, if any. */
 export function acknowledgedAt(a: Pick<KnoxAssessment, "alerts">): string | null {

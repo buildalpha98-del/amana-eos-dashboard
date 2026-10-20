@@ -85,13 +85,18 @@ describe("POST /api/knox/assessments/[id]/ack", () => {
     expect(prismaMock.activityLog.create).not.toHaveBeenCalled();
   });
 
-  it("acknowledges every unacknowledged alert row, recipient or not, and logs it", async () => {
+  it("acknowledges every unacknowledged alert row of the RECORD, recipient or not, and logs it", async () => {
     const res = await post();
     expect(res.status).toBe(200);
     expect(prismaMock.triageAlert.updateMany).toHaveBeenCalledTimes(1);
     const args = prismaMock.triageAlert.updateMany.mock.calls[0][0];
-    // No recipient filter: marker rows with a null recipient must be covered.
-    expect(args.where).toEqual({ assessmentId: "a1", acknowledgedAt: null });
+    // Every assessment of the subject (a re-triage leaves the pinged alert on
+    // an older assessment), and no recipient filter: marker rows with a null
+    // recipient must be covered.
+    expect(args.where).toEqual({
+      assessment: { subjectType: "incident", subjectId: "inc-1" },
+      acknowledgedAt: null,
+    });
     expect(args.data.acknowledgedById).toBe("u1");
     expect(args.data.acknowledgedAt).toBeInstanceOf(Date);
     expect(prismaMock.activityLog.create).toHaveBeenCalledWith({
@@ -100,25 +105,60 @@ describe("POST /api/knox/assessments/[id]/ack", () => {
         action: "knox.acknowledged",
         entityType: "TriageAssessment",
         entityId: "a1",
-        details: { tier: "serious", subjectType: "incident", subjectId: "inc-1" },
+        details: { tier: "serious", subjectType: "incident", subjectId: "inc-1", alertsAcknowledged: 2 },
       },
     });
     const body = await res.json();
     expect(typeof body.acknowledgedAt).toBe("string");
   });
 
-  it("is idempotent: a repeat returns 200 with the earliest acknowledgedAt and does not log again", async () => {
+  it("is idempotent: a repeat returns 200 with the record's newest acknowledgedAt and does not log again", async () => {
     prismaMock.triageAlert.updateMany.mockResolvedValue({ count: 0 });
     const res = await post();
     expect(res.status).toBe(200);
     expect((await res.json()).acknowledgedAt).toBe(FIRST_ACK.toISOString());
     const find = prismaMock.triageAlert.findFirst.mock.calls[0][0];
-    expect(find.where).toEqual({ assessmentId: "a1", acknowledgedAt: { not: null } });
-    expect(find.orderBy).toEqual({ acknowledgedAt: "asc" });
+    expect(find.where).toEqual({
+      assessment: { subjectType: "incident", subjectId: "inc-1" },
+      acknowledgedAt: { not: null },
+    });
+    expect(find.orderBy).toEqual({ acknowledgedAt: "desc" });
     expect(prismaMock.activityLog.create).not.toHaveBeenCalled();
   });
 
-  it("409 when the assessment has no alert rows to acknowledge", async () => {
+  it("re-triage: acknowledging via the LATEST (silenced) assessment stamps the older alerted assessment's rows too", async () => {
+    // a1 alerted; a2 is the re-triage of the same incident, silenced by dedupe
+    // (no rows of its own). The director acknowledges from the panel → a2.
+    const rows = [
+      { id: "r1", assessmentId: "a1", subjectType: "incident", subjectId: "inc-1", acknowledgedAt: null as Date | null },
+      { id: "r2", assessmentId: "a1", subjectType: "incident", subjectId: "inc-1", acknowledgedAt: null as Date | null },
+      { id: "r3", assessmentId: "other", subjectType: "incident", subjectId: "inc-9", acknowledgedAt: null as Date | null },
+    ];
+    prismaMock.triageAssessment.findUnique.mockImplementation((args: { where: { id: string } }) =>
+      Promise.resolve(args.where.id === "a2" ? { ...ASSESSMENT, id: "a2", tier: "serious" } : null),
+    );
+    type Where = { assessment: { subjectType: string; subjectId: string }; acknowledgedAt: unknown };
+    const matches = (w: Where, r: (typeof rows)[number]) =>
+      r.subjectType === w.assessment.subjectType && r.subjectId === w.assessment.subjectId;
+    prismaMock.triageAlert.updateMany.mockImplementation((args: { where: Where; data: { acknowledgedAt: Date } }) => {
+      const hit = rows.filter((r) => matches(args.where, r) && r.acknowledgedAt === null);
+      for (const r of hit) r.acknowledgedAt = args.data.acknowledgedAt;
+      return Promise.resolve({ count: hit.length });
+    });
+    prismaMock.triageAlert.findFirst.mockImplementation((args: { where: Where }) => {
+      const acked = rows.filter((r) => matches(args.where, r) && r.acknowledgedAt);
+      return Promise.resolve(acked.length ? { acknowledgedAt: acked[0].acknowledgedAt } : null);
+    });
+
+    const res = await post("a2");
+    expect(res.status).toBe(200);
+    expect(rows.find((r) => r.id === "r1")!.acknowledgedAt).toBeInstanceOf(Date);
+    expect(rows.find((r) => r.id === "r2")!.acknowledgedAt).toBeInstanceOf(Date);
+    // Another record's alert is untouched.
+    expect(rows.find((r) => r.id === "r3")!.acknowledgedAt).toBeNull();
+  });
+
+  it("409 when the record has no alert rows to acknowledge", async () => {
     prismaMock.triageAlert.updateMany.mockResolvedValue({ count: 0 });
     prismaMock.triageAlert.findFirst.mockResolvedValue(null);
     expect((await post()).status).toBe(409);

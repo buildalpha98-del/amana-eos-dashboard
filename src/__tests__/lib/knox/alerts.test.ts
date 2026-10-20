@@ -323,21 +323,33 @@ describe("runEscalationSweep", () => {
     sentAt: Date;
     acknowledgedAt?: Date | null;
   }
-  function assessment(id: string, tier: "moderate" | "serious", alerts: FakeAlert[]) {
+  function assessment(id: string, tier: "moderate" | "serious", alerts: FakeAlert[], subjectId = `inc-${id}`) {
     return {
       id,
       tier,
       subjectType: "incident",
-      subjectId: `inc-${id}`,
+      subjectId,
       serviceId: "svc-1",
       ruleHits: ["ambulance_called"],
-      clocks: [],
+      clocks: [] as unknown,
       rationale: null as string | null,
+      createdAt: alerts.length ? new Date(Math.min(...alerts.map((a) => a.sentAt.getTime()))) : NOW,
       alerts: alerts.map((a) => ({ acknowledgedAt: null, ...a })),
     };
   }
+  /** Acknowledged sibling assessments, as the sweep's second query returns them. */
+  let acked: Array<{ subjectType: string; subjectId: string; createdAt: Date }> = [];
+  type SweepWhere = { alerted?: boolean; OR?: Array<{ subjectType: string; subjectId: string }> };
   function load(...rows: ReturnType<typeof assessment>[]) {
-    prismaMock.triageAssessment.findMany.mockImplementation((async () => rows) as never);
+    acked = [];
+    // Input-routed: the candidate query filters `alerted`; the acknowledged
+    // sibling lookup filters by subject.
+    prismaMock.triageAssessment.findMany.mockImplementation((async (args: { where: SweepWhere }) =>
+      args.where.alerted
+        ? rows
+        : acked.filter((r) =>
+            (args.where.OR ?? []).some((s) => s.subjectType === r.subjectType && s.subjectId === r.subjectId),
+          )) as never);
     prismaMock.incidentRecord.findUnique.mockImplementation((async (args: { where: { id: string } }) => ({
       id: args.where.id,
       serviceId: "svc-1",
@@ -410,6 +422,29 @@ describe("runEscalationSweep", () => {
     );
     expect(await runEscalationSweep(prismaMock as never, NOW)).toEqual({ escalated: 0 });
     expect(rowsWritten()).toEqual([]);
+  });
+
+  it("re-triage: an acknowledgement on a NEWER assessment of the same record stops the older ladder", async () => {
+    // Moderate A alerted 61 min ago; serious B for the same incident was
+    // acknowledged. A's 60-minute ladder must not fire.
+    load(assessment("a", "moderate", [{ escalationLevel: 0, sentAt: minsAgo(61) }], "inc-1"));
+    acked.push({ subjectType: "incident", subjectId: "inc-1", createdAt: minsAgo(30) });
+    expect(await runEscalationSweep(prismaMock as never, NOW)).toEqual({ escalated: 0 });
+    expect(rowsWritten()).toEqual([]);
+    expect(notifyMock).not.toHaveBeenCalled();
+  });
+
+  it("an acknowledgement on an OLDER assessment does not stop a later (tier-raising) alert's ladder", async () => {
+    load(assessment("b", "serious", [{ escalationLevel: 0, sentAt: minsAgo(16) }], "inc-1"));
+    acked.push({ subjectType: "incident", subjectId: "inc-1", createdAt: minsAgo(120) });
+    expect(await runEscalationSweep(prismaMock as never, NOW)).toEqual({ escalated: 1 });
+    expect(levelsDispatched()).toEqual(["b:1"]);
+  });
+
+  it("an acknowledgement on another record never stops this one", async () => {
+    load(assessment("a", "serious", [{ escalationLevel: 0, sentAt: minsAgo(16) }], "inc-1"));
+    acked.push({ subjectType: "incident", subjectId: "inc-2", createdAt: NOW });
+    expect(await runEscalationSweep(prismaMock as never, NOW)).toEqual({ escalated: 1 });
   });
 
   it("max level reached → nothing", async () => {

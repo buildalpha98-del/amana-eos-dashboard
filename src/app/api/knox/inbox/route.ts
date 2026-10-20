@@ -92,7 +92,14 @@ export const GET = withApiAuth(
 
     const [awaitingAck, openCards, recent, failedJobs, subjectAssessments, subjectCards] = await Promise.all([
       prisma.triageAssessment.findMany({
-        where: { alerted: true, alerts: { none: { acknowledgedAt: { not: null } } }, ...scope },
+        // 7-day lookback: the sweep only escalates within 24 h, and an alert
+        // older than a week is history, not a to-do.
+        where: {
+          alerted: true,
+          createdAt: { gte: since },
+          alerts: { none: { acknowledgedAt: { not: null } } },
+          ...scope,
+        },
         orderBy: { createdAt: "desc" },
         take: 50,
         include: { alerts: { select: ALERT_SELECT }, service: { select: { name: true } } },

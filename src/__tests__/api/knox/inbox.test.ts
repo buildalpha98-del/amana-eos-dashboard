@@ -94,8 +94,11 @@ describe("GET /api/knox/inbox", () => {
     expect(awaiting.where.serviceId).toEqual({ in: ["svc-1"] });
     expect(awaiting.orderBy).toEqual({ createdAt: "desc" });
     expect(awaiting.take).toBe(50);
+    // 7-day lookback on the awaiting list.
+    const awaitAgeMs = Date.now() - awaiting.where.createdAt.gte.getTime();
+    expect(Math.abs(awaitAgeMs - 7 * 86_400_000)).toBeLessThan(60_000);
 
-    const recent = pick(assessmentCalls, (a) => a.where.createdAt?.gte);
+    const recent = pick(assessmentCalls, (a) => !a.where.alerted && !a.where.subjectType && a.where.createdAt?.gte);
     expect(recent.where.serviceId).toEqual({ in: ["svc-1"] });
     expect(recent.take).toBe(50);
     const ageMs = Date.now() - recent.where.createdAt.gte.getTime();

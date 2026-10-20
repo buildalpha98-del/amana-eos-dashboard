@@ -8,7 +8,8 @@ import {
   canUseKnox,
   knoxKeys,
   needsAcknowledgement,
-  showAcknowledgeButton,
+  subjectAcknowledgedAt,
+  subjectNeedsAck,
   type KnoxAlert,
 } from "@/hooks/useKnox";
 import { KNOX_ROLES } from "@/app/api/knox/_lib";
@@ -77,11 +78,39 @@ describe("acknowledge visibility", () => {
     expect(needsAcknowledgement({ alerted: true, alerts: [alert(null), alert("2026-10-20T01:00:00.000Z")] })).toBe(false);
   });
 
-  it("never shows the button on a superseded (History) assessment", () => {
-    const pending = { alerted: true, alerts: [alert(null)] };
-    expect(showAcknowledgeButton(pending, false)).toBe(true);
-    expect(showAcknowledgeButton(pending, true)).toBe(false);
-    expect(showAcknowledgeButton({ alerted: false, alerts: [] }, false)).toBe(false);
+  describe("subjectNeedsAck (record level — what the latest assessment's button follows)", () => {
+    const at = (iso: string, alerted: boolean, alerts: KnoxAlert[]) => ({ createdAt: iso, alerted, alerts });
+    const A = "2026-10-20T01:00:00.000Z";
+    const B = "2026-10-20T02:00:00.000Z";
+
+    it("true for the latest when an OLDER assessment alerted and nothing is acknowledged (silenced re-triage)", () => {
+      // Newest first, as the inbox returns them: B is a dedupe-silenced re-triage.
+      expect(subjectNeedsAck([at(B, false, []), at(A, true, [alert(null)])])).toBe(true);
+    });
+
+    it("false once any assessment of the same age or newer is acknowledged", () => {
+      expect(subjectNeedsAck([at(B, true, [alert("2026-10-20T02:05:00.000Z")]), at(A, true, [alert(null)])])).toBe(false);
+      expect(subjectNeedsAck([at(A, true, [alert("2026-10-20T01:05:00.000Z")])])).toBe(false);
+    });
+
+    it("true when a NEWER alert (tier rose) follows an acknowledged older one", () => {
+      expect(subjectNeedsAck([at(B, true, [alert(null)]), at(A, true, [alert("2026-10-20T01:05:00.000Z")])])).toBe(true);
+    });
+
+    it("false when nothing ever alerted", () => {
+      expect(subjectNeedsAck([at(B, false, []), at(A, false, [])])).toBe(false);
+      expect(subjectNeedsAck([])).toBe(false);
+    });
+
+    it("subjectAcknowledgedAt reports the newest acknowledgement across the record", () => {
+      expect(
+        subjectAcknowledgedAt([
+          { alerts: [alert(null)] },
+          { alerts: [alert("2026-10-20T01:05:00.000Z"), alert("2026-10-20T03:00:00.000Z")] },
+        ]),
+      ).toBe("2026-10-20T03:00:00.000Z");
+      expect(subjectAcknowledgedAt([{ alerts: [alert(null)] }, {}])).toBeNull();
+    });
   });
 
   it("reports the earliest acknowledgement time", () => {
