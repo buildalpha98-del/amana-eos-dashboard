@@ -4,9 +4,8 @@
  * 20 Oct 2026: "make sure it's always cropped properly").
  *
  * Email clients ignore `object-fit`, so a portrait photo in a 70×70 circle
- * came out squashed or off-centre. Cropping here — square, focused on the
- * most interesting part of the image (usually the face) — means every
- * client shows the same circle.
+ * came out squashed or off-centre. Cropping here — white padding trimmed,
+ * then square from the top — means every client shows the same circle.
  *
  * Public because email clients fetch it with no session. `src` must be our
  * website or our Vercel Blob storage: never an arbitrary URL.
@@ -37,9 +36,17 @@ export const GET = withApiHandler(async (req) => {
 
   let out: Buffer;
   try {
-    out = await sharp(bytes)
-      .rotate() // respect the phone's orientation flag
-      .resize(SIZE, SIZE, { fit: "cover", position: sharp.strategy.attention })
+    // The website's photos are padded with white (a 1587×2245 canvas around
+    // the real photo), so trim that off first, then crop square from the
+    // TOP on tall photos — heads are at the top, and centring cut them off.
+    const upright = await sharp(bytes).rotate().toBuffer(); // phone orientation flag
+    const trimmed = await sharp(upright)
+      .trim({ background: "#ffffff", threshold: 30 })
+      .toBuffer({ resolveWithObject: true })
+      .catch(() => sharp(upright).toBuffer({ resolveWithObject: true })); // nothing to trim
+    const { width, height } = trimmed.info;
+    out = await sharp(trimmed.data)
+      .resize(SIZE, SIZE, { fit: "cover", position: height > width ? "north" : "centre" })
       .jpeg({ quality: 85 })
       .toBuffer();
   } catch {

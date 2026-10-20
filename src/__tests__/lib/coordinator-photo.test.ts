@@ -28,7 +28,7 @@ describe("which photos can be cropped", () => {
 
   it("rewrites to the crop route; leaves anything else alone", () => {
     expect(croppedCoordinatorPhoto(SITE, "https://app.test")).toBe(
-      `https://app.test/api/public/coordinator-photo?src=${encodeURIComponent(SITE)}`,
+      `https://app.test/api/public/coordinator-photo?v=2&src=${encodeURIComponent(SITE)}`,
     );
     expect(croppedCoordinatorPhoto("https://other.example/p.jpg", "")).toBe("https://other.example/p.jpg");
   });
@@ -45,6 +45,22 @@ describe("GET /api/public/coordinator-photo", () => {
     expect(res.headers.get("content-type")).toBe("image/jpeg");
     const meta = await sharp(Buffer.from(await res.arrayBuffer())).metadata();
     expect([meta.width, meta.height]).toEqual([280, 280]);
+  });
+
+  it("trims the white padding around a photo before cropping", async () => {
+    // A green "photo" in the top-left of a big white canvas, like the website's.
+    const photo = await sharp({ create: { width: 200, height: 200, channels: 3, background: "#004E64" } }).png().toBuffer();
+    const padded = await sharp({ create: { width: 600, height: 900, channels: 3, background: "#ffffff" } })
+      .composite([{ input: photo, left: 0, top: 0 }])
+      .png()
+      .toBuffer();
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(new Uint8Array(padded)));
+    const res = await GET(createRequest("GET", `/api/public/coordinator-photo?src=${encodeURIComponent(SITE)}`));
+    const { data } = await sharp(Buffer.from(await res.arrayBuffer())).raw().toBuffer({ resolveWithObject: true });
+    // Bottom-right pixel is the photo's green, not padding white.
+    const i = (279 * 280 + 279) * 3;
+    expect(data[i]).toBeLessThan(60);
+    expect(data[i + 2]).toBeGreaterThan(60);
   });
 
   it("refuses a source that isn't ours, without fetching it", async () => {

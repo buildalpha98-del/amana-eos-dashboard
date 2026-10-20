@@ -5,6 +5,8 @@
 import { isTrustedBlobUrl } from "@/lib/trusted-urls";
 
 const WEBSITE_HOSTS = new Set(["amanaoshc.com.au", "www.amanaoshc.com.au"]);
+/** Bump when the crop changes, so cached copies of the old crop are skipped. */
+const CROP_VERSION = 2;
 const BASE = () => process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
 
 /** Only our website or our Vercel Blob storage — never an arbitrary URL. */
@@ -22,6 +24,6 @@ export function isAllowedPhotoSource(src: string): boolean {
 /** `base` "" gives a same-origin path (dashboard previews); emails need the full URL. */
 export function croppedCoordinatorPhoto(src: string, base: string = BASE()): string {
   return isAllowedPhotoSource(src)
-    ? `${base}/api/public/coordinator-photo?src=${encodeURIComponent(src)}`
+    ? `${base}/api/public/coordinator-photo?v=${CROP_VERSION}&src=${encodeURIComponent(src)}`
     : src;
 }
