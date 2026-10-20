@@ -79,13 +79,38 @@ export async function upcomingProgram(serviceId: string, now = new Date()): Prom
 }
 
 /** Everything the welcome email shows for one centre (family details added by the caller). */
+/** A Google Maps link to the centre's school, or null without an address. */
+export function directionsUrl(s: {
+  address: string | null;
+  suburb: string | null;
+  state: string | null;
+  postcode: string | null;
+}): string | null {
+  const parts = [s.address, s.suburb, [s.state, s.postcode].filter(Boolean).join(" ")]
+    .map((v) => v?.trim())
+    .filter(Boolean);
+  if (!s.address?.trim()) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(", "))}`;
+}
+
 export async function centreWelcomeData(
   serviceId: string,
   now = new Date(),
 ): Promise<Omit<EnrolmentWelcomeData, "parentFirstName" | "childNames" | "verifyLink"> | null> {
   const service = await prisma.service.findUnique({
     where: { id: serviceId },
-    select: { name: true, code: true, phone: true, email: true, sessionTimes: true, content: true },
+    select: {
+      name: true,
+      code: true,
+      phone: true,
+      email: true,
+      sessionTimes: true,
+      content: true,
+      address: true,
+      suburb: true,
+      state: true,
+      postcode: true,
+    },
   });
   if (!service) return null;
   const c = mergeServiceContent(service.content);
@@ -102,6 +127,7 @@ export async function centreWelcomeData(
     centreEmail: service.email?.trim() || null,
     sessionTimes: describeSessionTimes(service.sessionTimes),
     locationWithinSchool: c.locationWithinSchool.trim() || null,
+    directionsUrl: directionsUrl(service),
     meetingPoints: c.meetingPoints.trim() || null,
     firstSessionTips: tips,
     welcomeNote: c.welcomeNote.trim() || null,

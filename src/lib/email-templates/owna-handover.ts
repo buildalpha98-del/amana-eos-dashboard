@@ -13,7 +13,7 @@
 import { DEFAULT_FIRST_DAY_EXPECT } from "@/lib/centre-welcome-defaults";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 import { escapeHtml, parentEmailLayout } from "./base";
-import {
+import { welcomePackBlock,
   BODY,
   CHIFFON,
   GREEN,
@@ -167,6 +167,7 @@ export async function firstDayConfirmedEmail(d: HandoverEmailData) {
 {{dateCard}}
 {{coordinatorCard}}
 {{firstSessionBlock}}
+{{welcomePack}}
 <p style="margin:0 0 16px;color:${BODY};font-size:15px;line-height:1.7;">
   We'll send a quick reminder the day before. Need to change the date? Let us know and we'll sort it out in OWNA.
 </p>
@@ -181,6 +182,7 @@ ${signOff}`,
         { ...d, program: [], welcomeNote: null, verifyLink: null },
         { title: "What to expect", defaultTips: DEFAULT_FIRST_DAY_EXPECT },
       ),
+      welcomePack: welcomePackBlock({ ...d, program: [], welcomeNote: null, verifyLink: null }),
     },
     wrap: (b) => parentEmailLayout(b, { transactional: true, preheader: `${day} — session times, where to find us and what to expect.` }),
   }).then((r) => ({ ...r, subject: plain(r.subject) }));

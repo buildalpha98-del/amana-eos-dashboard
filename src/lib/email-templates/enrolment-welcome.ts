@@ -42,6 +42,8 @@ export interface EnrolmentWelcomeData {
   /** "Before school 6:30am – 8:30am", "After school 3:00pm – 6:30pm" */
   sessionTimes: string[];
   locationWithinSchool: string | null;
+  /** Google Maps link to the school, from the centre's address. */
+  directionsUrl?: string | null;
   meetingPoints: string | null;
   firstSessionTips: string[];
   welcomeNote: string | null;
@@ -105,7 +107,13 @@ export function firstSessionBlock(
 ) {
   const facts: string[] = [];
   if (d.sessionTimes.length) facts.push(`<strong>Session times:</strong> ${d.sessionTimes.map(escapeHtml).join(" · ")}`);
-  if (d.locationWithinSchool) facts.push(`<strong>Where to find us:</strong> ${escapeHtml(d.locationWithinSchool)}`);
+  const directions = d.directionsUrl
+    ? `<a href="${escapeHtml(d.directionsUrl)}" style="color:${GREEN};font-weight:700;text-decoration:underline;">Get directions</a>`
+    : "";
+  if (d.locationWithinSchool || directions)
+    facts.push(
+      `<strong>Where to find us:</strong> ${[d.locationWithinSchool ? escapeHtml(d.locationWithinSchool) : "", directions].filter(Boolean).join(" · ")}`,
+    );
   if (d.meetingPoints) facts.push(`<strong>Drop-off &amp; pick-up:</strong> ${escapeHtml(d.meetingPoints)}`);
   const tips = d.firstSessionTips.length ? d.firstSessionTips : (opts.defaultTips ?? DEFAULT_FIRST_SESSION_TIPS);
   const rows = tips
@@ -126,14 +134,14 @@ export function firstSessionBlock(
   </table>`;
 }
 
-function welcomePackBlock(d: EnrolmentWelcomeData) {
+export function welcomePackBlock(d: EnrolmentWelcomeData) {
   if (!d.welcomePackUrl) return "";
   return `
   <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background-color:${GREEN};border-radius:14px;">
     <tr><td style="padding:24px;text-align:center;">
       <p style="margin:0 0 6px;color:${JONQUIL};font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Your welcome pack</p>
       <p style="margin:0;color:#ffffff;font-size:15px;line-height:1.6;">
-        Everything you need to know about ${escapeHtml(d.centreName)}: our day, food, what to bring, policies and who to call.
+        Everything you need to know about ${escapeHtml(d.centreName)}: our day, food, policies and who to call.
       </p>
       ${buttonHtml("Read the welcome pack", escapeHtml(d.welcomePackUrl))}
     </td></tr>
