@@ -823,6 +823,8 @@ model User {
 
   // ── HR Relations ─────────────────────────────────────────────
   emergencyContacts         EmergencyContact[]
+  staffForms                StaffForm[]          @relation("StaffFormOwner")
+  staffFormsCountersigned   StaffForm[]          @relation("StaffFormSupervisor")
   qualifications            StaffQualification[]
   pdRecords                 ProfessionalDevelopmentRecord[] @relation("UserPdRecords")
   contracts                 EmploymentContract[]            @relation("ContractEmployee")
@@ -11303,4 +11305,42 @@ model StaffUpdate {
 
   @@index([status, urgent])
   @@index([createdAt])
+}
+
+// ============================================================
+// Staff forms (Daniel, 20 Oct 2026) — the Staff Record and the
+// Responsible Person offer & acceptance, filled in and signed on screen in
+// the compliance section. One row per person per form; `data` holds the
+// answers (validated on submit, autosaved as a draft). The Responsible
+// Person form is countersigned by the centre's coordinator or a State
+// Manager as nominated supervisor.
+// ============================================================
+
+enum StaffFormType {
+  staff_record
+  responsible_person
+}
+
+model StaffForm {
+  id                         String        @id @default(cuid())
+  userId                     String
+  user                       User          @relation("StaffFormOwner", fields: [userId], references: [id], onDelete: Cascade)
+  type                       StaffFormType
+  data                       Json          @default("{}")
+  /// The centre the form was submitted for (the person's primary centre then).
+  serviceId                  String?
+  staffSignatureDataUrl      String?       @db.Text
+  submittedAt                DateTime?
+  supervisorSignatureDataUrl String?       @db.Text
+  supervisorSignedById       String?
+  supervisorSignedBy         User?         @relation("StaffFormSupervisor", fields: [supervisorSignedById], references: [id], onDelete: SetNull)
+  supervisorName             String?
+  supervisorSignedAt         DateTime?
+  /// Responsible Person: documents the supervisor collected and viewed (RP_DOCUMENTS keys).
+  documentsViewed            String[]      @default([])
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
+
+  @@unique([userId, type])
+  @@index([serviceId])
 }
