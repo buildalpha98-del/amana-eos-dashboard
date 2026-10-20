@@ -48,8 +48,9 @@ export const GET = withApiAuth(async (req, session) => {
     bySection[sec].outputTokens += r.outputTokens;
 
     // User
-    const uid = r.user.id;
-    if (!byUser[uid]) byUser[uid] = { name: r.user.name, calls: 0, inputTokens: 0, outputTokens: 0 };
+    // userId is nullable (system callers such as Knox log usage with no user).
+    const uid = r.user?.id ?? "system";
+    if (!byUser[uid]) byUser[uid] = { name: r.user?.name ?? "System", calls: 0, inputTokens: 0, outputTokens: 0 };
     byUser[uid].calls++;
     byUser[uid].inputTokens += r.inputTokens;
     byUser[uid].outputTokens += r.outputTokens;
