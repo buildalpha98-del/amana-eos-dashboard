@@ -5,6 +5,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 
+vi.mock("@/lib/website-centres", async (orig) => ({
+  ...((await orig()) as object),
+  websiteCentre: vi.fn(async () => null),
+}));
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => ({ sent: ["x"], suppressed: [] })) }));
 vi.mock("@/lib/email-template-overrides", () => ({
   applyEmailTemplateOverride: async (o: { defaultSubject: string; defaultBody: string; vars: Record<string, string>; wrap: (b: string) => string }) => {
@@ -18,6 +22,7 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { sendEmail } from "@/lib/email";
+import { websiteCentre } from "@/lib/website-centres";
 import { centreWelcomeData, describeSessionTimes, sendEnrolmentWelcome, upcomingProgram } from "@/lib/enrolment-welcome";
 import { enrolmentWelcomeEmail } from "@/lib/email-templates/enrolment-welcome";
 
@@ -45,6 +50,25 @@ describe("centre details", () => {
       coordinatorPhoto: "https://amanaoshc.com.au/centres/mfis-greenacre/coordinator.jpg",
       welcomePackUrl: "https://amanaoshc.com.au/welcome-packs/amana-oshc-welcome-pack-mfis-greenacre.pdf",
       sessionTimes: ["Before school 6:30am – 8:30am", "After school 3:00pm – 6:30pm"],
+    });
+  });
+
+  it("the website's phone, times, location and map win over dashboard settings", async () => {
+    vi.mocked(websiteCentre).mockResolvedValueOnce({
+      slug: "unity-grammar", serviceCode: "UG", name: "Unity Grammar", address: "70 Fourth Ave, Austral NSW 2179",
+      phone: "0466 707 771", bsc: { times: "6:30 AM – 8:30 AM", days: "Mon–Fri" }, asc: { times: "3:20 PM – 6:30 PM", days: "Mon–Fri" },
+      locationNote: "G Block", mapImage: "https://amanaoshc.com.au/centres/unity-grammar/map.jpg", geo: { lat: -33.9, lon: 150.8 },
+      coordinator: { name: "Lena", photo: "https://amanaoshc.com.au/centres/unity-grammar/coordinator.jpg" },
+      welcomePack: "https://amanaoshc.com.au/welcome-packs/amana-oshc-welcome-pack-unity-grammar.pdf", pageUrl: null,
+    });
+    prismaMock.service.findUnique.mockResolvedValue(service());
+    const d = await centreWelcomeData("svc-ga");
+    expect(d).toMatchObject({
+      centrePhone: "0466 707 771",
+      sessionTimes: ["Before school 6:30 AM – 8:30 AM (Mon–Fri)", "After school 3:20 PM – 6:30 PM (Mon–Fri)"],
+      locationWithinSchool: "G Block",
+      mapImageUrl: "https://amanaoshc.com.au/centres/unity-grammar/map.jpg",
+      directionsUrl: "https://www.google.com/maps/search/?api=1&query=-33.9,150.8",
     });
   });
 

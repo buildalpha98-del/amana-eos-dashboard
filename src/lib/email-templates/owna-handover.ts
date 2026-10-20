@@ -13,7 +13,7 @@
 import { DEFAULT_FIRST_DAY_EXPECT } from "@/lib/centre-welcome-defaults";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 import { escapeHtml, parentEmailLayout } from "./base";
-import { welcomePackBlock,
+import {
   BODY,
   CHIFFON,
   GREEN,
@@ -182,7 +182,10 @@ ${signOff}`,
         { ...d, program: [], welcomeNote: null, verifyLink: null },
         { title: "What to expect", defaultTips: DEFAULT_FIRST_DAY_EXPECT },
       ),
-      welcomePack: welcomePackBlock({ ...d, program: [], welcomeNote: null, verifyLink: null }),
+      // The PDF itself is attached by the sender (onHandoffStepCompleted).
+      welcomePack: d.welcomePackUrl
+        ? `<p style="margin:0 0 16px;color:${BODY};font-size:15px;line-height:1.7;">&#128206; <strong>Your welcome pack is attached</strong> — our day, food, policies and who to call at ${escapeHtml(d.centreName)}.</p>`
+        : "",
     },
     wrap: (b) => parentEmailLayout(b, { transactional: true, preheader: `${day} — session times, where to find us and what to expect.` }),
   }).then((r) => ({ ...r, subject: plain(r.subject) }));

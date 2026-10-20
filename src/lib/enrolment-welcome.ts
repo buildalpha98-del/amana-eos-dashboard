@@ -16,6 +16,7 @@ import { logger } from "@/lib/logger";
 import { mergeServiceContent } from "@/lib/service-content-shared";
 import { sessionTimesSchema } from "@/lib/service-settings";
 import { centreWelcomeDefaults } from "@/lib/centre-welcome-defaults";
+import { websiteCentre, websiteSessionTimes } from "@/lib/website-centres";
 import { serviceWeekStart, serviceDateOnly, addDaysUTC } from "@/lib/timezone";
 import {
   enrolmentWelcomeEmail,
@@ -115,23 +116,30 @@ export async function centreWelcomeData(
   if (!service) return null;
   const c = mergeServiceContent(service.content);
   const web = centreWelcomeDefaults(service.code);
+  // The website is where families' centre details live (phone, times, where
+  // to find us, map); the dashboard's settings are the fallback.
+  const site = await websiteCentre(service.code);
+  const siteTimes = site ? websiteSessionTimes(site) : [];
   const tips = c.firstSessionTips
     .split("\n")
     .map((l) => l.replace(/^[\s•\-*✓]+/, "").trim())
     .filter(Boolean);
   return {
     centreName: service.name.replace(/^Amana OSHC\s+/i, ""),
-    coordinatorName: c.welcomeCoordinatorName.trim() || web.coordinatorName,
-    coordinatorPhoto: c.welcomeCoordinatorPhoto.trim() || web.coordinatorPhoto,
-    centrePhone: service.phone?.trim() || null,
+    coordinatorName: c.welcomeCoordinatorName.trim() || site?.coordinator?.name || web.coordinatorName,
+    coordinatorPhoto: c.welcomeCoordinatorPhoto.trim() || site?.coordinator?.photo || web.coordinatorPhoto,
+    centrePhone: site?.phone?.trim() || service.phone?.trim() || null,
     centreEmail: service.email?.trim() || null,
-    sessionTimes: describeSessionTimes(service.sessionTimes),
-    locationWithinSchool: c.locationWithinSchool.trim() || null,
-    directionsUrl: directionsUrl(service),
+    sessionTimes: siteTimes.length ? siteTimes : describeSessionTimes(service.sessionTimes),
+    locationWithinSchool: c.locationWithinSchool.trim() || site?.locationNote?.trim() || null,
+    mapImageUrl: site?.mapImage || null,
+    directionsUrl: site?.geo
+      ? `https://www.google.com/maps/search/?api=1&query=${site.geo.lat},${site.geo.lon}`
+      : directionsUrl(site?.address ? { address: site.address, suburb: null, state: null, postcode: null } : service),
     meetingPoints: c.meetingPoints.trim() || null,
     firstSessionTips: tips,
     welcomeNote: c.welcomeNote.trim() || null,
-    welcomePackUrl: c.welcomePackUrl.trim() || web.welcomePackUrl,
+    welcomePackUrl: c.welcomePackUrl.trim() || site?.welcomePack || web.welcomePackUrl,
     centrePageUrl: web.centrePageUrl,
     program: await upcomingProgram(serviceId, now),
   };
