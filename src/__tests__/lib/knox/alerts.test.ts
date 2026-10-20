@@ -292,6 +292,25 @@ describe("dispatchLevel", () => {
     expect(opsNotes).toHaveLength(1);
   });
 
+  it("no Director AND no State Manager → owners take level 0 (moderate reaches someone) and the ops note says so", async () => {
+    const r = recipients({ directors: [], stateManagers: [], noDirector: true });
+
+    await dispatch(0, "moderate", r);
+    const [, ids] = notifyMock.mock.calls[0] as unknown as [unknown, string[]];
+    expect(ids).toEqual(["own1"]);
+    const rows = rowsWritten();
+    expect(rows.map((x) => [x.channel, x.recipientUserId])).toEqual([["push", "own1"]]);
+    expect(teamsMock).toHaveBeenCalledTimes(1); // the ops note only
+    expect(teamsMock.mock.calls[0][0].body).toBe(
+      "No Director of Service or State Manager configured for Arkana OSHC. Owners have been alerted instead.",
+    );
+
+    teamsMock.mockClear();
+    notifyMock.mockClear();
+    await dispatch(0, "serious", r);
+    expect((notifyMock.mock.calls[0] as unknown as [unknown, string[]])[1]).toEqual(["own1"]);
+  });
+
   it("does not post the no-director note on escalation levels", async () => {
     await dispatch(1, "serious", recipients({ directors: [], noDirector: true }));
     const opsNotes = teamsMock.mock.calls.filter((c) => c[0].body.includes("No Director of Service configured"));

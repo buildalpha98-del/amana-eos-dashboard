@@ -178,7 +178,8 @@ export async function postOpsNote(title: string, body: string): Promise<void> {
  * Send one escalation level for an assessment and record one `TriageAlert`
  * row per recipient per channel.
  *
- *   level 0  moderate: Directors (State Managers when there is no Director)
+ *   level 0  moderate: Directors (State Managers when there is no Director;
+ *            Owners when there is neither)
  *            serious:  the above + State Managers, plus a Teams card
  *   level 1  moderate: State Managers
  *            serious:  Teams card mentioning owners + push to owners
@@ -215,7 +216,15 @@ export async function dispatchLevel(
   const serious = rules.tier === "serious";
 
   if (level === 0) {
-    if (recipients.noDirector) {
+    if (recipients.noDirector && recipients.stateManagers.length === 0) {
+      // Nobody at the centre or state level: the owners take level 0, or a
+      // moderate alert would reach no one at all.
+      await postOpsNote(
+        "Knox: no Director of Service or State Manager",
+        `No Director of Service or State Manager configured for ${subject.service.name}. Owners have been alerted instead.`,
+      );
+      await sendPush(d, recipients.owners);
+    } else if (recipients.noDirector) {
       await postOpsNote(
         "Knox: no Director of Service",
         `No Director of Service configured for ${subject.service.name}. State Managers have been alerted instead.`,
