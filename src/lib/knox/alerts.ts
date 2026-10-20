@@ -4,8 +4,9 @@ import { NOTIFICATION_TYPES } from "@/lib/notification-types";
 import { notifyUsers } from "@/lib/notify-user";
 import { sendTeamsNotification } from "@/lib/teams-notify";
 import { resolveRecipients, type Recipient, type Recipients } from "@/lib/knox/recipients";
+import { loadSubject } from "@/lib/knox/load-subject";
 import { buildContent, type AlertContent } from "@/lib/knox/teams-card";
-import type { RulesResult, ServiceLite, TriageClock, TriageSubject } from "@/lib/knox/types";
+import type { RulesResult, TriageClock, TriageSubject } from "@/lib/knox/types";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 type Level = 0 | 1 | 2;
@@ -272,46 +273,6 @@ export async function dispatchLevel(
 }
 
 // ── Escalation sweep ─────────────────────────────────────
-
-const SERVICE_SELECT = { id: true, name: true, state: true, managerId: true } as const;
-
-/** Small private loader; replace with the shared `loadSubject` when it lands. */
-async function loadSubject(
-  db: Db,
-  type: TriageSubjectType,
-  id: string,
-): Promise<TriageSubject | null> {
-  switch (type) {
-    case "incident": {
-      const row = await db.incidentRecord.findUnique({
-        where: { id },
-        include: { service: { select: SERVICE_SELECT } },
-      });
-      if (!row || row.deleted) return null;
-      const { service, ...record } = row;
-      const childFirstName = row.childName?.trim().split(/\s+/)[0] || null;
-      return { type: "incident", record, service: service as ServiceLite, childFirstName };
-    }
-    case "complaint": {
-      const row = await db.complaintRecord.findUnique({
-        where: { id },
-        include: { service: { select: SERVICE_SELECT } },
-      });
-      if (!row) return null;
-      const { service, ...record } = row;
-      return { type: "complaint", record, service: service as ServiceLite };
-    }
-    case "staff_incident": {
-      const row = await db.staffIncidentReport.findUnique({
-        where: { id },
-        include: { service: { select: SERVICE_SELECT } },
-      });
-      if (!row) return null;
-      const { service, ...record } = row;
-      return { type: "staff_incident", record, service: service as ServiceLite };
-    }
-  }
-}
 
 function asClocks(value: unknown): TriageClock[] {
   return Array.isArray(value) ? (value as TriageClock[]) : [];
