@@ -78,6 +78,8 @@ let enabled: boolean;
 let model: AssessmentResult;
 let recipients: Recipients;
 let throwOnLoad: Set<string>;
+/** Subjects that already have an OPEN Knox follow-up to-do card. */
+let openTodoCardFor: Set<string>;
 
 const incident = (id: string, over: Partial<IncidentRecord> = {}): TriageSubject => ({
   type: "incident",
@@ -211,6 +213,18 @@ beforeEach(() => {
   prismaMock.pendingAction.createMany.mockReset().mockImplementation(
     async (args: { data: unknown[] }) => ({ count: args.data.length }),
   );
+  openTodoCardFor = new Set();
+  prismaMock.pendingAction.findFirst.mockReset().mockImplementation(
+    async (args: { where: { subjectId: string; kind: string; proposedBy: string; committedAt: null; dismissedAt: null } }) =>
+      args.where.kind === "create_followup_todos" &&
+      args.where.proposedBy === "knox" &&
+      args.where.committedAt === null &&
+      args.where.dismissedAt === null &&
+      openTodoCardFor.has(args.where.subjectId)
+        ? { id: "open-todo-card" }
+        : null,
+  );
+  prismaMock.pendingAction.updateMany.mockReset().mockImplementation(async () => ({ count: 1 }));
   prismaMock.$transaction.mockClear();
 
   dispatchMock.mockReset().mockImplementation(async (_db: unknown, args: { assessmentId: string }) => {
@@ -574,6 +588,58 @@ describe("runTriageJob", () => {
     jobs["job-1"].status = "pending";
     expect(await runTriageJob("job-1", NOW)).toBe("done");
     expect(dispatchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-triage supersedes the record's open Knox cards of the kinds it writes, in the same transaction, before the new cards", async () => {
+    setup("inc-1", "moderate", {}, incident("inc-1", { severity: "minor" }));
+    model = modelOk({
+      severityOpinion: "understated",
+      suggestedSeverity: "serious",
+      followUpTodos: [{ title: "Ring the family", dueInDays: 1 }],
+    });
+    expect(await runTriageJob("job-1", NOW)).toBe("done");
+
+    expect(prismaMock.pendingAction.updateMany).toHaveBeenCalledTimes(1);
+    const sup = prismaMock.pendingAction.updateMany.mock.calls[0][0];
+    expect(sup).toEqual({
+      where: {
+        subjectType: "incident",
+        subjectId: "inc-1",
+        proposedBy: "knox",
+        committedAt: null,
+        dismissedAt: null,
+        expiresAt: { gt: NOW },
+        // The to-do kind is never superseded (an open one blocks a new one instead).
+        kind: { in: ["set_severity"] },
+      },
+      data: { dismissedAt: NOW, dismissReason: "superseded" },
+    });
+    expect(prismaMock.pendingAction.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
+      prismaMock.pendingAction.createMany.mock.invocationCallOrder[0],
+    );
+    expect(cardRows().map((c: Record<string, unknown>) => c.kind)).toEqual(["set_severity", "create_followup_todos"]);
+  });
+
+  it("never writes a second follow-up to-do card while one is open for the record", async () => {
+    setup("inc-1", "moderate");
+    openTodoCardFor.add("inc-1");
+    model = modelOk({ followUpTodos: [{ title: "Ring the family", dueInDays: 1 }] });
+    expect(await runTriageJob("job-1", NOW)).toBe("done");
+    expect(prismaMock.pendingAction.createMany).not.toHaveBeenCalled();
+    expect(prismaMock.pendingAction.updateMany).not.toHaveBeenCalled();
+
+    // Another record with no open to-do card gets one.
+    jobs["job-2"] = job("job-2", "inc-2");
+    subjects["inc-2"] = incident("inc-2");
+    tiers["inc-2"] = "moderate";
+    expect(await runTriageJob("job-2", NOW)).toBe("done");
+    expect(cardRows().map((c: Record<string, unknown>) => c.kind)).toEqual(["create_followup_todos"]);
+  });
+
+  it("writes no supersede when there are no new cards", async () => {
+    setup("inc-1", "moderate");
+    expect(await runTriageJob("job-1", NOW)).toBe("done");
+    expect(prismaMock.pendingAction.updateMany).not.toHaveBeenCalled();
   });
 
   it("recipients.noDirector is passed through to dispatchLevel unchanged (the ops note is dispatch's job, not the worker's)", async () => {

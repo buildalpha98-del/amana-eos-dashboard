@@ -36,6 +36,20 @@ const SUBJECT_LABEL: Record<TriageSubjectType, string> = {
   staff_incident: "a staff incident report",
 };
 
+const FOLLOWUP_KIND = "create_followup_todos";
+
+/** Knox's own cards for a record that a person can still approve. */
+function openKnoxCards(subjectType: TriageSubjectType, subjectId: string, now: Date) {
+  return {
+    subjectType,
+    subjectId,
+    proposedBy: "knox",
+    committedAt: null,
+    dismissedAt: null,
+    expiresAt: { gt: now },
+  } satisfies Prisma.PendingActionWhereInput;
+}
+
 function errorText(err: unknown): string {
   return (err instanceof Error ? err.message : String(err)).slice(0, 1000);
 }
@@ -230,11 +244,31 @@ export async function runTriageJob(jobId: string, now: Date = new Date()): Promi
     }
 
     // 9–10. Model fields, cards and job done land together.
-    const cards = shadowMode
+    let cards = shadowMode
       ? []
       : buildCards({ subject, rules, model: result.ok ? result.data : null, now });
+    // Never a second to-do card while one is still open for this record:
+    // approving both would create the to-dos twice.
+    if (cards.some((c) => c.kind === FOLLOWUP_KIND)) {
+      const openTodoCard = await prisma.pendingAction.findFirst({
+        where: { ...openKnoxCards(subjectType, subjectId, now), kind: FOLLOWUP_KIND },
+        select: { id: true },
+      });
+      if (openTodoCard) cards = cards.filter((c) => c.kind !== FOLLOWUP_KIND);
+    }
+    // A fresh card replaces any still-open Knox card of the same kind for this
+    // record, so an older `mark_reportable` cannot be approved over a newer one.
+    const supersededKinds = [...new Set(cards.map((c) => c.kind))].filter((k) => k !== FOLLOWUP_KIND);
     await prisma.$transaction([
       prisma.triageAssessment.update({ where: { id: assessmentId }, data: modelUpdate }),
+      ...(supersededKinds.length > 0
+        ? [
+            prisma.pendingAction.updateMany({
+              where: { ...openKnoxCards(subjectType, subjectId, now), kind: { in: supersededKinds } },
+              data: { dismissedAt: now, dismissReason: "superseded" },
+            }),
+          ]
+        : []),
       ...(cards.length > 0
         ? [
             prisma.pendingAction.createMany({
