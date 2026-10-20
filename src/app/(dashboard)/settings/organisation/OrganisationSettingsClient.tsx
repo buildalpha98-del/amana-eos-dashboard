@@ -644,7 +644,8 @@ export function OrganisationSettingsClient({ initialConfig, adminUsers }: Props)
                 Enable Knox
               </span>
               <span className="block text-xs text-muted mt-0.5">
-                When off, Knox does not assess new incidents or complaints at all.
+                When off, Knox queues new incidents but does not assess or alert; switching it on works
+                through the queue (records older than 24 hours never alert).
               </span>
             </span>
           </label>
