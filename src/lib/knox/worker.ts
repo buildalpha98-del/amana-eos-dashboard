@@ -23,8 +23,11 @@ export const MAX_ATTEMPTS = 3;
  */
 export const STALE_RUNNING_MS = 10 * 60 * 1000;
 const DEFAULT_SWEEP_LIMIT = 10;
-/** Leaves headroom inside the tick's 300 s maxDuration (escalation and reconciliation run before it). */
-const DEFAULT_SWEEP_BUDGET_MS = 240_000;
+/**
+ * Leaves headroom inside the tick's 300 s maxDuration. The tick runs
+ * escalation and reconciliation first and passes what is left of this budget.
+ */
+export const DEFAULT_SWEEP_BUDGET_MS = 240_000;
 
 const MIN_MS = 60_000;
 const SAFETY_NET_SEVERITIES: ReadonlySet<string> = new Set(["serious", "reportable"]);

@@ -26,9 +26,12 @@ vi.mock("@/lib/knox/settings", () => ({
 
 const sweepJobs = vi.fn();
 const runEscalationSweep = vi.fn();
+const reconcileMissingJobs = vi.fn();
 vi.mock("@/lib/knox", () => ({
-  sweepJobs: (now: Date) => sweepJobs(now),
+  DEFAULT_SWEEP_BUDGET_MS: 240_000,
+  sweepJobs: (now: Date, opts?: unknown) => sweepJobs(now, opts),
   runEscalationSweep: (db: unknown, now: Date) => runEscalationSweep(db, now),
+  reconcileMissingJobs: (db: unknown, now: Date) => reconcileMissingJobs(db, now),
 }));
 
 const ORIGINAL_ENV = { ...process.env };
@@ -50,6 +53,7 @@ describe("/api/cron/knox-tick", () => {
     getKnoxSettings.mockResolvedValue({ enabled: true, shadowMode: false });
     sweepJobs.mockResolvedValue({ processed: 3, reaped: 1 });
     runEscalationSweep.mockResolvedValue({ escalated: 2 });
+    reconcileMissingJobs.mockResolvedValue({ reconciled: 4 });
   });
 
   afterEach(() => {
@@ -100,6 +104,7 @@ describe("/api/cron/knox-tick", () => {
     expect(await res.json()).toEqual({ skipped: true, reason: "knox_disabled" });
     expect(sweepJobs).not.toHaveBeenCalled();
     expect(runEscalationSweep).not.toHaveBeenCalled();
+    expect(reconcileMissingJobs).not.toHaveBeenCalled();
     expect(complete).toHaveBeenCalledWith({
       skipped: true,
       reason: "knox_disabled",
@@ -107,50 +112,90 @@ describe("/api/cron/knox-tick", () => {
     expect(fail).not.toHaveBeenCalled();
   });
 
-  it("sweeps jobs then runs the escalation sweep and returns all counts", async () => {
+  it("escalates FIRST, then reconciles, then sweeps jobs, and returns all counts", async () => {
     const { GET } = await import("@/app/api/cron/knox-tick/route");
     const res = await GET(createRequest("GET", URL_PATH, AUTH));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ processed: 3, reaped: 1, escalated: 2 });
+    expect(await res.json()).toEqual({ escalated: 2, reconciled: 4, processed: 3, reaped: 1 });
 
-    expect(sweepJobs).toHaveBeenCalledTimes(1);
     expect(runEscalationSweep).toHaveBeenCalledTimes(1);
-    expect(sweepJobs.mock.invocationCallOrder[0]).toBeLessThan(
-      runEscalationSweep.mock.invocationCallOrder[0],
+    expect(reconcileMissingJobs).toHaveBeenCalledTimes(1);
+    expect(sweepJobs).toHaveBeenCalledTimes(1);
+    expect(runEscalationSweep.mock.invocationCallOrder[0]).toBeLessThan(
+      reconcileMissingJobs.mock.invocationCallOrder[0],
+    );
+    expect(reconcileMissingJobs.mock.invocationCallOrder[0]).toBeLessThan(
+      sweepJobs.mock.invocationCallOrder[0],
     );
 
     const now = new Date("2026-10-20T02:00:00Z");
     expect(sweepJobs.mock.calls[0][0]).toEqual(now);
+    // Fake timers: no time passed, so the sweep gets its whole budget.
+    expect(sweepJobs.mock.calls[0][1]).toEqual({ budgetMs: 240_000 });
     expect(runEscalationSweep.mock.calls[0][0]).toBe(prismaMock);
     expect(runEscalationSweep.mock.calls[0][1]).toEqual(now);
+    expect(reconcileMissingJobs.mock.calls[0][0]).toBe(prismaMock);
+    expect(reconcileMissingJobs.mock.calls[0][1]).toEqual(now);
 
-    expect(complete).toHaveBeenCalledWith({
-      processed: 3,
-      reaped: 1,
-      escalated: 2,
-    });
+    expect(complete).toHaveBeenCalledWith({ escalated: 2, reconciled: 4, processed: 3, reaped: 1 });
     expect(fail).not.toHaveBeenCalled();
   });
 
-  it("fails the lock and returns 500 when the job sweep throws", async () => {
+  it("the job sweep gets only what is left of its budget after escalation and reconciliation", async () => {
+    runEscalationSweep.mockImplementation(async () => {
+      vi.advanceTimersByTime(30_000);
+      return { escalated: 0 };
+    });
+    const { GET } = await import("@/app/api/cron/knox-tick/route");
+    await GET(createRequest("GET", URL_PATH, AUTH));
+    expect(sweepJobs.mock.calls[0][1]).toEqual({ budgetMs: 210_000 });
+  });
+
+  it("a throwing job sweep still lets escalation and reconciliation run; the lock fails and the route 500s", async () => {
     sweepJobs.mockRejectedValue(new Error("db down"));
 
     const { GET } = await import("@/app/api/cron/knox-tick/route");
     const res = await GET(createRequest("GET", URL_PATH, AUTH));
     expect(res.status).toBe(500);
+    expect(runEscalationSweep).toHaveBeenCalledTimes(1);
+    expect(reconcileMissingJobs).toHaveBeenCalledTimes(1);
     expect(fail).toHaveBeenCalledTimes(1);
     expect(fail.mock.calls[0][0]).toBeInstanceOf(Error);
     expect(complete).not.toHaveBeenCalled();
-    expect(runEscalationSweep).not.toHaveBeenCalled();
   });
 
-  it("fails the lock when the escalation sweep throws", async () => {
+  it("a throwing escalation sweep does not skip reconciliation or the job sweep", async () => {
     runEscalationSweep.mockRejectedValue(new Error("teams down"));
 
     const { GET } = await import("@/app/api/cron/knox-tick/route");
     const res = await GET(createRequest("GET", URL_PATH, AUTH));
     expect(res.status).toBe(500);
+    expect(reconcileMissingJobs).toHaveBeenCalledTimes(1);
+    expect(sweepJobs).toHaveBeenCalledTimes(1);
     expect(fail).toHaveBeenCalledTimes(1);
+    expect((fail.mock.calls[0][0] as Error).message).toBe("teams down");
     expect(complete).not.toHaveBeenCalled();
+  });
+
+  it("a throwing reconciliation does not skip the job sweep", async () => {
+    reconcileMissingJobs.mockRejectedValue(new Error("query failed"));
+
+    const { GET } = await import("@/app/api/cron/knox-tick/route");
+    const res = await GET(createRequest("GET", URL_PATH, AUTH));
+    expect(res.status).toBe(500);
+    expect(runEscalationSweep).toHaveBeenCalledTimes(1);
+    expect(sweepJobs).toHaveBeenCalledTimes(1);
+    expect(fail).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails the lock when the settings read throws, running no step", async () => {
+    getKnoxSettings.mockRejectedValue(new Error("settings down"));
+
+    const { GET } = await import("@/app/api/cron/knox-tick/route");
+    const res = await GET(createRequest("GET", URL_PATH, AUTH));
+    expect(res.status).toBe(500);
+    expect(fail).toHaveBeenCalledTimes(1);
+    expect(runEscalationSweep).not.toHaveBeenCalled();
+    expect(sweepJobs).not.toHaveBeenCalled();
   });
 });
