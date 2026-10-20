@@ -2,8 +2,6 @@
  * The OWNA handover emails (Daniel, 16 Oct 2026) — sent when staff tick the
  * OWNA checklist on an enrolment, so the family always knows the next step:
  *
- *   ownaInvitationEmail   — "Invitation sent": how to get into OWNA, step by step
- *   ownaExistingEmail     — "Existing access": you're all set, use your login
  *   firstDayConfirmedEmail— "First sessions confirmed": the real first day
  *   casualBookingsEmail   — "Casual bookings only": OWNA's ready, how to book
  *   ownaNudgeEmail        — invitation sent 3+ days ago, still no access
@@ -82,67 +80,6 @@ function baseVars(d: HandoverEmailData) {
     parentEmail: escapeHtml(d.parentEmail),
     helpLine: helpLine(d),
   };
-}
-
-// ── Invitation sent ──────────────────────────────────────────
-
-export async function ownaInvitationEmail(d: HandoverEmailData) {
-  // Values are filled in here: template variables are substituted in ONE
-  // pass, so a {{placeholder}} inside another variable would stay literal.
-  const v = baseVars(d);
-  const steps = numberedSteps([
-    {
-      title: "Find your invitation",
-      body: `Look for an email from <strong>OWNA</strong> sent to <strong>${v.parentEmail}</strong>. If it's not there, check your junk or promotions folder.`,
-    },
-    {
-      title: "Get the OWNA app",
-      body: `Search <strong>“OWNA”</strong> in the App Store or Google Play and download it.`,
-    },
-    {
-      title: "Set your password and sign in",
-      body: `Use the link in the invitation, then sign in with the same email. Your OWNA login is separate from your Amana enrolment login.`,
-    },
-    {
-      title: `Check ${v.childNames}'s days`,
-      body: `Your booked sessions show in OWNA. That's also where you add extra days, mark absences and pay fees.`,
-    },
-  ]);
-  return applyEmailTemplateOverride({
-    key: "parent.ownaInvitation",
-    defaultSubject: "Your OWNA invitation is on its way, {{firstName}}",
-    defaultBody: `
-<h1 style="margin:0 0 12px;color:${GREEN};font-size:24px;font-weight:700;line-height:1.25;">Let's get you into OWNA</h1>
-<p style="margin:0 0 16px;color:${BODY};font-size:15px;line-height:1.7;">
-  Assalamu alaikum {{firstName}}! We've set {{childNames}} up at <strong>{{centreName}}</strong> and sent you an
-  invitation to <strong>OWNA</strong> — the app where you book sessions, see sign-ins and daily updates, and pay fees.
-  It takes about five minutes:
-</p>
-{{steps}}
-{{helpLine}}
-${signOff}`,
-    vars: { ...v, steps },
-    wrap: (b) => parentEmailLayout(b, { transactional: true, preheader: "Four quick steps to get into OWNA and see your booked days." }),
-  }).then((r) => ({ ...r, subject: plain(r.subject) }));
-}
-
-// ── Existing access ──────────────────────────────────────────
-
-export async function ownaExistingEmail(d: HandoverEmailData) {
-  return applyEmailTemplateOverride({
-    key: "parent.ownaExisting",
-    defaultSubject: "{{childNamesPlain}} is now in your OWNA account",
-    defaultBody: `
-<h1 style="margin:0 0 12px;color:${GREEN};font-size:24px;font-weight:700;line-height:1.25;">You're all set in OWNA</h1>
-<p style="margin:0 0 16px;color:${BODY};font-size:15px;line-height:1.7;">
-  Assalamu alaikum {{firstName}}! We've added {{childNames}} at <strong>{{centreName}}</strong> to the OWNA account
-  you already use. Just sign in as usual: your booked days, sign-ins, daily updates and fees are all there.
-</p>
-{{helpLine}}
-${signOff}`,
-    vars: baseVars(d),
-    wrap: (b) => parentEmailLayout(b, { transactional: true, preheader: "Sign in to OWNA as usual — everything's there." }),
-  }).then((r) => ({ ...r, subject: plain(r.subject) }));
 }
 
 // ── First day confirmed ──────────────────────────────────────

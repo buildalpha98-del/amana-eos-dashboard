@@ -5,6 +5,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import { NURTURE_TEMPLATE_MAP } from "@/lib/nurture-template-map";
+import { nurtureDay1CheckinEmail } from "@/lib/email-templates/nurture";
 import { centreWebsiteUrl, nurtureExitSurveyEmail, nurtureSessionReminderEmail } from "@/lib/email-templates";
 import { enrolmentReceivedEmail } from "@/lib/email-templates/parent-account";
 import { UNSUBSCRIBE_URL_TOKEN } from "@/lib/email-templates/base";
@@ -13,8 +14,6 @@ import { centreWelcomeData } from "@/lib/enrolment-welcome";
 import {
   casualBookingsEmail,
   firstDayConfirmedEmail,
-  ownaExistingEmail,
-  ownaInvitationEmail,
   ownaNudgeEmail,
 } from "@/lib/email-templates/owna-handover";
 import { extraDayEmail, missedSessionsEmail, noShowEmail } from "@/lib/email-templates/attendance-journey";
@@ -22,9 +21,7 @@ import { upcomingProgram } from "@/lib/enrolment-welcome";
 import { firstDayCentreMessage } from "@/lib/owna-handover";
 import { centreAlertHtml } from "@/lib/centre-team-alerts";
 
-const HANDOVER: Record<string, typeof ownaInvitationEmail> = {
-  owna_invitation: ownaInvitationEmail,
-  owna_existing: ownaExistingEmail,
+const HANDOVER: Record<string, typeof firstDayConfirmedEmail> = {
   first_day_confirmed: firstDayConfirmedEmail,
   casual_bookings: casualBookingsEmail,
   owna_nudge: ownaNudgeEmail,
@@ -102,7 +99,10 @@ export async function renderJourneyEmail(
     out = nurtureExitSurveyEmail(first, centreName, `${BASE()}/survey/exit`);
   } else if (NURTURE_TEMPLATE_MAP[id]) {
     const feedbackUrl = service ? `${BASE()}/survey/feedback/${service.id}` : `${BASE()}/survey/feedback`;
-    out = await NURTURE_TEMPLATE_MAP[id](first, centreName, `${BASE()}/parent/signup`, feedbackUrl);
+    out =
+      id === "day1_checkin"
+        ? await nurtureDay1CheckinEmail(first, centreName, `${BASE()}/parent/signup`, feedbackUrl, childNames[0])
+        : await NURTURE_TEMPLATE_MAP[id](first, centreName, `${BASE()}/parent/signup`, feedbackUrl);
   }
   if (!out) return null;
   // The real sender fills in each family's own unsubscribe link.

@@ -337,6 +337,9 @@ export async function checkPolicyCompliance(): Promise<ComplianceResult> {
   const errors: string[] = [];
 
   for (const [, userData] of userPendingMap) {
+    // No reminder emails to volunteers (Daniel, 21 Oct 2026). They still
+    // count in the compliance report and the admin summary.
+    if (userData.role === "volunteer") continue;
     try {
       const html = buildUserReminderHtml(
         userData.name.split(" ")[0],

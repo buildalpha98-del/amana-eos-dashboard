@@ -9,6 +9,8 @@ import {
   applyHandoff,
   handoffPatchSchema,
   isCoordinationAction,
+  handoffPlaced,
+  normaliseHandoff,
   placementKey,
   predatesOwnaChecklist,
   readHandoff,
@@ -65,8 +67,10 @@ export const GET = withApiAuth(async (_req, session, context) => {
       )
       .join("; "),
     revision: e.ownaHandoff?.revision ?? 0,
-    state: readHandoff(e.ownaHandoff?.state),
+    state: normaliseHandoff(readHandoff(e.ownaHandoff?.state), e),
     placement: placementKey(e),
+    /** Children placed at a centre — the tick boxes are open (21 Oct 2026). */
+    placed: handoffPlaced(e),
     /** Submitted before the checklist started: counts as done, never emails. */
     legacy: predatesOwnaChecklist(e.createdAt),
     history,
@@ -89,17 +93,12 @@ export const PATCH = withApiAuth(async (req, session, context) => {
         assertEnrolmentAccess(session, e.serviceId);
         for (const child of e.childRecords)
           assertEnrolmentAccess(session, child.serviceId);
-        // Owner / next action can be set while awaiting approval; checklist
-        // ticks need a processed, placed enrolment (they email the family).
-        if (
-          !isCoordinationAction(parsed.data.action) &&
-          (e.status !== "processed" ||
-          !e.serviceId ||
-          !e.childRecords.length ||
-          e.childRecords.some((c) => !c.serviceId || c.status !== "active"))
-        )
+        // Owner / next action can be set any time. Checklist ticks need the
+        // children placed at a centre — before OR after Confirm (Daniel,
+        // 21 Oct 2026: do the OWNA handoff, then press Confirm).
+        if (!isCoordinationAction(parsed.data.action) && !handoffPlaced(e))
           throw ApiError.badRequest(
-            "Confirm the enrolment and assign all children to services with active child records first.",
+            "Assign all the children to a centre first.",
           );
         const current = e.ownaHandoff;
         if ((current?.revision ?? 0) !== parsed.data.revision)
@@ -108,7 +107,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
             "Someone updated this handoff. Reload before saving.",
           );
         const placement = placementKey(e);
-        const state = readHandoff(current?.state);
+        const state = normaliseHandoff(readHandoff(current?.state), e);
         if (current && !state)
           throw ApiError.badRequest("Handoff data needs administrator review.");
         let assignee: { id: string; name: string } | undefined;
@@ -174,7 +173,12 @@ export const PATCH = withApiAuth(async (req, session, context) => {
             } as Prisma.InputJsonValue,
           },
         });
-        return { revision: parsed.data.revision + 1, state: next, legacy: predatesOwnaChecklist(e.createdAt) };
+        return {
+          revision: parsed.data.revision + 1,
+          state: next,
+          legacy: predatesOwnaChecklist(e.createdAt),
+          confirmed: e.status === "processed",
+        };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
@@ -183,13 +187,15 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     // unless staff untick "Email the family".
     const { action, step, notifyFamily } = parsed.data;
     const done = step ? result.state.steps[step] : undefined;
-    // Families from before the checklist started are never emailed.
-    if (action === "complete" && step && done && notifyFamily !== false && !result.legacy) {
+    // Families from before the checklist started are never emailed. Before
+    // Confirm, the email waits: it goes out after the welcome email when
+    // the enrolment is confirmed (sendHeldHandoverEmails).
+    if (action === "complete" && step && done && notifyFamily !== false && !result.legacy && result.confirmed) {
       runAfter(() => onHandoffStepCompleted(id, step, done));
     }
     // 2026-10-20: a confirmed first day always tells the centre (with the
     // Proven Process), even when the family email is unticked.
-    if (action === "complete" && step === "sessions" && done?.firstDay && !result.legacy) {
+    if (action === "complete" && step === "sessions" && done?.firstDay && !result.legacy && result.confirmed) {
       const firstDay = done.firstDay;
       runAfter(() => alertCentreFirstDay(id, firstDay));
     }

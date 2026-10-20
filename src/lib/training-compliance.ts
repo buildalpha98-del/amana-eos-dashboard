@@ -358,6 +358,9 @@ export async function sendTrainingReminders(): Promise<ReminderResult> {
   const errors: string[] = [];
 
   for (const row of report.rows) {
+    // No reminder emails to volunteers (Daniel, 21 Oct 2026). They still
+    // appear in the report and the admin summary.
+    if (row.role === "volunteer") continue;
     try {
       const html = buildUserReminderHtml(
         row.name.split(" ")[0],
@@ -408,7 +411,7 @@ export async function sendTrainingReminders(): Promise<ReminderResult> {
   }
 
   return {
-    staffReminded: report.rows.length,
+    staffReminded: report.rows.filter((r) => r.role !== "volunteer").length,
     overdueCourses: report.totals.overdueCourses,
     emailsSent,
     emailsSuppressed,

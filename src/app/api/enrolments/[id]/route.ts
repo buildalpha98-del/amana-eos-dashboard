@@ -10,6 +10,7 @@ import { syncParentJourney } from "@/lib/parent-journey";
 import { sendEmail } from "@/lib/email";
 import { reissueVerification } from "@/lib/parent-account";
 import { sendEnrolmentWelcome } from "@/lib/enrolment-welcome";
+import { confirmedSessions, sendHeldHandoverEmails } from "@/lib/owna-handover";
 import { runAfter } from "@/lib/run-after";
 import { parseJsonBody } from "@/lib/api-error";
 import { upsertContactsFromSubmission } from "@/lib/enrolment-parent-contacts";
@@ -196,6 +197,9 @@ const { id } = await context!.params!;
         } catch (err) {
           logger.error("Enrolment welcome email failed", { enrolmentId: id, err });
         }
+        // 2026-10-21: OWNA checklist steps ticked before Confirm send their
+        // family emails now — AFTER the welcome, never before it.
+        await sendHeldHandoverEmails(id);
       });
     }
 
@@ -218,7 +222,17 @@ const { id } = await context!.params!;
           where: { enrolmentId: id },
           select: { firstName: true, surname: true, bookingPrefs: true },
         });
-        const firstSessionDate = earliestStartDate(kids);
+        // 2026-10-21: if staff already confirmed the first booked day on the
+        // OWNA checklist, that real date wins over the form's start date.
+        // When its "You're booked in!" email is going out, that send
+        // re-times the series itself (sendHeldHandoverEmails) — skip here.
+        const sessions = await confirmedSessions(id);
+        if (sessions?.firstDay && sessions.notify !== false) return;
+        const firstSessionDate = sessions?.firstDay
+          ? new Date(`${sessions.firstDay}T00:00:00Z`)
+          : sessions?.casual
+            ? null
+            : earliestStartDate(kids);
         const kid = kids[0];
 
         await syncParentJourney({

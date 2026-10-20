@@ -1,8 +1,8 @@
 /**
  * What the OWNA checklist does for the family (Daniel, 16 Oct 2026).
  *
- *   invitation ✓ (sent)     → "Your OWNA invitation is on its way" guide
- *   invitation ✓ (existing) → "You're all set in OWNA"
+ *   invitation ✓            → nothing (21 Oct 2026, Daniel: OWNA sends its
+ *                              own invitation; ours was a duplicate)
  *   sessions ✓ + first day  → "You're booked in! First day is …", and the
  *                              first-session emails are re-timed to that day
  *   sessions ✓ casual only  → "You're ready to book" (how to book casually),
@@ -22,14 +22,12 @@ import { logger } from "@/lib/logger";
 import { centreWelcomeData } from "@/lib/enrolment-welcome";
 import { syncParentJourney } from "@/lib/parent-journey";
 import { alertCentreTeam, childNamesFrom } from "@/lib/centre-team-alerts";
-import { OWNA_CHECKLIST_START, readHandoff, type HandoffStep } from "@/lib/owna-handoff";
+import { OWNA_CHECKLIST_START, predatesOwnaChecklist, readHandoff, type HandoffStep } from "@/lib/owna-handoff";
 import { escapeHtml } from "@/lib/email-templates/base";
 import {
   casualBookingsEmail,
   firstDayConfirmedEmail,
   formatFirstDay,
-  ownaExistingEmail,
-  ownaInvitationEmail,
   ownaNudgeEmail,
   type HandoverEmailData,
 } from "@/lib/email-templates/owna-handover";
@@ -184,6 +182,39 @@ export async function alertCentreFirstDay(enrolmentId: string, firstDay: string)
   }
 }
 
+/**
+ * Daniel, 21 Oct 2026: the OWNA checklist can be ticked BEFORE Confirm.
+ * The family emails those ticks would send are held, and go out here —
+ * called when the enrolment is confirmed, right after the welcome email —
+ * in step order, honouring each step's "Email the family" choice. The
+ * centre's "Booked in" email goes too. Idempotency keys match the direct
+ * sends, so nothing is sent twice. Swallow-and-log.
+ */
+export async function sendHeldHandoverEmails(enrolmentId: string): Promise<void> {
+  try {
+    const row = await prisma.enrolmentOwnaHandoff.findUnique({
+      where: { enrolmentId },
+      select: { state: true, enrolment: { select: { createdAt: true } } },
+    });
+    if (!row || predatesOwnaChecklist(row.enrolment.createdAt)) return;
+    const steps = readHandoff(row.state)?.steps;
+    if (!steps) return;
+    if (steps.sessions && steps.sessions.notify !== false)
+      await onHandoffStepCompleted(enrolmentId, "sessions", steps.sessions);
+    if (steps.sessions?.firstDay) await alertCentreFirstDay(enrolmentId, steps.sessions.firstDay);
+  } catch (err) {
+    logger.error("Held OWNA handover emails failed", { enrolmentId, err });
+  }
+}
+
+/** The first-session details staff confirmed on the checklist, if any. */
+export async function confirmedSessions(
+  enrolmentId: string,
+): Promise<{ firstDay?: string; casual?: boolean; notify?: boolean } | null> {
+  const row = await prisma.enrolmentOwnaHandoff.findUnique({ where: { enrolmentId }, select: { state: true } });
+  return readHandoff(row?.state)?.steps.sessions ?? null;
+}
+
 /** Called after a checklist step is saved as complete. */
 export async function onHandoffStepCompleted(
   enrolmentId: string,
@@ -191,16 +222,12 @@ export async function onHandoffStepCompleted(
   completion: { at: string; mode?: "sent" | "existing"; firstDay?: string; casual?: boolean },
 ): Promise<void> {
   try {
-    if (step !== "invitation" && step !== "sessions") return;
+    // Only "First sessions confirmed" emails the family (21 Oct 2026: the
+    // invitation email was dropped — OWNA sends its own).
+    if (step !== "sessions") return;
     const d = await handoverData(enrolmentId, completion.firstDay);
     if (!d) return;
 
-    if (step === "invitation") {
-      const { subject, html } = completion.mode === "existing" ? await ownaExistingEmail(d) : await ownaInvitationEmail(d);
-      await sendEmail({ to: d.parentEmail, subject, html }, { idempotencyKey: `owna-invitation-${enrolmentId}-${completion.at}` });
-      await recordMarketingSends(prisma, [{ email: d.parentEmail }], { source: "lifecycle" });
-      return;
-    }
 
     // The centre's welcome pack PDF, attached to both sessions emails —
     // every new family gets it, first day booked or casual (20 Oct 2026).

@@ -20,11 +20,12 @@ export const POST = withApiAuth(async (req, session) => {
   }
 
   // Determine the base URL for the internal cron call
+  // 2026-10-21: the old ternary bound to the WHOLE `||` expression, so it
+  // always built https://${VERCEL_URL} — "https://undefined" when only
+  // NEXTAUTH_URL was set. NEXTAUTH_URL (the real site) first.
   const baseUrl =
     process.env.NEXTAUTH_URL ||
-    process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
   try {
     const res = await fetch(`${baseUrl}/api/cron/owna-sync`, {

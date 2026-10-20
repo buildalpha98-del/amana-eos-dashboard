@@ -21,7 +21,7 @@ vi.mock("@/lib/logger", () => ({
 import { sendEmail } from "@/lib/email";
 import { notifyUsers } from "@/lib/notify-user";
 import { syncParentJourney } from "@/lib/parent-journey";
-import { alertCentreFirstDay, onHandoffStepCompleted, runOwnaNudges } from "@/lib/owna-handover";
+import { alertCentreFirstDay, onHandoffStepCompleted, runOwnaNudges, sendHeldHandoverEmails } from "@/lib/owna-handover";
 import { rescheduleFirstSession } from "@/lib/nurture-scheduler";
 import { handoffPatchSchema } from "@/lib/owna-handoff";
 
@@ -50,19 +50,11 @@ beforeEach(() => {
 });
 
 describe("ticking the OWNA checklist emails the family", () => {
-  it("invitation sent → the step-by-step guide, with their own email filled in", async () => {
-    await onHandoffStepCompleted("e1", "invitation", { at: "2026-10-16T01:00:00Z", mode: "sent" });
-    const [m] = sent();
-    expect(m.to).toBe("sarah@example.test");
-    expect(m.subject).toBe("Your OWNA invitation is on its way, Sarah");
-    expect(m.html).toContain("sarah@example.test");
-    expect(m.html).not.toContain("{{");
-    expect(vi.mocked(sendEmail).mock.calls[0][1]).toEqual({ idempotencyKey: "owna-invitation-e1-2026-10-16T01:00:00Z" });
-  });
-
-  it("existing access → you're all set", async () => {
+  // Daniel, 21 Oct 2026: OWNA sends its own invitation — ours was a duplicate.
+  it("invitation sent / existing access → no email from us", async () => {
+    await onHandoffStepCompleted("e1", "invitation", { at: "t", mode: "sent" });
     await onHandoffStepCompleted("e1", "invitation", { at: "t", mode: "existing" });
-    expect(sent()[0].subject).toBe("Yusuf is now in your OWNA account");
+    expect(vi.mocked(sendEmail)).not.toHaveBeenCalled();
   });
 
   it("first sessions confirmed → the date, and the first-session emails re-timed to it", async () => {
@@ -129,6 +121,57 @@ describe("ticking the OWNA checklist emails the family", () => {
     const r = handoffPatchSchema.safeParse({ revision: 1, action: "complete", step: "sessions", evidence: "Booked in OWNA" });
     expect(r.success).toBe(false);
     expect(handoffPatchSchema.safeParse({ revision: 1, action: "complete", step: "sessions", evidence: "x", firstDay: "2026-10-21" }).success).toBe(true);
+  });
+});
+
+describe("ticked before Confirm: held emails go out at Confirm", () => {
+  const by = { id: "u", name: "U" };
+  it("sends the family emails that were left ticked, and tells the centre", async () => {
+    prismaMock.enrolmentOwnaHandoff.findUnique.mockResolvedValue({
+      enrolment: { createdAt: new Date("2026-10-20T00:00:00Z") },
+      state: {
+        placement: "p",
+        owner: null,
+        note: "",
+        steps: {
+          children: { at: "t1", by, evidence: "" },
+          invitation: { at: "t2", by, evidence: "", mode: "sent" },
+          sessions: { at: "t3", by, evidence: "", firstDay: "2026-10-27" },
+        },
+      },
+    });
+    await sendHeldHandoverEmails("e1");
+    const subjects = vi.mocked(sendEmail).mock.calls.map((c) => (c[0] as { subject: string }).subject);
+    expect(subjects).toEqual([
+      "You're booked in! Yusuf's first day is Tuesday 27 October",
+      "Booked in: Yusuf's first day is Tuesday 27 October",
+    ]);
+  });
+  it("honours an unticked 'Email the family' — the centre still hears about the first day", async () => {
+    prismaMock.enrolmentOwnaHandoff.findUnique.mockResolvedValue({
+      enrolment: { createdAt: new Date("2026-10-20T00:00:00Z") },
+      state: {
+        placement: "p",
+        owner: null,
+        note: "",
+        steps: {
+          children: { at: "t1", by, evidence: "" },
+          invitation: { at: "t2", by, evidence: "", mode: "sent", notify: false },
+          sessions: { at: "t3", by, evidence: "", firstDay: "2026-10-27", notify: false },
+        },
+      },
+    });
+    await sendHeldHandoverEmails("e1");
+    const subjects = vi.mocked(sendEmail).mock.calls.map((c) => (c[0] as { subject: string }).subject);
+    expect(subjects).toEqual(["Booked in: Yusuf's first day is Tuesday 27 October"]);
+  });
+  it("families from before the checklist started get nothing", async () => {
+    prismaMock.enrolmentOwnaHandoff.findUnique.mockResolvedValue({
+      enrolment: { createdAt: new Date("2026-10-10T00:00:00Z") },
+      state: { placement: "p", owner: null, note: "", steps: { invitation: { at: "t", by, evidence: "", mode: "sent" } } },
+    });
+    await sendHeldHandoverEmails("e1");
+    expect(vi.mocked(sendEmail)).not.toHaveBeenCalled();
   });
 });
 
