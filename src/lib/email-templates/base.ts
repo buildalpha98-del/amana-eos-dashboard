@@ -151,11 +151,10 @@ export function parentEmailLayout(content: string, opts?: { preheader?: string; 
           <!-- Footer: Midnight Green, compliant + inviting -->
           <tr>
             <td style="background-color:${BRAND_COLOR};padding:28px 32px;text-align:center;">
-              <p style="margin:0 0 6px;color:${JONQUIL};font-size:15px;font-weight:700;">
-                Questions? We're real people.
-              </p>
-              <p style="margin:0 0 18px;color:${COSMIC_LATTE};font-size:13px;line-height:1.7;">
-                Reply to this email anytime — we read every message.
+              <!-- Daniel, 20 Oct 2026: questions go to the enrolments inbox. -->
+              <p style="margin:0 0 18px;color:${JONQUIL};font-size:15px;font-weight:700;line-height:1.6;">
+                Questions? Email
+                <a href="mailto:enrolment@amanaoshc.com.au" style="color:${JONQUIL};text-decoration:underline;word-break:break-all;">enrolment@amanaoshc.com.au</a>
               </p>
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 20px;">
                 <tr>
