@@ -1,0 +1,37 @@
+{
+  "_doc": "Accepted production advisories. Each needs an owner, a reason it is not reachable, and an expiry \u2014 scripts/check-advisories.mjs fails CI once an entry expires or a high/critical advisory appears that isn't listed. See docs/security/dependency-advisories.md.",
+  "exceptions": [
+    {
+      "packages": [
+        "puppeteer-core",
+        "@puppeteer/browsers",
+        "extract-zip",
+        "proxy-agent",
+        "pac-proxy-agent",
+        "get-uri",
+        "basic-ftp"
+      ],
+      "advisories": [
+        "GHSA-jmr9-qjv8-65gv",
+        "GHSA-7pqw-9j4j-h8q3",
+        "GHSA-c475-qrg2-pj4r"
+      ],
+      "owner": "Daniel",
+      "reason": "@puppeteer/browsers is loaded to spawn Chromium, but the vulnerable code (extract-zip unpacking, basic-ftp/get-uri/proxy-agent downloading) only runs when a browser is INSTALLED. src/lib/pdf/render-contract.ts always launches the @sparticuz/chromium executable and never installs or downloads one (pinned by src/__tests__/lib/render-contract-launch.test.ts). The fix is puppeteer-core 25, which needs Node >=22.12; CI and builds run Node 20.",
+      "expires": "2027-01-31"
+    },
+    {
+      "packages": [
+        "mammoth",
+        "argparse",
+        "sprintf-js"
+      ],
+      "advisories": [
+        "GHSA-hp3w-g68c-fv3c"
+      ],
+      "owner": "Daniel",
+      "reason": "sprintf-js is reached only through argparse, which mammoth uses for its command-line tool. The app calls mammoth.convertToHtml / extractRawText, which never touch argparse. npm's suggested fix is a major DOWNGRADE of mammoth.",
+      "expires": "2027-01-31"
+    }
+  ]
+}
