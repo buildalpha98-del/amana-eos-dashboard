@@ -1,6 +1,7 @@
 "use client";
 
 import { upload } from "@vercel/blob/client";
+import { getSession } from "next-auth/react";
 import {
   ABSOLUTE_MAX_UPLOAD,
   SERVERLESS_BODY_LIMIT,
@@ -8,6 +9,7 @@ import {
   describeRecordingOversizeError,
   isCompressibleImage,
   needsDirectUpload,
+  recordingUploadPath,
   type UploadContext,
 } from "@/lib/upload-strategy";
 
@@ -93,7 +95,10 @@ export async function uploadFileSmart(
     const oversizeRec = describeRecordingOversizeError(input.size);
     if (oversizeRec) throw new Error(oversizeRec);
 
-    const blob = await upload(input.name, input, {
+    // The server only issues recording tokens for the uploader's own folder.
+    const userId = (await getSession())?.user?.id;
+    if (!userId) throw new Error("Your session has expired — sign in again to upload the recording");
+    const blob = await upload(recordingUploadPath(userId, input.name), input, {
       access: "public",
       handleUploadUrl: "/api/upload/blob-token",
       contentType: input.type,
@@ -143,8 +148,8 @@ export async function uploadFileSmart(
     contentType: file.type,
   });
 
-  // The bytes never crossed our server, so sniff them now. A blob that fails
-  // verification is deleted server-side; surface the reason to the user.
+  // The bytes never crossed our server, so sniff them now. Verification is
+  // read-only (it never deletes); surface the reason to the user.
   const verify = await fetch("/api/upload/verify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

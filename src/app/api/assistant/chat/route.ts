@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { getAI } from "@/lib/ai";
 import { buildDashboardContext } from "@/lib/ai-context";
-import { ASSISTANT_TOOLS, executeToolCall } from "@/lib/ai-tools";
+import { getAssistantTools, executeToolCall } from "@/lib/ai-tools";
+import { isAdminRole } from "@/lib/role-permissions";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
@@ -54,19 +55,18 @@ export const POST = withApiAuth(async (req, session) => {
   // staff lists, expiring certs, enquiry pipeline) that should stay
   // admin-only even when accessed through the bot. Admins keep the
   // full set.
-  const role = session!.user.role;
-  const isAdmin = role === "owner" || role === "admin" || role === "head_office";
+  const viewer = {
+    id: session.user.id,
+    role: session.user.role,
+    serviceId: session.user.serviceId,
+  };
+  const isAdmin = isAdminRole(viewer.role);
   // Non-admin staff get the knowledge base + curated web fetch.
   // fetch_oshc_reference is read-only public info from regulator
   // sites so it's safe for educators to trigger when an answer isn't
   // in the internal library.
-  const allowedTools = isAdmin
-    ? ASSISTANT_TOOLS
-    : ASSISTANT_TOOLS.filter(
-        (t) =>
-          t.name === "search_knowledge_base" ||
-          t.name === "fetch_oshc_reference",
-      );
+  const allowedTools = getAssistantTools(viewer);
+  const allowedToolNames = new Set(allowedTools.map(tool => tool.name));
 
   // Build system prompt with live dashboard context.
   //
@@ -221,14 +221,20 @@ export const POST = withApiAuth(async (req, session) => {
           // Execute tool calls and build tool results
           const toolResults: Anthropic.Messages.ToolResultBlockParam[] = [];
           for (const toolBlock of toolUseBlocks) {
+            if (!allowedToolNames.has(toolBlock.name)) {
+              logger.warn("Assistant returned a forbidden tool", { userId: viewer.id });
+              toolResults.push({
+                type: "tool_result",
+                tool_use_id: toolBlock.id,
+                content: JSON.stringify({ error: "Tool not permitted" }),
+                is_error: true,
+              });
+              continue;
+            }
             const result = await executeToolCall(
               toolBlock.name,
-              toolBlock.input as Record<string, unknown>,
-              {
-                id: session!.user.id,
-                role: session!.user.role,
-                serviceId: session!.user.serviceId,
-              },
+              toolBlock.input,
+              viewer,
             );
             toolResults.push({
               type: "tool_result",

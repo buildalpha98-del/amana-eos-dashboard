@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { deleteFile } from "@/lib/storage";
+import { isStoredFileUrl } from "@/lib/blob-proxy";
+import { isOwnRecordingPath } from "@/lib/upload-strategy";
 import { logger } from "@/lib/logger";
 import {
   buildDeepgramCallbackUrl,
@@ -45,12 +47,17 @@ export const POST = withApiAuth(
       );
     }
 
-    // Only our own blob store — never register (or later delete) an
-    // arbitrary URL. Same rule as /api/upload/verify.
-    const host = new URL(parsed.data.url).hostname;
-    if (!host.endsWith(".blob.vercel-storage.com")) {
+    // Only the caller's own recording upload. Every recording's audio is
+    // deleted later (here on failure, by the Deepgram webhook, or by the
+    // janitor), so accepting any other blob URL would let a user get someone
+    // else's file deleted. The token route only issues recording uploads
+    // under recordings/<userId>/ (src/lib/upload-strategy.ts).
+    if (
+      !isStoredFileUrl(parsed.data.url) ||
+      !isOwnRecordingPath(decodeURIComponent(new URL(parsed.data.url).pathname).slice(1), session.user.id)
+    ) {
       return NextResponse.json(
-        { error: "Not a blob-storage URL" },
+        { error: "That isn't one of your recording uploads" },
         { status: 400 },
       );
     }

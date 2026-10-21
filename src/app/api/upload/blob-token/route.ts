@@ -7,6 +7,7 @@ import {
   RECORDING_ALLOWED_MIMES,
   RECORDING_MAX_UPLOAD,
   UPLOAD_ALLOWED_MIMES,
+  isOwnRecordingPath,
 } from "@/lib/upload-strategy";
 
 /**
@@ -20,8 +21,9 @@ import {
  * still go to `/api/upload`, which sniffs magic bytes server-side. A direct
  * upload never passes through our server, so the bytes cannot be sniffed on
  * the way in; the client must call `/api/upload/verify` afterwards, which
- * range-reads the stored object and deletes it if the content does not match
- * its declared type. Content type and size are additionally pinned into the
+ * range-reads the stored object and rejects it if the content does not match
+ * its declared type. Verification is read-only until a server-owned upload
+ * lifecycle can authorise cleanup. Content type and size are pinned into the
  * token below and enforced by Blob itself at the storage edge.
  */
 export const POST = withApiAuth(async (req, session) => {
@@ -31,7 +33,7 @@ export const POST = withApiAuth(async (req, session) => {
     const jsonResponse = await handleUpload({
       body,
       request: req,
-      onBeforeGenerateToken: async (_pathname, clientPayload) => {
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
         // 2026-08-31: the recording lane (meeting audio/video) has its own
         // allow-list and a 500 MB ceiling. Default lane byte-identical.
         let isRecording = false;
@@ -43,6 +45,11 @@ export const POST = withApiAuth(async (req, session) => {
           } catch {
             // Malformed payload — treat as default lane.
           }
+        }
+        // Recordings are deleted after transcription, so they must sit in the
+        // uploader's own folder; nothing else may write into recordings/.
+        if (isRecording ? !isOwnRecordingPath(pathname, session.user.id) : pathname.startsWith("recordings/")) {
+          throw new Error("Recordings must be uploaded to your own folder");
         }
         return {
           allowedContentTypes: isRecording
