@@ -445,6 +445,8 @@ describe("partitionNavSection", () => {
     const ops = filterNavItems(navItems, "admin").filter((i) => i.section === "Operations");
     const { core } = partitionNavSection(ops, "admin");
     expect(core.map((i) => i.href)).toEqual([
+      // 2026-10-21: Amana HQ — one place for every centre's numbers.
+      "/hq",
       "/services",
       "/bookings",
       "/financials",

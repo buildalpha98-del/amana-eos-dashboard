@@ -133,6 +133,8 @@ export const allPages = [
   "/services",
   // 2026-10-21: program materials orders (Cowork round → centres answer → HQ carts).
   "/materials",
+  // 2026-10-21: Amana HQ — the master accounts tracker + everything HQ watches.
+  "/hq",
   "/services/[id]",
   "/projects",
   "/tickets",

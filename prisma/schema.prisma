@@ -3040,6 +3040,11 @@ model Service {
   materialsLines        MaterialsOrderLine[]
   materialsCarts        MaterialsCart[]
   budgetBankEntries     BudgetBankEntry[]
+  ownaStaffHours        OwnaStaffHours[]
+  weeklyAccounts        ServiceWeeklyAccounts[]
+  groceryOrders         GroceryOrder[]
+  stockItems            StockItem[]
+  programFeedbackWeeks  ProgramFeedbackWeek[]
   programActivities     ProgramActivity[]              @relation("ServicePrograms")
   menuWeeks             MenuWeek[]                     @relation("ServiceMenus")
   programPlanSyncs      ProgramPlanSync[]              @relation("ServiceProgramPlanSyncs")
@@ -4585,6 +4590,9 @@ model DailyAttendance {
   capacity     Int         @default(0)
   casual       Int         @default(0)
   absent       Int         @default(0)
+  /// Fees OWNA charged for this day + session (21 Oct 2026, via Cowork's
+  /// OWNA run). Null = not reported; Financials then estimates from rates.
+  feesCharged  Float?
   notes        String?     @db.Text
   recordedById String?
   recordedBy   User?       @relation("AttendanceRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
@@ -4700,6 +4708,9 @@ model BudgetItem {
   /// Paid from the centre's budget bank (21 Oct 2026) — not this month's
   /// budget, so it doesn't count against the month or its rollover.
   fundedFromBank Boolean         @default(false)
+  /// Stable key for rows pushed by Cowork (e.g. "woolies:331654698",
+  /// "resource:MFIS-HP:715333153") — re-sending updates instead of duplicating.
+  externalRef String?           @unique
   createdById String?
   createdBy   User?              @relation("BudgetItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt   DateTime           @default(now())
@@ -11681,4 +11692,129 @@ model BudgetBankEntry {
 
   @@unique([serviceId, kind, budget, month])
   @@index([serviceId, createdAt])
+}
+
+// ============================================================
+// Staff hours from OWNA (Daniel, 21 Oct 2026): Cowork reads each centre's
+// staff sign-in / sign-out times from OWNA on its data runs. Staff cost in
+// Amana HQ = these hours × the person's contract pay rate (OWNA holds no
+// pay rates). One row per centre / day / staff member.
+// ============================================================
+
+model OwnaStaffHours {
+  id        String   @id @default(cuid())
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  staffName String
+  /// The dashboard user, matched by email or name at the centre.
+  userId    String?
+  signIn    String?
+  signOut   String?
+  hours     Float
+  updatedAt DateTime @updatedAt
+
+  @@unique([serviceId, date, staffName])
+  @@index([serviceId, date])
+}
+
+// ============================================================
+// Amana HQ — the master accounts tracker, in the dashboard (Daniel,
+// 21 Oct 2026). Cowork already keeps the "Amana OSHC Master Accounts
+// Tracker" spreadsheet from OWNA HQ every week; it now posts the same rows
+// to /api/cowork/accounts instead, and Amana HQ (/hq) shows them.
+// ============================================================
+
+/// Weekly Log: one row per centre per week, from OWNA HQ (bookings +
+/// revenue: Attendances → Weekly Attendances; staff cost: Financials →
+/// Revenue vs Staff Costs, TIMESHEET cost incl. super).
+model ServiceWeeklyAccounts {
+  id           String   @id @default(cuid())
+  serviceId    String
+  service      Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  /// Monday of the week.
+  weekStart    DateTime @db.Date
+  /// e.g. "NSW W1"
+  termWeek     String?
+  bscBookings  Int      @default(0)
+  ascBookings  Int      @default(0)
+  bscRevenue   Float    @default(0)
+  ascRevenue   Float    @default(0)
+  /// Holiday Quest, pupil-free days, vacation care.
+  otherRevenue Float    @default(0)
+  /// Booked fees before CCS (OWNA HQ's revenue figure), not cash received.
+  totalRevenue Float    @default(0)
+  /// Timesheet cost incl. super (OWNA HQ). Excludes head office wages,
+  /// workers comp, payroll tax and overheads.
+  staffCost    Float?
+  notes        String?  @db.Text
+  updatedAt    DateTime @updatedAt
+
+  @@unique([serviceId, weekStart])
+  @@index([weekStart])
+}
+
+/// Woolies orders: one row per grocery order. Counts as the centre's
+/// grocery spend (a linked BudgetItem), so it feeds the budget + bank.
+model GroceryOrder {
+  id             String    @id @default(cuid())
+  serviceId      String
+  service        Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  retailer       String    @default("Woolworths")
+  orderNo        String
+  deliveryDate   DateTime  @db.Date
+  deliveryWindow String?
+  /// Monday of the first week the order covers.
+  weekStart      DateTime  @db.Date
+  weeksCovered   Int       @default(1)
+  budget         Float?
+  foodSpend      Float
+  totalPaid      Float?
+  notes          String?   @db.Text
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([serviceId, orderNo])
+  @@index([serviceId, weekStart])
+}
+
+/// Stock lists: one row per item per centre, from each stocktake.
+model StockItem {
+  id                   String    @id @default(cuid())
+  serviceId            String
+  service              Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  category             String?
+  item                 String
+  /// consumable | durable
+  type                 String    @default("consumable")
+  qtyOnHand            Float?
+  unit                 String?
+  reorderAt            Float?
+  lastCounted          DateTime? @db.Date
+  lastReplaced         DateTime? @db.Date
+  timesReplacedThisYear Int      @default(0)
+  notes                String?   @db.Text
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([serviceId, item])
+}
+
+/// Program feedback: one row per centre per week — the Friday check-in
+/// replies and OWNA reflections.
+model ProgramFeedbackWeek {
+  id                 String   @id @default(cuid())
+  serviceId          String
+  service            Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  weekStart          DateTime @db.Date
+  termWeek           String?
+  feedbackReceived   Boolean  @default(false)
+  /// none | partial | complete
+  reflections        String   @default("none")
+  kidsEnjoyed        String?  @db.Text
+  didntWork          String?  @db.Text
+  childrensIdeas     String?  @db.Text
+  resourcesRequested String?  @db.Text
+  notes              String?  @db.Text
+  updatedAt          DateTime @updatedAt
+
+  @@unique([serviceId, weekStart])
 }
