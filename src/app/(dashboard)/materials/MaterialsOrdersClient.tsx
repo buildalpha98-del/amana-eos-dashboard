@@ -89,7 +89,7 @@ const ACTION_CLS: Record<Action, string> = {
   awaiting_reply: "bg-surface text-muted",
 };
 
-export function MaterialsOrdersClient() {
+export function MaterialsOrdersClient({ embedded = false }: { embedded?: boolean } = {}) {
   const [roundId, setRoundId] = useState<string | null>(null);
   const [openCentre, setOpenCentre] = useState<string | null>(null);
   const overview = useQuery<Overview>({
@@ -122,10 +122,12 @@ export function MaterialsOrdersClient() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <PageHeader
-        title="Materials Orders"
-        description="Term program materials: what each centre has, what they buy locally, and what head office orders."
-      />
+      {!embedded && (
+        <PageHeader
+          title="Materials Orders"
+          description="Term program materials: what each centre has, what they buy locally, and what head office orders."
+        />
+      )}
 
       {overview.isPending ? (
         <p className="text-sm text-muted">Loading…</p>

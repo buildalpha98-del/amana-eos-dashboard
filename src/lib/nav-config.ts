@@ -54,7 +54,7 @@ import {
   Palette,
   Bell,
   Link2,
-  ShieldAlert, Package } from "lucide-react";
+  ShieldAlert, Package, Landmark } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
 import { EOS_ROLES } from "@/lib/role-enum";
@@ -200,6 +200,7 @@ export const navItems: NavItem[] = [
   // happens. A second top-level door to the same templates meant leaving
   // the centre you were programming for to reach them.
   { href: "/activity-library", label: "Activity Library", icon: LayoutList, section: "Operations", tooltip: "Reusable activity templates for weekly programming", roles: ["head_office", "admin", "eos"] },
+  { href: "/hq", label: "Amana HQ", icon: Landmark, section: "Operations", tooltip: "Every centre's bookings, revenue, staff cost, food and resources budgets, families and materials — in one place", roles: ["owner", "head_office", "admin"], core: true },
   { href: "/services", label: "Services", icon: Building2, section: "Operations", roles: ALL_NON_MARKETING , core: true },
   // /roll-call top-level removed 2026-04-29 — lives inside /services/[id]?tab=daily-ops&sub=roll-call.
   // Coordinators / staff drill into their service to access the daily roll call grid.

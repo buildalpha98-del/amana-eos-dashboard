@@ -64,6 +64,19 @@ const attendanceSchema = z.object({
   signOutTime: z.string().trim().optional(),
   /** Casual (one-off) booking for this day rather than a regular day. */
   casual: z.boolean().optional(),
+  /** What OWNA charged for this session (the full fee before CCS), if shown. */
+  fee: z.number().nonnegative().max(10_000).optional(),
+});
+
+/** A staff member's sign-in for a day, from OWNA's staff attendance. */
+const staffSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  email: z.string().trim().email().optional(),
+  date: isoDate,
+  signIn: z.string().trim().max(10).optional(),
+  signOut: z.string().trim().max(10).optional(),
+  /** Hours worked; worked out from sign-in/out when left out. */
+  hours: z.number().nonnegative().max(24).optional(),
 });
 
 export const coworkOwnaRunSchema = z.object({
@@ -73,6 +86,8 @@ export const coworkOwnaRunSchema = z.object({
   periodEnd: isoDate.optional(),
   children: z.array(childSchema).max(2000).default([]),
   attendance: z.array(attendanceSchema).max(20000).default([]),
+  /** Staff sign-ins (21 Oct 2026) — staff cost = hours × contract pay rate. */
+  staff: z.array(staffSchema).max(5000).default([]),
 });
 export type CoworkOwnaRun = z.infer<typeof coworkOwnaRunSchema>;
 
@@ -168,7 +183,20 @@ export interface CoworkRunResult {
   attendance: number;
   signedIn: number;
   matched: number;
+  staffDays: number;
+  staffUnmatched: string[];
   errors: string[];
+}
+
+/** "HH:mm" → hours between, or null. */
+function shiftHours(a?: string, b?: string): number | null {
+  const m = (t?: string) => {
+    const x = /^(\d{1,2}):(\d{2})/.exec(t ?? "");
+    return x ? Number(x[1]) * 60 + Number(x[2]) : null;
+  };
+  const s = m(a);
+  const e = m(b);
+  return s != null && e != null && e > s ? Math.round(((e - s) / 60) * 100) / 100 : null;
 }
 
 export async function runCoworkOwnaData(run: CoworkOwnaRun, now = new Date()): Promise<CoworkRunResult | null> {
@@ -208,13 +236,14 @@ export async function runCoworkOwnaData(run: CoworkOwnaRun, now = new Date()): P
   // absent = booked but didn't come. The generic sync writes total/signed-in
   // instead, so restate each day+session Cowork reported.
   try {
-    const groups = new Map<string, { date: string; session: "bsc" | "asc" | "vc"; permanent: number; casual: number; absent: number }>();
+    const groups = new Map<string, { date: string; session: "bsc" | "asc" | "vc"; permanent: number; casual: number; absent: number; fees: number | null }>();
     for (const a of run.attendance) {
       const k = `${a.date}_${a.session}`;
-      const g = groups.get(k) ?? { date: a.date, session: a.session, permanent: 0, casual: 0, absent: 0 };
+      const g = groups.get(k) ?? { date: a.date, session: a.session, permanent: 0, casual: 0, absent: 0, fees: null };
       if (a.casual) g.casual++;
       else g.permanent++;
       if (!a.signedIn) g.absent++;
+      if (a.fee != null) g.fees = (g.fees ?? 0) + a.fee;
       groups.set(k, g);
     }
     const rooms = await resolveRoomIds(service.id, [...new Set([...groups.values()].map((g) => g.session))]);
@@ -222,7 +251,7 @@ export async function runCoworkOwnaData(run: CoworkOwnaRun, now = new Date()): P
       const date = new Date(`${g.date}T00:00:00Z`);
       await prisma.dailyAttendance.upsert({
         where: { serviceId_date_sessionType: { serviceId: service.id, date, sessionType: g.session } },
-        update: { enrolled: g.permanent, attended: g.casual, absent: g.absent },
+        update: { enrolled: g.permanent, attended: g.casual, absent: g.absent, ...(g.fees != null ? { feesCharged: Math.round(g.fees * 100) / 100 } : {}) },
         create: {
           serviceId: service.id,
           date,
@@ -231,12 +260,54 @@ export async function runCoworkOwnaData(run: CoworkOwnaRun, now = new Date()): P
           enrolled: g.permanent,
           attended: g.casual,
           absent: g.absent,
+          feesCharged: g.fees != null ? Math.round(g.fees * 100) / 100 : null,
         },
       });
     }
   } catch (err) {
     logger.error("Cowork OWNA run: daily totals failed", { serviceCode: code, err });
     errors.push(`daily totals: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // Staff hours (21 Oct 2026): matched to the dashboard user by email, else
+  // by name among staff attached to this centre.
+  const staffUnmatched: string[] = [];
+  let staffDays = 0;
+  if (run.staff.length) {
+    try {
+      const people = await prisma.user.findMany({
+        where: {
+          active: true,
+          isCentreAccount: false,
+          OR: [{ serviceId: service.id }, { serviceMemberships: { some: { serviceId: service.id, status: "active" } } }],
+        },
+        select: { id: true, name: true, email: true },
+      });
+      const byEmail = new Map(people.map((p) => [p.email.toLowerCase(), p.id]));
+      const byName = new Map(people.map((p) => [norm(p.name), p.id]));
+      const emails = run.staff.map((x) => x.email?.toLowerCase()).filter((e): e is string => !!e && !byEmail.has(e));
+      if (emails.length) {
+        for (const u of await prisma.user.findMany({ where: { email: { in: emails } }, select: { id: true, email: true } }))
+          byEmail.set(u.email.toLowerCase(), u.id);
+      }
+      for (const x of run.staff) {
+        const hours = x.hours ?? shiftHours(x.signIn, x.signOut);
+        if (hours == null || hours <= 0) continue;
+        const userId = (x.email && byEmail.get(x.email.toLowerCase())) || byName.get(norm(x.name)) || null;
+        if (!userId && !staffUnmatched.includes(x.name)) staffUnmatched.push(x.name);
+        const date = new Date(`${x.date}T00:00:00Z`);
+        const data = { userId, signIn: x.signIn ?? null, signOut: x.signOut ?? null, hours };
+        await prisma.ownaStaffHours.upsert({
+          where: { serviceId_date_staffName: { serviceId: service.id, date, staffName: x.name } },
+          create: { serviceId: service.id, date, staffName: x.name, ...data },
+          update: data,
+        });
+        staffDays++;
+      }
+    } catch (err) {
+      logger.error("Cowork OWNA run: staff hours failed", { serviceCode: code, err });
+      errors.push(`staff hours: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   const matched = await prisma.child.count({
@@ -263,6 +334,8 @@ export async function runCoworkOwnaData(run: CoworkOwnaRun, now = new Date()): P
     attendance: attendance.length,
     signedIn: log.signedIn,
     matched,
+    staffDays,
+    staffUnmatched,
     errors,
   };
 }

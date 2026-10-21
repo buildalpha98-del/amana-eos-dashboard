@@ -6,17 +6,19 @@
  *   sessions   DailyAttendance (OWNA API, Cowork's twice-weekly run, imports)
  *              — permanent + casual, per BSC/ASC/VC, and absences;
  *   occupancy  sessions ÷ (capacity × days with data);
- *   revenue    sessions × the centre's daily rates (an estimate — the same
- *              maths as the attendance-to-financials cron);
- *   staff      rostered hours × contract pay rates (roster cost projection —
- *              an estimate before on-costs; unpriced hours shown);
+ *   revenue    the fees OWNA charged (Cowork's run reports them per session);
+ *              where none were reported, sessions × the centre's daily rates
+ *              (an estimate, labelled as such);
+ *   staff      OWNA staff sign-in hours × contract pay rates; where OWNA sent
+ *              no hours, rostered hours × pay rates (an estimate). Before
+ *              on-costs; hours without a pay rate are flagged;
  *   spend      BudgetItems: purchases, groceries, program materials (bank-
  *              funded purchases separate);
  *   bank       the centre's budget bank balance;
  *   freshness  when attendance last arrived (Cowork run / OWNA sync).
  */
 import { prisma } from "@/lib/prisma";
-import { projectCost, type ContractWindow } from "@/lib/roster-cost";
+import { payRateForShift, projectCost, type ContractWindow } from "@/lib/roster-cost";
 import { serviceMonthStart, serviceWeekStart, addDaysUTC } from "@/lib/timezone";
 
 export type BreakdownPeriod = "this_week" | "last_week" | "this_month" | "last_month";
@@ -43,7 +45,11 @@ export interface CentreBreakdownRow {
   sessions: { bsc: number; asc: number; vc: number; total: number; permanent: number; casual: number; absent: number };
   occupancy: number | null;
   revenue: number;
+  /** "owna" = fees OWNA charged; "estimate" = sessions × daily rates. */
+  revenueSource: "owna" | "estimate";
   staffCost: number;
+  /** "owna" = OWNA staff sign-ins; "roster" = rostered shifts. */
+  staffSource: "owna" | "roster";
   staffHours: number;
   unpricedHours: number;
   purchases: number;
@@ -83,7 +89,7 @@ export async function centreBreakdown(period: BreakdownPeriod, serviceIds: strin
   const [attendance, items, shifts, bank] = await Promise.all([
     prisma.dailyAttendance.findMany({
       where: { serviceId: { in: ids }, date: { gte: from, lt: to } },
-      select: { serviceId: true, date: true, sessionType: true, enrolled: true, attended: true, absent: true },
+      select: { serviceId: true, date: true, sessionType: true, enrolled: true, attended: true, absent: true, feesCharged: true },
     }),
     prisma.budgetItem.findMany({
       where: { serviceId: { in: ids }, date: { gte: from, lt: to } },
@@ -95,7 +101,13 @@ export async function centreBreakdown(period: BreakdownPeriod, serviceIds: strin
     }),
     prisma.budgetBankEntry.groupBy({ by: ["serviceId"], where: { serviceId: { in: ids } }, _sum: { amount: true } }),
   ]);
-  const userIds = [...new Set(shifts.map((s) => s.userId).filter((u): u is string => !!u))];
+  const staffHours = await prisma.ownaStaffHours.findMany({
+    where: { serviceId: { in: ids }, date: { gte: from, lt: to } },
+    select: { serviceId: true, userId: true, date: true, hours: true },
+  });
+  const userIds = [
+    ...new Set([...shifts.map((s) => s.userId), ...staffHours.map((h) => h.userId)].filter((u): u is string => !!u)),
+  ];
   const contracts: ContractWindow[] = userIds.length
     ? (
         await prisma.employmentContract.findMany({
@@ -124,8 +136,28 @@ export async function centreBreakdown(period: BreakdownPeriod, serviceIds: strin
       sess.absent += a.absent;
       capacity += capByType[a.sessionType] ?? 0;
     }
-    const revenue = sess.bsc * (s.bscDailyRate ?? 0) + sess.asc * (s.ascDailyRate ?? 0) + sess.vc * (s.vcDailyRate ?? 0);
-    const cost = projectCost(shifts.filter((x) => x.serviceId === s.id), contracts);
+    // Revenue: OWNA's fees where reported, else the rate estimate.
+    const reportedFees = att.filter((a) => a.feesCharged != null);
+    const revenueSource: "owna" | "estimate" = reportedFees.length ? "owna" : "estimate";
+    const revenue = reportedFees.length
+      ? reportedFees.reduce((t, a) => t + (a.feesCharged ?? 0), 0)
+      : sess.bsc * (s.bscDailyRate ?? 0) + sess.asc * (s.ascDailyRate ?? 0) + sess.vc * (s.vcDailyRate ?? 0);
+    // Staff: OWNA sign-in hours × pay rate where reported, else the roster.
+    const myHours = staffHours.filter((h) => h.serviceId === s.id);
+    const staffSource: "owna" | "roster" = myHours.length ? "owna" : "roster";
+    const cost = myHours.length
+      ? myHours.reduce(
+          (c, h) => {
+            const rate = h.userId ? payRateForShift(contracts, h.userId, h.date) : null;
+            return {
+              totalHours: c.totalHours + h.hours,
+              totalCost: c.totalCost + (rate != null ? h.hours * rate : 0),
+              unpricedHours: c.unpricedHours + (rate != null ? 0 : h.hours),
+            };
+          },
+          { totalHours: 0, totalCost: 0, unpricedHours: 0 },
+        )
+      : projectCost(shifts.filter((x) => x.serviceId === s.id), contracts);
     const mine = items.filter((i) => i.serviceId === s.id);
     const sum = (f: (i: (typeof mine)[number]) => boolean) => round2(mine.filter(f).reduce((t, i) => t + i.amount, 0));
     const purchases = sum((i) => !i.fundedFromBank && i.category !== "groceries" && i.category !== "program_materials");
@@ -142,7 +174,9 @@ export async function centreBreakdown(period: BreakdownPeriod, serviceIds: strin
       sessions: sess,
       occupancy: capacity > 0 ? Math.round((sess.total / capacity) * 1000) / 10 : null,
       revenue: round2(revenue),
+      revenueSource,
       staffCost: round2(cost.totalCost),
+      staffSource,
       staffHours: round2(cost.totalHours),
       unpricedHours: round2(cost.unpricedHours),
       purchases,
