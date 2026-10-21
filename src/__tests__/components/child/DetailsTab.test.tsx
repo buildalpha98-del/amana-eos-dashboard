@@ -71,7 +71,7 @@ describe("DetailsTab", () => {
 
   it("renders child details in view mode (no inputs)", () => {
     const { container } = render(
-      <DetailsTab child={makeChild()} canEdit={false} />,
+      <DetailsTab canSeeBilling child={makeChild()} canEdit={false} />,
     );
     expect(container.textContent).toContain("Amelia");
     expect(container.textContent).toContain("Nguyen");
@@ -80,23 +80,33 @@ describe("DetailsTab", () => {
     expect(container.querySelectorAll("input").length).toBe(0);
   });
 
+  // 2026-10-21 (Daniel): the CRN is billing data — educators don't see it.
+  it("shows the CRN to the office but not to an educator", () => {
+    const office = render(<DetailsTab canSeeBilling child={makeChild()} canEdit={false} />);
+    expect(office.container.textContent).toContain("1234567890");
+    office.unmount();
+    const educator = render(<DetailsTab canSeeBilling={false} child={makeChild()} canEdit={false} />);
+    expect(educator.container.textContent).not.toContain("1234567890");
+    expect(educator.container.textContent).not.toContain("CRN");
+  });
+
   it("hides Edit button when canEdit is false", () => {
     const { container } = render(
-      <DetailsTab child={makeChild()} canEdit={false} />,
+      <DetailsTab canSeeBilling child={makeChild()} canEdit={false} />,
     );
     expect(container.textContent).not.toContain("Edit");
   });
 
   it("shows Edit button when canEdit is true", () => {
     const { container } = render(
-      <DetailsTab child={makeChild()} canEdit={true} />,
+      <DetailsTab canSeeBilling child={makeChild()} canEdit={true} />,
     );
     expect(container.textContent).toContain("Edit");
   });
 
   it("entering edit mode reveals inputs for all 11 fields", () => {
     const { container } = render(
-      <DetailsTab child={makeChild()} canEdit={true} />,
+      <DetailsTab canSeeBilling child={makeChild()} canEdit={true} />,
     );
     fireEvent.click(screen.getByRole("button", { name: /Edit/i }));
     // First name, surname, dob, photo, school, year, crn, enrolmentDate, exitDate, exitCategory = 10 <input>
@@ -108,7 +118,7 @@ describe("DetailsTab", () => {
 
   it("Save sends only dirty fields via mutateApi PATCH", async () => {
     mutateApi.mockResolvedValueOnce({});
-    render(<DetailsTab child={makeChild()} canEdit={true} />);
+    render(<DetailsTab canSeeBilling child={makeChild()} canEdit={true} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Edit/i }));
 
@@ -131,7 +141,7 @@ describe("DetailsTab", () => {
 
   it("shows destructive toast on 403 error", async () => {
     mutateApi.mockRejectedValueOnce(new Error("Forbidden"));
-    render(<DetailsTab child={makeChild()} canEdit={true} />);
+    render(<DetailsTab canSeeBilling child={makeChild()} canEdit={true} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Edit/i }));
 

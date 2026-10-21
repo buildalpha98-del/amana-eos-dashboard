@@ -244,4 +244,24 @@ describe("GET /api/children/[id]/attendances", () => {
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/range/i);
   });
+
+  // 2026-10-21 (Daniel): educators see attendance, never what it cost.
+  it("an educator at the child's centre gets attendance with no fees at all", async () => {
+    mockSession({ id: "e1", name: "Educator", role: "staff", serviceId: "svc-1" });
+    prismaMock.child.findUnique.mockResolvedValue({ id: "child-1", serviceId: "svc-1" });
+    prismaMock.attendanceRecord.findMany.mockResolvedValue([
+      {
+        id: "ar-1", childId: "child-1", date: new Date("2026-04-10T00:00:00.000Z"), sessionType: "asc", status: "present",
+        signInTime: null, signOutTime: null, signedInBy: null, signedOutBy: null, absenceReason: null, notes: null,
+      },
+    ]);
+    prismaMock.booking.findMany.mockResolvedValue([{ date: new Date("2026-04-10T00:00:00.000Z"), sessionType: "asc", fee: 30 }]);
+    const res = await GET(createRequest("GET", "/api/children/child-1/attendances?from=2026-04-01&to=2026-04-30"), ctx({ id: "child-1" }));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.records).toHaveLength(1);
+    expect(data.records[0]).not.toHaveProperty("fee");
+    expect(data.stats).not.toHaveProperty("totalFee");
+    expect(prismaMock.booking.findMany).not.toHaveBeenCalled();
+  });
 });

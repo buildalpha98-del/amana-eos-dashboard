@@ -1,6 +1,7 @@
 import { attendanceRevision } from "@/lib/attendance-revision";
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
+import { canSeeFamilyBilling } from "@/lib/family-billing-access";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
@@ -97,5 +98,10 @@ export const GET = withApiAuth(async (req, session, context) => {
     }),
   ]);
 
-  return NextResponse.json({ children, attendanceRecords, bookings, weekStart });
+  // Educators get the roll, not what each session costs.
+  const visibleBookings = canSeeFamilyBilling(session.user)
+    ? bookings
+    : bookings.map(({ fee: _fee, ...b }) => b);
+
+  return NextResponse.json({ children, attendanceRecords, bookings: visibleBookings, weekStart });
 });

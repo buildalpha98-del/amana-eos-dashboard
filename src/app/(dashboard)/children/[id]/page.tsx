@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/role-permissions";
+import { canSeeFamilyBilling, redactChildBilling } from "@/lib/family-billing-access";
 import { requirePageSession } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { ChildProfileTabs, type ChildProfileTabKey } from "@/components/child/ChildProfileTabs";
@@ -87,16 +88,22 @@ export default async function ChildDetailPage({ params, searchParams }: PageProp
   // Payment hints and the enrolment token are office data — nothing on
   // the profile renders them, so they never need to reach a centre's
   // browser (2026-10-08).
-  const visibleChild =
+  // CRNs are billing data — educators never receive them
+  // (src/lib/family-billing-access.ts).
+  const canSeeBilling = canSeeFamilyBilling(session.user);
+  const visibleChild = redactChildBilling(
+    session.user,
     isAdminRole(role) || !child.enrolment
       ? child
-      : { ...child, enrolment: { ...child.enrolment, paymentDetails: null, paymentMethod: null, token: "" } };
+      : { ...child, enrolment: { ...child.enrolment, paymentDetails: null, paymentMethod: null, token: "" } },
+  );
 
   return (
     <ChildProfileTabs
       child={visibleChild}
       activeTab={tab}
       canEdit={canEdit}
+      canSeeBilling={canSeeBilling}
     />
   );
 }

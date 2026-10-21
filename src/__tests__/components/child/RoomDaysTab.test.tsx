@@ -118,7 +118,7 @@ describe("RoomDaysTab", () => {
 
   it("renders a 2-week × 3-session × 7-day grid (42 checkboxes)", () => {
     const { container } = render(
-      <RoomDaysTab child={makeChild()} canEdit={true} />,
+      <RoomDaysTab canSeeBilling child={makeChild()} canEdit={true} />,
     );
     const checkboxes = container.querySelectorAll(
       'input[type="checkbox"]',
@@ -137,7 +137,7 @@ describe("RoomDaysTab", () => {
         week2: { vc: ["mon"], asc: [], bsc: [] },
       },
     });
-    render(<RoomDaysTab child={child} canEdit={true} />);
+    render(<RoomDaysTab canSeeBilling child={child} canEdit={true} />);
 
     const mon1 = screen.getByLabelText("Week 1 After School Mon") as HTMLInputElement;
     const tue1 = screen.getByLabelText("Week 1 After School Tue") as HTMLInputElement;
@@ -154,7 +154,7 @@ describe("RoomDaysTab", () => {
 
   it("is read-only when canEdit is false — no Save button, disabled cells", () => {
     const { container } = render(
-      <RoomDaysTab child={makeChild()} canEdit={false} />,
+      <RoomDaysTab canSeeBilling child={makeChild()} canEdit={false} />,
     );
     const saveButton = container.querySelector('button:has(svg)');
     expect(container.textContent).not.toContain("Save");
@@ -169,7 +169,7 @@ describe("RoomDaysTab", () => {
 
   it("toggling + saving sends only bookingPrefs.fortnightPattern in PATCH body", async () => {
     mutateApi.mockResolvedValueOnce({});
-    render(<RoomDaysTab child={makeChild()} canEdit={true} />);
+    render(<RoomDaysTab canSeeBilling child={makeChild()} canEdit={true} />);
 
     const cell = screen.getByLabelText("Week 1 After School Mon") as HTMLInputElement;
     fireEvent.click(cell);
@@ -198,7 +198,7 @@ describe("RoomDaysTab", () => {
 
   it("shows destructive toast on PATCH failure", async () => {
     mutateApi.mockRejectedValueOnce(new Error("Forbidden"));
-    render(<RoomDaysTab child={makeChild()} canEdit={true} />);
+    render(<RoomDaysTab canSeeBilling child={makeChild()} canEdit={true} />);
 
     const cell = screen.getByLabelText("Week 1 After School Mon") as HTMLInputElement;
     fireEvent.click(cell);
@@ -211,5 +211,11 @@ describe("RoomDaysTab", () => {
     const toastCall = toastMock.mock.calls[0][0];
     expect(toastCall.variant).toBe("destructive");
     expect(toastCall.description).toContain("Forbidden");
+  });
+
+  // 2026-10-21 (Daniel): discounts are billing — educators don't see them.
+  it("doesn't show the discount card to an educator", () => {
+    const { container } = render(<RoomDaysTab canSeeBilling={false} child={makeChild()} canEdit={false} />);
+    expect(container.textContent).not.toMatch(/discount/i);
   });
 });
