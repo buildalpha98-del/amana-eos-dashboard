@@ -11,6 +11,8 @@ import { ChildServiceCard } from "./ChildServiceCard";
 interface DetailsTabProps {
   child: ChildProfileRecord;
   canEdit: boolean;
+  /** CRN is billing data — hidden from educators. */
+  canSeeBilling: boolean;
 }
 
 type GenderValue = "male" | "female" | "other" | "prefer_not_to_say";
@@ -104,7 +106,7 @@ function buildInitial(child: ChildProfileRecord): FormState {
   };
 }
 
-export function DetailsTab({ child, canEdit }: DetailsTabProps) {
+export function DetailsTab({ child, canEdit, canSeeBilling }: DetailsTabProps) {
   const router = useRouter();
   const initial = useMemo(() => buildInitial(child), [child]);
   const [editing, setEditing] = useState(false);
@@ -446,7 +448,7 @@ export function DetailsTab({ child, canEdit }: DetailsTabProps) {
             />
             <Field label="School" value={child.schoolName ?? "—"} />
             <Field label="Year level" value={child.yearLevel ?? "—"} />
-            <Field label="CRN" value={child.crn ?? "—"} />
+            {canSeeBilling && <Field label="CRN" value={child.crn ?? "—"} />}
             <Field label="Status" value={child.status} />
             <Field label="Preferred name" value={child.preferredName ?? "—"} />
             <Field label="Lives with" value={child.livesWith ?? "—"} />

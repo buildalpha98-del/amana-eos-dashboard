@@ -25,6 +25,8 @@ interface ChildProfileTabsProps {
   child: ChildProfileRecord;
   activeTab: ChildProfileTabKey;
   canEdit: boolean;
+  /** Fees, discounts and CRNs — never for educators (src/lib/family-billing-access.ts). */
+  canSeeBilling: boolean;
 }
 
 const TABS: {
@@ -44,6 +46,7 @@ export function ChildProfileTabs({
   child,
   activeTab,
   canEdit,
+  canSeeBilling,
 }: ChildProfileTabsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -102,13 +105,13 @@ export function ChildProfileTabs({
 
       {/* Tab content */}
       <div className="min-h-[40vh]">
-        {active === "details" && <DetailsTab child={child} canEdit={canEdit} />}
-        {active === "room" && <RoomDaysTab child={child} canEdit={canEdit} />}
+        {active === "details" && <DetailsTab child={child} canEdit={canEdit} canSeeBilling={canSeeBilling} />}
+        {active === "room" && <RoomDaysTab child={child} canEdit={canEdit} canSeeBilling={canSeeBilling} />}
         {active === "relationships" && (
           <RelationshipsTab child={child} canEdit={canEdit} />
         )}
         {active === "medical" && <MedicalTab child={child} canEdit={canEdit} />}
-        {active === "attendances" && <AttendancesTab child={child} />}
+        {active === "attendances" && <AttendancesTab child={child} canSeeBilling={canSeeBilling} />}
         {active === "documents" && (
           <div className="space-y-4">
             {/* The enrolment form and its attachments, above the

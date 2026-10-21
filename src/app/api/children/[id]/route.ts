@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { redactChildBilling } from "@/lib/family-billing-access";
 import { z } from "zod";
 import { generateBookings } from "@/lib/booking-generator";
 import { logger } from "@/lib/logger";
@@ -126,13 +127,14 @@ export const GET = withApiAuth(async (req, session, context) => {
   // any signed-in account. Staff and coordinators see their own centre.
   assertServiceAccess(session, child.serviceId);
 
-  // Bank/card hints and the enrolment's resume token are office data.
+  // Bank/card hints and the enrolment's resume token are office data, and
+  // CRNs are billing data educators never see (src/lib/family-billing-access.ts).
   if (!isAdminRole(session.user.role ?? "") && child.enrolment) {
     const { paymentDetails: _pd, paymentMethod: _pm, token: _t, ...enrolment } = child.enrolment;
-    return NextResponse.json({ ...child, enrolment });
+    return NextResponse.json(redactChildBilling(session.user, { ...child, enrolment }));
   }
 
-  return NextResponse.json(child);
+  return NextResponse.json(redactChildBilling(session.user, child));
 });
 
 export const PATCH = withApiAuth(async (req, session, context) => {

@@ -15,6 +15,8 @@ import { ChildDiscountCard } from "./ChildDiscountCard";
 interface RoomDaysTabProps {
   child: ChildProfileRecord;
   canEdit: boolean;
+  /** Discounts are billing — hidden from educators. */
+  canSeeBilling: boolean;
 }
 
 const SESSION_TYPES = [
@@ -69,7 +71,7 @@ function parsePattern(raw: unknown): FortnightPattern {
   };
 }
 
-export function RoomDaysTab({ child, canEdit }: RoomDaysTabProps) {
+export function RoomDaysTab({ child, canEdit, canSeeBilling }: RoomDaysTabProps) {
   const router = useRouter();
   const initial = useMemo(() => parsePattern(child.bookingPrefs), [child.bookingPrefs]);
   const [pattern, setPattern] = useState<FortnightPattern>(initial);
@@ -229,13 +231,15 @@ export function RoomDaysTab({ child, canEdit }: RoomDaysTabProps) {
       {/* The discount belongs beside the pattern: setting a staff
           member's child onto three days a week and agreeing their rate
           is one conversation, not two screens. */}
-      <ChildDiscountCard
-        childId={child.id}
-        serviceId={child.serviceId}
-        childName={child.firstName}
-        canEdit={canEdit}
-        isStaffChild={child.isStaffChild ?? false}
-      />
+      {canSeeBilling && (
+        <ChildDiscountCard
+          childId={child.id}
+          serviceId={child.serviceId}
+          childName={child.firstName}
+          canEdit={canEdit}
+          isStaffChild={child.isStaffChild ?? false}
+        />
+      )}
     </div>
   );
 }

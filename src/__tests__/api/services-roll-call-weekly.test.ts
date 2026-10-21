@@ -214,6 +214,23 @@ describe("GET /api/services/[id]/roll-call/weekly", () => {
     expect(res.status).toBe(200);
   });
 
+  // 2026-10-21 (Daniel): educators get the roll, not what each session costs.
+  it.each([
+    ["staff", false],
+    ["member", true],
+  ] as const)("session fees reach %s: %s", async (role, seesFees) => {
+    mockSession({ id: "u-1", name: "U", role, serviceId: "svc-1" });
+    prismaMock.child.findMany.mockResolvedValue([]);
+    prismaMock.attendanceRecord.findMany.mockResolvedValue([]);
+    prismaMock.booking.findMany.mockResolvedValue([
+      { id: "b1", childId: "c1", date: new Date("2026-04-20T00:00:00.000Z"), sessionType: "asc", fee: 42 },
+    ]);
+    const res = await GET(createRequest("GET", "/api/services/svc-1/roll-call/weekly?weekStart=2026-04-20"), paramsOf("svc-1"));
+    const data = await res.json();
+    expect(data.bookings).toHaveLength(1);
+    expect("fee" in data.bookings[0]).toBe(seesFees);
+  });
+
   it("filters out cancelled bookings (only confirmed/requested appear)", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
 

@@ -12,6 +12,8 @@ import type { ChildProfileRecord } from "../types";
 
 interface AttendancesTabProps {
   child: ChildProfileRecord;
+  /** Session fees — hidden from educators (the API doesn't send them either). */
+  canSeeBilling: boolean;
 }
 
 // UTC-safe: produce YYYY-MM-DD for the first / last day of a month.
@@ -71,7 +73,7 @@ function formatHours(value: number): string {
   return `${value.toFixed(1)} h`;
 }
 
-export function AttendancesTab({ child }: AttendancesTabProps) {
+export function AttendancesTab({ child, canSeeBilling }: AttendancesTabProps) {
   const defaultRange = useMemo(() => {
     const now = new Date();
     return monthRangeUtc(now.getUTCFullYear(), now.getUTCMonth());
@@ -117,7 +119,7 @@ export function AttendancesTab({ child }: AttendancesTabProps) {
       { header: "Sign-out time", accessor: (r) => r.signOutTime ?? "" },
       { header: "Absence reason", accessor: (r) => r.absenceReason ?? "" },
       { header: "Notes", accessor: (r) => r.notes ?? "" },
-      { header: "Fee", accessor: (r) => (r.fee !== null ? r.fee : "") },
+      ...(canSeeBilling ? [{ header: "Fee", accessor: (r: (typeof records)[number]) => (r.fee != null ? r.fee : "") }] : []),
     ]);
   };
 
@@ -127,7 +129,7 @@ export function AttendancesTab({ child }: AttendancesTabProps) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatTile label="Attendances" value={String(stats.attendances)} />
         <StatTile label="Absences" value={String(stats.absences)} />
-        <StatTile label="Total Fee" value={formatCurrency(stats.totalFee)} />
+        {canSeeBilling && <StatTile label="Total Fee" value={formatCurrency(stats.totalFee ?? 0)} />}
         <StatTile label="Total Hours" value={formatHours(stats.totalHours)} />
       </div>
 
@@ -204,7 +206,7 @@ export function AttendancesTab({ child }: AttendancesTabProps) {
                   <th className="px-4 py-2 text-left font-medium">Sign-in</th>
                   <th className="px-4 py-2 text-left font-medium">Sign-out</th>
                   <th className="px-4 py-2 text-left font-medium">Notes</th>
-                  <th className="px-4 py-2 text-right font-medium">Fee</th>
+                  {canSeeBilling && <th className="px-4 py-2 text-right font-medium">Fee</th>}
                   <th className="px-4 py-2 text-left font-medium">Status</th>
                 </tr>
               </thead>
@@ -236,9 +238,11 @@ export function AttendancesTab({ child }: AttendancesTabProps) {
                     <td className="px-4 py-2 text-foreground max-w-[240px] truncate">
                       {r.absenceReason ?? r.notes ?? "—"}
                     </td>
-                    <td className="px-4 py-2 text-foreground text-right whitespace-nowrap">
-                      {r.fee !== null ? formatCurrency(r.fee) : "—"}
-                    </td>
+                    {canSeeBilling && (
+                      <td className="px-4 py-2 text-foreground text-right whitespace-nowrap">
+                        {r.fee != null ? formatCurrency(r.fee) : "—"}
+                      </td>
+                    )}
                     <td className="px-4 py-2 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${

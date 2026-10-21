@@ -14,7 +14,8 @@ export interface ChildAttendanceRecord {
   signedOutBy: { id: string; name: string } | null;
   absenceReason: string | null;
   notes: string | null;
-  fee: number | null; // from associated Booking if available
+  /** From the associated Booking; absent for educators (no billing). */
+  fee?: number | null;
 }
 
 export interface ChildAttendancesResponse {
@@ -22,7 +23,8 @@ export interface ChildAttendancesResponse {
   stats: {
     attendances: number; // present count
     absences: number;
-    totalFee: number;
+    /** Absent for educators. */
+    totalFee?: number;
     totalHours: number;
   };
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
+import { canSeeFamilyBilling } from "@/lib/family-billing-access";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
@@ -56,7 +57,9 @@ export const GET = withApiAuth(async (req, session, context) => {
 
   // Fees come from Booking on same (childId, date, sessionType) — fetch all
   // bookings for this child in the range and build a lookup map in JS.
-  const bookings = await prisma.booking.findMany({
+  // Educators get attendance only — no fees (src/lib/family-billing-access.ts).
+  const showFees = canSeeFamilyBilling(session.user);
+  const bookings = !showFees ? [] : await prisma.booking.findMany({
     where: {
       childId: id,
       date: { gte: start, lt: end },
@@ -86,14 +89,14 @@ export const GET = withApiAuth(async (req, session, context) => {
       signedOutBy: r.signedOutBy,
       absenceReason: r.absenceReason,
       notes: r.notes,
-      fee,
+      ...(showFees ? { fee } : {}),
     };
   });
 
   const stats = {
     attendances: shaped.filter((r) => r.status === "present").length,
     absences: shaped.filter((r) => r.status === "absent").length,
-    totalFee: shaped.reduce((s, r) => s + (r.fee ?? 0), 0),
+    ...(showFees ? { totalFee: shaped.reduce((s, r) => s + (("fee" in r ? r.fee : null) ?? 0), 0) } : {}),
     totalHours: shaped.reduce((s, r) => {
       if (!r.signInTime || !r.signOutTime) return s;
       const diff =

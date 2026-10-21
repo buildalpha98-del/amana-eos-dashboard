@@ -130,7 +130,7 @@ describe("AttendancesTab", () => {
       refetch: vi.fn(),
     });
 
-    render(<AttendancesTab child={makeChild()} />);
+    render(<AttendancesTab canSeeBilling child={makeChild()} />);
 
     expect(screen.getByText(/Attendances/i)).toBeTruthy();
     expect(screen.getByText("12")).toBeTruthy();
@@ -169,7 +169,7 @@ describe("AttendancesTab", () => {
       },
     ]);
 
-    render(<AttendancesTab child={makeChild()} />);
+    render(<AttendancesTab canSeeBilling child={makeChild()} />);
 
     expect(screen.getByText(/After School/)).toBeTruthy();
     expect(screen.getByText(/Before School/)).toBeTruthy();
@@ -181,7 +181,7 @@ describe("AttendancesTab", () => {
 
   it("changing the from-date triggers the query with the new value", async () => {
     mockData([]);
-    render(<AttendancesTab child={makeChild()} />);
+    render(<AttendancesTab canSeeBilling child={makeChild()} />);
 
     // First call uses the defaulted current-month range
     expect(useChildAttendancesMock).toHaveBeenCalled();
@@ -213,7 +213,7 @@ describe("AttendancesTab", () => {
       },
     ]);
 
-    render(<AttendancesTab child={makeChild({ firstName: "Amelia", surname: "Nguyen" })} />);
+    render(<AttendancesTab canSeeBilling child={makeChild({ firstName: "Amelia", surname: "Nguyen" })} />);
 
     const exportBtn = screen.getByRole("button", { name: /Export CSV/i });
     fireEvent.click(exportBtn);
@@ -226,9 +226,26 @@ describe("AttendancesTab", () => {
     expect(Array.isArray(columns)).toBe(true);
   });
 
+  // 2026-10-21 (Daniel): educators see attendance, never fees.
+  it("an educator sees attendance with no fee column, total or CSV fee", () => {
+    mockData([
+      {
+        id: "r1", date: "2026-10-01", sessionType: "asc", status: "present",
+        signInTime: null, signOutTime: null, signedInBy: null, signedOutBy: null,
+        absenceReason: null, notes: null, fee: null,
+      } as MockRecord,
+    ]);
+    const { container } = render(<AttendancesTab canSeeBilling={false} child={makeChild()} />);
+    expect(container.textContent).not.toMatch(/Total Fee/i);
+    expect([...container.querySelectorAll("th")].map((t) => t.textContent)).not.toContain("Fee");
+    fireEvent.click(screen.getByRole("button", { name: /export/i }));
+    const columns = exportToCsvMock.mock.calls[0][2] as { header: string }[];
+    expect(columns.map((c) => c.header)).not.toContain("Fee");
+  });
+
   it("shows empty state when there are no records", () => {
     mockData([]);
-    render(<AttendancesTab child={makeChild()} />);
+    render(<AttendancesTab canSeeBilling child={makeChild()} />);
     expect(screen.getByText(/No attendance records/i)).toBeTruthy();
   });
 
@@ -241,7 +258,7 @@ describe("AttendancesTab", () => {
       refetch: vi.fn(),
     });
 
-    render(<AttendancesTab child={makeChild()} />);
+    render(<AttendancesTab canSeeBilling child={makeChild()} />);
     expect(screen.getByRole("status", { name: /Loading attendances/i })).toBeTruthy();
   });
 
@@ -254,14 +271,14 @@ describe("AttendancesTab", () => {
       refetch: vi.fn(),
     });
 
-    render(<AttendancesTab child={makeChild()} />);
+    render(<AttendancesTab canSeeBilling child={makeChild()} />);
     expect(screen.getByText(/Could not load attendances/i)).toBeTruthy();
     expect(screen.getByText(/Server down/i)).toBeTruthy();
   });
 
   it("Export CSV toasts when there are no records (and does not call exportToCsv)", () => {
     mockData([]);
-    render(<AttendancesTab child={makeChild()} />);
+    render(<AttendancesTab canSeeBilling child={makeChild()} />);
 
     const exportBtn = screen.getByRole("button", { name: /Export CSV/i });
     // Button is disabled when there are no records; attempting click still
