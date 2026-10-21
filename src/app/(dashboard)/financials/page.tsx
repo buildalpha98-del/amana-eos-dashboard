@@ -32,6 +32,7 @@ import { useXeroStatus, useXeroSync } from "@/hooks/useXero";
 import dynamic from "next/dynamic";
 import { ImportOWNAModal } from "@/components/financials/ImportOWNAModal";
 import { CentreSpendingBreakdown } from "@/components/financials/CentreSpendingBreakdown";
+import { CentreBreakdown } from "@/components/financials/CentreBreakdown";
 import { toast } from "@/hooks/useToast";
 import { AiButton } from "@/components/ui/AiButton";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -597,6 +598,10 @@ export default function FinancialsPage() {
       )}
 
       <SectionDivider label="By centre" />
+
+      {/* 2026-10-21: every centre side by side — sessions, occupancy,
+          revenue, staff, spend, bank, data freshness. */}
+      <CentreBreakdown />
 
       {/* Revenue by Centre Table */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
