@@ -28,7 +28,7 @@ import { logger } from "@/lib/logger";
 import { alertCentreTeam, childNamesFrom } from "@/lib/centre-team-alerts";
 import { OWNA_CHECKLIST_START, readHandoff } from "@/lib/owna-handoff";
 import { addDaysUTC, serviceDateISO, serviceTodayISO } from "@/lib/timezone";
-import { ATTENDANCE_GATED } from "@/lib/attendance-journey";
+import { ATTENDANCE_GATED, attendanceDataLive } from "@/lib/attendance-journey";
 import { formatFirstDay } from "@/lib/email-templates/owna-handover";
 
 const LOOKBACK_DAYS = 21;
@@ -155,6 +155,17 @@ export async function runFirstDayPrompts(now = new Date()): Promise<{ prompted: 
   for (const s of subs) {
     const day = firstDayOf(s);
     if (!day || day >= today || day < oldest || recordedAttendance(s)) continue;
+    // A centre with live attendance (OWNA API or Cowork's twice-weekly run)
+    // answers this itself: wait until the data covers the first day, and
+    // only ask if it shows no sign-in (21 Oct 2026).
+    if (await attendanceDataLive(s.serviceId!, now)) {
+      const latest = await prisma.dailyAttendance.findFirst({
+        where: { serviceId: s.serviceId! },
+        orderBy: { date: "desc" },
+        select: { date: true },
+      });
+      if (!latest || latest.date.toISOString().slice(0, 10) < day) continue;
+    }
     const claim = await prisma.enrolmentSubmission.updateMany({
       where: { id: s.id, firstDayPromptedAt: null },
       data: { firstDayPromptedAt: now },

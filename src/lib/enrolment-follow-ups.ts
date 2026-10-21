@@ -17,6 +17,7 @@ import type { EnrolDraft } from "@/lib/enrol-draft";
 import { REPLY_HOURS, notBeforeFollowUpsStart } from "@/lib/enrolment-reply-clock";
 import { OWNA_CHECKLIST_START, readHandoff, type HandoffStep } from "@/lib/owna-handoff";
 import { firstDayFollowUps, type FirstDayRow } from "@/lib/first-day-check";
+import { quietFamilies, type QuietFamily } from "@/lib/quiet-families";
 
 const H = 3_600_000;
 const DAY = 24 * H;
@@ -93,6 +94,7 @@ export async function getFollowUps(
   ownaSetup: OwnaSetup[];
   firstDayCheck: FirstDayRow[];
   firstDayCalls: FirstDayRow[];
+  quiet: QuietFamily[];
 }> {
   const services = await prisma.service.findMany({
     where: { status: "active" },
@@ -208,7 +210,9 @@ export async function getFollowUps(
   }
   // First day: did they come? then call them (21 Oct 2026).
   const { firstDayCheck, firstDayCalls } = await firstDayFollowUps(serviceIds, serviceName, now);
-  return { awaiting, unfinished, ownaSetup, firstDayCheck, firstDayCalls };
+  // Quiet families: checked in with, reason, call them (21 Oct 2026).
+  const quiet = await quietFamilies(serviceIds, serviceName, now);
+  return { awaiting, unfinished, ownaSetup, firstDayCheck, firstDayCalls, quiet };
 }
 
 /** Which centre an unfinished form is for (its first child's school), or null. */

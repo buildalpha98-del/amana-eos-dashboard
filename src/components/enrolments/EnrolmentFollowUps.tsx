@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import type { AwaitingReply, OwnaSetup, UnfinishedForm } from "@/lib/enrolment-follow-ups";
 import type { FirstDayRow } from "@/lib/first-day-check";
+import type { QuietFamily } from "@/lib/quiet-families";
 
 /** "Tuesday 21 October" from "2026-10-21". */
 function dayLabel(iso: string) {
@@ -49,6 +50,7 @@ export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) =
     ownaSetup: OwnaSetup[];
     firstDayCheck?: FirstDayRow[];
     firstDayCalls?: FirstDayRow[];
+    quiet?: QuietFamily[];
   }>({
     queryKey: ["enrolment-follow-ups"],
     queryFn: () => fetchApi("/api/enrolments/follow-ups"),
@@ -94,6 +96,14 @@ export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) =
     },
     onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
   });
+  const quietCalled = useMutation({
+    mutationFn: (childId: string) => mutateApi(`/api/children/${childId}/quiet-follow-up`, { method: "POST" }),
+    onSuccess: () => {
+      toast({ description: "Noted — call done." });
+      refresh();
+    },
+    onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
+  });
   const remind = useMutation({
     mutationFn: (accountId: string) => mutateApi<{ email: string }>(`/api/families/${accountId}/remind`, { method: "POST" }),
     onSuccess: (r) => {
@@ -108,9 +118,15 @@ export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) =
   const ownaSetup = data?.ownaSetup ?? [];
   const firstDayCheck = data?.firstDayCheck ?? [];
   const firstDayCalls = data?.firstDayCalls ?? [];
+  const quiet = data?.quiet ?? [];
   if (
     !data ||
-    (awaiting.length === 0 && unfinished.length === 0 && ownaSetup.length === 0 && firstDayCheck.length === 0 && firstDayCalls.length === 0)
+    (awaiting.length === 0 &&
+      unfinished.length === 0 &&
+      ownaSetup.length === 0 &&
+      firstDayCheck.length === 0 &&
+      firstDayCalls.length === 0 &&
+      quiet.length === 0)
   )
     return null;
   const overdue = awaiting.filter((a) => a.hoursLeft <= 0).length;
@@ -147,6 +163,11 @@ export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) =
         {firstDayCalls.length > 0 && (
           <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-muted">
             {firstDayCalls.length} first-day call{firstDayCalls.length === 1 ? "" : "s"}
+          </span>
+        )}
+        {quiet.length > 0 && (
+          <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-muted">
+            {quiet.length} quiet famil{quiet.length === 1 ? "y" : "ies"}
           </span>
         )}
         <ChevronDown className={cn("ml-auto h-4 w-4 text-muted transition-transform", open && "rotate-180")} aria-hidden />
@@ -415,6 +436,62 @@ export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) =
                   </ul>
                 </>
               )}
+            </div>
+          )}
+
+          {quiet.length > 0 && (
+            <div className="min-w-0 space-y-2">
+              <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                <PhoneCall className="h-4 w-4 text-brand" aria-hidden /> Quiet families
+              </h3>
+              <p className="text-xs text-muted">
+                Families who stopped coming. We&apos;ve emailed them; here&apos;s what they told us. Find out why and help
+                them back.
+              </p>
+              <ul className="space-y-2">
+                {quiet.map((q) => (
+                  <li key={q.childId} className="rounded-lg border border-border p-3">
+                    <div className="flex flex-wrap items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">{q.childName}</p>
+                        <p className="text-xs text-muted">
+                          {q.parentName}
+                          {q.serviceName ? ` · ${q.serviceName}` : ""}
+                          {q.lastSeen ? ` · last seen ${dayLabel(q.lastSeen)}` : ""}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-full px-2 py-0.5 text-2xs font-semibold",
+                          q.callNeeded
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
+                            : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200",
+                        )}
+                      >
+                        {q.reason ?? "No answer yet"}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {q.phone && (
+                        <a
+                          href={`tel:${q.phone.replace(/\s+/g, "")}`}
+                          className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs font-medium text-foreground hover:bg-surface"
+                        >
+                          <Phone className="h-3.5 w-3.5" aria-hidden /> {q.phone}
+                        </a>
+                      )}
+                      <Button size="sm" disabled={quietCalled.isPending} onClick={() => quietCalled.mutate(q.childId)}>
+                        We called them
+                      </Button>
+                      {q.enrolmentId && (
+                        <Button size="sm" variant="ghost" onClick={() => onOpen(q.enrolmentId!)}>
+                          Open
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

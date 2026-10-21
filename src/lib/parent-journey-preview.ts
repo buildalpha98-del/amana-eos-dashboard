@@ -16,7 +16,7 @@ import {
   firstDayConfirmedEmail,
   ownaNudgeEmail,
 } from "@/lib/email-templates/owna-handover";
-import { extraDayEmail, missedSessionsEmail, noShowEmail } from "@/lib/email-templates/attendance-journey";
+import { extraDayEmail, missedSessionsEmail, noShowEmail, stillHereEmail } from "@/lib/email-templates/attendance-journey";
 import { upcomingProgram } from "@/lib/enrolment-welcome";
 import { firstDayCentreMessage } from "@/lib/owna-handover";
 import { centreAlertHtml } from "@/lib/centre-team-alerts";
@@ -82,6 +82,12 @@ export async function renderJourneyEmail(
     if (!centre) return null;
     const lastSeen = new Date(Date.now() - 15 * 86_400_000).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
     out = await missedSessionsEmail({ ...centre, ...SAMPLE_FAMILY, childFirstName: "Yusuf", lastSeen, links: {} });
+  } else if (id === "still_here") {
+    if (!service) return null;
+    const centre = await centreWelcomeData(service.id);
+    if (!centre) return null;
+    const lastSeen = new Date(Date.now() - 40 * 86_400_000).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
+    out = await stillHereEmail({ ...centre, ...SAMPLE_FAMILY, childFirstName: "Yusuf", lastSeen, links: {} });
   } else if (id === "no_show" || id === "extra_day") {
     if (!service) return null;
     const centre = await centreWelcomeData(service.id);

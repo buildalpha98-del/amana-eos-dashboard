@@ -55,6 +55,7 @@ function makeChild(
     missedCheckInSentAt: null,
     missedCheckInReason: null,
     missedCheckInReasonAt: null,
+    quietFollowUpAt: null,
     preferredName: null,
     livesWith: null,
     mainLanguageAtHome: null,
