@@ -147,6 +147,8 @@ function NetworkTab({ onCentre }: { onCentre: (id: string) => void }) {
     { bsc: 0, asc: 0, rev: 0, staff: 0, groc: 0, food: 0 },
   );
   const bank = d.monthRows.reduce((t, r) => t + r.bank, 0);
+  const overMonth = d.monthRows.filter((r) => r.overBudget).length;
+  const monthName = new Date(`${d.month}-01T00:00:00Z`).toLocaleDateString("en-AU", { month: "long", year: "numeric", timeZone: "UTC" });
   const nameOf = (id: string) => names.get(id)?.name ?? "";
   const stateOf = (id: string) => names.get(id)?.state ?? "";
   const CentreCell = ({ id }: { id: string }) => (
@@ -176,7 +178,7 @@ function NetworkTab({ onCentre }: { onCentre: (id: string) => void }) {
           </select>
         </label>
         <label className="text-sm">
-          <span className="block text-xs text-muted">Resources month</span>
+          <span className="block text-xs text-muted">Budget month</span>
           <input type="month" value={d.month} onChange={(e) => setMonth(e.target.value || null)} className="mt-1 rounded-lg border border-border bg-background px-3 py-2 text-sm" />
         </label>
         <label className="text-sm">
@@ -188,13 +190,14 @@ function NetworkTab({ onCentre }: { onCentre: (id: string) => void }) {
         </p>
       </section>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
         {[
           ["Bookings", `${tot.bsc + tot.asc}`, `${tot.bsc} Rise and Shine · ${tot.asc} Afternoons`],
           ["Revenue", $(tot.rev), "booked fees before CCS"],
           ["Staff cost", $(tot.staff), `${pct(tot.rev ? tot.staff / tot.rev : null)} of revenue, incl. super`],
           ["Margin after staff", $(tot.rev - tot.staff), "service contribution, not profit"],
           ["Groceries", `${$(tot.food)} of ${$(tot.groc)}`, "Woolies spend vs budget"],
+          ["Over monthly budget", `${overMonth} of ${d.monthRows.length}`, `centres over groceries or resources in ${monthName}`],
           ["Budget bank", $(bank), "unspent budget, all centres"],
         ].map(([k, v, s]) => (
           <div key={k} className="rounded-xl border border-border bg-card p-3">
@@ -277,16 +280,37 @@ function NetworkTab({ onCentre }: { onCentre: (id: string) => void }) {
       </Table>
 
       <Table
-        title={`Resources (${new Date(`${d.month}-01T00:00:00Z`).toLocaleDateString("en-AU", { month: "long", year: "numeric", timeZone: "UTC" })}) and program feedback (week of ${dayLabel(d.week)})`}
-        head={["Centre", "Avg weekly bookings", "Resource budget", "Resource spend", "Remaining / (over)", "Feedback received", "Reflections", "Stock to reorder", "Budget bank", "OWNA data"]}
+        title={`Monthly budgets (${monthName})`}
+        head={["Centre", "Avg weekly bookings", "Grocery budget", "Woolies spend", "Remaining / (over)", "Resource budget", "Resource spend", "Remaining / (over)", "Status"]}
+      >
+        {d.monthRows.map((r) => (
+          <tr key={r.serviceId} className={cn("border-b border-border", r.overBudget && "bg-red-50/60 dark:bg-red-950/30")}>
+            <CentreCell id={r.serviceId} />
+            <Num v={r.avgWeeklyBookings} />
+            <td className="p-2.5 text-right">{$(r.groceryBudget, true)}</td>
+            <td className="p-2.5 text-right">{$(r.grocerySpend, true)}</td>
+            <td className={cn("p-2.5 text-right", r.groceryRemaining < 0 && "font-semibold text-red-600 dark:text-red-400")}>{$(r.groceryRemaining, true)}</td>
+            <td className="p-2.5 text-right">{$(r.resourceBudget)}</td>
+            <td className="p-2.5 text-right">{$(r.resourceSpend, true)}</td>
+            <td className={cn("p-2.5 text-right", r.remaining < 0 && "font-semibold text-red-600 dark:text-red-400")}>{$(r.remaining, true)}</td>
+            <td className="p-2.5 text-right">
+              {r.overBudget ? (
+                <span className="rounded-full bg-red-100 px-2 py-0.5 text-2xs font-semibold text-red-700 dark:bg-red-950/60 dark:text-red-300">Over budget</span>
+              ) : (
+                <span className="text-2xs text-muted">Within budget</span>
+              )}
+            </td>
+          </tr>
+        ))}
+      </Table>
+
+      <Table
+        title={`Program feedback (week of ${dayLabel(d.week)}), stock and bank`}
+        head={["Centre", "Feedback received", "Reflections", "Stock to reorder", "Budget bank", "OWNA data"]}
       >
         {d.monthRows.map((r) => (
           <tr key={r.serviceId} className="border-b border-border">
             <CentreCell id={r.serviceId} />
-            <Num v={r.avgWeeklyBookings} />
-            <td className="p-2.5 text-right">{$(r.resourceBudget)}</td>
-            <td className="p-2.5 text-right">{$(r.resourceSpend, true)}</td>
-            <td className={cn("p-2.5 text-right", r.remaining < 0 && "text-red-600 dark:text-red-400")}>{$(r.remaining, true)}</td>
             <td className="p-2.5 text-center">{r.feedbackReceived == null ? "—" : r.feedbackReceived ? "Yes" : "No"}</td>
             <td className="p-2.5 text-center capitalize">{r.reflections ?? "—"}</td>
             <td className={cn("p-2.5 text-right", r.stockToReorder > 0 && "font-semibold text-amber-700 dark:text-amber-300")}>{r.stockToReorder}</td>

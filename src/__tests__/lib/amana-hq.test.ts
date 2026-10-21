@@ -59,6 +59,15 @@ describe("Network Summary", () => {
     prismaMock.stockItem.findMany.mockResolvedValue([]);
     prismaMock.budgetBankEntry.groupBy.mockResolvedValue([]);
   });
+  it("flags a centre over its monthly grocery budget", async () => {
+    prismaMock.groceryOrder.findMany.mockResolvedValue([
+      { serviceId: "ga", weekStart: W1, foodSpend: 231.72, budget: 242.8 },
+    ]);
+    const d = await hqSummary({ week: "2026-10-12" });
+    // Greenacre's October budget is the logged week's ERM budget ($214), not the order's.
+    expect(d.monthRows.find((r) => r.serviceId === "ga")).toMatchObject({ groceryBudget: 214, grocerySpend: 231.72, groceryRemaining: -17.72, overBudget: true });
+    expect(d.monthRows.find((r) => r.serviceId === "sp")).toMatchObject({ groceryBudget: 64.8, grocerySpend: 0, overBudget: false });
+  });
   it("matches the tracker's selected week, term to date and resources", async () => {
     const d = await hqSummary({ week: "2026-10-12", month: "2026-10", termStart: "2026-10-05" });
     const ga = d.weekRows.find((r) => r.serviceId === "ga")!;
