@@ -42,6 +42,7 @@ import { ParentCommunicationPanel } from "@/components/services/ParentCommunicat
 import { ServiceFamiliesTab } from "@/components/services/ServiceFamiliesTab";
 import { MessagingInbox } from "@/components/messaging/MessagingInbox";
 import { ServiceHazardsTab } from "@/components/services/ServiceHazardsTab";
+import { ServiceStockTab } from "@/components/services/ServiceStockTab";
 import { BuildRoster } from "@/components/services/staff/BuildRoster";
 import { CentreTimesheets } from "@/components/services/staff/CentreTimesheets";
 import { ManageStaff } from "@/components/services/staff/ManageStaff";
@@ -486,6 +487,9 @@ export default function ServiceDetailPage() {
         )}
         {shownGroup === "program" && currentSubKey === "menu" && (
           <ServiceMenuTab serviceId={service.id} />
+        )}
+        {shownGroup === "program" && currentSubKey === "stock" && (
+          <ServiceStockTab serviceId={service.id} />
         )}
         {shownGroup === "program" && currentSubKey === "observations" && (
           <ServiceObservationsTab serviceId={service.id} />

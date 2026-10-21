@@ -107,33 +107,20 @@ The tracker's **Resources**. One row per order or reimbursed purchase, against t
 
 Use the same `orderRef` when you update a purchase (e.g. once the amount is confirmed) so it updates rather than adds. No order number? Keep `items` exactly the same each time you resend it.
 
-## 4. Stock lists — after each stocktake
+## 4. Stock lists — the centres keep these themselves now
 
-One row per item per centre. Track durables as well as consumables. Set `reorderAt`, and Amana HQ flags anything at or under it.
+Centres no longer email their stocktake. Each centre keeps its own list on its service page (**Program → Resources & stock**) and taps **Send stocktake** when it's counted; head office is notified with what's running low, and it shows in Amana HQ. If a centre emails a stocktake anyway, reply pointing them there.
+
+You only send stock **once**, to bring across the lists already in the Master Accounts Tracker:
 
 `POST /api/cowork/accounts`
 
 ```json
-{
-  "stock": [
-    {
-      "serviceCode": "MFIS-GA",
-      "category": "Art",
-      "item": "Glue sticks",
-      "type": "consumable",
-      "qtyOnHand": 4,
-      "unit": "sticks",
-      "reorderAt": 10,
-      "lastCounted": "2026-10-16",
-      "lastReplaced": "2026-09-01",
-      "timesReplacedThisYear": 2,
-      "notes": ""
-    }
-  ]
-}
+{ "stock": [ { "serviceCode": "MFIS-GA", "category": "Art & craft", "item": "Glue sticks", "type": "consumable",
+  "qtyOnHand": 4, "unit": "sticks", "reorderAt": 10, "lastCounted": "2026-10-16" } ] }
 ```
 
-`item` is the key: keep each item's name the same every stocktake.
+`type` is `consumable` or `durable`. After that, leave stock to the centres — don't resend old counts over theirs.
 
 ## 5. Program feedback — every Friday
 
@@ -162,7 +149,7 @@ One row per centre per week, from the Friday email replies and OWNA reflections 
 
 `reflections` is `none`, `partial` or `complete`.
 
-**First time:** send everything that's already in the Master Accounts Tracker — every Weekly Log row, every Woolies order, every Resources row, the stock lists and the program feedback — so Amana HQ starts with the whole term.
+**First time:** send everything that's already in the Master Accounts Tracker — every Weekly Log row, every Woolies order, every Resources row, the stock lists (once — see 4) and the program feedback — so Amana HQ starts with the whole term.
 
 ## 6. The OWNA data run — every Wednesday and Friday
 

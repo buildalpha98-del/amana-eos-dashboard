@@ -27,6 +27,7 @@ import {
   ClipboardList,
   DoorOpen,
   Eye,
+  Package,
   FileSignature,
   FolderKanban,
   FolderOpen,
@@ -219,6 +220,9 @@ export const tabGroups: TabGroup[] = [
       // were planning for to fetch a template for it.
       { key: "library", label: "Activity Library", icon: BookOpen },
       { key: "menu", label: "Menu", icon: UtensilsCrossed },
+      // 2026-10-21: the centre keeps its own stock list here instead of
+      // emailing it to head office (src/lib/service-stock.ts).
+      { key: "stock", label: "Resources & stock", icon: Package },
       { key: "observations", label: "Observations", icon: Eye },
     ],
   },
