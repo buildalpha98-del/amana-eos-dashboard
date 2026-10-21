@@ -14,6 +14,7 @@
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { CARD_REJECTED_MESSAGE, stripCardPlaceholders } from "@/lib/payment-details";
 import { prisma } from "@/lib/prisma";
 import {
   setParentSessionCookie,
@@ -66,7 +67,7 @@ const paymentSchema = z.object({
     .string()
     .transform((v) => v.replace(/\D/g, ""))
     .pipe(z.string().min(5).max(10)),
-});
+}).strict();
 
 const bodySchema = z.object({ payment: paymentSchema });
 
@@ -80,7 +81,14 @@ export const POST = withParentAuth(async (req, ctx) => {
     );
   }
 
-  const body = bodySchema.safeParse(await parseJsonBody(req));
+  // Security brief 2026-10-21 (S04): a card or security-code VALUE is refused
+  // outright, even beside method "bank_account". Blank card placeholders —
+  // the form's state still carries them, and open tabs will keep sending
+  // them — are dropped before the strict schema; nothing card-shaped is kept.
+  const rawBody = (await parseJsonBody(req)) as { payment?: unknown } | null;
+  const stripped = stripCardPlaceholders(rawBody?.payment);
+  if (!stripped.ok) throw ApiError.badRequest(CARD_REJECTED_MESSAGE);
+  const body = bodySchema.safeParse({ ...(rawBody ?? {}), payment: stripped.rest });
   if (!body.success) {
     throw ApiError.badRequest(
       "Please check your bank details on the Billing step — account name, a 6-digit BSB and your account number.",

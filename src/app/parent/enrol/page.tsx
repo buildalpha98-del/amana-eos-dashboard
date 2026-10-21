@@ -208,7 +208,19 @@ export default function ParentEnrolPage() {
       }
       const result = await mutateApi<{ submissionId: string; serviceId: string | null }>(
         "/api/parent/enrolment-draft/submit",
-        { method: "POST", body: { payment } },
+        {
+          method: "POST",
+          // Bank fields only — the form state still has blank card slots, and
+          // nothing card-shaped should ever leave the browser.
+          body: {
+            payment: {
+              method: "bank_account",
+              bankAccountName: payment.bankAccountName,
+              bankBsb: payment.bankBsb,
+              bankAccountNumber: payment.bankAccountNumber,
+            },
+          },
+        },
       );
       try { sessionStorage.removeItem(WEBSITE_CONTEXT_KEY); } catch { /* Optional presentation context. */ }
       // The gate in ParentShell reads this; without invalidating, they'd be

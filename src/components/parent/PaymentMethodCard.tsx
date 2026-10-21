@@ -43,19 +43,9 @@ const field =
 export function PaymentMethodCard() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
-  const [method, setMethod] = useState<"bank_account" | "credit_card">(
-    "bank_account",
-  );
-  const [form, setForm] = useState({
-    accountName: "",
-    bsb: "",
-    accountNumber: "",
-    cardName: "",
-    cardNumber: "",
-    expiryMonth: "",
-    expiryYear: "",
-    ccv: "",
-  });
+  // Direct debit only (security brief 2026-10-21) — card details are
+  // never collected or stored here.
+  const [form, setForm] = useState({ accountName: "", bsb: "", accountNumber: "" });
 
   const { data, isLoading } = useQuery<PaymentResponse>({
     queryKey: ["parent", "payment"],
@@ -69,18 +59,9 @@ export function PaymentMethodCard() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["parent", "payment"] });
       setEditing(false);
-      // Clear the form immediately — there's no reason for a full card
+      // Clear the form immediately — there's no reason for a full account
       // number to sit in browser memory once it's been sent.
-      setForm({
-        accountName: "",
-        bsb: "",
-        accountNumber: "",
-        cardName: "",
-        cardNumber: "",
-        expiryMonth: "",
-        expiryYear: "",
-        ccv: "",
-      });
+      setForm({ accountName: "", bsb: "", accountNumber: "" });
       toast({ description: "Payment method updated." });
     },
     onError: (err: Error) =>
@@ -88,7 +69,6 @@ export function PaymentMethodCard() {
   });
 
   const p = data?.payment ?? null;
-  const thisYear = new Date().getFullYear();
 
   const set = (k: keyof typeof form, v: string) =>
     setForm((prev) => ({ ...prev, [k]: v }));
@@ -109,24 +89,11 @@ export function PaymentMethodCard() {
               </p>
             </div>
 
-            <div>
-              <label htmlFor="pm-method" className="block text-sm font-medium mb-1">
-                Payment method
-              </label>
-              <select
-                id="pm-method"
-                className={field}
-                value={method}
-                onChange={(e) =>
-                  setMethod(e.target.value as "bank_account" | "credit_card")
-                }
-              >
-                <option value="bank_account">Bank account (direct debit)</option>
-                <option value="credit_card">Credit or debit card</option>
-              </select>
-            </div>
+            <p className="text-sm text-[color:var(--color-muted)]">
+              Payments are by direct debit from a bank account.
+            </p>
 
-            {method === "bank_account" ? (
+            {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="sm:col-span-2">
                   <label htmlFor="pm-accname" className="block text-sm font-medium mb-1">
@@ -169,96 +136,12 @@ export function PaymentMethodCard() {
                   />
                 </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="sm:col-span-2">
-                  <label htmlFor="pm-cardname" className="block text-sm font-medium mb-1">
-                    Name on card
-                  </label>
-                  <input
-                    id="pm-cardname"
-                    className={field}
-                    value={form.cardName}
-                    onChange={(e) => set("cardName", e.target.value)}
-                    autoComplete="off"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label htmlFor="pm-cardnum" className="block text-sm font-medium mb-1">
-                    Card number
-                  </label>
-                  <input
-                    id="pm-cardnum"
-                    className={field}
-                    inputMode="numeric"
-                    value={form.cardNumber}
-                    onChange={(e) => set("cardNumber", e.target.value)}
-                    autoComplete="off"
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-2 sm:col-span-2">
-                  <div>
-                    <label htmlFor="pm-mm" className="block text-sm font-medium mb-1">
-                      Month
-                    </label>
-                    <select
-                      id="pm-mm"
-                      className={field}
-                      value={form.expiryMonth}
-                      onChange={(e) => set("expiryMonth", e.target.value)}
-                    >
-                      <option value="">MM</option>
-                      {Array.from({ length: 12 }, (_, i) =>
-                        String(i + 1).padStart(2, "0"),
-                      ).map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="pm-yy" className="block text-sm font-medium mb-1">
-                      Year
-                    </label>
-                    <select
-                      id="pm-yy"
-                      className={field}
-                      value={form.expiryYear}
-                      onChange={(e) => set("expiryYear", e.target.value)}
-                    >
-                      <option value="">YYYY</option>
-                      {Array.from({ length: 12 }, (_, i) =>
-                        String(thisYear + i),
-                      ).map((y) => (
-                        <option key={y} value={y}>
-                          {y}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="pm-ccv" className="block text-sm font-medium mb-1">
-                      CCV
-                    </label>
-                    <input
-                      id="pm-ccv"
-                      className={field}
-                      inputMode="numeric"
-                      maxLength={4}
-                      value={form.ccv}
-                      onChange={(e) => set("ccv", e.target.value)}
-                      autoComplete="off"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+            }
 
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => save.mutate({ method, ...form })}
+                onClick={() => save.mutate({ method: "bank_account", ...form })}
                 disabled={save.isPending}
                 className="inline-flex items-center justify-center gap-1.5 px-5 py-3 min-h-11 rounded-lg bg-[color:var(--color-brand)] text-white font-medium disabled:opacity-40"
               >
@@ -323,12 +206,7 @@ export function PaymentMethodCard() {
             <div className="mt-3 pt-3 border-t border-[color:var(--color-border)]">
               <button
                 type="button"
-                onClick={() => {
-                  setMethod(
-                    p?.method === "credit_card" ? "credit_card" : "bank_account",
-                  );
-                  setEditing(true);
-                }}
+                onClick={() => setEditing(true)}
                 className="text-sm font-semibold text-[color:var(--color-brand)] min-h-11"
               >
                 {p ? "Update payment method" : "Add payment method"}

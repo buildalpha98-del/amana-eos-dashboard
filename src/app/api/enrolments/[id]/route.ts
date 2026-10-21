@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { maskedPaymentView } from "@/lib/payment-details";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -54,7 +55,8 @@ export const GET = withApiAuth(async (req, session, context) => {
       })
     : null;
 
-  return NextResponse.json({ ...submission, service });
+  // Mask fields only — the encrypted copy never leaves the server (S04).
+  return NextResponse.json({ ...submission, paymentDetails: maskedPaymentView(submission.paymentDetails), service });
 });
 
 export const PATCH = withApiAuth(async (req, session, context) => {
@@ -253,7 +255,7 @@ const { id } = await context!.params!;
     });
   }
 
-  return NextResponse.json(updated);
+  return NextResponse.json({ ...updated, paymentDetails: maskedPaymentView(updated.paymentDetails) });
 });
 
 /**

@@ -36,6 +36,21 @@ not returned to the model. These controls limit the consequences of hostile
 model output; they do not claim to prevent prompt injection or redact personal
 information from prompts.
 
+### Payment details and reveals 21 October 2026
+
+Family payment details are direct debit only. Every write path (staff edit,
+parent self-service, enrolment submission) refuses card numbers and security
+codes, including when the request claims a bank method; blank form
+placeholders are discarded. Ordinary reads return allow-listed masks only.
+Revealing full bank details requires the person to re-enter their password
+(and second factor when enabled) within the last five minutes in the same
+login; the proof is an httpOnly, SameSite=strict cookie bound to the user,
+login time and token version. Shared centre logins cannot reveal. The reveal
+writes its audit event before releasing anything and refuses if auditing
+fails; responses are private and no-store. Historical card values may still
+exist in production until the reviewed cleanup in
+`docs/security/payment-card-cleanup.md` is executed.
+
 The remaining security work includes private storage and existing-file
 migration, pending-upload ownership and server-enforced attachment validation,
 legacy card-data paths, AI input minimisation, dependency updates, privileged
