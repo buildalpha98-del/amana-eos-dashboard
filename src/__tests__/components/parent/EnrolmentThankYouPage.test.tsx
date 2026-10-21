@@ -29,9 +29,27 @@ function renderPage() {
 beforeEach(() => {
   mockedFetch.mockReset();
   mockSearchParams = new URLSearchParams();
+  window.sessionStorage.clear();
+  window.history.replaceState(null, "", "/parent/enrol/thank-you");
 });
 
 describe("EnrolmentThankYouPage", () => {
+  // Security brief batch 5 (2026-10-21): the Meta Pixel reports the page URL,
+  // so the ids leave the address bar before it loads — and a refresh still
+  // shows the right page.
+  it("scrubs the ids from the address bar but keeps the page working after a refresh", async () => {
+    window.history.replaceState(null, "", "/parent/enrol/thank-you?submissionId=abc12345-x&serviceId=svc-1");
+    mockSearchParams = new URLSearchParams({ submissionId: "abc12345-x", serviceId: "svc-1" });
+    const first = renderPage();
+    expect(await screen.findByText(/ABC12345/)).toBeInTheDocument();
+    expect(window.location.search).toBe("");
+    first.unmount();
+
+    mockSearchParams = new URLSearchParams(); // refreshed: the URL has no ids now
+    renderPage();
+    expect(await screen.findByText(/ABC12345/)).toBeInTheDocument();
+  });
+
   it("thanks the parent and shows a reference derived from the submissionId", async () => {
     mockSearchParams = new URLSearchParams({ submissionId: "abc12345-def6-7890" });
     renderPage();

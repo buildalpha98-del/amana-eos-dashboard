@@ -2,10 +2,13 @@ import Script from "next/script";
 
 /**
  * Meta Pixel — same pixel as amanaoshc.com.au (id supplied by Jayden,
- * 25 Aug 2026), rendered ONLY on public family-facing pages (/enrol,
- * /parent/signup, /parent/login and the whole /parent/enrol form incl.
- * thank-you — the ad funnel end to end, 17 Oct 2026): the admin dashboard must never feed staff
- * sessions into ad audiences. Production only, so localhost, preview
+ * 25 Aug 2026), rendered ONLY on /parent/signup (the ad landing page, Lead)
+ * and /parent/enrol/thank-you (CompleteRegistration, after the ids are
+ * scrubbed from the URL). Security brief batch 5 (2026-10-21) took it OFF
+ * the enrolment form (children's medical, family and bank details), /enrol
+ * (token URLs) and parent login: a third-party script doesn't belong on a
+ * page holding a family's records, autoConfig or not. The admin dashboard
+ * must never feed staff sessions into ad audiences either. Production only, so localhost, preview
  * deploys, and the nightly E2E runs never inject fake PageViews into the
  * ad-attribution data.
  *

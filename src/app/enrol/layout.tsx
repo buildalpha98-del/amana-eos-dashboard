@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { MetaPixel } from "@/components/analytics/MetaPixel";
 
 export const metadata: Metadata = {
   title: "Enrolment Form — Amana OSHC",
@@ -9,10 +8,8 @@ export const metadata: Metadata = {
 export default function EnrolLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#001824] via-[#003344] to-[#0A5E7E]">
-      {/* Meta Pixel (production only). /enrol now redirects into the parent
-          portal; the CompleteRegistration conversion fires on
-          /parent/enrol/thank-you. */}
-      <MetaPixel />
+      {/* No Meta Pixel (2026-10-21): /enrol/[token] carries a resume token in
+          its URL, and the pixel reports the URL to Meta. */}
       {/* Header */}
       <header className="sticky top-0 z-30 bg-brand-dark/90 backdrop-blur-md border-b border-white/10">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">

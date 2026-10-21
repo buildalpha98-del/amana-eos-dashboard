@@ -116,27 +116,16 @@ const nextConfig: NextConfig = {
       // header key wins, so these override the catch-all's CSP for exactly
       // the pages that render <MetaPixel /> (see
       // src/components/analytics/MetaPixel.tsx).
-      {
-        source: "/enrol/:path*",
-        headers: securityHeaders({ metaPixel: true }),
-      },
+      // 2026-10-21 (security brief batch 5): the pixel is OFF the enrolment
+      // form, /enrol (token URLs) and parent login. It stays on signup (the
+      // ad landing page, Lead event) and the thank-you page (conversion,
+      // ids scrubbed from the URL first).
       {
         source: "/parent/signup",
         headers: securityHeaders({ metaPixel: true }),
       },
-      // The whole live enrolment form (17 Oct 2026) — the pixel used to
-      // stop at signup, so Meta saw who clicked but not who started an
-      // enrolment. :path* also covers /parent/enrol itself and thank-you,
-      // where CompleteRegistration fires.
       {
-        source: "/parent/enrol/:path*",
-        headers: securityHeaders({ metaPixel: true }),
-      },
-      // Returning families arrive here from the website's sign-in links.
-      // Exact path only: /parent/login/confirm carries a login token and
-      // must never load the pixel (it reports the page URL to Meta).
-      {
-        source: "/parent/login",
+        source: "/parent/enrol/thank-you",
         headers: securityHeaders({ metaPixel: true }),
       },
     ];

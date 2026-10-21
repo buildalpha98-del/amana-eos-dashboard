@@ -17,7 +17,7 @@
  * cleared and doesn't intercept this path.
  */
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -34,6 +34,7 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
+import { MetaPixel } from "@/components/analytics/MetaPixel";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WarmCTA } from "@/components/ui/v2";
 import { formatTime } from "@/lib/service-settings";
@@ -81,7 +82,7 @@ export default function EnrolmentThankYouPage() {
  * refresh or Back must not count it twice). The retired legacy wizard did
  * this on submit; the live form never did, so ads saw no enrolments.
  * fbq loads after hydration, so wait briefly for it; production-only,
- * because MetaPixel (rendered by the /parent/enrol layout) renders nothing elsewhere.
+ * because MetaPixel renders nothing elsewhere.
  */
 function useEnrolmentConversion(submissionId: string | null) {
   useEffect(() => {
@@ -109,10 +110,61 @@ function useEnrolmentConversion(submissionId: string | null) {
   }, [submissionId]);
 }
 
-function ThankYouContent() {
+const THANK_YOU_KEY = "amana-thank-you";
+
+/**
+ * The submission and centre ids, read ONCE, then scrubbed from the address
+ * bar before the Meta Pixel loads (security brief batch 5, 2026-10-21): the
+ * pixel reports the page URL to Meta, and record ids are none of Meta's
+ * business. Kept in sessionStorage so a refresh still shows the centre's
+ * message.
+ */
+function useScrubbedThankYouParams() {
   const searchParams = useSearchParams();
-  const submissionId = searchParams?.get("submissionId") ?? null;
-  const serviceId = searchParams?.get("serviceId") ?? null;
+  const [params] = useState(() => {
+    const fromUrl = {
+      submissionId: searchParams?.get("submissionId") ?? null,
+      serviceId: searchParams?.get("serviceId") ?? null,
+    };
+    if (fromUrl.submissionId || fromUrl.serviceId) return fromUrl;
+    try {
+      const saved = JSON.parse(window.sessionStorage.getItem(THANK_YOU_KEY) ?? "null");
+      if (saved && typeof saved === "object") return saved as typeof fromUrl;
+    } catch {
+      // Storage blocked or not in a browser — fall back to the generic page.
+    }
+    return fromUrl;
+  });
+  const urlClean = useSyncExternalStore(subscribeScrub, () => scrubbed, () => false);
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(THANK_YOU_KEY, JSON.stringify(params));
+    } catch {}
+    scrubUrl();
+  }, [params]);
+  return { ...params, urlClean };
+}
+
+// "Is the address bar clean yet?" as a tiny external store, so the pixel
+// mounts only after the scrub — a child's effects run before its parent's,
+// so rendering it unconditionally would load fbevents.js with the ids still
+// in the URL.
+let scrubbed = false;
+const scrubListeners = new Set<() => void>();
+function subscribeScrub(listener: () => void) {
+  scrubListeners.add(listener);
+  return () => scrubListeners.delete(listener);
+}
+function scrubUrl() {
+  if (window.location.search) {
+    window.history.replaceState(window.history.state, "", window.location.pathname);
+  }
+  scrubbed = true;
+  scrubListeners.forEach((l) => l());
+}
+
+function ThankYouContent() {
+  const { submissionId, serviceId, urlClean } = useScrubbedThankYouParams();
   useEnrolmentConversion(submissionId);
 
   // Only fetched to pull the one centre's custom message — the same
@@ -141,6 +193,9 @@ function ThankYouContent() {
 
   return (
     <div className={PARENT_APP_OPEN ? "pb-24 space-y-6" : "mx-auto max-w-lg px-4 pt-6 pb-16 space-y-6"}>
+      {/* The only enrolment page with the pixel — no form fields here, and
+          only once the ids are out of the URL. */}
+      {urlClean && <MetaPixel />}
       <section className="warm-card text-center py-10 px-5">
         <CheckCircle2 className="w-12 h-12 mx-auto text-[color:var(--color-brand)] mb-3" />
         <h1 className="text-xl font-heading font-bold text-[color:var(--color-foreground)] [text-wrap:balance]">
