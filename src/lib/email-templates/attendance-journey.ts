@@ -151,3 +151,51 @@ ${signOff}`,
     wrap: (b) => parentEmailLayout(b, { transactional: true, preheader: "No need to reply if all's well — we just wanted to check in." }),
   }).then((r) => ({ ...r, subject: plain(r.subject) }));
 }
+
+/**
+ * "We're still here" (Daniel, 21 Oct 2026): a casual-only family that
+ * hasn't booked in a while. Not "we've missed you" (casual families come
+ * and go) — a warm reminder we're here, how to book, and one tap to tell
+ * us why. Answers go to the centre like the missed-sessions check-in.
+ */
+export async function stillHereEmail(
+  d: Centre & { childFirstName: string; lastSeen: string; links: Record<string, string> },
+) {
+  const buttons = MISSED_ANSWERS.map(
+    (a) => `<tr><td style="padding:0 0 10px;">
+      <a href="${escapeHtml(d.links[a.key] ?? "#")}" style="display:block;padding:13px 18px;border:2px solid ${GREEN};border-radius:12px;color:${GREEN};font-size:15px;font-weight:700;text-decoration:none;background-color:#ffffff;">
+        ${escapeHtml(a.label)}
+      </a></td></tr>`,
+  ).join("");
+  return applyEmailTemplateOverride({
+    key: "parent.stillHere",
+    defaultSubject: "We're still here for {{childNamesPlain}}, {{firstNamePlain}}",
+    defaultBody: `
+<h1 style="margin:0 0 12px;color:${GREEN};font-size:24px;font-weight:700;line-height:1.25;">Just letting you know we're still here</h1>
+<p style="margin:0 0 16px;color:${BODY};font-size:15px;line-height:1.7;">
+  Assalamu alaikum {{firstName}}! It's been a little while since we've seen {{childNames}} at
+  <strong>{{centreName}}</strong> — the last time was <strong>{{lastSeen}}</strong>.
+</p>
+<p style="margin:0 0 16px;color:${BODY};font-size:15px;line-height:1.7;">
+  Whenever you need us, book a casual session in the <strong>OWNA app</strong>, or call
+  <a href="tel:1300200262" style="color:${GREEN};font-weight:700;">1300 200 262</a> or email
+  <a href="mailto:enrolment@amanaoshc.com.au" style="color:${GREEN};font-weight:700;">enrolment@amanaoshc.com.au</a>
+  and we'll book it for you.
+</p>
+<p style="margin:0 0 16px;color:${BODY};font-size:15px;line-height:1.7;">
+  Is there anything we could do better, or anything that's changed? One tap tells us:
+</p>
+{{answers}}
+${signOff}`,
+    vars: {
+      firstName: escapeHtml(d.parentFirstName || "there"),
+      firstNamePlain: d.parentFirstName || "there",
+      childNames: escapeHtml(d.childFirstName),
+      childNamesPlain: d.childFirstName,
+      centreName: escapeHtml(d.centreName),
+      lastSeen: escapeHtml(d.lastSeen),
+      answers: `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">${buttons}</table>`,
+    },
+    wrap: (b) => parentEmailLayout(b, { transactional: true, preheader: "Book a casual session any time — and tell us if anything's changed." }),
+  }).then((r) => ({ ...r, subject: plain(r.subject) }));
+}

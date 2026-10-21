@@ -404,6 +404,21 @@ export const EMAIL_TEMPLATE_MANIFEST: EmailTemplateManifestEntry[] = [
     ],
   },
   {
+    key: "parent.stillHere",
+    category: "Parent",
+    label: "We're still here (casual families)",
+    description: "A casual-only family hasn't come for 5 weeks while school's in. How to book, and one tap to tell us why.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "firstNamePlain", description: "Parent's first name (subject line)" },
+      { name: "childNames", description: "Child's first name" },
+      { name: "childNamesPlain", description: "Child's first name (subject line)" },
+      { name: "centreName", description: "Centre name" },
+      { name: "lastSeen", description: "e.g. Tuesday 30 September" },
+      { name: "answers", description: "The five one-tap answer buttons" },
+    ],
+  },
+  {
     key: "parent.missedSessions",
     category: "Parent",
     label: "We've missed you (gentle check-in)",

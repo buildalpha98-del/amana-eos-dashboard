@@ -116,9 +116,20 @@ export async function onFirstAttendance(enrolmentId: string, dateISO: string): P
 
 // ── 3. The gate for "how did day one go?" ───────────────────
 
+/**
+ * Live attendance data for this centre: the OWNA API sync ran in the last
+ * 48 hours, or (21 Oct 2026) Cowork's twice-weekly OWNA run landed within
+ * COWORK_LIVE_HOURS — midweek to end of week is at most ~4 days.
+ */
+export const COWORK_LIVE_HOURS = 108;
 export async function attendanceDataLive(serviceId: string, now = new Date()): Promise<boolean> {
-  const s = await prisma.service.findUnique({ where: { id: serviceId }, select: { ownaServiceId: true, ownaSyncedAt: true } });
-  return !!s?.ownaServiceId && !!s.ownaSyncedAt && now.getTime() - s.ownaSyncedAt.getTime() < LIVE_WITHIN_HOURS * 3_600_000;
+  const s = await prisma.service.findUnique({
+    where: { id: serviceId },
+    select: { ownaServiceId: true, ownaSyncedAt: true, coworkFeedAt: true },
+  });
+  if (!s) return false;
+  const within = (d: Date | null, hours: number) => !!d && now.getTime() - d.getTime() < hours * 3_600_000;
+  return (!!s.ownaServiceId && within(s.ownaSyncedAt, LIVE_WITHIN_HOURS)) || within(s.coworkFeedAt, COWORK_LIVE_HOURS);
 }
 
 /** Has any of this family's enrolled children at this centre attended? */

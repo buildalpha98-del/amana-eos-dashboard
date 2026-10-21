@@ -2938,6 +2938,10 @@ model Service {
   ownaServiceId          String? // OWNA's internal service ID
   ownaLocationId         String? // OWNA's location reference
   ownaSyncedAt           DateTime? // Last successful OWNA sync
+  /// Last Cowork OWNA data run for this centre (21 Oct 2026) — the feed that
+  /// stands in for the OWNA API. Twice weekly, so it counts as live for 4.5 days.
+  coworkFeedAt           DateTime?
+  ownaDataRuns           OwnaDataRun[]
 
   // ── Marketing / Growth Fields (Sprint 0) ───────────────────
   schoolPopulation       Int? // Total students at the partner school
@@ -7828,6 +7832,8 @@ model Child {
   missedCheckInSentAt   DateTime?
   missedCheckInReason   String?
   missedCheckInReasonAt DateTime?
+  /// Staff followed up a quiet family by phone (Follow-ups → Quiet families).
+  quietFollowUpAt       DateTime?
   ownaChildId           String?   @unique
   ownaRoomId            String?
   ownaRoomName          String?
@@ -11516,4 +11522,31 @@ model StaffForm {
 
   @@unique([userId, type])
   @@index([serviceId])
+}
+
+// ============================================================
+// Cowork OWNA data runs (Daniel, 21 Oct 2026): without an OWNA API key,
+// Cowork reads each centre's children, booked days and sign-ins from the
+// OWNA website midweek and end of week, and POSTs them to
+// /api/cowork/owna/run. Each run is logged here.
+// ============================================================
+
+model OwnaDataRun {
+  id          String    @id @default(cuid())
+  serviceId   String
+  service     Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  source      String    @default("cowork")
+  /// "midweek" | "end_of_week" | other free text from Cowork
+  runType     String?
+  periodStart DateTime? @db.Date
+  periodEnd   DateTime? @db.Date
+  children    Int       @default(0)
+  attendance  Int       @default(0)
+  signedIn    Int       @default(0)
+  /// Enrolment children matched to OWNA sign-ins on this run.
+  matched     Int       @default(0)
+  errors      Json?
+  createdAt   DateTime  @default(now())
+
+  @@index([serviceId, createdAt])
 }

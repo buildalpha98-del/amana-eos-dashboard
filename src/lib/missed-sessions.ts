@@ -4,7 +4,9 @@
  * sick day the same as a no-show, and a family with an unwell child must
  * never feel chased. A child qualifies only when ALL of these hold:
  *
- *   - they have regular booked days in OWNA (casual families come and go);
+ *   - they have regular booked days in OWNA (casual families come and go —
+ *     since 21 Oct 2026 they get a gentler "we're still here" instead, after
+ *     CASUAL_GAP_DAYS without a session, while school's in);
  *   - they've attended before, but not for 14+ days;
  *   - that whole gap sits well inside one school term — 10+ days from any
  *     term start or end, which also covers the NSW/VIC calendar difference;
@@ -24,12 +26,18 @@ import { alertCentreTeam } from "@/lib/centre-team-alerts";
 import { centreWelcomeData } from "@/lib/enrolment-welcome";
 import { attendanceDataLive } from "@/lib/attendance-journey";
 import { getTermForDate, getTermsForYear } from "@/lib/school-terms";
-import { missedSessionsEmail } from "@/lib/email-templates/attendance-journey";
+import { missedSessionsEmail, stillHereEmail } from "@/lib/email-templates/attendance-journey";
 
 const DAY = 24 * 3_600_000;
 export const GAP_DAYS = 14;
+/**
+ * Casual-only families (21 Oct 2026): "we're still here" after this long
+ * without a session, while school's in (10+ days into the current term).
+ */
+export const CASUAL_GAP_DAYS = 35;
 const TERM_BUFFER_DAYS = 10;
 const LOOKBACK_DAYS = 60;
+const CASUAL_LOOKBACK_DAYS = 120;
 const WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 
 export const MISSED_REASONS = {
@@ -49,6 +57,14 @@ export function verifyMissedCheckToken(childId: string, token: string): boolean 
   const want = Buffer.from(missedCheckToken(childId));
   const got = Buffer.from(token || "");
   return want.length === got.length && timingSafeEqual(want, got);
+}
+
+/** Today is inside a school term, 10+ days after it started. */
+export function inTermWithBuffer(now: Date): boolean {
+  const t = getTermForDate(now);
+  if (!t) return false;
+  const term = getTermsForYear(t.year).find((x) => x.term === t.number);
+  return !!term && now.getTime() >= term.startsOn.getTime() + TERM_BUFFER_DAYS * DAY;
 }
 
 /** The whole gap sits inside ONE term, at least 10 days from either end. */
@@ -94,7 +110,7 @@ export async function runMissedSessionChecks(now = new Date()): Promise<{ sent: 
       enrolmentId: { not: null },
       ownaMatchChildId: { not: null },
       status: "active",
-      lastAttendedAt: { lte: new Date(now.getTime() - GAP_DAYS * DAY), gte: new Date(now.getTime() - LOOKBACK_DAYS * DAY) },
+      lastAttendedAt: { lte: new Date(now.getTime() - GAP_DAYS * DAY), gte: new Date(now.getTime() - CASUAL_LOOKBACK_DAYS * DAY) },
     },
     select: {
       id: true,
@@ -113,14 +129,22 @@ export async function runMissedSessionChecks(now = new Date()): Promise<{ sent: 
     if (!k.serviceId || !k.lastAttendedAt || !k.enrolmentId) continue;
     if (emailedFamilies.has(k.enrolmentId)) continue; // siblings: one email per family per run
     if (k.missedCheckInSentAt && k.missedCheckInSentAt >= k.lastAttendedAt) continue; // already asked about this gap
-    if (!gapInsideTerm(k.lastAttendedAt, now)) continue;
     if (!(await attendanceDataLive(k.serviceId, now))) continue;
     const owna = await prisma.child.findUnique({
       where: { ownaChildId: k.ownaMatchChildId! },
       select: { status: true, bookingPrefs: true },
     });
-    if (!owna || owna.status !== "active" || !hasRegularDays(owna.bookingPrefs)) continue;
-    if (!(await syncCoveredGap(k.serviceId, k.lastAttendedAt, now))) continue;
+    if (!owna || owna.status !== "active") continue;
+    const casual = !hasRegularDays(owna.bookingPrefs);
+    if (casual) {
+      // Casual-only: a longer gap, school in session, data covering it.
+      if (now.getTime() - k.lastAttendedAt.getTime() < CASUAL_GAP_DAYS * DAY) continue;
+      if (!inTermWithBuffer(now)) continue;
+    } else {
+      if (now.getTime() - k.lastAttendedAt.getTime() > LOOKBACK_DAYS * DAY) continue;
+      if (!gapInsideTerm(k.lastAttendedAt, now)) continue;
+    }
+    if (!(await syncCoveredGap(k.serviceId, casual ? new Date(now.getTime() - GAP_DAYS * DAY) : k.lastAttendedAt, now))) continue;
     const parent = k.enrolment?.primaryParent as { email?: string; firstName?: string } | null;
     if (!parent?.email) continue;
 
@@ -137,7 +161,7 @@ export async function runMissedSessionChecks(now = new Date()): Promise<{ sent: 
         (Object.keys(MISSED_REASONS) as MissedReason[]).map((r) => [r, `${base}/api/public/check-in?c=${k.id}&r=${r}&t=${token}`]),
       );
       const lastSeen = k.lastAttendedAt.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
-      const { subject, html } = await missedSessionsEmail({
+      const { subject, html } = await (casual ? stillHereEmail : missedSessionsEmail)({
         ...centre,
         parentFirstName: parent.firstName?.trim() || "there",
         childNames: [k.firstName],
@@ -153,7 +177,9 @@ export async function runMissedSessionChecks(now = new Date()): Promise<{ sent: 
         serviceId: k.serviceId,
         type: "missed_sessions_check_in",
         title: `We've checked in with ${k.firstName}'s family`,
-        body: `Not seen since ${lastSeen}. We sent a gentle "we've missed you" email; you'll be told if they reply.`,
+        body: casual
+          ? `Casual family, not seen since ${lastSeen}. We sent a "we're still here" email; you'll be told if they reply. It's in Follow-ups → Quiet families.`
+          : `Not seen since ${lastSeen}. We sent a gentle "we've missed you" email; you'll be told if they reply. It's in Follow-ups → Quiet families.`,
         link: `/enrolments?id=${k.enrolmentId}`,
       });
       sent++;
