@@ -99,6 +99,10 @@
       "schedule": "0 14 1 * *"
     },
     {
+      "path": "/api/cron/budget-bank-close",
+      "schedule": "0 16 1 * *"
+    },
+    {
       "path": "/api/cron/lead-scoring",
       "schedule": "0 7 * * 1"
     },

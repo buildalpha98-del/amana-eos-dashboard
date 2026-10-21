@@ -59,7 +59,7 @@ describe("where families are now", () => {
       { serviceId: "ga", stage: "cold", _count: { _all: 4 } },
     ]);
     const c = { at: "2026-10-10T00:00:00Z", by: { id: "u", name: "U" }, evidence: "done" };
-    const done = { state: { placement: "p", owner: null, note: "", steps: { children: c, invitation: { ...c, mode: "sent" }, access: c, sessions: { ...c, firstDay: "2026-10-12" } } } };
+    const done = { state: { placement: "p", owner: null, note: "", steps: { children: c, invitation: { ...c, mode: "sent" }, access: c, sessions: { ...c, firstDay: "2026-10-12" }, ccs: c } } };
     prismaMock.enrolmentSubmission.findMany.mockResolvedValue([
       { serviceId: "ga", status: "submitted", createdAt: hoursAgo(30), ownaHandoff: null, childRecords: [] },
       { serviceId: "ga", status: "under_review", createdAt: hoursAgo(30), ownaHandoff: null, childRecords: [] },

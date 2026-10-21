@@ -23,6 +23,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { syncOwnaService } from "@/lib/owna-sync";
+import { resolveRoomIds, requireFromMap } from "@/lib/room-resolver";
 import type { OwnaAttendanceRecord, OwnaChild, OwnaClient } from "@/lib/owna";
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
@@ -200,6 +201,42 @@ export async function runCoworkOwnaData(run: CoworkOwnaRun, now = new Date()): P
   } catch (err) {
     logger.error("Cowork OWNA run failed", { serviceCode: code, err });
     errors.push(err instanceof Error ? err.message : String(err));
+  }
+
+  // DailyAttendance in the dashboard's convention (budget, spending,
+  // imports): enrolled = PERMANENT bookings, attended = CASUAL bookings,
+  // absent = booked but didn't come. The generic sync writes total/signed-in
+  // instead, so restate each day+session Cowork reported.
+  try {
+    const groups = new Map<string, { date: string; session: "bsc" | "asc" | "vc"; permanent: number; casual: number; absent: number }>();
+    for (const a of run.attendance) {
+      const k = `${a.date}_${a.session}`;
+      const g = groups.get(k) ?? { date: a.date, session: a.session, permanent: 0, casual: 0, absent: 0 };
+      if (a.casual) g.casual++;
+      else g.permanent++;
+      if (!a.signedIn) g.absent++;
+      groups.set(k, g);
+    }
+    const rooms = await resolveRoomIds(service.id, [...new Set([...groups.values()].map((g) => g.session))]);
+    for (const g of groups.values()) {
+      const date = new Date(`${g.date}T00:00:00Z`);
+      await prisma.dailyAttendance.upsert({
+        where: { serviceId_date_sessionType: { serviceId: service.id, date, sessionType: g.session } },
+        update: { enrolled: g.permanent, attended: g.casual, absent: g.absent },
+        create: {
+          serviceId: service.id,
+          date,
+          sessionType: g.session,
+          roomId: requireFromMap(rooms, g.session),
+          enrolled: g.permanent,
+          attended: g.casual,
+          absent: g.absent,
+        },
+      });
+    }
+  } catch (err) {
+    logger.error("Cowork OWNA run: daily totals failed", { serviceCode: code, err });
+    errors.push(`daily totals: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   const matched = await prisma.child.count({

@@ -315,7 +315,7 @@ export function EnrolmentFollowUps({ onOpen }: { onOpen: (enrolmentId: string) =
                           {o.owner ? ` · ${o.owner}` : ""}
                         </p>
                         <p className="mt-1 text-xs font-medium text-foreground">
-                          Next: {o.nextStep} <span className="font-normal text-muted">({o.stepsDone}/4 done)</span>
+                          Next: {o.nextStep} <span className="font-normal text-muted">({o.stepsDone}/{o.stepCount ?? 5} done)</span>
                         </p>
                       </div>
                       {o.waitingOnFamily && (

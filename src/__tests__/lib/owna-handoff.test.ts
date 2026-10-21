@@ -61,6 +61,8 @@ describe("OWNA manual handoff", () => {
       "invitation",
       "access",
       "sessions",
+      // 2026-10-21: "CCS applied" is the fifth tick.
+      "ccs",
     ] as const)
       s = applyHandoff(s, patch(step), actor, "p", "now");
     expect(handoffSummary(s, "p", "processed")).toBe("OWNA: handoff complete");
@@ -96,7 +98,7 @@ describe("OWNA manual handoff", () => {
     const saved = { ...state(), placement: oldKey, steps: { children: { at: "now", by: actor, evidence: "" } } };
     const current = normaliseHandoff(saved, e);
     expect(current?.placement).toBe(placementKey(e));
-    expect(handoffSummary(current, placementKey(e), "processed")).toBe("OWNA: 1/4 checked");
+    expect(handoffSummary(current, placementKey(e), "processed")).toBe("OWNA: 1/5 checked");
   });
 
   it("invalidates moves, withdrawals and changed children", () => {

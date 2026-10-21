@@ -1,5 +1,6 @@
 "use client";
 
+import { BudgetBankCard } from "@/components/services/BudgetBankCard";
 import { serviceTodayISO, serviceDateISO } from "@/lib/timezone";
 import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -184,6 +185,9 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-6">
+      {/* 2026-10-21: the budget bank — unspent budget banked each month. */}
+      <BudgetBankCard serviceId={serviceId} />
+
       {/* Header — weekly-only with a week selector so the breakdown
           follows whichever week the coordinator is forecasting in the
           Daily Operations grid (added 2026-06-05). */}

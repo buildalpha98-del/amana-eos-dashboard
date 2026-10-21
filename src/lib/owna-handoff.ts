@@ -5,8 +5,13 @@ export const HANDOFF_STEPS = {
   invitation: "Invitation sent or existing access confirmed",
   access: "Parent can access the OWNA app",
   sessions: "First sessions confirmed for all children",
+  /** Daniel, 21 Oct 2026: so we know CCS was applied for. */
+  ccs: "CCS applied for all children",
 } as const;
 export type HandoffStep = keyof typeof HANDOFF_STEPS;
+/** The checklist in order — the one place the steps are listed. */
+export const HANDOFF_STEP_ORDER = Object.keys(HANDOFF_STEPS) as HandoffStep[];
+export const HANDOFF_STEP_COUNT = HANDOFF_STEP_ORDER.length;
 
 /**
  * Who can own a handoff (Daniel, 20 Oct 2026): any active owner, head office
@@ -47,6 +52,7 @@ export const handoffStateSchema = z.object({
     invitation: completion.optional(),
     access: completion.optional(),
     sessions: completion.optional(),
+    ccs: completion.optional(),
   }),
 });
 export type HandoffState = z.infer<typeof handoffStateSchema>;
@@ -56,7 +62,7 @@ export const handoffPatchSchema = z
     action: z.enum(["claim", "release", "assign", "note", "complete", "reopen", "reset"]),
     /** "assign": the user to make owner (validated server-side). */
     ownerId: z.string().min(1).optional(),
-    step: z.enum(["children", "invitation", "access", "sessions"]).optional(),
+    step: z.enum(["children", "invitation", "access", "sessions", "ccs"]).optional(),
     evidence: z.string().trim().max(1000).optional(),
     mode: z.enum(["sent", "existing"]).optional(),
     /** First booked day (YYYY-MM-DD) — required to confirm first sessions. */
@@ -168,12 +174,12 @@ export function handoffSummary(
     // Ticks can start before approval (21 Oct 2026).
     const done = state ? Object.keys(state.steps).length : 0;
     if (!done) return "OWNA: awaiting approval";
-    return done === 4 ? "OWNA: ready — press Confirm" : `OWNA: ${done}/4 checked`;
+    return done === HANDOFF_STEP_COUNT ? "OWNA: ready — press Confirm" : `OWNA: ${done}/${HANDOFF_STEP_COUNT} checked`;
   }
   if (!state) return "OWNA: not checked";
   if (handoffIsStale(state, placement)) return "OWNA: recheck placement";
   const done = Object.keys(state.steps).length;
-  return done === 4 ? "OWNA: handoff complete" : `OWNA: ${done}/4 checked`;
+  return done === HANDOFF_STEP_COUNT ? "OWNA: handoff complete" : `OWNA: ${done}/${HANDOFF_STEP_COUNT} checked`;
 }
 export function applyHandoff(
   state: HandoffState,

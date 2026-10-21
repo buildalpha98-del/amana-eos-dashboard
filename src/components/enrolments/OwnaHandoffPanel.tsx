@@ -18,6 +18,7 @@ import {
   type HandoffPatch,
   type HandoffState,
   type HandoffStep,
+  HANDOFF_STEP_ORDER,
 } from "@/lib/owna-handoff";
 
 type Response = {
@@ -38,7 +39,7 @@ type Response = {
   }[];
 };
 
-const STEP_ORDER: HandoffStep[] = ["children", "invitation", "access", "sessions"];
+const STEP_ORDER: HandoffStep[] = HANDOFF_STEP_ORDER;
 const ACTION_LABELS: Record<string, string> = {
   claim: "took ownership",
   assign: "changed owner",
