@@ -3,7 +3,6 @@
 import { Suspense, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MetaPixel } from "@/components/analytics/MetaPixel";
 import { Mail, ArrowRight, CheckCircle, Lock, Loader2 } from "lucide-react";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
@@ -111,7 +110,6 @@ export default function ParentLoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#001824] via-[#003344] to-[#0A5E7E] px-4">
-      <MetaPixel />
       {/* Background blobs */}
       <div
         className="absolute top-[-10%] left-[-5%] w-96 h-96 rounded-full bg-accent/10 blur-3xl"

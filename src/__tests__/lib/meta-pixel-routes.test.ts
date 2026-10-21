@@ -4,9 +4,10 @@ import { join } from "node:path";
 import nextConfig from "../../../next.config";
 
 /**
- * The Meta pixel covers the family ad funnel end to end (17 Oct 2026) —
- * signup, login, the whole enrolment form and its thank-you page — and
- * NOTHING that carries a token in its URL or belongs to staff.
+ * The Meta pixel runs on the ad landing page (signup) and the enrolment
+ * thank-you page ONLY (security brief batch 5, 2026-10-21). It was taken off
+ * the enrolment form (medical, family and bank details), /enrol (token URLs)
+ * and parent login — and never on anything with a token or belonging to staff.
  */
 type Entry = { source: string; headers: { key: string; value: string }[] };
 
@@ -20,16 +21,16 @@ async function pixelSources(): Promise<string[]> {
 }
 
 describe("Meta pixel routes", () => {
-  it("allows the pixel on the family funnel pages", async () => {
-    const sources = await pixelSources();
-    for (const s of ["/enrol/:path*", "/parent/signup", "/parent/login", "/parent/enrol/:path*"]) {
-      expect(sources).toContain(s);
-    }
+  it("allows the pixel on signup and the thank-you page only", async () => {
+    expect((await pixelSources()).sort()).toEqual(["/parent/enrol/thank-you", "/parent/signup"]);
   });
 
-  it("never allows it on token pages or the catch-all", async () => {
+  it("never allows it on the enrolment form, token pages, login or the catch-all", async () => {
     const sources = await pixelSources();
-    for (const s of ["/(.*)", "/parent/login/confirm", "/parent/reset-password", "/parent/:path*"]) {
+    for (const s of [
+      "/(.*)", "/enrol/:path*", "/parent/enrol/:path*", "/parent/enrol", "/parent/login",
+      "/parent/login/confirm", "/parent/reset-password", "/parent/:path*",
+    ]) {
       expect(sources).not.toContain(s);
     }
   });
