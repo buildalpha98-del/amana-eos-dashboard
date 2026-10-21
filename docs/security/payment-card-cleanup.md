@@ -31,7 +31,19 @@ Retaining a card security code after authorisation is prohibited even when encry
 - **`--apply --actor=<userId>`** removes card data from card records only and writes one `ActivityLog` row per record (`payment_card_data_removed`).
 - **Bank records are excluded by construction.** A `bank_account` record whose copy also holds card values is *held for manual review*, not changed.
 - **Undecryptable records are reported and never changed.** If many appear, the wrong `FIELD_ENCRYPTION_KEY` is loaded: stop.
-- **Local only.** It refuses any `DATABASE_URL` that isn't `localhost`/`127.0.0.1`, with no override flag.
+- **Production needs explicit flags.** A non-local database needs `--production` and `CONFIRM_PRODUCTION=yes`. A production `--apply` also needs `--expect-candidates=<n>` equal to the dry run's count, zero undecryptable records, and an active `--actor`. Every check runs before the first write.
+- **`scripts/card-cleanup-production.sh`** asks for the production `DATABASE_URL` and `FIELD_ENCRYPTION_KEY` with typing hidden. It passes them to that one process only and writes the report to the Desktop.
+
+**Gate rehearsal (21 Oct 2026).** The local database was reached through `0.0.0.0` so it counted as non-local, using 3 synthetic records:
+
+| Attempt | Result |
+| --- | --- |
+| No flags | Refused |
+| `--production` without `CONFIRM_PRODUCTION` | Refused |
+| Wrong `--expect-candidates` | Refused, nothing changed |
+| Wrong encryption key | Refused (3 undecryptable), nothing changed |
+| All checks pass | 2 card records cleaned, bank record untouched |
+| Reconcile | 0 candidates |
 
 ### Synthetic rehearsal (21 Oct 2026, local `amana_local`, throwaway key)
 
@@ -47,16 +59,16 @@ Five synthetic records: one bank, two encrypted card records (public-form and po
 
 The synthetic rows were deleted afterwards.
 
-## Production execution (not done — needs a reviewed change)
+## Production execution (approved by Daniel 21 Oct 2026; dry run first)
 
 1. Take a fresh Neon backup or branch and record its ID and retention window.
-2. Create an isolated Neon branch from production. Run the **dry run** against it from a machine with the production `FIELD_ENCRYPTION_KEY`. This needs a reviewed change to the script's host guard for that one branch.
+2. Run the **dry run** with `bash scripts/card-cleanup-production.sh`. It's read-only and prints counts and record IDs.
 3. Review the report with Daniel:
    - candidate count;
    - any `undecryptable` rows;
    - any bank records held for manual review.
 4. Decide what to tell the affected families, if anything, with the responsible adviser.
-5. Run `--apply --actor=<Daniel's id>` against production in a supervised window, then dry-run again to reconcile (expect zero `card_data` candidates apart from records held for review).
+5. Run `bash scripts/card-cleanup-production.sh --apply --expect-candidates=<n> --actor=<Daniel's id>`, then dry-run again to reconcile. Expect zero `card_data` candidates apart from records held for review.
 6. Handle held records by hand. Bank details stay; any card value is removed.
 7. Delete stale Neon branches taken before the cleanup. Note when backup retention will have aged out the old copies.
 8. Record the outcome (counts, date, actor, backup ID) in this file.

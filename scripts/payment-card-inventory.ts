@@ -4,13 +4,15 @@
  *
  *   npx tsx scripts/payment-card-inventory.ts            # dry run (default)
  *   npx tsx scripts/payment-card-inventory.ts --apply --actor=<userId>
- *                                                       # local/test DB ONLY;
- *                                                       # actor = the person running it
  *   ... --report=path.json                               # write the report
  *
- * LOCAL ONLY. It refuses any DATABASE_URL whose host isn't localhost /
- * 127.0.0.1 — there is no override flag. Running this against production is
- * a separately reviewed change, not a flag (see the plan).
+ * Local databases (localhost / 127.0.0.1) run freely. ANY other database —
+ * i.e. production — needs `--production` AND env CONFIRM_PRODUCTION=yes, and
+ * is still a dry run unless --apply is given. A production --apply also needs
+ * --expect-candidates=<n> equal to the dry run's count, ZERO undecryptable
+ * records (a wrong key would hide card data), and an active --actor. Every
+ * check runs BEFORE the first write. Use scripts/card-cleanup-production.sh,
+ * which asks for the secrets without echoing or storing them.
  *
  * It never prints, logs or writes a payment value: the report holds record
  * ids, classifications and the key NAMES found, nothing else.
@@ -33,16 +35,22 @@ const apply = process.argv.includes("--apply");
 const reportPath = process.argv.find((a) => a.startsWith("--report="))?.slice("--report=".length);
 const actorId = process.argv.find((a) => a.startsWith("--actor="))?.slice("--actor=".length);
 
-function assertLocalDatabase(): void {
-  const url = process.env.DATABASE_URL ?? "";
-  let host = "";
+const production = process.argv.includes("--production");
+const expectArg = process.argv.find((a) => a.startsWith("--expect-candidates="))?.slice("--expect-candidates=".length);
+
+/** The target database's host — never its credentials. */
+function databaseHost(): string {
   try {
-    host = new URL(url).hostname;
+    return new URL(process.env.DATABASE_URL ?? "").hostname;
   } catch {
-    // fall through
+    return "";
   }
-  if (host !== "localhost" && host !== "127.0.0.1") {
-    console.error("⛔ Refusing to run: DATABASE_URL is not a local database. This script is local/test only.");
+}
+
+function assertTargetAllowed(host: string): void {
+  if (host === "localhost" || host === "127.0.0.1") return;
+  if (!production || process.env.CONFIRM_PRODUCTION !== "yes") {
+    console.error("⛔ DATABASE_URL is not local. A production run needs --production and CONFIRM_PRODUCTION=yes.");
     process.exit(1);
   }
 }
@@ -53,7 +61,12 @@ const KEEP_IN_MASK = new Set(["lastFour", "cardType"]);
 const CARD_KEYS = new Set<string>(CARD_FIELD_KEYS);
 
 async function main() {
-  assertLocalDatabase();
+  const host = databaseHost();
+  assertTargetAllowed(host);
+  const isProduction = host !== "localhost" && host !== "127.0.0.1";
+  console.log(`Database host: ${host || "(none)"}${isProduction ? "  ← PRODUCTION" : ""}`);
+  console.log(`Mode: ${apply ? "APPLY (will change records)" : "dry run (changes nothing)"}`);
+
   const prisma = new PrismaClient();
   // Every removal is attributed to the person who ran it.
   if (apply) {
@@ -70,6 +83,7 @@ async function main() {
 
   const report = {
     generatedAt: new Date().toISOString(),
+    databaseHost: host,
     mode: apply ? "apply" : "dry-run",
     scanned: rows.length,
     counts: {} as Record<Classification, number>,
@@ -79,6 +93,8 @@ async function main() {
   };
   const bump = (c: Classification) => (report.counts[c] = (report.counts[c] ?? 0) + 1);
 
+  // Pass 1 — classify everything. Nothing is written here.
+  const plans: { id: string; paymentMethod: string | null; cleaned: Record<string, unknown>; cardKeyNames: string[] }[] = [];
   for (const row of rows) {
     const pd = (row.paymentDetails ?? {}) as Record<string, unknown>;
     const classes: Classification[] = [];
@@ -110,37 +126,53 @@ async function main() {
 
     const isCandidate = classes.includes("card_data") || classes.includes("card_keys_in_open_mask");
     if (!isCandidate) continue;
-    report.candidates.push({ id: row.id, paymentMethod: row.paymentMethod, classes, cardKeyNames: [...cardKeyNames].sort() });
-
-    if (!apply) continue;
-    // Never a bank record: a bank_account row whose copy is bank-only can't
-    // reach here; a bank_account row WITH card values is reported, not changed.
-    if (row.paymentMethod === "bank_account") {
-      report.failed.push({ id: row.id, reason: "bank_account record holds card values — needs manual review" });
-      continue;
-    }
+    const keys = [...cardKeyNames].sort();
+    report.candidates.push({ id: row.id, paymentMethod: row.paymentMethod, classes, cardKeyNames: keys });
     const cleaned: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(pd)) {
       if (k === "raw") continue;
       if (CARD_KEYS.has(k) && !KEEP_IN_MASK.has(k)) continue;
       cleaned[k] = v;
     }
+    plans.push({ id: row.id, paymentMethod: row.paymentMethod, cleaned, cardKeyNames: keys });
+  }
+
+  // Gate — every production check before the first write.
+  if (apply && isProduction) {
+    const undecryptable = report.counts.undecryptable ?? 0;
+    if (undecryptable > 0) {
+      console.error(`⛔ ${undecryptable} record(s) couldn't be decrypted — wrong FIELD_ENCRYPTION_KEY? Nothing was changed.`);
+      process.exit(1);
+    }
+    if (expectArg === undefined || Number(expectArg) !== report.candidates.length) {
+      console.error(`⛔ Found ${report.candidates.length} candidate(s); --expect-candidates=${expectArg ?? "(missing)"} doesn't match. Nothing was changed.`);
+      process.exit(1);
+    }
+  }
+
+  // Pass 2 — apply.
+  for (const plan of apply ? plans : []) {
+    // Never a bank record: a bank_account row WITH card values is reported, not changed.
+    if (plan.paymentMethod === "bank_account") {
+      report.failed.push({ id: plan.id, reason: "bank_account record holds card values — needs manual review" });
+      continue;
+    }
     try {
       await prisma.$transaction([
-        prisma.enrolmentSubmission.update({ where: { id: row.id }, data: { paymentDetails: cleaned as Prisma.InputJsonValue } }),
+        prisma.enrolmentSubmission.update({ where: { id: plan.id }, data: { paymentDetails: plan.cleaned as Prisma.InputJsonValue } }),
         prisma.activityLog.create({
           data: {
             userId: actorId!,
             action: "payment_card_data_removed",
             entityType: "EnrolmentSubmission",
-            entityId: row.id,
-            details: { removed: [...cardKeyNames].sort(), kept: Object.keys(cleaned).sort() },
+            entityId: plan.id,
+            details: { removed: plan.cardKeyNames, kept: Object.keys(plan.cleaned).sort() },
           },
         }),
       ]);
-      report.cleaned.push(row.id);
+      report.cleaned.push(plan.id);
     } catch (err) {
-      report.failed.push({ id: row.id, reason: err instanceof Error ? err.name : "error" });
+      report.failed.push({ id: plan.id, reason: err instanceof Error ? err.name : "error" });
     }
   }
 
