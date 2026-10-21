@@ -32,7 +32,7 @@ import { useEnrolment, useUpdateEnrolment, type EnrolmentSubmission } from "@/ho
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { useBankReveal } from "@/components/security/BankRevealDialog";
-import { isAdminRole } from "@/lib/role-permissions";
+import { canSeeBankDetails } from "@/lib/payment-details";
 import { mutateApi } from "@/lib/fetch-api";
 import { AssignServiceDialog } from "@/components/enrolments/AssignServiceDialog";
 
@@ -144,8 +144,8 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
   const [serviceDialog, setServiceDialog] = useState<
     "assign" | "duplicate" | null
   >(null);
-  // A shared centre login can never reveal (the server refuses it too).
-  const canViewPayment = isAdminRole(session?.user?.role ?? "") && !session?.user?.isCentreAccount;
+  // Owner and admin only, never a shared centre login (the server enforces it too).
+  const canViewPayment = canSeeBankDetails(session?.user);
 
   const handleResendInvite = async () => {
     if (!enrolment) return;
@@ -548,7 +548,10 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
             )}
             <Field label="Direct Debit" value={e.debitAgreement} />
             {canViewPayment && e.paymentMethod === "bank_account" && <PaymentReveal enrolmentId={e.id} />}
-            {e.paymentMethod === "credit_card" && (
+            {!canViewPayment && e.paymentMethod && (
+              <p className="mt-2 text-xs text-muted">Bank details are visible to the owner and admins only.</p>
+            )}
+            {canViewPayment && e.paymentMethod === "credit_card" && (
               <p className="mt-2 text-xs text-muted">
                 Old card record — card details are no longer shown or kept. Ask the family for their bank details.
               </p>

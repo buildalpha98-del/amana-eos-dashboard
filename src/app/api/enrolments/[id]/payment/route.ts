@@ -3,10 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { decryptField, encryptField } from "@/lib/field-encryption";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-import { ADMIN_ROLES } from "@/lib/role-permissions";
 import { logger } from "@/lib/logger";
 import { NO_STORE_HEADERS, assertRecentAuth } from "@/lib/recent-auth";
-import { bankMask, bankPlaintext, parseBankDetails, revealBankDetails } from "@/lib/payment-details";
+import { BANK_DETAILS_ROLES, bankMask, bankPlaintext, parseBankDetails, revealBankDetails } from "@/lib/payment-details";
 
 /**
  * POST /api/enrolments/[id]/payment
@@ -15,7 +14,7 @@ import { bankMask, bankPlaintext, parseBankDetails, revealBankDetails } from "@/
  * Used for OWNA porting and, per Daniel (2026-07-31), for reimbursing a
  * family — which needs the real BSB and account number, not a mask.
  *
- * Security brief 2026-10-21, batch 2 (S04):
+ * Owner and admin only (Daniel, 2026-10-21). Security brief batch 2 (S04):
  *   - the person must have confirmed it's them in THIS login within the last
  *     five minutes (`assertRecentAuth`); shared centre logins never can;
  *   - the audit row is written BEFORE anything is released — if it can't be
@@ -89,7 +88,8 @@ export const POST = withApiAuth(
 
     return NextResponse.json({ method: "bank_account", ...bank }, { headers: NO_STORE_HEADERS });
   },
-  { roles: [...ADMIN_ROLES], rateLimit: { max: 20, windowMs: 60_000 } },
+  // Owner and admin only — State Managers, coordinators and educators never.
+  { roles: [...BANK_DETAILS_ROLES], rateLimit: { max: 20, windowMs: 60_000 } },
 );
 
 /**
@@ -101,12 +101,14 @@ export const POST = withApiAuth(
  * apart: showing "ending 4321" next to a decrypted number ending 9876 is
  * worse than showing nothing.
  *
- * Owner/head_office only — narrower than the reveal, because writing someone's
- * bank details is a bigger deal than reading them.
+ * Owner and admin only — the same people who can see bank details at all.
  */
 export const PUT = withApiAuth(
   async (req: NextRequest, session, context) => {
     const { id } = await context!.params!;
+    if (session.user.isCentreAccount) {
+      throw ApiError.forbidden("A shared centre login can't change bank details. Sign in as yourself.");
+    }
     const parsed = parseBankDetails(await parseJsonBody(req));
     if (!parsed.ok) throw ApiError.badRequest(parsed.error);
     const d = parsed.data;
@@ -146,5 +148,5 @@ export const PUT = withApiAuth(
 
     return NextResponse.json({ ok: true, method: "bank_account", ...masked }, { headers: NO_STORE_HEADERS });
   },
-  { roles: ["owner", "head_office"] },
+  { roles: [...BANK_DETAILS_ROLES] },
 );

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { maskedPaymentView } from "@/lib/payment-details";
+import { paymentViewFor } from "@/lib/payment-details";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { serviceScopeFilter } from "@/lib/authz-scope";
@@ -121,8 +121,8 @@ export const GET = withApiAuth(async (req, session) => {
   return NextResponse.json({
     submissions: submissions.map(({ ownaHandoff, childRecords, ...s }) => ({
       ...s,
-      // Mask fields only — the encrypted copy never leaves the server (S04).
-      paymentDetails: maskedPaymentView(s.paymentDetails),
+      // Masks for owner/admin only; nobody gets the encrypted copy (S04).
+      paymentDetails: paymentViewFor(session.user, s.paymentDetails),
       ...(canAccessEnrolment(session, s.serviceId) &&
       (childRecords ?? []).every((c) =>
         canAccessEnrolment(session, c.serviceId),
