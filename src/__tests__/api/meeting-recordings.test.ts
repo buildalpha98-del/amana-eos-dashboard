@@ -47,7 +47,7 @@ import { _clearUserActiveCache } from "@/lib/server-auth";
 
 const ctx = { params: Promise.resolve({ id: "m-1" }) };
 const regenCtx = { params: Promise.resolve({ id: "m-1", recordingId: "rec-1" }) };
-const BLOB_URL = "https://abc123.public.blob.vercel-storage.com/l10.webm";
+const BLOB_URL = "https://abc123.public.blob.vercel-storage.com/recordings/u1/l10-Ab12Cd.webm";
 
 describe("POST /api/meetings/[id]/recordings", () => {
   beforeEach(() => {
@@ -98,6 +98,21 @@ describe("POST /api/meetings/[id]/recordings", () => {
     );
     expect(res.status).toBe(400);
     expect(prismaMock.meetingRecording.create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["another user's recording", "https://abc123.public.blob.vercel-storage.com/recordings/u2/l10-Ab12Cd.webm"],
+    ["someone's enrolment document", "https://abc123.public.blob.vercel-storage.com/enrolment-docs/medicare-Zx9.pdf"],
+    ["a path that climbs out of the folder", "https://abc123.public.blob.vercel-storage.com/recordings/u1/../u2/a.webm"],
+    ["a non-standard port", "https://abc123.public.blob.vercel-storage.com:8443/recordings/u1/a.webm"],
+  ])("refuses %s, so it can never be queued for deletion", async (_label, url) => {
+    const res = await createRecording(
+      createRequest("POST", "/api/meetings/m-1/recordings", { body: { url, source: "upload" } }),
+      ctx,
+    );
+    expect(res.status).toBe(400);
+    expect(prismaMock.meetingRecording.create).not.toHaveBeenCalled();
+    expect(deleteFile).not.toHaveBeenCalled();
   });
 
   it("404s for a missing meeting", async () => {

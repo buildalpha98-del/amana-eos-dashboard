@@ -115,6 +115,25 @@ export const RECORDING_ALLOWED_MIMES = [
 
 export const RECORDING_MAX_UPLOAD = 500 * 1024 * 1024;
 
+/**
+ * Recording uploads live under `recordings/<userId>/` (2026-10-21, security
+ * brief batch 1). Every recording's audio is deleted after transcription, so
+ * a recording URL must provably be the caller's own upload — otherwise
+ * registering someone else's file as a "recording" would delete it. The
+ * token route only issues recording tokens for the caller's own folder, and
+ * the recordings route only accepts URLs inside it.
+ */
+export function recordingUploadPath(userId: string, fileName: string): string {
+  const safe = fileName.replace(/[^\w.-]+/g, "-").replace(/^-+|-+$/g, "") || "recording";
+  return `recordings/${userId}/${safe}`;
+}
+
+/** `pathname` without a leading slash, as Blob reports it. */
+export function isOwnRecordingPath(pathname: string, userId: string): boolean {
+  if (!userId || pathname.includes("..")) return false;
+  return pathname.startsWith(`recordings/${userId}/`);
+}
+
 /** Oversize message for the recording lane ("" when the size is fine). */
 export function describeRecordingOversizeError(sizeBytes: number): string {
   if (sizeBytes <= RECORDING_MAX_UPLOAD) return "";

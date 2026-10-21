@@ -9,6 +9,11 @@
 import type { DocumentViewer } from "@/lib/document-visibility";
 import { prisma } from "@/lib/prisma";
 import type Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod";
+import { isAdminRole } from "@/lib/role-permissions";
+import { isRole, ROLES } from "@/lib/role-enum";
+import { logger } from "@/lib/logger";
+import { readResponsePrefix } from "@/lib/read-response-prefix";
 
 // ── Tool Definitions ──────────────────────────────────────────
 
@@ -157,31 +162,81 @@ export const ASSISTANT_TOOLS: Anthropic.Messages.Tool[] = [
 
 // ── Tool Execution ──────────────────────────────────────────
 
+/** The same policy governs advertising AND execution; model output is untrusted. */
+export function canUseAssistantTool(name: string, viewer: DocumentViewer): boolean {
+  if (!viewer?.id || !isRole(viewer.role)) return false;
+  if (!ASSISTANT_TOOLS.some(tool => tool.name === name)) return false;
+  return isAdminRole(viewer.role) || PUBLIC_TOOLS.has(name);
+}
+
+/** Tools every valid staff role may use: visibility-scoped search and public regulator pages. */
+const PUBLIC_TOOLS = new Set(["search_knowledge_base", "fetch_oshc_reference"]);
+
+export function getAssistantTools(viewer: DocumentViewer): Anthropic.Messages.Tool[] {
+  return ASSISTANT_TOOLS.filter(tool => canUseAssistantTool(tool.name, viewer));
+}
+
+const toolInputs = {
+  lookup_service_details: z.object({ query: z.string().trim().min(1).max(200) }).strict(),
+  lookup_expiring_certificates: z.object({ withinDays: z.number().int().min(0).max(366).optional() }).strict(),
+  lookup_financial_period: z.object({ month: z.number().int().min(1).max(12), year: z.number().int().min(2000).max(2100) }).strict(),
+  lookup_staff_list: z.object({ role: z.enum(ROLES).optional() }).strict(),
+  lookup_recent_todos: z.object({ status: z.enum(["open", "pending", "completed", "overdue"]).optional(), limit: z.number().int().min(1).max(50).optional() }).strict(),
+  lookup_enquiry_pipeline: z.object({ stage: z.string().trim().min(1).max(80).optional() }).strict(),
+  search_knowledge_base: z.object({ query: z.string().trim().min(1).max(500) }).strict(),
+  fetch_oshc_reference: z.object({ url: z.string().url().max(2048) }).strict(),
+};
+
 export async function executeToolCall(
   name: string,
-  input: Record<string, unknown>,
-  /** Who is asking — scopes the knowledge-base search to what they may see. */
+  input: unknown,
+  /** Trusted session identity — never take this from tool arguments. */
   viewer: DocumentViewer,
 ): Promise<string> {
+  if (!canUseAssistantTool(name, viewer)) {
+    return JSON.stringify({ error: "Tool not permitted" });
+  }
   try {
+    // Organisation-wide lookups re-read the account rather than trusting the
+    // session's role: a deactivated or demoted user's token can still be in
+    // flight, and the session cache refreshes only every few minutes.
+    if (!PUBLIC_TOOLS.has(name)) {
+      const account = await prisma.user.findUnique({ where: { id: viewer.id }, select: { active: true, role: true } });
+      if (!account?.active || !isAdminRole(account.role)) {
+        return JSON.stringify({ error: "Tool not permitted" });
+      }
+    }
     switch (name) {
-      case "lookup_service_details":
-        return await lookupServiceDetails(input.query as string);
-      case "lookup_expiring_certificates":
-        return await lookupExpiringCerts(input.withinDays as number | undefined);
-      case "lookup_financial_period":
-        return await lookupFinancialPeriod(input.month as number, input.year as number);
-      case "lookup_staff_list":
-        return await lookupStaffList(input.role as string | undefined);
-      case "lookup_recent_todos":
-        return await lookupRecentTodos(input.status as string | undefined, input.limit as number | undefined);
-      case "lookup_enquiry_pipeline":
-        return await lookupEnquiryPipeline(input.stage as string | undefined);
+      case "lookup_service_details": {
+        const data = toolInputs.lookup_service_details.parse(input);
+        return await lookupServiceDetails(data.query);
+      }
+      case "lookup_expiring_certificates": {
+        const data = toolInputs.lookup_expiring_certificates.parse(input);
+        return await lookupExpiringCerts(data.withinDays);
+      }
+      case "lookup_financial_period": {
+        const data = toolInputs.lookup_financial_period.parse(input);
+        return await lookupFinancialPeriod(data.month, data.year);
+      }
+      case "lookup_staff_list": {
+        const data = toolInputs.lookup_staff_list.parse(input);
+        return await lookupStaffList(data.role);
+      }
+      case "lookup_recent_todos": {
+        const data = toolInputs.lookup_recent_todos.parse(input);
+        return await lookupRecentTodos(data.status, data.limit);
+      }
+      case "lookup_enquiry_pipeline": {
+        const data = toolInputs.lookup_enquiry_pipeline.parse(input);
+        return await lookupEnquiryPipeline(data.stage);
+      }
       case "search_knowledge_base": {
+        const data = toolInputs.search_knowledge_base.parse(input);
         const { searchChunks, formatChunksForPrompt } = await import(
           "@/lib/document-indexer"
         );
-        const results = await searchChunks(input.query as string, 8, viewer);
+        const results = await searchChunks(data.query, 8, viewer);
         if (results.length === 0) {
           return JSON.stringify({
             message: "No matching documents found for this query.",
@@ -191,13 +246,18 @@ export async function executeToolCall(
         }
         return formatChunksForPrompt(results);
       }
-      case "fetch_oshc_reference":
-        return await fetchOshcReference(input.url as string);
+      case "fetch_oshc_reference": {
+        const data = toolInputs.fetch_oshc_reference.parse(input);
+        return await fetchOshcReference(data.url);
+      }
       default:
         return JSON.stringify({ error: `Unknown tool: ${name}` });
     }
   } catch (err) {
-    return JSON.stringify({ error: err instanceof Error ? err.message : "Tool execution failed" });
+    if (err instanceof z.ZodError) return JSON.stringify({ error: "Invalid tool input" });
+    // Provider-visible errors must not include database details or request data.
+    logger.error("Assistant tool failed", { tool: name, userId: viewer.id });
+    return JSON.stringify({ error: "Tool execution failed" });
   }
 }
 
@@ -431,8 +491,8 @@ async function fetchOshcReference(rawUrl: string): Promise<string> {
   } catch {
     return JSON.stringify({ error: "Invalid URL" });
   }
-  if (parsed.protocol !== "https:") {
-    return JSON.stringify({ error: "Only https URLs are allowed" });
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port) {
+    return JSON.stringify({ error: "Only standard https URLs without credentials are allowed" });
   }
   if (!ALLOWED_HOSTS.has(parsed.hostname.toLowerCase())) {
     return JSON.stringify({
@@ -441,48 +501,25 @@ async function fetchOshcReference(rawUrl: string): Promise<string> {
     });
   }
 
-  let res: Response;
+  let html: string;
+  let byteLimitReached = false;
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10_000);
-    res = await fetch(parsed.toString(), {
+    const res = await fetch(parsed.toString(), {
       headers: { "User-Agent": "Amana-OSHC-Assistant/1.0" },
-      signal: controller.signal,
+      redirect: "error",
+      // The timeout covers response headers AND body consumption.
+      signal: AbortSignal.timeout(10_000),
     });
-    clearTimeout(timer);
-  } catch (err) {
-    return JSON.stringify({
-      error: "Fetch failed",
-      detail: err instanceof Error ? err.message : String(err),
-    });
-  }
-
-  if (!res.ok) {
-    return JSON.stringify({
-      error: `Source returned ${res.status} ${res.statusText}`,
-      url: parsed.toString(),
-    });
-  }
-
-  const reader = res.body?.getReader();
-  if (!reader) {
-    return JSON.stringify({ error: "Empty response body" });
-  }
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    if (value) {
-      total += value.byteLength;
-      if (total > MAX_FETCH_BYTES) {
-        await reader.cancel();
-        break;
-      }
-      chunks.push(value);
+    if (!res.ok) {
+      await res.body?.cancel();
+      return JSON.stringify({ error: `Source returned ${res.status}`, url: parsed.toString() });
     }
+    const bytes = await readResponsePrefix(res, MAX_FETCH_BYTES);
+    byteLimitReached = bytes.byteLength === MAX_FETCH_BYTES;
+    html = bytes.toString("utf8");
+  } catch {
+    return JSON.stringify({ error: "Source could not be fetched safely" });
   }
-  const html = Buffer.concat(chunks.map((c) => Buffer.from(c))).toString("utf8");
 
   // Strip script + style blocks, then collapse HTML tags to whitespace.
   // Crude but adequate for regulator pages — they're mostly text with
@@ -500,7 +537,7 @@ async function fetchOshcReference(rawUrl: string): Promise<string> {
     .replace(/\s+/g, " ")
     .trim();
 
-  const truncated = text.length > MAX_RETURN_CHARS;
+  const truncated = byteLimitReached || text.length > MAX_RETURN_CHARS;
   return JSON.stringify({
     url: parsed.toString(),
     host: parsed.hostname,

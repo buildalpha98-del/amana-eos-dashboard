@@ -8,6 +8,39 @@
 
 ## 1. Authentication Architecture
 
+### Upload and assistant hardening 21 October 2026
+
+Upload verification is read-only. It rejects mismatched file signatures but
+never deletes a caller-supplied URL: a URL and a claimed MIME type do not prove
+ownership. Downloads require HTTPS public Blob hosts without credentials or
+non-standard ports, reject redirects, time out after ten seconds and consume
+at most 4 KiB even if the upstream server ignores Range. This contains the
+cross-user deletion flaw. It does not establish upload ownership, quarantine
+unverified files or make public storage private. Rejected uploads may remain
+orphaned until a server-owned upload lifecycle can safely clean them up.
+
+Meeting recordings are the one upload path that deletes, because raw audio is
+removed after transcription. Recording upload tokens are issued only for the
+caller's own `recordings/<userId>/` folder, ordinary uploads cannot write there,
+and registering a recording refuses any URL outside the caller's folder. Before
+this, registering another person's file URL as a recording queued that file for
+deletion by the failure path, the transcription webhook or the janitor.
+
+Assistant tool advertisement and execution share a permission policy. The
+chat handler rejects unadvertised tool calls, and the executor independently
+requires a valid trusted viewer, enforces administrative tool permissions and
+validates inputs before any query. Knowledge search retains document visibility
+scoping. Regulator references reject redirects, URL credentials and non-standard
+ports; body reads remain subject to byte and time limits. Database errors are
+not returned to the model. These controls limit the consequences of hostile
+model output; they do not claim to prevent prompt injection or redact personal
+information from prompts.
+
+The remaining security work includes private storage and existing-file
+migration, pending-upload ownership and server-enforced attachment validation,
+legacy card-data paths, AI input minimisation, dependency updates, privileged
+MFA policy and verification of production backup and provider settings.
+
 ### Provider and Strategy
 
 Authentication is implemented using **NextAuth.js** with a credentials provider. Sessions are issued as **JSON Web Tokens (JWT)** — no database session table is required, reducing the attack surface for session fixation.

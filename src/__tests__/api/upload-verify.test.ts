@@ -5,9 +5,8 @@
  * serverless request-body cap, which made staff WWCC uploads fail with a bare
  * 413) never pass through our server, so `/api/upload`'s magic-byte check
  * cannot run on them. This route restores that check by range-reading the
- * stored object, and deletes anything whose bytes contradict its declared
- * type — otherwise the large-file path would be the one route where a file's
- * content type is taken on trust.
+ * stored object. Verification is read-only: a caller-supplied URL never
+ * authorises deleting an object, even when its claimed MIME type is wrong.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
@@ -37,11 +36,7 @@ function mockBlobBody(bytes: Uint8Array, ok = true, status = 206) {
   vi.stubGlobal(
     "fetch",
     vi.fn(() =>
-      Promise.resolve({
-        ok,
-        status,
-        arrayBuffer: () => Promise.resolve(bytes.buffer),
-      } as unknown as Response),
+      Promise.resolve(new Response(Uint8Array.from(bytes), { status: ok ? status : 404 })),
     ),
   );
 }
@@ -80,7 +75,7 @@ describe("POST /api/upload/verify", () => {
     expect(deleteFile).not.toHaveBeenCalled();
   });
 
-  it("rejects AND deletes a blob whose bytes contradict its declared type", async () => {
+  it("rejects a mismatched type without deleting a caller-selected file", async () => {
     mockSession({ id: "u1", name: "Tracie", role: "staff" });
     mockBlobBody(PNG_BYTES); // actually a PNG…
 
@@ -91,8 +86,7 @@ describe("POST /api/upload/verify", () => {
     );
 
     expect(res.status).toBe(400);
-    // The object must not survive a failed check.
-    expect(deleteFile).toHaveBeenCalledWith(BLOB);
+    expect(deleteFile).not.toHaveBeenCalled();
   });
 
   it("refuses a non-blob host so the route can't be used as a fetch proxy", async () => {
@@ -120,6 +114,42 @@ describe("POST /api/upload/verify", () => {
     );
 
     expect(res.status).toBe(400);
+  });
+
+  it.each([
+    "http://abc123.public.blob.vercel-storage.com/file.pdf",
+    "https://user@abc123.public.blob.vercel-storage.com/file.pdf",
+    "https://abc123.public.blob.vercel-storage.com:8443/file.pdf",
+    "https://abc123.public.blob.vercel-storage.com.evil.example/file.pdf",
+  ])("refuses unsafe storage URL %s before fetching", async url => {
+    mockSession({ id: "u1", name: "Synthetic educator", role: "staff" });
+    mockBlobBody(PDF_BYTES);
+    const res = await POST(createRequest("POST", "/api/upload/verify", { body: { url, mimeType: "application/pdf" } }));
+    expect(res.status).toBe(400);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(deleteFile).not.toHaveBeenCalled();
+  });
+
+  it("bounds an upstream response that ignores Range and disables redirects", async () => {
+    mockSession({ id: "u1", name: "Synthetic educator", role: "staff" });
+    const cancel = vi.fn();
+    const bytes = new Uint8Array(8192);
+    bytes.set(PDF_BYTES);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(new ReadableStream({
+      start(controller) { controller.enqueue(bytes); }, cancel,
+    }))));
+    const res = await POST(createRequest("POST", "/api/upload/verify", { body: { url: BLOB, mimeType: "application/pdf" } }));
+    expect(res.status).toBe(200);
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledWith(BLOB, expect.objectContaining({ redirect: "error", signal: expect.any(AbortSignal) }));
+  });
+
+  it("handles failed or redirected downloads without deleting anything", async () => {
+    mockSession({ id: "u1", name: "Synthetic educator", role: "staff" });
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("redirect blocked"); }));
+    const res = await POST(createRequest("POST", "/api/upload/verify", { body: { url: BLOB, mimeType: "application/pdf" } }));
+    expect(res.status).toBe(400);
+    expect(deleteFile).not.toHaveBeenCalled();
   });
 });
 
@@ -157,7 +187,7 @@ describe("POST /api/upload/verify — recording context", () => {
     expect(res.status).toBe(400);
   });
 
-  it("deletes a recording blob whose bytes contradict the declared type", async () => {
+  it("rejects mismatched recording bytes without deleting the recording", async () => {
     mockBlobBody(PNG_BYTES); // PNG bytes declared as audio
     const res = await POST(
       createRequest("POST", "/api/upload/verify", {
@@ -165,7 +195,7 @@ describe("POST /api/upload/verify — recording context", () => {
       }),
     );
     expect(res.status).toBe(400);
-    expect(deleteFile).toHaveBeenCalledWith(RECORDING_BLOB);
+    expect(deleteFile).not.toHaveBeenCalled();
   });
 
   it("still accepts the default lane exactly as before (pdf)", async () => {

@@ -3,7 +3,8 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { validateFileContent } from "@/lib/file-validation";
-import { deleteFile } from "@/lib/storage";
+import { isStoredFileUrl } from "@/lib/blob-proxy";
+import { readResponsePrefix } from "@/lib/read-response-prefix";
 import { logger } from "@/lib/logger";
 import {
   RECORDING_ALLOWED_MIMES,
@@ -18,8 +19,10 @@ import {
  * `/api/upload` sniffs content server-side, but a direct upload never touches
  * our server — so without this the >4 MB path would be the one route where a
  * file's declared type is taken on trust. Here we range-read the head of the
- * stored object, run the same `validateFileContent`, and delete the blob if it
- * lies. Callers must not persist a blob URL until this returns ok.
+ * stored object and run the same `validateFileContent`. Callers must not
+ * persist a blob URL until this returns ok. This endpoint NEVER deletes:
+ * a caller-provided URL is not proof of upload ownership. Cleanup requires
+ * a separate server-owned pending-upload lifecycle.
  */
 
 // Enough for every signature we check; HEIC needs 12 bytes, SVG sniffs 200.
@@ -46,31 +49,30 @@ export const POST = withApiAuth(async (req, session) => {
     throw ApiError.badRequest(`Unsupported file type: ${mimeType}`);
   }
 
-  // Only ever verify objects in our own blob store — never let a caller point
-  // this at an arbitrary host and use the server as a fetch proxy.
-  const host = new URL(url).hostname;
-  if (!host.endsWith(".blob.vercel-storage.com")) {
+  // This is a destination guard, not proof of ownership or upload approval.
+  // Reject credentials, non-HTTPS schemes and non-standard ports as well.
+  if (!isStoredFileUrl(url)) {
     throw ApiError.badRequest("Not a blob-storage URL");
   }
 
-  const res = await fetch(url, { headers: { Range: `bytes=0-${HEAD_BYTES - 1}` } });
-  if (!res.ok) {
-    throw ApiError.badRequest(`Could not read uploaded file (${res.status})`);
-  }
-  const head = await res.arrayBuffer();
-
-  if (!validateFileContent(head, mimeType)) {
-    // Remove the object so a rejected upload leaves nothing behind.
-    try {
-      await deleteFile(url);
-    } catch (err) {
-      logger.warn("upload/verify: could not delete rejected blob", {
-        url,
-        err: err instanceof Error ? err.message : String(err),
-      });
+  let head: Buffer;
+  try {
+    const res = await fetch(url, {
+      headers: { Range: `bytes=0-${HEAD_BYTES - 1}` },
+      redirect: "error",
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) {
+      await res.body?.cancel();
+      throw ApiError.badRequest("Could not read uploaded file");
     }
+    head = await readResponsePrefix(res, HEAD_BYTES);
+  } catch {
+    throw ApiError.badRequest("Could not read uploaded file");
+  }
+
+  if (!validateFileContent(Uint8Array.from(head).buffer, mimeType)) {
     logger.warn("upload/verify: content did not match declared type", {
-      url,
       mimeType,
       userId: session!.user.id,
     });
