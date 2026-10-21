@@ -448,6 +448,8 @@ describe("partitionNavSection", () => {
       "/services",
       "/bookings",
       "/financials",
+      // 2026-10-21: term program materials orders (Cowork round → HQ carts).
+      "/materials",
       // billing unfolded + made core 2026-07-31 when it became the real
       // invoicing system (OWNA replacement); aged-debtors shipped with it.
       "/billing",

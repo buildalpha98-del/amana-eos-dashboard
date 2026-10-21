@@ -12,7 +12,7 @@ const equipmentItemSchema = z
     amount: z.number().positive(),
     category: z.enum([
       "groceries", "kitchen", "sports", "art_craft", "furniture",
-      "technology", "cleaning", "safety", "other",
+      "technology", "cleaning", "safety", "program_materials", "other",
     ]),
     date: z.string(),
     notes: z.string().max(500).optional(),

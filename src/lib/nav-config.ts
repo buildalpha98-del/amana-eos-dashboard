@@ -54,8 +54,7 @@ import {
   Palette,
   Bell,
   Link2,
-  ShieldAlert,
-} from "lucide-react";
+  ShieldAlert, Package } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
 import { EOS_ROLES } from "@/lib/role-enum";
@@ -211,6 +210,7 @@ export const navItems: NavItem[] = [
   // 2026-09-25 rolePageAccess blocked the page it pointed at.
   { href: "/bookings", label: "Bookings", icon: CalendarCheck, section: "Operations", tooltip: "Review and action casual booking requests from parents", roles: ["head_office", "admin", "member", "eos"], core: true },
   { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations", roles: ALL_NON_MARKETING , core: true },
+  { href: "/materials", label: "Materials Orders", icon: Package, section: "Operations", tooltip: "Term program materials: what each centre has, local buys, HQ carts and deliveries", roles: ["owner", "head_office", "admin", "member"], core: ["head_office", "admin", "member"] },
   // 2026-07-23: family balance contact log — hidden from the sidebar
   // (accessed from the Financials page). Kept as an entry so ⌘K search
   // and the middleware page-access checker recognise it.
