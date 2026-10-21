@@ -28,7 +28,11 @@ export async function renderContractPdf(html: string): Promise<Buffer> {
   const browser = await getBrowser();
   const page = await browser.newPage();
   try {
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    // puppeteer-core 24.43 dropped networkidle* for setContent. "load" waits
+    // for images; fonts can settle after it, so wait for them explicitly —
+    // the PDF must not print in a fallback face.
+    await page.setContent(html, { waitUntil: "load" });
+    await page.evaluate(() => document.fonts.ready.then(() => undefined));
     const pdf = await page.pdf({
       format: "A4",
       margin: { top: "20mm", right: "20mm", bottom: "20mm", left: "20mm" },
