@@ -11,7 +11,7 @@ const updateSchema = z.object({
   amount: z.number().positive().optional(),
   category: z.enum([
     "groceries", "kitchen", "sports", "art_craft", "furniture",
-    "technology", "cleaning", "safety", "other",
+    "technology", "cleaning", "safety", "program_materials", "other",
   ]).optional(),
   date: z.string().optional(),
   notes: z.string().max(500).optional().nullable(),

@@ -4,12 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { recalcFinancialsForWeek } from "@/lib/budget-helpers";
 
 import { parseJsonBody } from "@/lib/api-error";
 const budgetItemSchema = z.object({
   name: z.string().min(1),
   amount: z.number(),
-  category: z.enum(["groceries", "kitchen", "sports", "art_craft", "furniture", "technology", "cleaning", "safety", "other"]).optional(),
+  category: z.enum(["groceries", "kitchen", "sports", "art_craft", "furniture", "technology", "cleaning", "safety", "program_materials", "other"]).optional(),
   date: z.string().min(1),
   notes: z.string().nullable().optional(),
 });
@@ -66,6 +67,15 @@ export const POST = withApiHandler(async (req) => {
       });
       created++;
       totalAmount += item.amount || 0;
+    }
+
+    // 2026-10-21: Cowork-pushed spend now reaches Financials too (the weekly
+    // FinancialPeriod supplies figure) — dashboard-entered items always did.
+    const weeks = new Set(items.map((i) => i.date.slice(0, 10)));
+    for (const d of weeks) {
+      await recalcFinancialsForWeek(service.id, new Date(`${d}T00:00:00Z`)).catch((err) =>
+        logger.warn("cowork budget: financials recalc failed", { serviceCode, d, err }),
+      );
     }
 
     return NextResponse.json(

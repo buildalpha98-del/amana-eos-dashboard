@@ -131,6 +131,8 @@ export const allPages = [
   "/financials/family-balances",
   "/performance",
   "/services",
+  // 2026-10-21: program materials orders (Cowork round → centres answer → HQ carts).
+  "/materials",
   "/services/[id]",
   "/projects",
   "/tickets",
@@ -402,6 +404,8 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/accountability-chart",
     // ── Their centre — primary surface ─────────────────────────
     "/services",
+    // 2026-10-21: their centre's program materials — answer "have it?".
+    "/materials",
     // 2026-09-25: restored. Removed 2026-04-29 on the rationale that
     // Bookings "lives inside /services/[id]?tab=..." — but no booking-request
     // tab was ever built there (the Daily Ops "Casual Bookings" tab is fee /

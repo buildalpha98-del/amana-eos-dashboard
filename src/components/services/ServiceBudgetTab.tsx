@@ -52,6 +52,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   technology: "Technology",
   cleaning: "Cleaning",
   safety: "Safety",
+  program_materials: "Program materials",
   other: "Other",
 };
 
@@ -64,6 +65,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   technology: "#004E64",
   cleaning: "#6B7280",
   safety: "#EF4444",
+  program_materials: "#FECE00",
   other: "#9CA3AF",
 };
 
