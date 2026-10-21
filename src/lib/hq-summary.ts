@@ -77,9 +77,16 @@ export interface HqTermRow {
 export interface HqMonthRow {
   serviceId: string;
   avgWeeklyBookings: number;
+  /** The month's grocery budget: ERM rates × the bookings of the weeks logged in it. */
+  groceryBudget: number;
+  /** Woolies food spend on orders whose first week falls in the month. */
+  grocerySpend: number;
+  groceryRemaining: number;
   resourceBudget: number;
   resourceSpend: number;
   remaining: number;
+  /** Over either monthly budget (groceries or resources). */
+  overBudget: boolean;
   feedbackReceived: boolean | null;
   reflections: string | null;
   stockToReorder: number;
@@ -189,14 +196,24 @@ export async function hqSummary(opts: { week?: string; month?: string; termStart
     const avg = inMonth.length ? inMonth.reduce((t, x) => t + x.bscBookings + x.ascBookings, 0) / inMonth.length : 0;
     const budget = resourceBudgetFor(avg);
     const spend = r2(resources.filter((x) => x.serviceId === s.id).reduce((t, x) => t + x.amount, 0));
+    const mOrders = orders.filter((o) => o.serviceId === s.id && o.weekStart >= month && o.weekStart < monthEnd);
+    // Weeks logged → the ERM budget; nothing logged yet → what the orders were budgeted at.
+    const gBudget = inMonth.length
+      ? r2(inMonth.reduce((t, x) => t + groceryBudget(x.bscBookings, x.ascBookings), 0))
+      : r2(mOrders.reduce((t, o) => t + (o.budget ?? 0), 0));
+    const gSpend = r2(mOrders.reduce((t, o) => t + o.foodSpend, 0));
     const fb = feedback.find((f) => f.serviceId === s.id);
     const fresh = [s.coworkFeedAt, s.ownaServiceId ? s.ownaSyncedAt : null].filter((d): d is Date => !!d).sort((a, b) => b.getTime() - a.getTime())[0];
     monthRows.push({
       serviceId: s.id,
       avgWeeklyBookings: Math.round(avg * 10) / 10,
+      groceryBudget: gBudget,
+      grocerySpend: gSpend,
+      groceryRemaining: r2(gBudget - gSpend),
       resourceBudget: budget,
       resourceSpend: spend,
       remaining: r2(budget - spend),
+      overBudget: gSpend > gBudget + 0.005 || spend > budget + 0.005,
       feedbackReceived: fb ? fb.feedbackReceived : null,
       reflections: fb?.reflections ?? null,
       stockToReorder: stock.filter((x) => x.serviceId === s.id && x.qtyOnHand != null && x.reorderAt != null && x.qtyOnHand <= x.reorderAt).length,
