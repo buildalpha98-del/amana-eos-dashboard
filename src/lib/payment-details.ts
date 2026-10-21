@@ -22,6 +22,18 @@
  */
 import { z } from "zod";
 
+/**
+ * Who may see a family's bank details AT ALL — masks included (Daniel,
+ * 2026-10-21: "unless it's an admin or an owner, they should not be able to
+ * view the bank details"). State Managers (head_office), coordinators and
+ * educators see the method only. Shared centre logins never, whatever role.
+ */
+export const BANK_DETAILS_ROLES = ["owner", "admin"] as const;
+
+export function canSeeBankDetails(user: { role?: string | null; isCentreAccount?: boolean | null } | null | undefined): boolean {
+  return !!user && !user.isCentreAccount && (BANK_DETAILS_ROLES as readonly string[]).includes(user.role ?? "");
+}
+
 /** Every card-ish key seen in either stored shape (plus common spellings). */
 export const CARD_FIELD_KEYS = [
   "cardName",
@@ -131,6 +143,14 @@ export function maskedPaymentView(stored: unknown): Record<string, unknown> | nu
   }
   out.hasEncryptedDetails = typeof s.raw === "string";
   return out;
+}
+
+/** The default-read view for THIS viewer: masks for owner/admin, nothing for anyone else. */
+export function paymentViewFor(
+  user: Parameters<typeof canSeeBankDetails>[0],
+  stored: unknown,
+): Record<string, unknown> | null {
+  return canSeeBankDetails(user) ? maskedPaymentView(stored) : null;
 }
 
 /**

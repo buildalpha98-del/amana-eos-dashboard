@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateEnrolmentPdf } from "@/lib/enrolment-pdf";
+import { paymentViewFor } from "@/lib/payment-details";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { assertEnrolmentAccess } from "@/lib/enrolment-access";
@@ -32,8 +33,12 @@ export const GET = withApiAuth(async (_req, session, context) => {
    * this is the only place that can say which enrolment it was.
    */
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdf = await generateEnrolmentPdf(submission as any);
+    const pdf = await generateEnrolmentPdf({
+      ...submission,
+      // Bank masks print for owner/admin only; everyone else gets the method.
+      paymentDetails: paymentViewFor(session.user, submission.paymentDetails),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
     const buffer = pdf.output("arraybuffer");
 
     return new NextResponse(buffer, {

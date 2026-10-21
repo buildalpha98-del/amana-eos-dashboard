@@ -21,6 +21,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { findEnrolmentsForEmails } from "@/lib/parent-account";
 import { withApiAuth } from "@/lib/server-auth";
+import { canSeeBankDetails, maskedPaymentView } from "@/lib/payment-details";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { getParentEnrolmentState } from "@/lib/parent-enrolment-state";
 import { anchorDayValid, isBillingFrequency } from "@/lib/family-billing";
@@ -82,7 +83,7 @@ async function submissionsForEmail(email: string) {
 }
 
 export const GET = withApiAuth(
-  async (_req, _session, context) => {
+  async (_req, session, context) => {
     const { id } = await (context as unknown as Ctx).params;
 
     const account = await prisma.parentAccount.findUnique({
@@ -120,23 +121,21 @@ export const GET = withApiAuth(
     const subs = await submissionsForEmail(account.email);
     const latest = subs[0] ?? null;
 
-    // Bank/card details are MASKED here. The full value is encrypted and
-    // only ever released by POST /api/enrolments/[id]/payment, which is
-    // owner/head_office-only — this endpoint is open to admin too, so it
-    // must not become a side door around that.
-    const masked = (latest?.paymentDetails ?? null) as Record<
-      string,
-      unknown
-    > | null;
-    const payment = masked
+    // Bank details: owner and admin only, masked here; the full value is only
+    // released by POST /api/enrolments/[id]/payment after "confirm it's you".
+    // State Managers can open this page, so they get the method and nothing else.
+    const seeBank = canSeeBankDetails(session.user);
+    const masked = seeBank ? maskedPaymentView(latest?.paymentDetails) : null;
+    const payment = latest?.paymentMethod
       ? {
-          method: latest?.paymentMethod ?? null,
-          lastFour: masked.lastFour ?? null,
-          cardType: masked.cardType ?? null,
-          bsbLastThree: masked.bsbLastThree ?? null,
-          accountLastFour: masked.accountLastFour ?? null,
-          hasEncryptedDetails: typeof masked.raw === "string",
-          enrolmentId: latest?.id ?? null,
+          method: latest.paymentMethod,
+          lastFour: masked?.lastFour ?? null,
+          cardType: masked?.cardType ?? null,
+          bsbLastThree: masked?.bsbLastThree ?? null,
+          accountLastFour: masked?.accountLastFour ?? null,
+          hasEncryptedDetails: masked?.hasEncryptedDetails === true,
+          canSeeBankDetails: seeBank,
+          enrolmentId: latest.id,
         }
       : null;
 

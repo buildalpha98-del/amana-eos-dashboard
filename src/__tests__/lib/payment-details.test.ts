@@ -7,7 +7,9 @@ import {
   CARD_REJECTED_MESSAGE,
   bankPlaintext,
   hasCardFields,
+  canSeeBankDetails,
   maskedPaymentView,
+  paymentViewFor,
   parseBankDetails,
   revealBankDetails,
   stripCardPlaceholders,
@@ -103,5 +105,23 @@ describe("hasCardFields — cleanup inventory", () => {
     expect(hasCardFields({ cardCcv: "123" })).toBe(true);
     expect(hasCardFields({ cardType: "Visa", cardNumber: "" })).toBe(false);
     expect(hasCardFields({ bsb: "062000" })).toBe(false);
+  });
+});
+
+describe("who can see bank details at all (owner and admin only)", () => {
+  const stored = { bsbLastThree: "000", accountLastFour: "5678", raw: "v1:x" };
+
+  it.each(["owner", "admin"])("%s sees the masks", (role) => {
+    expect(canSeeBankDetails({ role })).toBe(true);
+    expect(paymentViewFor({ role }, stored)).toMatchObject({ bsbLastThree: "000", accountLastFour: "5678" });
+  });
+
+  it.each(["head_office", "member", "staff", "marketing", "eos", "eos_viewer", null])("%s sees nothing", (role) => {
+    expect(canSeeBankDetails({ role })).toBe(false);
+    expect(paymentViewFor({ role }, stored)).toBeNull();
+  });
+
+  it("a shared centre login sees nothing, even with an admin role", () => {
+    expect(paymentViewFor({ role: "admin", isCentreAccount: true }, stored)).toBeNull();
   });
 });

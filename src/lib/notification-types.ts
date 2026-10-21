@@ -88,6 +88,11 @@ export const NOTIFICATION_TYPES = {
   // complaint or staff incident → Director, State Managers, then owners on
   // escalation).
   KNOX_ALERT: "knox_alert",
+  // 2026-10-21: a centre sent its stocktake (Program → Resources & stock).
+  STOCKTAKE: "stocktake",
+  // 2026-10-21: a family's old card is expiring — owner/admins call them for
+  // bank details (the family is no longer emailed).
+  CARD_EXPIRY: "card_expiry",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];

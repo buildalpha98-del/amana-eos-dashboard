@@ -41,7 +41,7 @@ information from prompts.
 Family payment details are direct debit only. Every write path (staff edit,
 parent self-service, enrolment submission) refuses card numbers and security
 codes, including when the request claims a bank method; blank form
-placeholders are discarded. Ordinary reads return allow-listed masks only.
+placeholders are discarded. Bank details, including masks, are visible to the owner and admins only; State Managers, centre staff and shared centre logins see the payment method alone. Ordinary reads return allow-listed masks only.
 Revealing full bank details requires the person to re-enter their password
 (and second factor when enabled) within the last five minutes in the same
 login; the proof is an httpOnly, SameSite=strict cookie bound to the user,

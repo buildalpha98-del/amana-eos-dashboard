@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { maskedPaymentView } from "@/lib/payment-details";
+import { paymentViewFor } from "@/lib/payment-details";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -55,8 +55,8 @@ export const GET = withApiAuth(async (req, session, context) => {
       })
     : null;
 
-  // Mask fields only — the encrypted copy never leaves the server (S04).
-  return NextResponse.json({ ...submission, paymentDetails: maskedPaymentView(submission.paymentDetails), service });
+  // Masks for owner/admin only; nobody gets the encrypted copy (S04).
+  return NextResponse.json({ ...submission, paymentDetails: paymentViewFor(session.user, submission.paymentDetails), service });
 });
 
 export const PATCH = withApiAuth(async (req, session, context) => {
@@ -255,7 +255,7 @@ const { id } = await context!.params!;
     });
   }
 
-  return NextResponse.json({ ...updated, paymentDetails: maskedPaymentView(updated.paymentDetails) });
+  return NextResponse.json({ ...updated, paymentDetails: paymentViewFor(session.user, updated.paymentDetails) });
 });
 
 /**

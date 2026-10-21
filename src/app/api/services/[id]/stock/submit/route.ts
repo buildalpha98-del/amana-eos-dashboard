@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { assertServiceAccess } from "@/lib/authz-scope";
 import { notifyUsers } from "@/lib/notify-user";
+import { NOTIFICATION_TYPES } from "@/lib/notification-types";
 import { needsReorder } from "@/lib/service-stock";
 import { serviceTodayISO } from "@/lib/timezone";
 import { logger } from "@/lib/logger";
@@ -41,7 +42,7 @@ export const POST = withApiAuth(
         prisma,
         recipients.map((u) => u.id).filter((u) => u !== session.user.id),
         {
-          type: "stocktake",
+          type: NOTIFICATION_TYPES.STOCKTAKE,
           title: `${name} sent their stocktake`,
           body: low.length
             ? `${low.length} to reorder: ${low.slice(0, 6).map((s) => s.item).join(", ")}${low.length > 6 ? "…" : ""}`

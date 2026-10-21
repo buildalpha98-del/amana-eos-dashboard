@@ -101,7 +101,7 @@ describe("revealing bank details", () => {
     expect((await reveal(proof())).status).toBe(403);
   });
 
-  it.each(["member", "staff", "marketing", "eos"] as const)("refuses the %s role before anything else", async (role) => {
+  it.each(["head_office", "member", "staff", "marketing", "eos"] as const)("refuses the %s role before anything else", async (role) => {
     mockSession({ ...owner, role });
     expect((await reveal(proof())).status).toBe(403);
     expect(prismaMock.enrolmentSubmission.findUnique).not.toHaveBeenCalled();
@@ -164,6 +164,19 @@ describe("staff payment edits", () => {
     expect(res.status).toBe(400);
     expect(crypto.encrypted).toHaveLength(0);
     expect(prismaMock.enrolmentSubmission.update).not.toHaveBeenCalled();
+  });
+
+  it.each(["head_office", "member", "staff"] as const)("refuses an edit from %s", async (role) => {
+    mockSession({ ...owner, role });
+    const res = await put({ method: "bank_account", accountName: "A", bsb: "062000", accountNumber: "12345678" });
+    expect(res.status).toBe(403);
+    expect(prismaMock.enrolmentSubmission.update).not.toHaveBeenCalled();
+  });
+
+  it("refuses an edit from a shared centre login, even with an admin role", async () => {
+    mockSession({ ...owner, role: "admin", isCentreAccount: true });
+    const res = await put({ method: "bank_account", accountName: "A", bsb: "062000", accountNumber: "12345678" });
+    expect(res.status).toBe(403);
   });
 
   it("saves a valid bank update, encrypting bank fields only", async () => {

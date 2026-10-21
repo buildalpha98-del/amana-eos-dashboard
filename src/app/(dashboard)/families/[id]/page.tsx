@@ -115,6 +115,8 @@ interface FamilyDetail {
     bsbLastThree: string | null;
     accountLastFour: string | null;
     hasEncryptedDetails: boolean;
+    /** Owner/admin only — everyone else sees the method alone. */
+    canSeeBankDetails: boolean;
     enrolmentId: string | null;
   } | null;
   children: FamilyChild[];
@@ -679,7 +681,9 @@ export default function FamilyDetailPage({
             )}
             <div className="min-w-0">
               <p className="text-sm text-foreground">
-                {data.payment.method === "bank_account"
+                {!data.payment.canSeeBankDetails
+                  ? data.payment.method === "bank_account" ? "Direct debit (bank account)" : "Old card record"
+                  : data.payment.method === "bank_account"
                   ? `Direct debit — BSB •••${data.payment.bsbLastThree ?? "•••"}, account ••••${data.payment.accountLastFour ?? "••••"}`
                   : `${data.payment.cardType ?? "Card"} ending ${data.payment.lastFour ?? "••••"}`}
               </p>
@@ -700,7 +704,9 @@ export default function FamilyDetailPage({
                 </dl>
               ) : (
                 <p className="text-xs text-muted mt-1">
-                  {data.payment.method !== "bank_account"
+                  {!data.payment.canSeeBankDetails
+                    ? "Bank details are visible to the owner and admins only."
+                    : data.payment.method !== "bank_account"
                     ? "Old card record — card details are no longer shown or kept. Ask the family for their bank details."
                     : data.payment.hasEncryptedDetails
                     ? "Stored encrypted. Reveal to get the full BSB and account number for a reimbursement — you'll confirm it's you first, and every reveal is recorded in the audit log."
