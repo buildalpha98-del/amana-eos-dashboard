@@ -445,6 +445,28 @@ describe("submit — payment", () => {
     expect(encryptField).not.toHaveBeenCalled();
   });
 
+  // Security brief 2026-10-21 (S04): a card VALUE is refused even when the
+  // caller labels the method bank_account.
+  it.each([
+    ["a security code", { cardCcv: "123" }],
+    ["a card number", { cardNumber: "4111111111111111" }],
+    ["a cvv spelling", { cvv: "123" }],
+  ])("refuses %s beside bank details and stores nothing", async (_label, extra) => {
+    const res = await submit({ payment: { ...BANK, ...extra } });
+    expect(res.status).toBe(400);
+    expect(encryptField).not.toHaveBeenCalled();
+  });
+
+  it("still accepts the form's blank card placeholders, and keeps none of them", async () => {
+    // Tabs open before this shipped send the whole form state object.
+    const res = await submit({
+      payment: { ...BANK, cardName: "", cardNumber: "", cardExpiryMonth: "", cardExpiryYear: "", cardCcv: "" },
+    });
+    expect(res.status).toBe(200);
+    const stored = JSON.parse(encryptField.mock.calls[0][0]);
+    expect(Object.keys(stored).sort()).toEqual(["accountName", "accountNumber", "bsb", "method"]);
+  });
+
   it("refuses a submission with no bank details", async () => {
     // Bank details are mandatory in the form, so a body without them can
     // only be a bypass — not "a family paying another way".

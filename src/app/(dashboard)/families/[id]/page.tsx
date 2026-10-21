@@ -33,6 +33,7 @@ import {
 import { useSession } from "next-auth/react";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+import { useBankReveal } from "@/components/security/BankRevealDialog";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { FamilyAccessPanel } from "@/components/families/FamilyAccessPanel";
@@ -80,16 +81,7 @@ interface LedgerResponse {
   paidCents: number;
 }
 
-interface RevealedPayment {
-  method: string | null;
-  accountName?: string;
-  bsb?: string;
-  accountNumber?: string;
-  cardName?: string;
-  cardNumber?: string;
-  expiryMonth?: string;
-  expiryYear?: string;
-}
+
 
 interface FamilyDetail {
   id: string;
@@ -241,18 +233,9 @@ export default function FamilyDetailPage({
     retry: 2,
   });
 
-  const [revealed, setRevealed] = useState<RevealedPayment | null>(null);
-
-  const reveal = useMutation({
-    mutationFn: () =>
-      mutateApi<RevealedPayment>(
-        `/api/enrolments/${data?.payment?.enrolmentId}/payment`,
-        { method: "POST", body: {} },
-      ),
-    onSuccess: (r) => setRevealed(r),
-    onError: (err: Error) =>
-      toast({ variant: "destructive", description: err.message }),
-  });
+  // Full bank details, after "confirm it's you" (security brief batch 2).
+  const bankReveal = useBankReveal(data?.payment?.enrolmentId);
+  const revealed = bankReveal.revealed;
 
   const saveName = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
@@ -702,56 +685,37 @@ export default function FamilyDetailPage({
               </p>
               {revealed ? (
                 <dl className="mt-2 text-sm space-y-1">
-                  {revealed.method === "bank_account" ? (
-                    <>
-                      <div className="flex gap-2">
-                        <dt className="text-muted w-28 shrink-0">Account name</dt>
-                        <dd className="text-foreground font-mono">{revealed.accountName}</dd>
-                      </div>
-                      <div className="flex gap-2">
-                        <dt className="text-muted w-28 shrink-0">BSB</dt>
-                        <dd className="text-foreground font-mono">{revealed.bsb}</dd>
-                      </div>
-                      <div className="flex gap-2">
-                        <dt className="text-muted w-28 shrink-0">Account no.</dt>
-                        <dd className="text-foreground font-mono">{revealed.accountNumber}</dd>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex gap-2">
-                        <dt className="text-muted w-28 shrink-0">Name on card</dt>
-                        <dd className="text-foreground font-mono">{revealed.cardName}</dd>
-                      </div>
-                      <div className="flex gap-2">
-                        <dt className="text-muted w-28 shrink-0">Number</dt>
-                        <dd className="text-foreground font-mono">{revealed.cardNumber}</dd>
-                      </div>
-                      <div className="flex gap-2">
-                        <dt className="text-muted w-28 shrink-0">Expiry</dt>
-                        <dd className="text-foreground font-mono">
-                          {revealed.expiryMonth}/{revealed.expiryYear}
-                        </dd>
-                      </div>
-                    </>
-                  )}
+                  <div className="flex gap-2">
+                    <dt className="text-muted w-28 shrink-0">Account name</dt>
+                    <dd className="text-foreground font-mono">{revealed.accountName}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="text-muted w-28 shrink-0">BSB</dt>
+                    <dd className="text-foreground font-mono">{revealed.bsb}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="text-muted w-28 shrink-0">Account no.</dt>
+                    <dd className="text-foreground font-mono">{revealed.accountNumber}</dd>
+                  </div>
                 </dl>
               ) : (
                 <p className="text-xs text-muted mt-1">
-                  {data.payment.hasEncryptedDetails
-                    ? "Stored encrypted. Reveal to get the full BSB and account number for a reimbursement — every reveal is recorded in the audit log."
+                  {data.payment.method !== "bank_account"
+                    ? "Old card record — card details are no longer shown or kept. Ask the family for their bank details."
+                    : data.payment.hasEncryptedDetails
+                    ? "Stored encrypted. Reveal to get the full BSB and account number for a reimbursement — you'll confirm it's you first, and every reveal is recorded in the audit log."
                     : "No encrypted copy is stored for this enrolment, so the full number can't be recovered."}
                 </p>
               )}
 
               <div className="flex flex-wrap gap-2 mt-3">
-                {data.payment.hasEncryptedDetails && !revealed && (
+                {data.payment.method === "bank_account" && data.payment.hasEncryptedDetails && !revealed && (
                   <Button
                     variant="outline"
-                    onClick={() => reveal.mutate()}
-                    disabled={reveal.isPending}
+                    onClick={() => void bankReveal.reveal()}
+                    disabled={bankReveal.loading}
                   >
-                    {reveal.isPending ? (
+                    {bankReveal.loading ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Revealing…</>
                     ) : (
                       <><Eye className="w-4 h-4" /> Reveal full details</>
@@ -759,11 +723,12 @@ export default function FamilyDetailPage({
                   </Button>
                 )}
                 {revealed && (
-                  <Button variant="ghost" onClick={() => setRevealed(null)}>
+                  <Button variant="ghost" onClick={bankReveal.hide}>
                     <EyeOff className="w-4 h-4" /> Hide
                   </Button>
                 )}
               </div>
+              {bankReveal.dialog}
             </div>
           </div>
         )}
