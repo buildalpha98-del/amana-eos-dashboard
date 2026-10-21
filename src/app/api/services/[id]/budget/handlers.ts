@@ -312,6 +312,8 @@ export const GET = withApiAuth(async (req, session, context) => {
       serviceId: id,
       date: { gte: monthStart },
       category: { not: "groceries" },
+      // Bank-funded purchases don't come out of the month (21 Oct 2026).
+      fundedFromBank: false,
     },
     _sum: { amount: true },
   });

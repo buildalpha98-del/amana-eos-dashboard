@@ -3039,6 +3039,7 @@ model Service {
   materialsCentres      MaterialsOrderCentre[]
   materialsLines        MaterialsOrderLine[]
   materialsCarts        MaterialsCart[]
+  budgetBankEntries     BudgetBankEntry[]
   programActivities     ProgramActivity[]              @relation("ServicePrograms")
   menuWeeks             MenuWeek[]                     @relation("ServiceMenus")
   programPlanSyncs      ProgramPlanSync[]              @relation("ServiceProgramPlanSyncs")
@@ -4696,6 +4697,9 @@ model BudgetItem {
   category    BudgetItemCategory @default(other)
   date        DateTime           @db.Date
   notes       String?            @db.Text
+  /// Paid from the centre's budget bank (21 Oct 2026) — not this month's
+  /// budget, so it doesn't count against the month or its rollover.
+  fundedFromBank Boolean         @default(false)
   createdById String?
   createdBy   User?              @relation("BudgetItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt   DateTime           @default(now())
@@ -11648,4 +11652,33 @@ model MaterialsCart {
   updatedAt    DateTime            @updatedAt
 
   @@unique([roundId, serviceId, retailer])
+}
+
+// ============================================================
+// Budget bank (Daniel, 21 Oct 2026): what a centre doesn't spend of its
+// monthly purchase budget and grocery budget is banked when the month
+// closes; the bank pays for bigger things later (a new microwave…). A
+// ledger: + rollovers (one per centre/month/budget), − withdrawals.
+// ============================================================
+
+model BudgetBankEntry {
+  id           String    @id @default(cuid())
+  serviceId    String
+  service      Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  /// rollover | withdrawal | adjustment
+  kind         String
+  /// purchases | groceries (rollovers); what it was for (withdrawals)
+  budget       String    @default("purchases")
+  /// The month a rollover closes (first day). Null for withdrawals.
+  month        DateTime? @db.Date
+  /// + into the bank, − out of it.
+  amount       Float
+  description  String
+  /// Withdrawals: the BudgetItem recording the purchase.
+  budgetItemId String?   @unique
+  createdById  String?
+  createdAt    DateTime  @default(now())
+
+  @@unique([serviceId, kind, budget, month])
+  @@index([serviceId, createdAt])
 }

@@ -14,7 +14,7 @@
  * there, "ready" includes families who may well be attending.
  */
 import { prisma } from "@/lib/prisma";
-import { predatesOwnaChecklist, readHandoff } from "@/lib/owna-handoff";
+import { HANDOFF_STEP_COUNT, predatesOwnaChecklist, readHandoff } from "@/lib/owna-handoff";
 import { FOLLOW_UPS_START } from "@/lib/enrolment-reply-clock";
 
 const DAY = 24 * 3_600_000;
@@ -74,7 +74,7 @@ export async function getParentFunnel(serviceIds: string[] | null, days = 90, no
     const handoverDone = (x: (typeof approved)[number]) => {
       if (predatesOwnaChecklist(x.createdAt)) return true;
       const st = readHandoff(x.ownaHandoff?.state);
-      return !!st && Object.keys(st.steps).length === 4;
+      return !!st && Object.keys(st.steps).length === HANDOFF_STEP_COUNT;
     };
     const notAttended = approved.filter((x) => !x.childRecords.some((c) => c.firstAttendedAt));
     return {

@@ -126,7 +126,7 @@ describe("staff OWNA handoff API", () => {
     expect(item).not.toHaveProperty("ownaHandoff");
     expect(item).not.toHaveProperty("childRecords");
     expect(JSON.stringify(item)).not.toContain("Internal evidence");
-    if (role === "owner") expect(item.ownaHandoffSummary).toBe("OWNA: 0/4 checked");
+    if (role === "owner") expect(item.ownaHandoffSummary).toBe("OWNA: 0/5 checked");
     else expect(item).not.toHaveProperty("ownaHandoffSummary");
   });
   it("rejects malformed completion and forged actor", async () => {

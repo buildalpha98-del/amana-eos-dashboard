@@ -15,7 +15,7 @@ import { matchSchoolToService } from "@/lib/school-service-match";
 import { ENROL_STEPS } from "@/app/parent/enrol/steps";
 import type { EnrolDraft } from "@/lib/enrol-draft";
 import { REPLY_HOURS, notBeforeFollowUpsStart } from "@/lib/enrolment-reply-clock";
-import { OWNA_CHECKLIST_START, readHandoff, type HandoffStep } from "@/lib/owna-handoff";
+import { HANDOFF_STEP_ORDER, OWNA_CHECKLIST_START, readHandoff, type HandoffStep } from "@/lib/owna-handoff";
 import { firstDayFollowUps, type FirstDayRow } from "@/lib/first-day-check";
 import { quietFamilies, type QuietFamily } from "@/lib/quiet-families";
 
@@ -46,18 +46,20 @@ export interface OwnaSetup {
   approvedAt: string;
   daysSinceApproval: number;
   stepsDone: number;
+  stepCount: number;
   nextStep: string;
   /** Invitation sent but the family hasn't got in yet. */
   waitingOnFamily: boolean;
   owner: string | null;
 }
 
-const STEP_ORDER: HandoffStep[] = ["children", "invitation", "access", "sessions"];
+const STEP_ORDER: HandoffStep[] = HANDOFF_STEP_ORDER;
 const NEXT_LABEL: Record<HandoffStep, string> = {
   children: "Enter the children in OWNA",
   invitation: "Send the OWNA invitation",
   access: "Check they've got into OWNA",
   sessions: "Confirm the first booked day",
+  ccs: "Apply for CCS",
 };
 
 export interface UnfinishedForm {
@@ -203,6 +205,7 @@ export async function getFollowUps(
       approvedAt: (e.processedAt ?? now).toISOString(),
       daysSinceApproval: Math.floor((now.getTime() - (e.processedAt ?? now).getTime()) / DAY),
       stepsDone: STEP_ORDER.filter((k) => steps[k]).length,
+      stepCount: STEP_ORDER.length,
       nextStep: NEXT_LABEL[next],
       waitingOnFamily: !!steps.invitation && steps.invitation.mode === "sent" && !steps.access,
       owner: state?.owner?.name ?? null,
