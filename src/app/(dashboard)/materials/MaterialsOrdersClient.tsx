@@ -27,7 +27,7 @@ import {
   REPLY_STATUSES,
   type Action,
   type CentreSummary,
-} from "@/lib/materials-orders";
+} from "@/lib/materials-orders-shared";
 
 interface Round {
   id: string;
