@@ -109,6 +109,7 @@ export const PUT = withApiAuth(
     if (session.user.isCentreAccount) {
       throw ApiError.forbidden("A shared centre login can't change bank details. Sign in as yourself.");
     }
+    await assertRecentAuth(req, session, "payment_change");
     const parsed = parseBankDetails(await parseJsonBody(req));
     if (!parsed.ok) throw ApiError.badRequest(parsed.error);
     const d = parsed.data;
@@ -129,22 +130,23 @@ export const PUT = withApiAuth(
     }
 
     const masked = bankMask(d);
-    await prisma.enrolmentSubmission.update({
-      where: { id },
-      data: { paymentMethod: "bank_account", paymentDetails: { ...masked, raw } },
-    });
+    await prisma.$transaction(async (tx) => {
+      await tx.enrolmentSubmission.update({
+        where: { id },
+        data: { paymentMethod: "bank_account", paymentDetails: { ...masked, raw } },
+      });
 
-    await prisma.activityLog
-      .create({
-        data: {
-          userId: session.user.id,
-          action: "payment_details_updated",
-          entityType: "EnrolmentSubmission",
-          entityId: id,
-          details: { method: "bank_account" },
-        },
-      })
-      .catch(() => {});
+      await tx.activityLog
+        .create({
+          data: {
+            userId: session.user.id,
+            action: "payment_details_updated",
+            entityType: "EnrolmentSubmission",
+            entityId: id,
+            details: { method: "bank_account" },
+          },
+        });
+    });
 
     return NextResponse.json({ ok: true, method: "bank_account", ...masked }, { headers: NO_STORE_HEADERS });
   },

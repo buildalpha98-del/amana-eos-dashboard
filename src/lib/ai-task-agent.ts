@@ -1,3 +1,4 @@
+import { assertExternalAiAllowed } from "@/lib/ai-privacy";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
@@ -105,6 +106,7 @@ export async function generateDraft(
   const userPrompt = buildPrompt(ctx, taskType);
 
   try {
+    assertExternalAiAllowed();
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {

@@ -30,9 +30,9 @@ describe("authenticateCowork", () => {
     process.env.COWORK_API_KEY = ORIGINAL_KEY;
   });
 
-  it("returns null (success) with valid token", async () => {
+  it("blocks AI integration access even with a valid token", async () => {
     const result = await authenticateCowork(makeRequest("test-cowork-key"));
-    expect(result).toBeNull();
+    expect(result?.status).toBe(403);
   });
 
   it("returns 401 with no Authorization header", async () => {

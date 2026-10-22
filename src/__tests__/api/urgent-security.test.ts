@@ -58,7 +58,7 @@ describe("authorised document delivery", () => {
     expect(res.headers.get("content-type")).toBe("application/octet-stream");
     expect(res.headers.get("content-disposition")).toMatch(/^attachment;/);
     expect(res.headers.get("content-security-policy")).toContain("sandbox");
-    expect(fetch).toHaveBeenCalledWith(blob, { redirect: "error" });
+    expect(fetch).toHaveBeenCalledWith(blob, { redirect: "error", cache: "no-store" });
   });
   it("keeps PDFs inline and honours explicit downloads", async () => {
     prismaMock.document.findFirst.mockResolvedValue({ fileUrl: blob, fileName: "file.pdf" });

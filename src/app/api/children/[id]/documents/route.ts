@@ -5,7 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { z } from "zod";
 import { ChildDocumentType } from "@prisma/client";
-import { uploadFile } from "@/lib/storage/uploadFile";
+import { uploadPrivateFile } from "@/lib/private-storage";
 import { assertServiceAccess } from "@/lib/authz-scope";
 
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
@@ -87,11 +87,7 @@ export const POST = withApiAuth(async (req, session, context) => {
     throw ApiError.badRequest("File size must be under 10MB");
   }
 
-  const url = await uploadFile(
-    file,
-    `documents/${id}/${docType}/${file.name}`,
-    file.type,
-  );
+  const { url } = await uploadPrivateFile(file, file.name, file.type, { childId: id });
 
   const document = await prisma.childDocument.create({
     data: {

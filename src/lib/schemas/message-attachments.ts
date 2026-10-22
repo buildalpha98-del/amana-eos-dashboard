@@ -1,3 +1,4 @@
+import { privateFileId } from "@/lib/private-file-reference";
 import { z } from "zod";
 
 /**
@@ -24,7 +25,7 @@ export const safeAttachmentUrl = z
     (url) => {
       try {
         const { hostname } = new URL(url);
-        return isAllowedAttachmentHost(hostname);
+        return !!privateFileId(url) || isAllowedAttachmentHost(hostname);
       } catch {
         return false;
       }

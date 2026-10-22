@@ -556,6 +556,8 @@ enum TouchpointType {
 }
 
 model User {
+  passkeys Passkey[]
+  passkeyChallenges PasskeyChallenge[]
   id                       String    @id @default(cuid())
   name                     String
   email                    String    @unique
@@ -3588,6 +3590,7 @@ enum MeetingRecordingSource {
 }
 
 model MeetingRecording {
+  transcriptFileUrl String?
   id                String                 @id @default(cuid())
   meetingId         String
   meeting           Meeting                @relation("MeetingRecordings", fields: [meetingId], references: [id], onDelete: Cascade)
@@ -11817,4 +11820,55 @@ model ProgramFeedbackWeek {
   updatedAt          DateTime @updatedAt
 
   @@unique([serviceId, weekStart])
+}
+
+// Passkey private keys and device PINs never leave the authenticator.
+model Passkey {
+  id String @id
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicKey Bytes
+  counter BigInt @default(0)
+  transports String[]
+  rpId String
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime?
+  @@index([userId, rpId])
+}
+
+model PasskeyChallenge {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge String
+  binding String
+  purpose String
+  operation String
+  expiresAt DateTime
+  @@index([expiresAt])
+}
+
+// Separate from public marketing assets. Raw storage addresses stay server-side.
+model PrivateFile {
+  id String @id @default(cuid())
+  blobUrl String @unique
+  fileName String
+  contentType String
+  ownerUserId String?
+  ownerParentId String?
+  childId String?
+  meetingId String?
+  createdAt DateTime @default(now())
+  @@index([ownerParentId])
+  @@index([childId])
+  @@index([meetingId])
+}
+
+model PrivateFileAccess {
+  id String @id @default(cuid())
+  fileId String
+  userId String?
+  parentAccountId String?
+  createdAt DateTime @default(now())
+  @@index([fileId, createdAt])
 }
