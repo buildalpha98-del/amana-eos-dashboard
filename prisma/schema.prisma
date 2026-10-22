@@ -556,6 +556,7 @@ enum TouchpointType {
 }
 
 model User {
+  passkeyRecoveryCodes PasskeyRecoveryCode[]
   passkeys Passkey[]
   passkeyChallenges PasskeyChallenge[]
   id                       String    @id @default(cuid())
@@ -11824,6 +11825,7 @@ model ProgramFeedbackWeek {
 
 // Passkey private keys and device PINs never leave the authenticator.
 model Passkey {
+  label String @default("Passkey")
   id String @id
   userId String
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -11837,6 +11839,7 @@ model Passkey {
 }
 
 model PasskeyChallenge {
+  label String?
   id String @id @default(cuid())
   userId String
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -11871,4 +11874,13 @@ model PrivateFileAccess {
   parentAccountId String?
   createdAt DateTime @default(now())
   @@index([fileId, createdAt])
+}
+
+model PasskeyRecoveryCode {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  digest String @unique
+  createdAt DateTime @default(now())
+  @@index([userId])
 }

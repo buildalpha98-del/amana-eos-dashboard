@@ -23,7 +23,7 @@ export function passkeyOrigin() {
   return { origin: url.origin, rpID: url.hostname };
 }
 
-async function context(req: NextRequest, session: Session) {
+export async function passkeyContext(req: NextRequest, session: Session) {
   const config = passkeyOrigin();
   if (req.method !== "GET" && req.headers.get("origin") !== config.origin) throw ApiError.forbidden();
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
@@ -34,8 +34,8 @@ async function context(req: NextRequest, session: Session) {
 }
 
 export async function listPasskeys(req: NextRequest, session: Session) {
-  const ctx = await context(req, session);
-  return prisma.passkey.findMany({ where: { userId: ctx.user.id, rpId: ctx.rpID }, select: { id: true, createdAt: true, lastUsedAt: true } });
+  const ctx = await passkeyContext(req, session);
+  return prisma.passkey.findMany({ where: { userId: ctx.user.id, rpId: ctx.rpID }, select: { id: true, label: true, createdAt: true, lastUsedAt: true } });
 }
 
 async function allowRegistration(req: NextRequest, session: Session, rpID: string) {
@@ -47,8 +47,8 @@ async function allowRegistration(req: NextRequest, session: Session, rpID: strin
   }
 }
 
-export async function beginPasskey(req: NextRequest, session: Session, operation: "register" | "authenticate", purpose: RecentAuthPurpose) {
-  const ctx = await context(req, session);
+export async function beginPasskey(req: NextRequest, session: Session, operation: "register" | "authenticate", purpose: RecentAuthPurpose, label = "Passkey") {
+  const ctx = await passkeyContext(req, session);
   if (operation === "register") await allowRegistration(req, session, ctx.rpID);
   const credentials = await prisma.passkey.findMany({ where: { userId: ctx.user.id, rpId: ctx.rpID } });
   const descriptors = credentials.map(c => ({ id: c.id, transports: c.transports as AuthenticatorTransportFuture[] }));
@@ -62,14 +62,14 @@ export async function beginPasskey(req: NextRequest, session: Session, operation
   // Expired challenges hold no personal payload; prune them opportunistically.
   await prisma.passkeyChallenge.deleteMany({ where: { expiresAt: { lt: new Date() } } });
   const challenge = await prisma.passkeyChallenge.create({ data: {
-    userId: ctx.user.id, challenge: options.challenge, binding: ctx.binding, purpose, operation,
+    label: operation === "register" ? label : null, userId: ctx.user.id, challenge: options.challenge, binding: ctx.binding, purpose, operation,
     expiresAt: new Date(Date.now() + 120_000),
   } });
   return { challengeId: challenge.id, options };
 }
 
 export async function finishPasskey(req: NextRequest, session: Session, challengeId: string, response: AuthenticationResponseJSON | RegistrationResponseJSON) {
-  const ctx = await context(req, session);
+  const ctx = await passkeyContext(req, session);
   const challenge = await prisma.passkeyChallenge.findUnique({ where: { id: challengeId } });
   if (!challenge || challenge.userId !== ctx.user.id || challenge.binding !== ctx.binding || challenge.expiresAt.getTime() <= Date.now()) {
     throw ApiError.unauthorized("That confirmation expired. Please try again.");
@@ -89,10 +89,14 @@ export async function finishPasskey(req: NextRequest, session: Session, challeng
       // Serialise first-key enrolment: two password-authorised setup requests
       // must not bypass the existing-passkey requirement by racing each other.
       await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${ctx.user.id} FOR UPDATE`;
+      const live = await tx.user.findUnique({ where: { id: ctx.user.id } });
+      if (!live?.active || !canSeeBankDetails(live) || live.tokenVersion !== ctx.user.tokenVersion) throw ApiError.unauthorized("Sign in again before setting up a passkey.");
       const proof = decodeProof(req.cookies.get(RECENT_AUTH_COOKIE)?.value);
+      if (!proof || proof.exp <= Date.now()) throw ApiError.unauthorized("Please confirm again.");
+      if (proof.method === "passkey" && !await tx.passkey.findFirst({ where: { id: proof.credentialId, userId: ctx.user.id, rpId: ctx.rpID } })) throw ApiError.unauthorized("Please confirm again.");
       const existing = await tx.passkey.count({ where: { userId: ctx.user.id, rpId: ctx.rpID } });
       if (existing && proof?.method !== "passkey") throw ApiError.forbidden("Confirm with an existing passkey first.");
-      await tx.passkey.create({ data: { id: credential.id, userId: ctx.user.id, rpId: ctx.rpID,
+      await tx.passkey.create({ data: { id: credential.id, label: challenge.label ?? "Passkey", userId: ctx.user.id, rpId: ctx.rpID,
         publicKey: Buffer.from(credential.publicKey), counter: BigInt(credential.counter), transports: credential.transports ?? [] } });
       await tx.activityLog.create({ data: { userId: ctx.user.id, action: "passkey_registered", entityType: "User", entityId: ctx.user.id } });
     });
@@ -111,7 +115,7 @@ export async function finishPasskey(req: NextRequest, session: Session, challeng
     });
   }
   // Re-check revocation after the cryptographic work, before issuing a proof.
-  await context(req, session);
+  await passkeyContext(req, session);
   return encodeProof({ uid: ctx.user.id, lat: ctx.login.lat, tv: ctx.login.tv, method: "passkey", credentialId,
     pur: challenge.purpose as RecentAuthPurpose, exp: Date.now() + RECENT_AUTH_TTL_MS });
 }

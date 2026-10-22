@@ -5,8 +5,8 @@
  * (security brief 2026-10-21, batch 2 — src/lib/recent-auth.ts).
  *
  * `useBankReveal(enrolmentId)` asks the reveal route; when it answers 428
- * RECENT_AUTH_REQUIRED, the dialog asks for the password (and the
- * authenticator code when MFA is on), confirms, and retries once. Revealed
+ * RECENT_AUTH_REQUIRED, the dialog asks for a passkey, confirms, and retries once. Password/MFA
+ * is used only to enrol the first passkey. Revealed
  * values live in React state only — never the query cache, storage or the
  * URL — and clear themselves after a minute.
  */
@@ -83,8 +83,9 @@ export function useBankReveal(enrolmentId: string | null | undefined) {
   return { revealed, loading, reveal: run, hide, dialog };
 }
 
-export function ConfirmIdentityDialog({ open, mfa, onClose, onConfirmed, purpose = "payment_reveal" }: {
+export function ConfirmIdentityDialog({ open, mfa, onClose, onConfirmed, purpose = "payment_reveal", enrolNew = false, label = "Passkey" }: {
   open: boolean; mfa: boolean; onClose: () => void; onConfirmed: () => void;
+  enrolNew?: boolean; label?: string;
   purpose?: "payment_reveal" | "payment_change" | "passkey_setup";
 }) {
   const [password, setPassword] = useState("");
@@ -114,16 +115,17 @@ export function ConfirmIdentityDialog({ open, mfa, onClose, onConfirmed, purpose
     setBusy(true); setError(null);
     try {
       if (stage === "password") {
-        await request("/api/auth/confirm-identity", { password, mfaCode: mfa ? code : undefined, purpose: "passkey_setup" });
+        await request("/api/auth/confirm-identity", { password, mfaCode: code || undefined, purpose: "passkey_setup" });
         setPassword(""); setCode(""); setStage("register");
         return;
       }
       const operation = stage === "register" ? "register" : "authenticate";
-      const begin = await request("/api/auth/passkeys", { action: "begin", operation, purpose });
+      const begin = await request("/api/auth/passkeys", { action: "begin", operation, purpose, label });
       const response = operation === "register"
         ? await startRegistration({ optionsJSON: begin.options })
         : await startAuthentication({ optionsJSON: begin.options });
       await request("/api/auth/passkeys", { action: "finish", challengeId: begin.challengeId, response });
+      if (operation === "authenticate" && enrolNew) { setStage("register"); return; }
       onConfirmed();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Confirmation was cancelled. Try again when you're ready.");
@@ -136,6 +138,7 @@ export function ConfirmIdentityDialog({ open, mfa, onClose, onConfirmed, purpose
         <DialogDescription>
           {stage === "password"
             ? "Set up your first passkey. Confirm your password and, if enabled, your authenticator code once."
+            : stage === "register" ? "Create a passkey on your device or a security key. Keep a second passkey as a backup."
             : "Use Face ID, Touch ID, a security key or your device PIN. Your PIN and biometric details stay with your device. Confirmation lasts five minutes."}
         </DialogDescription>
         <form className="mt-4 space-y-3" onSubmit={e => { e.preventDefault(); void submit(); }}>
@@ -143,9 +146,9 @@ export function ConfirmIdentityDialog({ open, mfa, onClose, onConfirmed, purpose
             <label className="block text-sm">Password
               <input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-foreground" />
             </label>
-            {mfa && <label className="block text-sm">Authenticator or backup code
+            <label className="block text-sm">Authenticator or backup code {mfa ? "" : "(if enabled)"}
               <input autoComplete="one-time-code" value={code} onChange={e => setCode(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-foreground" />
-            </label>}
+            </label>
           </>}
           {error && <p role="alert" className="text-sm text-foreground">{error}</p>}
           <div className="flex flex-wrap justify-end gap-2">
