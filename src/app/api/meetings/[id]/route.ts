@@ -1,3 +1,4 @@
+import { assertMeetingAccess } from "@/lib/meeting-access";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -31,6 +32,7 @@ const updateMeetingSchema = z.object({
 // GET /api/meetings/:id — get a single meeting
 export const GET = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
+    await assertMeetingAccess(session, id);
 
   const meeting = await prisma.meeting.findUnique({
     where: { id },
@@ -57,6 +59,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 // PATCH /api/meetings/:id — update a meeting
 export const PATCH = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
+    await assertMeetingAccess(session, id);
   const body = await parseJsonBody(req);
   const parsed = updateMeetingSchema.safeParse(body);
 
@@ -282,6 +285,7 @@ const { id } = await context!.params!;
 // destroy real work.
 export const DELETE = withApiAuth(async (_req, session, context) => {
   const { id } = await (context!.params as Promise<{ id: string }>);
+    await assertMeetingAccess(session, id);
 
   const meeting = await prisma.meeting.findUnique({
     where: { id },

@@ -19,6 +19,7 @@ export interface MeetingRecordingData {
   status: RecordingStatus;
   durationSeconds: number | null;
   transcriptText: string | null;
+  transcriptFileUrl?: string | null;
   aiReview: MeetingAiReview | null;
   error: string | null;
   createdById: string | null;

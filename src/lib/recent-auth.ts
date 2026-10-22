@@ -4,9 +4,9 @@
  *
  * Showing a family's full BSB and account number needs more than a live
  * session: a laptop left signed in for a day shouldn't be enough. The person
- * re-enters their password (and their authenticator or backup code when MFA
- * is on) at `POST /api/auth/confirm-identity`, which sets a short-lived proof
- * cookie. `assertRecentAuth` checks it before any reveal.
+ * uses a user-verified passkey at `POST /api/auth/passkeys`, which sets a
+ * short-lived proof cookie. Password/MFA verification only authorises
+ * first-key setup. `assertRecentAuth` checks proofs before reveals/changes.
  *
  * The proof is an HMAC-signed, httpOnly cookie bound to:
  *   - the person (user id),
@@ -21,6 +21,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { compare } from "bcryptjs";
 import type { Session } from "next-auth";
+import { canSeeBankDetails } from "@/lib/payment-details";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { decryptSecret, verifyBackupCode, verifyTotp } from "@/lib/totp";
@@ -29,9 +30,11 @@ export const RECENT_AUTH_COOKIE = "amana-recent-auth";
 export const RECENT_AUTH_TTL_MS = 5 * 60 * 1000;
 export const RECENT_AUTH_REQUIRED = "RECENT_AUTH_REQUIRED";
 
-export type RecentAuthPurpose = "payment_reveal";
+export type RecentAuthPurpose = "payment_reveal" | "payment_change" | "passkey_setup";
 
 interface Proof {
+  method?: "passkey" | "password";
+  credentialId?: string;
   uid: string;
   lat: number; // JWT loginAt
   tv: number; // JWT tokenVersion
@@ -49,7 +52,7 @@ function key(): Buffer {
 const sign = (body: string) => createHmac("sha256", key()).update(body).digest("base64url");
 
 /** The current login's binding, read from the verified session JWT. */
-async function loginBinding(req: NextRequest): Promise<{ lat: number; tv: number } | null> {
+export async function loginBinding(req: NextRequest): Promise<{ lat: number; tv: number } | null> {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const lat = token?.loginAt;
   const tv = token?.tokenVersion;
@@ -90,9 +93,9 @@ export async function assertRecentAuth(req: NextRequest, session: Session, purpo
   }
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { active: true, isCentreAccount: true, mfaEnabledAt: true },
+    select: { active: true, isCentreAccount: true, mfaEnabledAt: true, tokenVersion: true, role: true },
   });
-  if (!user?.active || user.isCentreAccount) throw ApiError.forbidden();
+  if (!user?.active || user.isCentreAccount || !canSeeBankDetails(user)) throw ApiError.forbidden();
 
   const proof = decodeProof(req.cookies.get(RECENT_AUTH_COOKIE)?.value);
   const binding = await loginBinding(req);
@@ -103,8 +106,14 @@ export async function assertRecentAuth(req: NextRequest, session: Session, purpo
     proof.pur === purpose &&
     proof.lat === binding.lat &&
     proof.tv === binding.tv &&
+    proof.tv === user.tokenVersion &&
     proof.exp > Date.now();
   if (!ok) throw required(!!user.mfaEnabledAt);
+  if (purpose !== "passkey_setup" && proof?.method !== "passkey") throw required(!!user.mfaEnabledAt);
+  if (proof?.method === "passkey") {
+    const credential = proof.credentialId && await prisma.passkey.findFirst({ where: { id: proof.credentialId, userId: session.user.id } });
+    if (!credential) throw required(!!user.mfaEnabledAt);
+  }
 }
 
 /**
@@ -121,7 +130,7 @@ export async function confirmIdentity(
     throw ApiError.forbidden("A shared centre login can't do this. Sign in as yourself.");
   }
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
-  if (!user?.active || user.isCentreAccount) throw ApiError.forbidden();
+  if (!user?.active || user.isCentreAccount || !canSeeBankDetails(user)) throw ApiError.forbidden();
   const binding = await loginBinding(req);
   if (!binding || binding.tv !== user.tokenVersion) throw ApiError.unauthorized("Your session has ended. Sign in again.");
 
@@ -147,7 +156,7 @@ export async function confirmIdentity(
     }
   }
 
-  return encodeProof({ uid: user.id, lat: binding.lat, tv: binding.tv, pur: input.purpose, exp: Date.now() + RECENT_AUTH_TTL_MS });
+  return encodeProof({ method: "password", uid: user.id, lat: binding.lat, tv: binding.tv, pur: input.purpose, exp: Date.now() + RECENT_AUTH_TTL_MS });
 }
 
 /** Headers for any response carrying revealed values. */

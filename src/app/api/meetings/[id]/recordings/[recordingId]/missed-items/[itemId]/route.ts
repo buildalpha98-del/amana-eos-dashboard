@@ -1,3 +1,4 @@
+import { assertMeetingAccess } from "@/lib/meeting-access";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -25,6 +26,7 @@ export const POST = withApiAuth(
       recordingId: string;
       itemId: string;
     };
+    await assertMeetingAccess(session, id);
     const parsed = decisionSchema.safeParse(await parseJsonBody(req));
     if (!parsed.success) {
       return NextResponse.json(

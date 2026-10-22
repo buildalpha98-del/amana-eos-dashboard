@@ -1,3 +1,5 @@
+import { assertMeetingAccess, MEETING_READ_ROLES } from "@/lib/meeting-access";
+import { ApiError } from "@/lib/api-error";
 import { serviceDayBounds } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -34,7 +36,7 @@ const scope = getServiceScope(session);
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
-  const limit = parseInt(searchParams.get("limit") || "20", 10);
+  const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") || "20", 10) || 20));
 
   // State Manager: pre-fetch service IDs in their state to filter meetings
   let stateServiceIds: string[] | null = null;
@@ -65,8 +67,15 @@ const scope = getServiceScope(session);
     take: limit,
   });
 
-  return NextResponse.json(meetings);
-});
+  const visible = await Promise.all(meetings.map(async meeting => {
+    try { await assertMeetingAccess(session, meeting.id); return meeting; }
+    catch (err) {
+      if (err instanceof ApiError && (err.status === 403 || err.status === 404)) return null;
+      throw err;
+    }
+  }));
+  return NextResponse.json(visible.filter(Boolean), { headers: { "Cache-Control": "private, no-store" } });
+}, { roles: [...MEETING_READ_ROLES] });
 
 // POST /api/meetings — create a new meeting
 export const POST = withApiAuth(async (req, session) => {

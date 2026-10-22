@@ -1,3 +1,4 @@
+import { assertExternalAiAllowed } from "@/lib/ai-privacy";
 /**
  * Deepgram speech-to-text client (Phase 2, 2026-08-31).
  *
@@ -38,6 +39,7 @@ export async function requestTranscription({
   audioUrl: string;
   callbackUrl: string;
 }): Promise<{ requestId: string }> {
+  assertExternalAiAllowed();
   const apiKey = process.env.DEEPGRAM_API_KEY;
   if (!apiKey) throw new DeepgramError("DEEPGRAM_API_KEY not configured");
 

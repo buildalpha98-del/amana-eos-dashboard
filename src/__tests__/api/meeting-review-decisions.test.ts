@@ -1,3 +1,5 @@
+// CRUD tests isolate the access boundary; meeting-access.test.ts exercises it.
+vi.mock("@/lib/meeting-access", () => ({ assertMeetingAccess: vi.fn() }));
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession, mockNoSession, type MockUserRole } from "../helpers/auth-mock";

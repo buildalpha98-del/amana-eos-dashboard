@@ -22,42 +22,9 @@ describe("requestTranscription", () => {
     process.env = { ...ORIGINAL_ENV };
   });
 
-  it("POSTs the blob url with nova-3 + diarize + callback params", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
-      new Response(JSON.stringify({ request_id: "req-123" }), { status: 200 }),
-    );
-
-    const result = await requestTranscription({
-      audioUrl: "https://x.blob.vercel-storage.com/a.webm",
-      callbackUrl: "https://example.test/api/webhooks/deepgram?secret=hook-secret",
-    });
-
-    expect(result.requestId).toBe("req-123");
-    const [url, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
-      string,
-      RequestInit,
-    ];
-    const parsed = new URL(url);
-    expect(parsed.origin + parsed.pathname).toBe("https://api.deepgram.com/v1/listen");
-    expect(parsed.searchParams.get("model")).toBe("nova-3");
-    expect(parsed.searchParams.get("diarize")).toBe("true");
-    expect(parsed.searchParams.get("utterances")).toBe("true");
-    expect(parsed.searchParams.get("callback")).toContain("/api/webhooks/deepgram");
-    expect((init.headers as Record<string, string>).Authorization).toBe(
-      "Token dg-test-key",
-    );
-    expect(JSON.parse(init.body as string)).toEqual({
-      url: "https://x.blob.vercel-storage.com/a.webm",
-    });
-  });
-
-  it("throws with the response text on non-2xx", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
-      new Response("bad key", { status: 401 }),
-    );
-    await expect(
-      requestTranscription({ audioUrl: "https://x", callbackUrl: "https://y" }),
-    ).rejects.toThrow(/401/);
+  it("blocks transcription before sending a URL or any audio", async () => {
+    await expect(requestTranscription({ audioUrl: "https://private.example/recording", callbackUrl: "https://example.test/callback" })).rejects.toMatchObject({ status: 403 });
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("builds the callback URL from siteUrl + secret", () => {
