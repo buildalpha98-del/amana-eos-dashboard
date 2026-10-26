@@ -1,7 +1,10 @@
 // src/__tests__/components/meetings/RecordingRecoveryBanner.test.tsx
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+
+const policy = vi.hoisted(() => ({ enabled: true }));
+vi.mock("@/lib/ai-privacy-policy", () => ({ externalAiProcessingAllowed: () => policy.enabled }));
 
 const ctx = {
   status: "idle" as "idle" | "recording" | "uploading",
@@ -20,6 +23,7 @@ import { RecordingRecoveryBanner } from "@/components/meetings/RecordingRecovery
 
 describe("RecordingRecoveryBanner", () => {
   beforeEach(() => {
+    policy.enabled = true;
     ctx.status = "idle";
     ctx.recoverable = [];
     ctx.uploadRecoverable.mockReset();
@@ -32,15 +36,29 @@ describe("RecordingRecoveryBanner", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("offers Upload and Discard for this meeting's orphan", () => {
+  it("requires confirmation before deleting this meeting's orphan", async () => {
     ctx.recoverable = [{ sessionId: "s1", meetingId: "m1", startedAt: 0, updatedAt: 125_000, chunkCount: 4 }];
     render(<RecordingRecoveryBanner meetingId="m1" canManage />);
     expect(screen.getByText(/unfinished recording/i)).toBeInTheDocument();
     expect(screen.getByText(/2 min/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /upload/i }));
     expect(ctx.uploadRecoverable).toHaveBeenCalledWith("s1");
-    fireEvent.click(screen.getByRole("button", { name: /discard/i }));
-    expect(ctx.discardRecoverable).toHaveBeenCalledWith("s1");
+    fireEvent.click(screen.getByRole("button", { name: /delete from this device/i }));
+    expect(ctx.discardRecoverable).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Delete recording" }));
+    await waitFor(() => expect(ctx.discardRecoverable).toHaveBeenCalledWith("s1"));
+  });
+
+  it("keeps local recordings and offers no upload while AI is blocked", () => {
+    policy.enabled = false;
+    ctx.recoverable = [{ sessionId: "s1", meetingId: "m1", startedAt: 0, updatedAt: 5_000, chunkCount: 1 }];
+    render(<RecordingRecoveryBanner meetingId="m1" canManage />);
+    expect(screen.queryByRole("button", { name: /upload/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/remains on this device/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /delete from this device/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(ctx.discardRecoverable).not.toHaveBeenCalled();
+    expect(ctx.uploadRecoverable).not.toHaveBeenCalled();
   });
 
   it("disables Upload while a recording is live", () => {

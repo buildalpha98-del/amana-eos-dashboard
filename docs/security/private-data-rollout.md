@@ -61,3 +61,11 @@ Public marketing assets and generic staff upload paths are unchanged. HR/contrac
 - 14 PostgreSQL integration checks passed: hashed recovery codes, code rotation, password and passkey requirements, concurrent recovery, concurrent key removal, stale sessions/registrations, role changes, audit-failure rollback, authorised educator/centre file downloads, access logging, transferred-staff denial and logged-out denial.
 - Reproduce using `TZ=UTC npx vitest run --config vitest.integration.config.mts tests/integration/passkey-recovery.test.ts tests/integration/private-file-access.test.ts` with the isolated test connection above and synthetic auth configuration. Tests reject other database hosts/ports/names. The private-file test stubs Blob transport; it validates the actual route, database and access logic, not Vercel connectivity.
 - No real-device biometric operation or production migration was performed. The existing virtual-authenticator harness covers the original cryptographic registration/authentication flow; this follow-up tests recovery transactions and the real profile UI.
+
+## Staff usability follow-up — 26 October 2026
+
+- Blocked assistant/meeting actions now lead to manual work or usable handbook/policy help. Existing transcripts can be read without an AI review. Paused recordings stop polling. Failed note saves retain text and show an inline retry path; deleting a local recovery recording requires confirmation.
+- 19 focused component/hook tests pass. Phone/desktop checks used synthetic educator, shared-centre and owner accounts against the isolated local database; storage-unavailable behaviour was exercised without provider credentials.
+- A broader review found pre-existing certificate and dashboard access-scope issues plus certificate replacement ordering risks. They remain open: see `docs/reviews/2026-10-26-staff-security-and-usability.md`. Keep this PR in draft; passing tests are not a security clearance.
+
+- Final UTC unit suite for this batch: 8,649 passed, 39 failures in only the same three known parent install-banner/platform files, 3 skipped. Local production build (including TypeScript) passed. Lint has zero errors.

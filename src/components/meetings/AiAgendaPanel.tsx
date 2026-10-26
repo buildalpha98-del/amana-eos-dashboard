@@ -12,6 +12,7 @@
 import { Sparkles, RefreshCw } from "lucide-react";
 import type { MeetingAgendaDraft } from "@/hooks/useMeetings";
 import { cn } from "@/lib/utils";
+import { externalAiProcessingAllowed } from "@/lib/ai-privacy-policy";
 
 export function AiAgendaPanel({
   part,
@@ -25,6 +26,8 @@ export function AiAgendaPanel({
   onGenerate?: () => void;
   generating?: boolean;
 }) {
+  const aiAllowed = externalAiProcessingAllowed();
+  if (!aiAllowed && !draft) return null;
   // Sections other than the summary stay silent when there's no draft
   // (or nothing relevant in it) — no empty purple boxes mid-meeting.
   if (!draft && part !== "summary") return null;
@@ -44,7 +47,7 @@ export function AiAgendaPanel({
           {part === "rocks" && "AI rock suggestions"}
           {part === "ids" && "AI-proposed IDS order"}
         </h4>
-        {part === "summary" && onGenerate && (
+        {aiAllowed && part === "summary" && onGenerate && (
           <button
             onClick={onGenerate}
             disabled={generating}

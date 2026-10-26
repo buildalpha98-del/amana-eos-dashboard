@@ -1,20 +1,21 @@
 "use client";
 
 import { PrivateTranscriptForm } from "@/components/meetings/PrivateTranscriptForm";
-import { serviceDateISO } from "@/lib/timezone";
+import { externalAiProcessingAllowed } from "@/lib/ai-privacy-policy";
+import { serviceDateISO, SERVICE_TZ } from "@/lib/timezone";
 import { useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
   FileAudio,
   Loader2,
-  Sparkles,
+  FileText,
+  ShieldCheck,
 } from "lucide-react";
 import {
   useActionItemDecision,
   useMeetingRecordings,
   useMissedItemDecision,
-  useRegenerateReview,
   type MeetingRecordingData,
 } from "@/hooks/useMeetingRecordings";
 import type { MeetingAttendee } from "@/hooks/useMeetings";
@@ -58,16 +59,14 @@ export function MeetingAiReviewPanel({
   /** Whether the current user can upload/regenerate/decide (meeting roles). */
   canManage: boolean;
 }) {
-  const { data: recordings } = useMeetingRecordings(meetingId);
-  const regenerate = useRegenerateReview(meetingId);
-  if (!recordings?.length && !canManage) return null;
+  const { data: recordings, isPending, isError, isFetching, refetch } = useMeetingRecordings(meetingId);
 
   return (
-    <div className="bg-card rounded-xl border border-border overflow-hidden">
-      <div className="px-4 py-3 border-b border-border/50 bg-purple-50/50 dark:bg-purple-950/30 flex items-center justify-between gap-2">
+    <section id="meeting-records" aria-label="Meeting records" className="scroll-mt-24 bg-card rounded-xl border border-border overflow-hidden">
+      <div className="px-4 py-3 border-b border-border/50 bg-surface flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-          <h3 className="text-xs font-semibold text-purple-800 dark:text-purple-300 uppercase tracking-wider">
+          <ShieldCheck className="w-5 h-5 text-brand" aria-hidden="true" />
+          <h3 className="font-heading text-base font-semibold text-foreground">
             Meeting records
           </h3>
         </div>
@@ -75,13 +74,19 @@ export function MeetingAiReviewPanel({
       </div>
 
       {canManage && <PrivateTranscriptForm meetingId={meetingId} />}
-      {!recordings?.length ? (
+      <p className="px-4 pt-3 text-sm text-muted">Automatic recording and AI transcription are paused for privacy. Written notes remain available.</p>
+      {isPending && <p role="status" className="p-4 text-sm text-muted">Loading meeting records…</p>}
+      {isError && <div role="alert" className="space-y-2 p-4 text-sm text-foreground">
+        <p>We couldn’t refresh the meeting records. {recordings?.length ? "The records below may be out of date." : "Your saved records have not been removed."}</p>
+        <Button variant="outline" loading={isFetching} onClick={() => void refetch()}>Try again</Button>
+      </div>}
+      {!isPending && !isError && !recordings?.length ? (
         <p className="p-4 text-xs text-muted">
-          No meeting records yet. Add written notes above. External AI processing and automatic transcription are blocked.
+          {canManage ? "No saved notes yet. Add your first notes above." : "No meeting records have been saved yet."}
         </p>
       ) : (
         <div className="divide-y divide-border/40">
-          {recordings.map((rec) => (
+          {recordings?.map((rec) => (
             <RecordingSection
               key={rec.id}
               meetingId={meetingId}
@@ -89,13 +94,11 @@ export function MeetingAiReviewPanel({
               attendees={attendees}
               users={users}
               canManage={canManage}
-              onRegenerate={() => regenerate.mutate(rec.id)}
-              regenerating={regenerate.isPending && regenerate.variables === rec.id}
             />
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -105,30 +108,29 @@ function RecordingSection({
   attendees,
   users,
   canManage,
-  onRegenerate,
-  regenerating,
 }: {
   meetingId: string;
   recording: MeetingRecordingData;
   attendees?: MeetingAttendee[];
   users?: { id: string; name: string }[];
   canManage: boolean;
-  onRegenerate: () => void;
-  regenerating: boolean;
 }) {
   const review = recording.aiReview;
   const processing = ["uploaded", "transcribing", "transcribed"].includes(
     recording.status,
   );
 
+  const paused = processing && !externalAiProcessingAllowed();
+  const written = !!recording.transcriptFileUrl;
+
   return (
     <div className="p-4 space-y-4">
-      {recording.transcriptFileUrl && <a href={recording.transcriptFileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-sm text-brand underline">Open private transcript</a>}
+      {recording.transcriptFileUrl && <a href={recording.transcriptFileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-sm text-brand underline">Open saved notes</a>}
       {/* Status strip */}
-      <div className="flex items-center gap-2 text-xs">
-        <FileAudio className="w-3.5 h-3.5 text-muted flex-shrink-0" />
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        {written ? <FileText className="w-4 h-4 text-brand" aria-hidden="true" /> : <FileAudio className="w-4 h-4 text-muted" aria-hidden="true" />}
         <span className="text-muted">
-          {recording.source === "live_mic" ? "Live recording" : "Uploaded file"}
+          {written ? "Written notes" : recording.source === "live_mic" ? "Live recording" : "Uploaded file"}
           {recording.durationSeconds
             ? ` · ${formatDuration(recording.durationSeconds)}`
             : ""}
@@ -143,11 +145,13 @@ function RecordingSection({
                 : "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300",
           )}
         >
-          {recording.transcriptFileUrl ? "Private transcript" : STATUS_LABEL[recording.status]}
+          {written ? "Saved privately" : paused ? "Processing paused" : STATUS_LABEL[recording.status]}
         </span>
-        {processing && <Loader2 className="w-3 h-3 animate-spin text-muted" />}
+        {processing && !paused && <Loader2 className="w-3 h-3 animate-spin text-muted" />}
 
       </div>
+
+      <p className="text-xs text-muted">Saved {new Intl.DateTimeFormat("en-AU", { dateStyle: "medium", timeStyle: "short", timeZone: SERVICE_TZ }).format(new Date(recording.createdAt))}{recording.createdBy?.name ? ` · ${recording.createdBy.name}` : ""}</p>
 
       {recording.status === "failed" && recording.error && (
         <p className="text-xs text-red-600 dark:text-red-400 flex items-start gap-1.5">
@@ -236,18 +240,16 @@ function RecordingSection({
             </div>
           )}
 
-          {/* Transcript */}
-          {recording.transcriptText && (
-            <details>
-              <summary className="text-xs text-muted cursor-pointer hover:text-foreground">
-                Transcript
-              </summary>
-              <pre className="mt-2 p-3 bg-surface/50 rounded-lg text-xs text-foreground/70 whitespace-pre-wrap max-h-80 overflow-y-auto font-sans">
-                {substituteSpeakers(recording.transcriptText, review.speakerMap)}
-              </pre>
-            </details>
-          )}
+
         </>
+      )}
+      {recording.transcriptText && (
+        <details>
+          <summary className="flex min-h-11 items-center text-sm text-brand cursor-pointer">Read saved transcript</summary>
+          <pre className="mt-2 p-3 bg-surface rounded-lg text-sm text-foreground whitespace-pre-wrap break-words max-h-80 overflow-y-auto font-sans">
+            {substituteSpeakers(recording.transcriptText, review?.speakerMap ?? [])}
+          </pre>
+        </details>
       )}
     </div>
   );

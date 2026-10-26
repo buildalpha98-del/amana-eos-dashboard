@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Bot, Send, Loader2, Trash2, Square } from "lucide-react";
 import { useAssistant, type ChatMessage } from "@/hooks/useAssistant";
+import { externalAiProcessingAllowed } from "@/lib/ai-privacy-policy";
+import { AssistantPausedPanel } from "@/components/assistant/AssistantPausedPanel";
 
 const SUGGESTED_PROMPTS = [
   "How are my centres performing financially this month?",
@@ -40,6 +42,11 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 }
 
 export default function AssistantPage() {
+  if (!externalAiProcessingAllowed()) return <AssistantPausedPanel />;
+  return <EnabledAssistantPage />;
+}
+
+function EnabledAssistantPage() {
   const pathname = usePathname();
   const { messages, sendMessage, isStreaming, clearMessages, stopStreaming } = useAssistant(pathname);
   const [input, setInput] = useState("");

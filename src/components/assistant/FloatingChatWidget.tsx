@@ -27,10 +27,17 @@ import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import { useAssistant, type ChatMessage } from "@/hooks/useAssistant";
 import { cn } from "@/lib/utils";
+import { externalAiProcessingAllowed } from "@/lib/ai-privacy-policy";
 
 const HIDE_ON_PATHS = ["/assistant", "/login"];
 
 export function FloatingChatWidget() {
+  // Do not mount the chat hook or offer a composer for a blocked workflow.
+  if (!externalAiProcessingAllowed()) return null;
+  return <EnabledFloatingChatWidget />;
+}
+
+function EnabledFloatingChatWidget() {
   const pathname = usePathname();
   const { status } = useSession();
   const [open, setOpen] = useState(false);

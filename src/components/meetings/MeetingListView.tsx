@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { externalAiProcessingAllowed } from "@/lib/ai-privacy-policy";
 import {
   Presentation,
   Play,
@@ -186,14 +187,14 @@ export function MeetingListView({
         {/* 2026-08-31: single AI-prep path — generates the PERSISTED
             aiAgendaDraft (rendered by AiAgendaPanel inside the meeting)
             instead of the old ephemeral prose blob. */}
-        <Button
+        {externalAiProcessingAllowed() && <Button
           variant="outline"
           size="xs"
           onClick={handleAiPrep}
           loading={prepareMeeting.isPending}
         >
           {prepareMeeting.isPending ? "Preparing…" : "AI Prep"}
-        </Button>
+        </Button>}
       </PageHeader>
 
       {/* Active Meeting Banner */}

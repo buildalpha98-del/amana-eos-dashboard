@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import type { MeetingAiReview } from "@/lib/meeting-review";
+import { externalAiProcessingAllowed } from "@/lib/ai-privacy-policy";
 
 export type RecordingStatus =
   | "uploaded"
@@ -40,7 +41,7 @@ export function useMeetingRecordings(meetingId: string, enabled = true) {
     staleTime: 10_000,
     // Poll while anything is still moving through the pipeline.
     refetchInterval: (query) =>
-      (query.state.data ?? []).some((r) => NON_TERMINAL.includes(r.status))
+      externalAiProcessingAllowed() && (query.state.data ?? []).some((r) => NON_TERMINAL.includes(r.status))
         ? 10_000
         : false,
   });
