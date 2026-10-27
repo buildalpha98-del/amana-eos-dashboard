@@ -392,6 +392,30 @@ async function main() {
     },
   });
 
+  // Australian Islamic College of Sydney (2026-10-28, Daniel). Same reason
+  // and same CREATE-ONLY rule as Irfan above: without a centre, AICS
+  // enrolments would arrive unassigned. Code "AICS" matches the website's
+  // centre feed and the welcome-pack defaults. The name must keep
+  // "Australian … Sydney" — matchSchoolToService() routes on those words.
+  // Email left unset: set the centre's mailbox in the dashboard (saving it
+  // also converts the coordinator mailbox user — convertCentreMailboxUser).
+  await prisma.service.upsert({
+    where: { code: "AICS" },
+    update: {},
+    create: {
+      name: "Amana OSHC Australian Islamic College of Sydney",
+      code: "AICS",
+      address: "33 Headcorn St",
+      suburb: "Mount Druitt",
+      state: "NSW",
+      postcode: "2770",
+      phone: "1300 200 262",
+      status: "active",
+      operatingDays: "Mon-Fri",
+      managerId: admin.id,
+    },
+  });
+
   // ============================================================
   // Seed Project Templates
   // ============================================================

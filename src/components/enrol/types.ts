@@ -348,6 +348,9 @@ export const KNOWN_SCHOOLS: { name: string; campuses: string[] }[] = [
   { name: "AIA KKCC", campuses: [] },
   { name: "Al-Taqwa College", campuses: [] },
   { name: "Irfan College", campuses: [] },
+  // 2026-10-28 (Daniel): Mount Druitt. Routed to the AICS centre by
+  // matchSchoolToService — "Australian"/"Sydney" are unique to it.
+  { name: "Australian Islamic College of Sydney", campuses: [] },
 ];
 
 /** Flat list of "School Campus" strings the picker offers. Derived so
