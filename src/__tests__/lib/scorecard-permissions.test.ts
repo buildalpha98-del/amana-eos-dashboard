@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  canEnterScorecardValues,
   canViewScorecard,
   canManageScorecard,
   isScorecardParticipant,
@@ -132,5 +133,27 @@ describe("state scorecards", () => {
 
   it("seeing it does not mean managing it", () => {
     expect(canManageScorecard({ id: "u-mirna", role: "head_office", state: "NSW" }, NSW)).toBe(false);
+  });
+});
+
+describe("canEnterScorecardValues", () => {
+  const sc = { ownerId: "daniel", state: "NSW" };
+  it("roles that always could still can, on any scorecard", () => {
+    for (const role of ["owner", "head_office", "admin", "member", "eos_implementer"]) {
+      expect(canEnterScorecardValues({ id: "x", role }, sc, [])).toBe(true);
+    }
+  });
+  it("an invited marketing/staff member can", () => {
+    expect(canEnterScorecardValues({ id: "shabaz", role: "marketing" }, sc, ["shabaz"])).toBe(true);
+    expect(canEnterScorecardValues({ id: "ed", role: "staff" }, sc, new Set(["ed"]))).toBe(true);
+  });
+  it("the measurable's owner can", () => {
+    expect(canEnterScorecardValues({ id: "proven", role: "marketing" }, sc, [], "proven")).toBe(true);
+  });
+  it("someone not on the scorecard can't", () => {
+    expect(canEnterScorecardValues({ id: "outsider", role: "marketing" }, sc, ["shabaz"])).toBe(false);
+  });
+  it("eos_viewer never can, even invited", () => {
+    expect(canEnterScorecardValues({ id: "coach", role: "eos_viewer" }, sc, ["coach"], "coach")).toBe(false);
   });
 });

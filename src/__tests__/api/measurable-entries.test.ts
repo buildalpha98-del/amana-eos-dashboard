@@ -44,6 +44,8 @@ beforeEach(() => {
     serviceId: "svc-1",
   });
   prismaMock.activityLog.create.mockResolvedValue({} as never);
+  // The entry routes look up the measurable's scorecard to check membership.
+  prismaMock.scorecard.findUnique.mockResolvedValue({ ownerId: "scorecard-owner", state: null, members: [] } as never);
 });
 
 describe("DELETE /api/measurables/[id]/entries", () => {
@@ -195,5 +197,59 @@ describe("the week an entry is stored under (12 Oct 2026 bug)", () => {
     );
     const where = prismaMock.measurableEntry.delete.mock.calls[0][0].where.measurableId_weekOf;
     expect((where.weekOf as Date).toISOString()).toBe(monday5Oct);
+  });
+});
+
+// 2026-10-27 (Daniel): anyone added to a scorecard can enter its numbers —
+// the marketing team couldn't enter their activation scorecard.
+describe("who can enter a scorecard's weekly numbers", () => {
+  const post = () =>
+    POST(
+      createRequest("POST", "/api/measurables/m-1/entries", { body: { weekOf: "2026-10-26", value: 12 } }),
+      { params: Promise.resolve({ id: "m-1" }) },
+    );
+  beforeEach(() => {
+    prismaMock.measurable.findUnique.mockResolvedValue({
+      id: "m-1", scorecardId: "sc-activation", ownerId: "someone-else", goalDirection: "above", goalValue: 10,
+    } as never);
+    prismaMock.measurableEntry.upsert.mockResolvedValue({ id: "e-1" } as never);
+  });
+
+  it("a marketing member of the scorecard can", async () => {
+    mockSession({ id: "shabaz", name: "Shabaz", role: "marketing" });
+    prismaMock.scorecard.findUnique.mockResolvedValue({ ownerId: "daniel", state: null, members: [{ userId: "shabaz" }] } as never);
+    expect((await post()).status).toBe(201);
+    expect(prismaMock.measurableEntry.upsert).toHaveBeenCalled();
+  });
+
+  it("the measurable's own owner can, even if not listed as a member", async () => {
+    mockSession({ id: "proven", name: "Proven", role: "marketing" });
+    prismaMock.measurable.findUnique.mockResolvedValue({
+      id: "m-1", scorecardId: "sc-activation", ownerId: "proven", goalDirection: "above", goalValue: 10,
+    } as never);
+    expect((await post()).status).toBe(201);
+  });
+
+  it("marketing NOT on the scorecard can't, and nothing is written", async () => {
+    mockSession({ id: "outsider", name: "Outsider", role: "marketing" });
+    expect((await post()).status).toBe(403);
+    expect(prismaMock.measurableEntry.upsert).not.toHaveBeenCalled();
+  });
+
+  it("an invited eos_viewer stays read-only", async () => {
+    mockSession({ id: "coach", name: "Coach", role: "eos_viewer" });
+    prismaMock.scorecard.findUnique.mockResolvedValue({ ownerId: "daniel", state: null, members: [{ userId: "coach" }] } as never);
+    expect((await post()).status).toBe(403);
+    expect(prismaMock.measurableEntry.upsert).not.toHaveBeenCalled();
+  });
+
+  it("a member can clear a week too", async () => {
+    mockSession({ id: "shabaz", name: "Shabaz", role: "marketing" });
+    prismaMock.scorecard.findUnique.mockResolvedValue({ ownerId: "daniel", state: null, members: [{ userId: "shabaz" }] } as never);
+    const res = await DELETE(
+      createRequest("DELETE", "/api/measurables/m-1/entries?weekOf=2026-10-26"),
+      { params: Promise.resolve({ id: "m-1" }) },
+    );
+    expect(res.status).toBe(200);
   });
 });
