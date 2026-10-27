@@ -3,7 +3,28 @@ import { serviceDateOnly } from "@/lib/timezone";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
-import { parseJsonBody } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { canEnterScorecardValues } from "@/lib/scorecard-permissions";
+import type { Session } from "next-auth";
+import { ROLES } from "@/lib/role-enum";
+
+/**
+ * Anyone on the measurable's scorecard may enter its weekly number, as well
+ * as the roles that always could (src/lib/scorecard-permissions.ts). The
+ * route still declares its roles — every role but the read-only eos_viewer —
+ * so that refusal happens before any database read.
+ */
+const ENTRY_ROUTE_ROLES = ROLES.filter((r) => r !== "eos_viewer");
+async function assertCanEnter(session: Session, measurable: { scorecardId: string; ownerId: string | null }) {
+  const scorecard = await prisma.scorecard.findUnique({
+    where: { id: measurable.scorecardId },
+    select: { ownerId: true, state: true, members: { select: { userId: true } } },
+  });
+  const viewer = { id: session.user.id, role: session.user.role, state: session.user.state ?? null };
+  if (!scorecard || !canEnterScorecardValues(viewer, scorecard, scorecard.members.map((m) => m.userId), measurable.ownerId)) {
+    throw ApiError.forbidden("You're not on this scorecard, so you can't enter its numbers. Ask the scorecard's owner to add you.");
+  }
+}
 
 const entrySchema = z.object({
   weekOf: z.string().min(1, "Week is required"),
@@ -36,6 +57,7 @@ const { id: measurableId } = await context!.params!;
   if (!measurable) {
     return NextResponse.json({ error: "Measurable not found" }, { status: 404 });
   }
+  await assertCanEnter(session, measurable);
 
   // Determine if on track
   const value = parsed.data.value;
@@ -98,7 +120,7 @@ const { id: measurableId } = await context!.params!;
   });
 
   return NextResponse.json(entry, { status: 201 });
-}, { roles: ["owner", "head_office", "admin", "member", "eos_implementer"] });
+}, { roles: [...ENTRY_ROUTE_ROLES] });
 
 // DELETE /api/measurables/[id]/entries?weekOf=ISO
 //
@@ -122,11 +144,12 @@ export const DELETE = withApiAuth(async (req, session, context) => {
   // Confirm the measurable exists so a typo'd ID doesn't 200 quietly.
   const measurable = await prisma.measurable.findUnique({
     where: { id: measurableId },
-    select: { id: true },
+    select: { id: true, scorecardId: true, ownerId: true },
   });
   if (!measurable) {
     return NextResponse.json({ error: "Measurable not found" }, { status: 404 });
   }
+  await assertCanEnter(session, measurable);
 
   // Same Sydney-Monday normalisation as the POST, so the unique key matches.
   const weekOf = serviceDateOnly(new Date(parsed.data.weekOf));
@@ -158,4 +181,4 @@ export const DELETE = withApiAuth(async (req, session, context) => {
   }
 
   return NextResponse.json({ ok: true });
-}, { roles: ["owner", "head_office", "admin", "member", "eos_implementer"] });
+}, { roles: [...ENTRY_ROUTE_ROLES] });
