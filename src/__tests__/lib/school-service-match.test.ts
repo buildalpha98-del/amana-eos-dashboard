@@ -55,6 +55,27 @@ describe("matchScore", () => {
 });
 
 describe("matchSchoolToService", () => {
+  // 2026-10-28: AICS (Mount Druitt) joined the enrolment picker. Its name
+  // shares "Islamic"/"College" with other centres — "Australian"/"Sydney"
+  // must carry it, and must not drag AIA ("Australian International
+  // Academy") or Malek Fahd Islamic School along.
+  it("routes the AICS picker option to the AICS centre", async () => {
+    const { KNOWN_SCHOOL_OPTIONS } = await import("@/components/enrol/types");
+    expect(KNOWN_SCHOOL_OPTIONS).toContain("Australian Islamic College of Sydney");
+    const services = [
+      ...SERVICES,
+      { id: "svc-irfan", name: "Amana OSHC Irfan College" },
+      { id: "svc-arkana", name: "Amana OSHC Arkana College" },
+      { id: "svc-mfis-is", name: "Amana OSHC Malek Fahd Islamic School Beaumont Hills" },
+      { id: "svc-aics", name: "Amana OSHC Australian Islamic College of Sydney" },
+    ];
+    const r = matchSchoolToService("Australian Islamic College of Sydney", services);
+    expect(r).toMatchObject({ serviceId: "svc-aics", ambiguous: false });
+    // …and existing schools still go where they did.
+    expect(matchSchoolToService("Irfan College", services).serviceId).toBe("svc-irfan");
+    expect(matchSchoolToService("AIA KKCC", services).serviceId).toBe("svc-aia");
+  });
+
   it("matches a campus to its own service", () => {
     const r = matchSchoolToService("Minaret College Springvale", SERVICES);
     expect(r.serviceId).toBe("svc-min-spring");
