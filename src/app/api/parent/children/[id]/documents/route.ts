@@ -3,7 +3,7 @@ import { z } from "zod";
 import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
-import { uploadFile } from "@/lib/storage/uploadFile";
+import { uploadPrivateFile } from "@/lib/private-storage";
 import { enrolmentDocumentsFor } from "@/lib/enrolment-documents";
 
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
@@ -108,11 +108,7 @@ export const POST = withParentAuth(async (req, ctx) => {
       select: { id: true },
     });
 
-    const url = await uploadFile(
-      file,
-      `documents/${childId}/parent/${file.name}`,
-      file.type,
-    );
+    const { url } = await uploadPrivateFile(file, file.name, file.type, { childId: childId });
 
     const document = await prisma.childDocument.create({
       data: {

@@ -1,3 +1,4 @@
+import { assertExternalAiAllowed } from "@/lib/ai-privacy";
 import Anthropic from "@anthropic-ai/sdk";
 import {
   estimateCost,
@@ -9,6 +10,7 @@ import { extractJson } from "./json";
 let _client: Anthropic | null = null;
 
 function client(): Anthropic {
+  assertExternalAiAllowed();
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error(
       "ANTHROPIC_API_KEY is not configured — cannot call Anthropic provider.",

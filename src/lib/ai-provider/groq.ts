@@ -1,3 +1,4 @@
+import { assertExternalAiAllowed } from "@/lib/ai-privacy";
 import {
   estimateCost,
   type GenerateStructuredOptions,
@@ -25,6 +26,7 @@ async function callGroqChat(
     );
   }
 
+  assertExternalAiAllowed();
   const res = await fetch(`${GROQ_BASE_URL}/chat/completions`, {
     method: "POST",
     headers: {

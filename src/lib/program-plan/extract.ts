@@ -1,3 +1,4 @@
+import { assertExternalAiAllowed } from "@/lib/ai-privacy";
 /**
  * Read a centre's monthly Program Plan PDF into weeks of activities and
  * meals (2026-10-12).
@@ -77,6 +78,7 @@ Columns are strictly Monday→Friday; when a day is closed its column is blank o
 
 let _client: Anthropic | null = null;
 function client() {
+  assertExternalAiAllowed();
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured.");
   return (_client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }));
 }

@@ -54,6 +54,7 @@ import { BreakSection } from "./BreakSection";
 import { MeetingOutcomesPanel } from "./MeetingOutcomesPanel";
 import { AiAgendaPanel } from "./AiAgendaPanel";
 import { MeetingAiReviewPanel } from "./MeetingAiReviewPanel";
+import { externalAiProcessingAllowed } from "@/lib/ai-privacy-policy";
 import { useElapsedSeconds, useMeetingRecorder } from "./MeetingRecorderProvider";
 import { formatElapsed } from "@/lib/recording-capture";
 import { RecordingRecoveryBanner } from "./RecordingRecoveryBanner";
@@ -659,6 +660,8 @@ export function ActiveMeetingView({
             >
               REC {formatElapsed(recorderElapsedSeconds)}
             </Button>
+          ) : !externalAiProcessingAllowed() ? (
+            <a href="#meeting-records" className="inline-flex min-h-11 items-center rounded-xl border border-border px-4 text-sm font-medium text-brand hover:bg-surface">Add meeting notes</a>
           ) : recorder.status === "idle" ? (
             <Button
               variant="secondary"

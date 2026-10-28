@@ -1,4 +1,5 @@
 "use client";
+import { externalAiProcessingAllowed } from "@/lib/ai-privacy-policy";
 
 import { upload } from "@vercel/blob/client";
 import { getSession } from "next-auth/react";
@@ -92,6 +93,7 @@ export async function uploadFileSmart(
   // ceiling, and ALWAYS direct-to-Blob + verify — /api/upload deliberately
   // never learns this context, so even a small clip skips it.
   if (context === "recording") {
+    if (!externalAiProcessingAllowed()) throw new Error("Automatic transcription is blocked for privacy. Save written meeting notes instead.");
     const oversizeRec = describeRecordingOversizeError(input.size);
     if (oversizeRec) throw new Error(oversizeRec);
 

@@ -23,13 +23,15 @@ describe("HelpMenu", () => {
     expect(screen.getByRole("button", { name: "Help" })).toBeTruthy();
   });
 
-  it("opens the AI assistant through a window event", () => {
+  it("routes to privacy help instead of opening a blocked composer", () => {
     const heard = vi.fn();
     window.addEventListener("amana:open-assistant", heard);
     render(<HelpMenu />);
     fireEvent.click(screen.getByRole("button", { name: "Help" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /ask amana ai/i }));
-    expect(heard).toHaveBeenCalledTimes(1);
+    const link = screen.getByRole("menuitem", { name: /AI privacy & help/i });
+    expect(link).toHaveAttribute("href", "/assistant");
+    fireEvent.click(link);
+    expect(heard).not.toHaveBeenCalled();
     expect(screen.queryByRole("menu")).toBeNull();
     window.removeEventListener("amana:open-assistant", heard);
   });

@@ -32,6 +32,8 @@ import { MyQuietHoursCard } from "@/components/my-portal/MyQuietHoursCard";
 import { MyPositionDescriptionCard } from "@/components/my-portal/MyPositionDescriptionCard";
 import { MyDiversityCard } from "@/components/my-portal/MyDiversityCard";
 import { NotificationPreferences } from "@/components/settings/NotificationPreferences";
+import { PasskeySettings } from "@/components/security/PasskeySettings";
+import { canSeeBankDetails } from "@/lib/payment-details";
 import { SessionManagement } from "@/components/settings/SessionManagement";
 
 /* ------------------------------------------------------------------ */
@@ -518,6 +520,7 @@ export default function ProfilePage() {
       <MyQuietHoursCard />
       <NotificationPreferences />
       <MyDiversityCard />
+      {session?.user && canSeeBankDetails(session.user) && <PasskeySettings />}
       <SessionManagement />
 
       {/* A plain way out, where people look for it on a phone (2026-10-09). */}

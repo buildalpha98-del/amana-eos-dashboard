@@ -13,6 +13,7 @@ import { BookOpen, Bot, HelpCircle, Keyboard, MessageSquarePlus, PlayCircle } fr
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 import { openHelp, type HelpEvent } from "@/lib/help-events";
 import { cn } from "@/lib/utils";
+import { externalAiProcessingAllowed } from "@/lib/ai-privacy-policy";
 
 export function HelpMenu({
   compact = false,
@@ -33,7 +34,7 @@ export function HelpMenu({
   };
 
   const itemClass =
-    "w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground/80 hover:bg-surface transition-colors text-left";
+    "w-full min-h-11 flex items-center gap-3 px-4 py-2.5 text-sm text-foreground/80 hover:bg-surface transition-colors text-left";
 
   return (
     <div className="relative">
@@ -72,10 +73,13 @@ export function HelpMenu({
               <BookOpen className="w-4 h-4 text-brand" aria-hidden />
               {isStaff ? "Staff Handbook" : "Help & how-to guides"}
             </Link>
-            <button role="menuitem" type="button" onClick={fire("assistant")} className={itemClass}>
+            {externalAiProcessingAllowed() ? <button role="menuitem" type="button" onClick={fire("assistant")} className={itemClass}>
               <Bot className="w-4 h-4 text-brand" aria-hidden />
               Ask Amana AI
-            </button>
+            </button> : <Link role="menuitem" href="/assistant" onClick={() => setOpen(false)} className={itemClass}>
+              <Bot className="w-4 h-4 text-brand" aria-hidden />
+              AI privacy & help
+            </Link>}
             <button role="menuitem" type="button" onClick={fire("tour")} className={itemClass}>
               <PlayCircle className="w-4 h-4 text-brand" aria-hidden />
               Replay the welcome tour

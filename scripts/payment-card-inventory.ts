@@ -1,3 +1,4 @@
+import { applyCardCleanup } from "../src/lib/payment-card-cleanup";
 /**
  * Historical card-data inventory and cleanup — security brief 2026-10-21,
  * batch 2 (S04). Plan: docs/security/payment-card-cleanup.md.
@@ -94,7 +95,7 @@ async function main() {
   const bump = (c: Classification) => (report.counts[c] = (report.counts[c] ?? 0) + 1);
 
   // Pass 1 — classify everything. Nothing is written here.
-  const plans: { id: string; paymentMethod: string | null; cleaned: Record<string, unknown>; cardKeyNames: string[] }[] = [];
+  const plans: { id: string; paymentMethod: string | null; original: Prisma.InputJsonValue; cleaned: Record<string, unknown>; cardKeyNames: string[] }[] = [];
   for (const row of rows) {
     const pd = (row.paymentDetails ?? {}) as Record<string, unknown>;
     const classes: Classification[] = [];
@@ -134,7 +135,7 @@ async function main() {
       if (CARD_KEYS.has(k) && !KEEP_IN_MASK.has(k)) continue;
       cleaned[k] = v;
     }
-    plans.push({ id: row.id, paymentMethod: row.paymentMethod, cleaned, cardKeyNames: keys });
+    plans.push({ id: row.id, paymentMethod: row.paymentMethod, original: row.paymentDetails as Prisma.InputJsonValue, cleaned, cardKeyNames: keys });
   }
 
   // Gate — every production check before the first write.
@@ -158,18 +159,13 @@ async function main() {
       continue;
     }
     try {
-      await prisma.$transaction([
-        prisma.enrolmentSubmission.update({ where: { id: plan.id }, data: { paymentDetails: plan.cleaned as Prisma.InputJsonValue } }),
-        prisma.activityLog.create({
-          data: {
-            userId: actorId!,
-            action: "payment_card_data_removed",
-            entityType: "EnrolmentSubmission",
-            entityId: plan.id,
-            details: { removed: plan.cardKeyNames, kept: Object.keys(plan.cleaned).sort() },
-          },
-        }),
-      ]);
+      const changed = await applyCardCleanup(prisma, actorId!, {
+        ...plan, cleaned: plan.cleaned as Prisma.InputJsonValue,
+      });
+      if (!changed) {
+        report.failed.push({ id: plan.id, reason: "record changed since inventory — skipped" });
+        continue;
+      }
       report.cleaned.push(plan.id);
     } catch (err) {
       report.failed.push({ id: plan.id, reason: err instanceof Error ? err.name : "error" });

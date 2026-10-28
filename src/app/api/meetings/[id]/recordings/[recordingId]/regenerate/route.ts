@@ -1,3 +1,5 @@
+import { assertExternalAiAllowed } from "@/lib/ai-privacy";
+import { assertMeetingAccess } from "@/lib/meeting-access";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -21,7 +23,9 @@ export const POST = withApiAuth(
       id: string;
       recordingId: string;
     };
+    await assertMeetingAccess(session, id);
 
+    assertExternalAiAllowed();
     const recording = await prisma.meetingRecording.findUnique({
       where: { id: recordingId },
       select: { id: true, meetingId: true, transcript: true, status: true },

@@ -1,3 +1,4 @@
+vi.mock("@/lib/private-storage", () => ({ uploadPrivateFile: vi.fn().mockResolvedValue({ url: "https://blob.example.com/test-doc.pdf" }) }));
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { prismaMock } from "../helpers/prisma-mock";

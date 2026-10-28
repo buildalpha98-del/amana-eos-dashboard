@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import path from "path";
-import { uploadFile } from "@/lib/storage";
+import { uploadPrivateFile } from "@/lib/private-storage";
 import { validateFileContent } from "@/lib/file-validation";
 import { withParentAuth } from "@/lib/parent-auth";
 import { logger } from "@/lib/logger";
@@ -46,7 +46,8 @@ const EXTENSION_TO_MIME: Record<string, string> = {
  * decorative than real. `withParentAuth` brings the shared Redis-backed
  * limit (60/min per parent) with it, and the bespoke map is gone.
  */
-export const POST = withParentAuth(async (req) => {
+export const POST = withParentAuth(async (req, ctx) => {
+  if (!ctx.parent.accountId) return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
 
   try {
     const raw = await parseJsonBody(req);
@@ -82,16 +83,7 @@ export const POST = withParentAuth(async (req) => {
       );
     }
 
-    const baseName = path
-      .basename(filename, ext)
-      .replace(/[^a-zA-Z0-9-_]/g, "-")
-      .substring(0, 80);
-    const uniqueName = `${baseName}-${Date.now()}${ext}`;
-
-    const { url } = await uploadFile(buffer, uniqueName, {
-      contentType: contentType || "application/octet-stream",
-      folder: "enrolments",
-    });
+    const { url } = await uploadPrivateFile(buffer, filename, declaredMime, { ownerParentId: ctx.parent.accountId });
 
     return NextResponse.json({ fileUrl: url, fileName: filename, fileSize: buffer.length });
   } catch (e) {

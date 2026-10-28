@@ -1,3 +1,4 @@
+import { assertExternalAiAllowed } from "@/lib/ai-privacy";
 import Anthropic from "@anthropic-ai/sdk";
 
 // Lazy singleton — Anthropic only initialises when actually called,
@@ -5,6 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 let _anthropic: Anthropic | null = null;
 
 export function getAI(): Anthropic | null {
+  assertExternalAiAllowed();
   if (!process.env.ANTHROPIC_API_KEY) return null;
   if (!_anthropic) {
     _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
