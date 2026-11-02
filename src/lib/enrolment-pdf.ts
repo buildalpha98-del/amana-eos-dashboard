@@ -1,4 +1,5 @@
 import type jsPDF from "jspdf";
+import { childIsAlHafiz } from "@/lib/al-hafiz";
 import { primaryParentSchema } from "@/lib/schemas/json-fields";
 import { BRAND, drawLogo, createPdfBuilder } from "@/lib/pdf/branding";
 
@@ -251,6 +252,7 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
     // The portal stores the classroom code ("D.G1Y"); the legacy wizard a
     // year level. Print whichever the submission has.
     row("Classroom / Year", text(child.classroom) || text(child.yearLevel));
+    if (childIsAlHafiz(child)) row("Program", "Al Hafiz (MFIS Iqra)");
     const cultural = child.culturalBackground as string[] | undefined;
     if (Array.isArray(cultural) && cultural.length)
       row("Cultural Background", cultural.join(", "));

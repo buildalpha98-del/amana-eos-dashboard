@@ -35,6 +35,8 @@ import {
   type DraftUpload,
 } from "@/lib/enrol-draft";
 import { KNOWN_SCHOOL_OPTIONS } from "@/components/enrol/types";
+import { AL_HAFIZ_PROGRAM, offersAlHafiz } from "@/lib/al-hafiz";
+import { readWebsiteEnrolContext } from "@/lib/website-enrol-context";
 
 // NOT named `children`: React treats that prop specially, and handing it
 // an array of plain objects is asking for a confusing render-time error.
@@ -114,7 +116,16 @@ export function ChildStep({
                 id={`c${i}-school`}
                 className={field}
                 value={c.schoolName ?? ""}
-                onChange={(e) => patch(i, { schoolName: e.target.value })}
+                onChange={(e) => {
+                  const schoolName = e.target.value;
+                  // Came from the Al Hafiz QR page? Pre-tick it the first
+                  // time they pick MFIS Greenacre (they can untick).
+                  const preTick =
+                    offersAlHafiz(schoolName) &&
+                    c.alHafiz === undefined &&
+                    readWebsiteEnrolContext().get("program") === AL_HAFIZ_PROGRAM;
+                  patch(i, { schoolName, ...(preTick ? { alHafiz: true } : {}) });
+                }}
               >
                 <option value="">Select a school…</option>
                 {KNOWN_SCHOOL_OPTIONS.map((s) => (
@@ -124,6 +135,24 @@ export function ChildStep({
                 ))}
               </select>
             </Field>
+            {offersAlHafiz(c.schoolName) && (
+              <label className="flex items-start gap-3 rounded-xl border border-border bg-surface p-3 text-sm sm:col-span-2">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-5 w-5 accent-[var(--color-brand)]"
+                  checked={c.alHafiz === true}
+                  onChange={(e) => patch(i, { alHafiz: e.target.checked })}
+                />
+                <span>
+                  <span className="font-medium text-foreground">
+                    {c.firstName?.trim() || "My child"} is in Sh Yasir&apos;s Al Hafiz program
+                  </span>
+                  <span className="block text-xs text-muted">
+                    For MFIS Iqra students. Tick this so we can look after them together each morning.
+                  </span>
+                </span>
+              </label>
+            )}
             {/* Free text, not a year dropdown — schools label rooms their
                 own way and that's what educators need at pickup. */}
             <Field

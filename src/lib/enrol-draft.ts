@@ -71,6 +71,11 @@ export interface DraftChild {
    * use on the ground, and it's what educators need at pickup.
    */
   classroom?: string;
+  /**
+   * MFIS Greenacre only: the child is in Sh Yasir's Al Hafiz program
+   * (src/lib/al-hafiz.ts). A tag for staff, not a separate enrolment.
+   */
+  alHafiz?: boolean;
   crn?: string;
   countryOfBirth?: string;
   /**

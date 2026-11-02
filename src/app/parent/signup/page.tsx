@@ -177,7 +177,7 @@ export default function ParentSignupPage() {
           <li>3. Review &amp; submit</li>
         </ol>
         <div className="mb-5">
-          <WebsiteEnrolContext />
+          <WebsiteEnrolContext entry />
         </div>
         <div className="bg-card rounded-2xl shadow-xl p-6 sm:p-8 border border-border">
           <form onSubmit={handleSubmit} className="space-y-4">

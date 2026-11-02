@@ -1,5 +1,6 @@
 "use client";
 
+import { AL_HAFIZ_LABEL, childIsAlHafiz } from "@/lib/al-hafiz";
 import { serviceTodayISO } from "@/lib/timezone";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -113,6 +114,7 @@ export default function EnrolmentsPage() {
           { header: "Email", accessor: (s) => s.primaryParent.email ?? "" },
           { header: "Mobile", accessor: (s) => s.primaryParent.mobile ?? "" },
           { header: "Children", accessor: (s) => s.children.map((c) => `${c.firstName} ${c.surname}`).join("; ") },
+          { header: "Al Hafiz", accessor: (s) => (s.children.some((c) => childIsAlHafiz(c)) ? "Yes" : "") },
           { header: "Status", accessor: (s) => s.status },
           { header: "Referral Source", accessor: (s) => s.referralSource ?? "" },
           { header: "Submitted", accessor: (s) => new Date(s.createdAt).toLocaleDateString("en-AU") },
@@ -393,6 +395,11 @@ function EnrolmentRow({
           {childNames}
           {s.children.length > 1 && (
             <span className="text-foreground/40 ml-1">({s.children.length})</span>
+          )}
+          {s.children.some((c) => childIsAlHafiz(c)) && (
+            <span className="ml-2 rounded-full bg-accent/40 px-2 py-0.5 text-2xs font-semibold text-brand">
+              {AL_HAFIZ_LABEL}
+            </span>
           )}
         </span>
       </div>

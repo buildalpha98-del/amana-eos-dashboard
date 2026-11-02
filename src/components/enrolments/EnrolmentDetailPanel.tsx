@@ -1,5 +1,6 @@
 "use client";
 
+import { AL_HAFIZ_LABEL, childIsAlHafiz } from "@/lib/al-hafiz";
 import { PARENT_APP_OPEN } from "@/lib/parent-portal-lockdown";
 import { useState } from "react";
 import {
@@ -375,6 +376,11 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
               <div key={i} className={i > 0 ? "pt-2 border-t border-border" : ""}>
                 <p className="font-semibold text-foreground text-xs mb-1">
                   {child.firstName} {child.surname}
+                  {childIsAlHafiz(child) && (
+                    <span className="ml-2 rounded-full bg-accent/40 px-2 py-0.5 text-2xs font-semibold text-brand">
+                      {AL_HAFIZ_LABEL}
+                    </span>
+                  )}
                 </p>
                 <Field label="DOB" value={child.dob} />
                 <Field label="Gender" value={child.gender} />
