@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { toast } from "@/hooks/useToast";
+import { externalAiProcessingAllowed } from "@/lib/ai-privacy-policy";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -14,6 +15,10 @@ export function useAssistant(currentPage?: string) {
   const abortRef = useRef<AbortController | null>(null);
 
   const sendMessage = useCallback(async (text: string) => {
+    if (!externalAiProcessingAllowed()) {
+      toast({ description: "AI assistance is paused for privacy. Open Help for guides and policies." });
+      return;
+    }
     if (!text.trim() || isStreaming) return;
 
     const userMsg: ChatMessage = { role: "user", content: text.trim() };

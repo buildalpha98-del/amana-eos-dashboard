@@ -11,8 +11,7 @@
  * an enrolment, and every accepted type is attack surface.
  */
 import { NextResponse } from "next/server";
-import path from "path";
-import { uploadFile } from "@/lib/storage";
+import { uploadPrivateFile } from "@/lib/private-storage";
 import { validateFileContent } from "@/lib/file-validation";
 import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError } from "@/lib/api-error";
@@ -43,7 +42,8 @@ const ALLOWED_TYPES = [
  */
 const MAX_SIZE = 4 * 1024 * 1024; // 4MB
 
-export const POST = withParentAuth(async (req) => {
+export const POST = withParentAuth(async (req, ctx) => {
+  if (!ctx.parent.accountId) throw ApiError.unauthorized("Please sign in again.");
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const kind = String(formData.get("type") ?? "document");
@@ -68,17 +68,7 @@ export const POST = withParentAuth(async (req) => {
     throw ApiError.badRequest("That file doesn't look like the type it claims to be.");
   }
 
-  const ext = path.extname(file.name) || "";
-  const baseName = path
-    .basename(file.name, ext)
-    .replace(/[^a-zA-Z0-9-_]/g, "-")
-    .substring(0, 50);
-  const uniqueName = `${kind}-${baseName}-${Date.now()}${ext}`;
-
-  const { url } = await uploadFile(Buffer.from(bytes), uniqueName, {
-    contentType: file.type,
-    folder: "enrolment-documents",
-  });
+  const { url } = await uploadPrivateFile(Buffer.from(bytes), file.name, file.type, { ownerParentId: ctx.parent.accountId });
 
   return NextResponse.json({ filename: file.name, url, type: kind });
 });

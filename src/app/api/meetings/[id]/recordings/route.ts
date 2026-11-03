@@ -1,16 +1,9 @@
+import { assertExternalAiAllowed } from "@/lib/ai-privacy";
+import { assertMeetingAccess } from "@/lib/meeting-access";
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
-import { parseJsonBody } from "@/lib/api-error";
-import { deleteFile } from "@/lib/storage";
-import { isStoredFileUrl } from "@/lib/blob-proxy";
-import { isOwnRecordingPath } from "@/lib/upload-strategy";
-import { logger } from "@/lib/logger";
-import {
-  buildDeepgramCallbackUrl,
-  requestTranscription,
-} from "@/lib/deepgram";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 /**
  * Meeting recordings (Phase 2, 2026-08-31).
@@ -21,113 +14,20 @@ import {
  * the transcript is the durable record.
  */
 
-const createRecordingSchema = z.object({
-  url: z.string().url(),
-  source: z.enum(["live_mic", "upload"]),
-  durationSeconds: z.number().int().positive().optional(),
-});
-
-const MEETING_ROLES = [
-  "owner",
-  "head_office",
-  "admin",
-  "marketing",
-  "eos_implementer",
-] as const;
+const MEETING_ROLES = [...ADMIN_ROLES, "marketing", "eos_implementer"] as const;
 
 // POST /api/meetings/[id]/recordings
-export const POST = withApiAuth(
-  async (req, session, context) => {
-    const { id } = await context!.params!;
-    const parsed = createRecordingSchema.safeParse(await parseJsonBody(req));
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.issues[0].message },
-        { status: 400 },
-      );
-    }
-
-    // Only the caller's own recording upload. Every recording's audio is
-    // deleted later (here on failure, by the Deepgram webhook, or by the
-    // janitor), so accepting any other blob URL would let a user get someone
-    // else's file deleted. The token route only issues recording uploads
-    // under recordings/<userId>/ (src/lib/upload-strategy.ts).
-    if (
-      !isStoredFileUrl(parsed.data.url) ||
-      !isOwnRecordingPath(decodeURIComponent(new URL(parsed.data.url).pathname).slice(1), session.user.id)
-    ) {
-      return NextResponse.json(
-        { error: "That isn't one of your recording uploads" },
-        { status: 400 },
-      );
-    }
-
-    const meeting = await prisma.meeting.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-    if (!meeting) {
-      return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
-    }
-
-    const recording = await prisma.meetingRecording.create({
-      data: {
-        meetingId: id,
-        source: parsed.data.source,
-        status: "uploaded",
-        audioBlobUrl: parsed.data.url,
-        durationSeconds: parsed.data.durationSeconds ?? null,
-        createdById: session!.user.id,
-      },
-    });
-
-    try {
-      const { requestId } = await requestTranscription({
-        audioUrl: parsed.data.url,
-        callbackUrl: buildDeepgramCallbackUrl(),
-      });
-      const updated = await prisma.meetingRecording.update({
-        where: { id: recording.id },
-        data: { deepgramRequestId: requestId, status: "transcribing" },
-      });
-      return NextResponse.json(updated, { status: 201 });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      await prisma.meetingRecording.update({
-        where: { id: recording.id },
-        data: { status: "failed", error: message },
-      });
-      // Null the URL only after a successful delete — janitor sweep e3
-      // retries terminal rows that still carry one.
-      try {
-        await deleteFile(parsed.data.url);
-        await prisma.meetingRecording.update({
-          where: { id: recording.id },
-          data: { audioBlobUrl: null },
-        });
-      } catch (delErr) {
-        logger.warn("recordings: could not delete blob after Deepgram failure", {
-          recordingId: recording.id,
-          err: delErr instanceof Error ? delErr.message : String(delErr),
-        });
-      }
-      logger.error("recordings: Deepgram transcription request failed", {
-        recordingId: recording.id,
-        err: message,
-      });
-      return NextResponse.json(
-        { error: "Transcription request failed" },
-        { status: 502 },
-      );
-    }
-  },
-  { roles: [...MEETING_ROLES], rateLimit: { max: 10, windowMs: 60_000 } },
-);
+export const POST = withApiAuth(async () => {
+  // Check before creating rows or deleting any submitted URL.
+  assertExternalAiAllowed();
+  return NextResponse.json({ error: "External AI processing is blocked." }, { status: 403 });
+}, { roles: [...MEETING_ROLES] });
 
 // GET /api/meetings/[id]/recordings — list (transcript Json excluded; the
 // flat transcriptText + aiReview are what the UI renders)
 export const GET = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
+    await assertMeetingAccess(session, id);
 
   const recordings = await prisma.meetingRecording.findMany({
     where: { meetingId: id },
@@ -138,6 +38,7 @@ export const GET = withApiAuth(async (req, session, context) => {
       status: true,
       durationSeconds: true,
       transcriptText: true,
+      transcriptFileUrl: true,
       aiReview: true,
       error: true,
       createdById: true,
@@ -148,5 +49,5 @@ export const GET = withApiAuth(async (req, session, context) => {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(recordings);
+  return NextResponse.json(recordings, { headers: { "Cache-Control": "private, no-store" } });
 });

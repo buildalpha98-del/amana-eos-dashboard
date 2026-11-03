@@ -6,6 +6,8 @@ import { act, render, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
 
+const policy = vi.hoisted(() => ({ enabled: true }));
+vi.mock("@/lib/ai-privacy-policy", () => ({ externalAiProcessingAllowed: () => policy.enabled }));
 const uploadFileSmart = vi.fn();
 const mutateApi = vi.fn();
 const toast = vi.fn();
@@ -111,6 +113,17 @@ describe("MeetingRecorderProvider", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.useRealTimers();
+  });
+
+  it("does not open the microphone or upload when external AI is blocked", async () => {
+    policy.enabled = false;
+    try {
+      const { result } = renderHook(() => useMeetingRecorder(), { wrapper });
+      await act(async () => { await result.current.start("m1"); });
+      expect(result.current.status).toBe("idle");
+      expect(navigator.mediaDevices.getUserMedia).not.toHaveBeenCalled();
+      expect(uploadFileSmart).not.toHaveBeenCalled();
+    } finally { policy.enabled = true; }
   });
 
   it("starts recording, persists chunks, and keeps recording when the consumer page unmounts", async () => {

@@ -38,9 +38,9 @@ beforeEach(() => {
 });
 
 describe("direct-upload tokens", () => {
-  it("issues a recording token for the uploader's own folder", async () => {
-    expect((await ask("recordings/u1/l10.webm", "recording")).status).toBe(200);
-    expect(blob.issued[0]).toMatchObject({ addRandomSuffix: true, tokenPayload: JSON.stringify({ userId: "u1" }) });
+  it("blocks recording tokens even for the uploader's own folder", async () => {
+    expect((await ask("recordings/u1/l10.webm", "recording")).status).toBe(400);
+    expect(blob.issued).toHaveLength(0);
   });
 
   it.each([

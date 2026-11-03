@@ -46,6 +46,7 @@ export const POST = withApiAuth(async (req, session) => {
             // Malformed payload — treat as default lane.
           }
         }
+        if (isRecording) throw new Error("Recording uploads are paused while external AI processing is blocked.");
         // Recordings are deleted after transcription, so they must sit in the
         // uploader's own folder; nothing else may write into recordings/.
         if (isRecording ? !isOwnRecordingPath(pathname, session.user.id) : pathname.startsWith("recordings/")) {

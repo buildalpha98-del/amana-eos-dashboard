@@ -35,7 +35,7 @@ const BANK_PLAINTEXT = JSON.stringify({ method: "bank_account", accountName: "Sy
 const owner = { id: "owner-1", name: "Synthetic owner", role: "owner" as const };
 
 const proof = (over: Partial<Parameters<typeof encodeProof>[0]> = {}) =>
-  encodeProof({ uid: owner.id, lat: 1_700_000_000_000, tv: 3, pur: "payment_reveal", exp: Date.now() + 60_000, ...over });
+  encodeProof({ method: "passkey", credentialId: "key-1", uid: owner.id, lat: 1_700_000_000_000, tv: 3, pur: "payment_reveal", exp: Date.now() + 60_000, ...over });
 const reveal = (cookie?: string) =>
   REVEAL(createRequest("POST", "/api/enrolments/enr-1/payment", { headers: cookie ? { cookie: `${RECENT_AUTH_COOKIE}=${cookie}` } : {} }), ctx);
 
@@ -54,6 +54,7 @@ beforeEach(async () => {
   }));
   prismaMock.enrolmentSubmission.findUnique.mockResolvedValue({ id: "enr-1", paymentMethod: "bank_account", paymentDetails: { bsbLastThree: "000", accountLastFour: "5678", raw: "v1:x" } });
   prismaMock.activityLog.create.mockResolvedValue({});
+  prismaMock.passkey.findFirst.mockResolvedValue({ id: "key-1", userId: owner.id });
 });
 
 describe("revealing bank details", () => {
@@ -120,7 +121,7 @@ describe("confirming identity", () => {
   const confirm = (body: Record<string, unknown>) => CONFIRM(createRequest("POST", "/api/auth/confirm-identity", { body }));
 
   it("sets a short, httpOnly, strict proof bound to this login on the right password", async () => {
-    const res = await confirm({ password: "synthetic-password", purpose: "payment_reveal" });
+    const res = await confirm({ password: "synthetic-password", purpose: "passkey_setup" });
     expect(res.status).toBe(200);
     const cookie = res.headers.get("set-cookie") ?? "";
     expect(cookie).toContain(`${RECENT_AUTH_COOKIE}=`);
@@ -130,30 +131,30 @@ describe("confirming identity", () => {
   });
 
   it("refuses a wrong password, and records the failure", async () => {
-    expect((await confirm({ password: "wrong", purpose: "payment_reveal" })).status).toBe(401);
+    expect((await confirm({ password: "wrong", purpose: "passkey_setup" })).status).toBe(401);
     expect(prismaMock.activityLog.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ action: "identity_confirm_failed" }) }));
   });
 
   it("requires the second factor when MFA is on", async () => {
     prismaMock.user.findUnique.mockImplementation(async () => ({
-      id: owner.id, active: true, isCentreAccount: false, mfaEnabledAt: new Date(), mfaSecret: "enc", mfaBackupCodes: [], tokenVersion: 3, passwordHash,
+      id: owner.id, active: true, role: "owner", isCentreAccount: false, mfaEnabledAt: new Date(), mfaSecret: "enc", mfaBackupCodes: [], tokenVersion: 3, passwordHash,
     }));
-    expect((await confirm({ password: "synthetic-password", purpose: "payment_reveal" })).status).toBe(401);
+    expect((await confirm({ password: "synthetic-password", purpose: "passkey_setup" })).status).toBe(401);
   });
 
   it("refuses a shared centre login", async () => {
     mockSession({ ...owner, isCentreAccount: true });
-    expect((await confirm({ password: "synthetic-password", purpose: "payment_reveal" })).status).toBe(403);
+    expect((await confirm({ password: "synthetic-password", purpose: "passkey_setup" })).status).toBe(403);
   });
 
   it("refuses when the session's token version is stale", async () => {
     jwt.token = { loginAt: 1_700_000_000_000, tokenVersion: 2 };
-    expect((await confirm({ password: "synthetic-password", purpose: "payment_reveal" })).status).toBe(401);
+    expect((await confirm({ password: "synthetic-password", purpose: "passkey_setup" })).status).toBe(401);
   });
 });
 
 describe("staff payment edits", () => {
-  const put = (body: Record<string, unknown>) => STAFF_PUT(createRequest("PUT", "/api/enrolments/enr-1/payment", { body }), ctx);
+  const put = (body: Record<string, unknown>) => STAFF_PUT(createRequest("PUT", "/api/enrolments/enr-1/payment", { body, headers: { cookie: `${RECENT_AUTH_COOKIE}=${proof({ pur: "payment_change" })}` } }), ctx);
 
   it.each([
     { method: "credit_card", cardName: "X", cardNumber: PAN, ccv: "123", expiryMonth: "01", expiryYear: "2030" },

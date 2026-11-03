@@ -39,7 +39,9 @@ export async function authenticateCowork(request: NextRequest): Promise<NextResp
     );
   }
 
-  return null; // Auth passed — no rate limit on valid requests
+  // Cowork is an AI integration: valid credentials must not bypass the
+  // organisation's default block on external AI receiving dashboard data.
+  return NextResponse.json({ error: "External AI access is blocked to protect personal information.", details: { code: "AI_PRIVACY_BLOCKED" } }, { status: 403 });
 }
 
 // ---------------------------------------------------------------------------

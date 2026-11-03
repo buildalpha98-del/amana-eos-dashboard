@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import path from "path";
 import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError } from "@/lib/api-error";
-import { uploadFile } from "@/lib/storage";
+import { uploadPrivateFile } from "@/lib/private-storage";
 import { validateFileContent } from "@/lib/file-validation";
 
 const ALLOWED_TYPES = new Set([
@@ -21,7 +20,8 @@ const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
  * parent-reported absence. Returns a Vercel Blob URL suitable for persisting
  * on the Absence record.
  */
-export const POST = withParentAuth(async (req) => {
+export const POST = withParentAuth(async (req, ctx) => {
+  if (!ctx.parent.accountId) throw ApiError.unauthorized("Please sign in again.");
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
 
@@ -42,19 +42,7 @@ export const POST = withParentAuth(async (req) => {
     throw ApiError.badRequest("File content does not match declared type");
   }
 
-  const ext = path.extname(file.name) || (file.type === "application/pdf" ? ".pdf" : ".jpg");
-  const baseName = path
-    .basename(file.name, ext)
-    .replace(/[^a-zA-Z0-9-_]/g, "-")
-    .substring(0, 50);
-  const uniqueName = `${baseName || "cert"}-${Date.now()}${ext}`;
-
-  const buffer = Buffer.from(bytes);
-  const { url } = await uploadFile(buffer, uniqueName, {
-    contentType: file.type,
-    folder: "parent-absence-certs",
-    access: "public",
-  });
+  const { url } = await uploadPrivateFile(Buffer.from(bytes), file.name, file.type, { ownerParentId: ctx.parent.accountId });
 
   return NextResponse.json({ url });
 });

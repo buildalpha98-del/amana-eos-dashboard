@@ -18,7 +18,7 @@ import { prisma } from "@/lib/prisma";
 const schema = z.object({
   password: z.string().min(1, "Enter your password").max(200),
   mfaCode: z.string().trim().max(20).optional(),
-  purpose: z.enum(["payment_reveal"]),
+  purpose: z.enum(["passkey_setup"]),
 });
 
 export const POST = withApiAuth(

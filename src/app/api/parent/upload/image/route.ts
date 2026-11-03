@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import path from "path";
-import { uploadFile } from "@/lib/storage";
+import { uploadPrivateFile } from "@/lib/private-storage";
 import { validateFileContent } from "@/lib/file-validation";
 import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError } from "@/lib/api-error";
@@ -20,7 +19,8 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5MB — matches client-side cap for message
  * Returns a publicly-accessible URL that can be persisted on
  * Message.attachmentUrls.
  */
-export const POST = withParentAuth(async (req) => {
+export const POST = withParentAuth(async (req, ctx) => {
+  if (!ctx.parent.accountId) throw ApiError.unauthorized("Please sign in again.");
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
 
@@ -43,19 +43,7 @@ export const POST = withParentAuth(async (req) => {
     throw ApiError.badRequest("File content does not match declared type");
   }
 
-  const ext = path.extname(file.name) || ".jpg";
-  const baseName = path
-    .basename(file.name, ext)
-    .replace(/[^a-zA-Z0-9-_]/g, "-")
-    .substring(0, 50);
-  const uniqueName = `${baseName}-${Date.now()}${ext}`;
-
-  const buffer = Buffer.from(bytes);
-  const { url } = await uploadFile(buffer, uniqueName, {
-    contentType: file.type,
-    folder: "message-attachments",
-    access: "public",
-  });
+  const { url } = await uploadPrivateFile(Buffer.from(bytes), file.name, file.type, { ownerParentId: ctx.parent.accountId });
 
   return NextResponse.json({ url });
 });

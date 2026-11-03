@@ -1,3 +1,4 @@
+import { privateFileId, privateFileResponse } from "@/lib/private-storage";
 /**
  * Same-origin streaming proxy for files held in Vercel Blob storage.
  *
@@ -42,6 +43,7 @@ const INLINE_SAFE_TYPES = new Set([
  * (src/lib/schemas/message-attachments.ts) — keep the two in step.
  */
 export function isStoredFileUrl(url: string): boolean {
+  if (privateFileId(url)) return true;
   try {
     const { protocol, hostname, username, password, port } = new URL(url);
     if (protocol !== "https:" || username || password || port) return false;
@@ -92,7 +94,7 @@ export async function streamStoredFile(
 
   let upstream: Response;
   try {
-    upstream = await fetch(fileUrl, { redirect: "error" });
+    upstream = privateFileId(fileUrl) ? await privateFileResponse(fileUrl) : await fetch(fileUrl, { redirect: "error", cache: "no-store" });
   } catch (err) {
     logger.error("Stored file fetch failed", { err, fileUrl });
     throw ApiError.notFound("File not found");

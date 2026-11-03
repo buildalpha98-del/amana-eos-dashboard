@@ -1,5 +1,6 @@
 // src/components/meetings/MeetingRecorderProvider.tsx
 "use client";
+import { externalAiProcessingAllowed } from "@/lib/ai-privacy-policy";
 
 import {
   createContext,
@@ -232,6 +233,11 @@ export function MeetingRecorderProvider({ children }: { children: ReactNode }) {
 
   const start = useCallback(
     async (targetMeetingId: string) => {
+      if (!externalAiProcessingAllowed()) {
+      fail("Live transcription is paused for privacy. Add written notes in Meeting records.");
+      return;
+      }
+
       if (startingRef.current || statusRef.current !== "idle" || sessionRef.current || recorderRef.current) return;
       startingRef.current = true;
       try {

@@ -1,3 +1,4 @@
+import { deletePrivateFile } from "@/lib/private-storage";
 import { put, del } from "@vercel/blob";
 
 /**
@@ -26,7 +27,7 @@ export async function uploadFile(
  */
 export async function deleteFile(url: string): Promise<void> {
   try {
-    await del(url);
+    if (!(await deletePrivateFile(url))) await del(url);
   } catch {
     // Swallow errors — file may already be deleted or URL invalid
   }
