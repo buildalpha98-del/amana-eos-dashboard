@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -31,7 +31,6 @@ vi.mock("@/hooks/useToast", () => ({
 }));
 
 import { ServiceWeeklyShiftsGrid } from "@/components/services/ServiceWeeklyShiftsGrid";
-import { getWeekStart, toLocalIsoDate } from "@/lib/utils";
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -78,14 +77,17 @@ const STAFF_MEMBERS = [
   staffMember("staff-2", "Bob Smith", { isPrimary: false }),
 ];
 
+// Sunday in UTC, Monday in Sydney: the service's week must win over the
+// runner's local week. Keep fixtures fixed so weekends and week rollovers
+// cannot move shifts or leave outside the visible grid.
+const NOW = "2026-10-11T23:03:00.000Z";
+const MONDAY_ISO = "2026-10-12";
+
 const SHIFT_SAMPLE = {
   id: "shift-1",
   userId: "staff-1",
   staffName: "Jane Doe",
-  // Using a fixed date in the current week for the test — don't assume which
-  // day of the week the test runs on; the grid's internal weekStart is
-  // derived from `new Date()` so we just make sure a shift lands inside.
-  date: new Date().toISOString(),
+  date: `${MONDAY_ISO}T12:00:00`,
   sessionType: "asc",
   shiftStart: "15:00",
   shiftEnd: "18:00",
@@ -93,10 +95,6 @@ const SHIFT_SAMPLE = {
   status: "draft" as const,
   user: { id: "staff-1", name: "Jane Doe", avatar: null },
 };
-
-// Monday of the CURRENT week as local YYYY-MM-DD — always inside the grid's
-// default visible week, whatever day the test runs on.
-const MONDAY_ISO = toLocalIsoDate(getWeekStart());
 
 function installFetchMock(opts?: {
   withShift?: boolean;
@@ -205,9 +203,15 @@ function installFetchMock(opts?: {
 
 describe("ServiceWeeklyShiftsGrid", () => {
   beforeEach(() => {
+    // Mock Date only; React Query and waitFor still use real timers.
+    vi.setSystemTime(new Date(NOW));
     vi.clearAllMocks();
     sessionRef.role = "admin";
     sessionRef.serviceId = null;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("renders staff rows and editor controls for admin (canEdit=true)", async () => {
@@ -226,6 +230,7 @@ describe("ServiceWeeklyShiftsGrid", () => {
 
     expect(screen.getByRole("button", { name: /copy last week/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /publish/i })).toBeDefined();
+    expect(screen.getByText("12 Oct – 16 Oct 2026")).toBeDefined();
   });
 
   it("hides editor controls for staff role (read-only)", async () => {
